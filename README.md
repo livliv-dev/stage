@@ -5,6 +5,8 @@
   </picture>
 </p>
 
+<h3 align="center">Your AI-Native VTuber Studio<br><sub>Many characters. One stage.</sub></h3>
+
 <p align="center">
   A stage for 2D characters, in the browser or as a desktop app. Put many characters on one canvas, play one with your
   webcam, let AI VTubers talk to each other and to your live chat, then record a video or go live through OBS.<br>

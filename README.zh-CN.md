@@ -5,6 +5,8 @@
   </picture>
 </p>
 
+<h3 align="center">你的 AI 原生 VTuber 工作室<br><sub>很多角色，同一张舞台。</sub></h3>
+
 <p align="center">
   2D 角色的舞台，浏览器和桌面都能用。把很多角色放上同一张舞台，用摄像头扮演其中一个，让 AI 主播彼此聊天、回应直播弹幕，
   再录成视频，或者通过 OBS 开播。<br>
