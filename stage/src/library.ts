@@ -14,7 +14,7 @@ export type Pick = { name: string; persona: string; model: ModelRef; thumb?: str
 
 type Card = { id: string; name: string; tagline?: string; tags?: string[]; v?: number; live?: unknown }
 
-/** a character's live settings on the site (its meta.live, set on its page: the site's lib/live.ts), read only:
+/** a character's live settings on the site (the `live` field of GET /api/models/<id>, set on its page), read only:
  *  face smoothing 0..1, how far the body's movement carries it 0..2, how much the voice moves the head 0..2, hops on
  *  syllables, seconds without a face before it dozes off (0 never), and how each expression's key shows it */
 export type Live = { smooth?: number; follow?: number; talk?: number; bounce?: boolean; autoAway?: number; expr?: Record<string, ExprMode> }

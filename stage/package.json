@@ -21,6 +21,7 @@
     "test:gamepad": "node test/gamepad.mjs",
     "test:journey": "node test/journey.mjs",
     "test:live": "node test/live.mjs",
+    "test:points": "node test/points.mjs",
     "build:site": "node scripts/build-site.mjs"
   },
   "dependencies": {

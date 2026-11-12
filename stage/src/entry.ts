@@ -85,20 +85,21 @@ function onStage(pick: Pick, there: CharacterItem | undefined, as: LinkedAs, liv
     ...(face ? { faceMic: there?.faceMic !== false } : {}) }
   store.begin()
   let id: string
-  if (there) { store.patch(there.id, setup); id = there.id }
-  else {
-    const c = newCharacter(s, pick.name, pick.model, pick.persona, 0.5, pick.card)
-    Object.assign(c, setup)
-    // where it starts: its live settings on the site
-    if (live?.smooth !== undefined) c.smooth = live.smooth
-    if (live?.talk !== undefined) c.talk = Math.min(1.5, live.talk)
-    if (live?.autoAway !== undefined) c.autoAway = live.autoAway
-    c.tuning = { ...c.tuning, ...(live?.follow !== undefined ? { faceFollow: live.follow } : {}), ...(live?.bounce !== undefined ? { bounce: live.bounce } : {}) }
-    store.add(c); id = c.id
-  }
-  // AI lines show along the bottom
-  if (!face && !store.get().items.some((i) => i.kind === 'subtitle' && !i.hidden && (i.of === id || i.of === 'all'))) store.add(captionBar(store.get()))
-  store.end()
+  try {
+    if (there) { store.patch(there.id, setup); id = there.id }
+    else {
+      const c = newCharacter(s, pick.name, pick.model, pick.persona, 0.5, pick.card)
+      Object.assign(c, setup)
+      // where it starts: its live settings on the site
+      if (live?.smooth !== undefined) c.smooth = live.smooth
+      if (live?.talk !== undefined) c.talk = Math.min(1.5, live.talk)
+      if (live?.autoAway !== undefined) c.autoAway = live.autoAway
+      c.tuning = { ...c.tuning, ...(live?.follow !== undefined ? { faceFollow: live.follow } : {}), ...(live?.bounce !== undefined ? { bounce: live.bounce } : {}) }
+      store.add(c); id = c.id
+    }
+    // AI lines show along the bottom
+    if (!face && !store.get().items.some((i) => i.kind === 'subtitle' && !i.hidden && (i.of === id || i.of === 'all'))) store.add(captionBar(store.get()))
+  } finally { store.end() }
   store.select(id)
   setLiveCharacter(face ? id : null)
   if (face) talk.setAs(id)

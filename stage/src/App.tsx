@@ -9,7 +9,7 @@ import {
   FileBox, Plus, RefreshCw, SlidersHorizontal, Volume2, VolumeX,
   MonitorPlay, Pencil, Pause, Play, Redo2, RotateCcw, Save, Send, SkipForward, Square, StepForward, Settings, Sparkles, Type, Undo2, UserPlus, X,
 } from 'lucide-react'
-import { brainReady, listModels, playDemo, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveBrainConfig, savedBrain, testModel, useBrainConfig, type ModelConfig } from './brain'
+import { brainReady, listModels, loadBrainConfig, playDemo, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveBrainConfig, savedBrain, testModel, useBrainConfig, type ModelConfig } from './brain'
 import { conversation, talk, useConversation } from './conversation'
 import { Panel, PanelTab, TalkSettings } from './Inspector'
 import { byId, fromFiles, fromKept, fromPngs, mine as accountCharacters, samples, type Pick } from './library'
@@ -111,8 +111,13 @@ export default function App() {
   const openSettings = () => { setSettingsTab('general'); setPop('settings') }
   useEffect(() => { void refresh() }, [])  // the LivLiv account, if one is connected
   // LivLiv's points AI asks the site's age question once (livliv.ts stageLine): answered here
+  // (one question at a time: a second line asking while it is open waits for the same answer)
   const [ageAsk, setAgeAsk] = useState<((adult: boolean) => void) | null>(null)
-  useEffect(() => { ageGate.ask = () => new Promise<boolean>((resolve) => setAgeAsk(() => resolve)); return () => { ageGate.ask = null } }, [])
+  const agePending = useRef<Promise<boolean> | null>(null)
+  useEffect(() => {
+    ageGate.ask = () => agePending.current ??= new Promise<boolean>((resolve) => setAgeAsk(() => (adult: boolean) => { agePending.current = null; resolve(adult) }))
+    return () => { ageGate.ask = null }
+  }, [])
   const answerAge = async (adult: boolean) => {
     try { await setAge(adult) } catch { /* the line that asked says what went wrong */ }
     ageAsk?.(adult); setAgeAsk(null)
@@ -148,6 +153,7 @@ export default function App() {
     help: () => toggle('help'),
     zoom: setZoom,
     bare: () => setBare((b) => !b),
+    say,
   })
   const show = mode === 'show'
   // the stage's room: the same whatever is open (only ⌘\ changes it)
@@ -202,7 +208,7 @@ export default function App() {
   )
 }
 
-type Keys = { escape: () => void; help: () => void; zoom: (z: Zoom | ((z: Zoom) => Zoom)) => void; bare: () => void }
+type Keys = { escape: () => void; help: () => void; zoom: (z: Zoom | ((z: Zoom) => Zoom)) => void; bare: () => void; say: (s: string) => void }
 
 /** keys while not typing: ⌘Z / ⇧⌘Z undo / redo, ⌘D copy, Delete, arrows move (⇧: by 10), ⇧1 fit, ⇧0 100%, ⌘\
  *  panels, Space start / pause, Esc, ? the list */
@@ -229,7 +235,13 @@ function useShortcuts(keys: Keys) {
       if (e.code === 'Space' && !t.closest('button')) {
         e.preventDefault()
         const c = conversation()
-        if (!characters(store.get()).some((x) => x.lines === 'ai')) actors.forEach((a) => { if (a.item.lines === 'me') a.calibrate() }); else if (!c.running) talk.start(); else if (c.paused) talk.resume(); else talk.pause()
+        if (!characters(store.get()).some((x) => x.lines === 'ai')) actors.forEach((a) => { if (a.item.lines === 'me') a.calibrate() })
+        else if (c.running) { if (c.paused) talk.resume(); else talk.pause() }
+        // lines paid with points start only from 对谈 or AI 直播, never from a key: Space plays the free demo instead
+        else if (loadBrainConfig().kind === 'livliv') {
+          if (demoFor(characters(store.get()))?.script.template === 'trio') void beginDemo()
+          else K.say(tr("用积分的台词，请从「对谈」或「AI 直播」开始"))
+        } else talk.start()
         return
       }
       if (!id || store.mode() !== 'edit') return

@@ -5,6 +5,7 @@
 // while said and `linger` seconds after, typed out at the voice's pace, a cut line stopping where it was.
 import { assetUrl, backgroundUrl } from './assets'
 import { tr } from './i18n'
+import { onSite } from './host'
 import type { ImageGeometry } from './attachments'
 import type { Conv } from './tape'
 import type { CharacterItem, ImageItem, Scene, SubtitleItem, TextItem } from './scene'
@@ -258,8 +259,9 @@ export function paintMark(g: CanvasRenderingContext2D, w: number, h: number) {
   g.restore()
 }
 
-/** an AI character is in sight: the picture carries the 「AI 生成」 label */
-export const showsAI = (s: Scene) => s.items.some((i) => i.kind === 'character' && i.lines === 'ai' && !i.hidden)
+/** on livliv.ai/stage, an AI character in sight: the picture carries the 「AI 生成」 label, as the site's own videos do
+ *  (other builds leave it to you; their recordings say it in the file's comment) */
+export const showsAI = (s: Scene) => onSite && s.items.some((i) => i.kind === 'character' && i.lines === 'ai' && !i.hidden)
 /** the label: a pill in the top left corner, its text about 28 px on a 1080p stage (size), `at` from the edges, white
  *  on dark glass so it reads on any background. The stage and the output show the same in CSS (Stage.tsx) */
 export const aiLabelBox = (w: number, h: number) => { const short = Math.min(w, h); return { size: Math.round(short * 0.026), at: Math.round(short * 0.022) } }

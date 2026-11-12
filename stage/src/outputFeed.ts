@@ -23,6 +23,7 @@ function start() {
     const w = new Worker(url)
     let loaded = false
     w.onmessage = () => { if (!loaded) { loaded = true; URL.revokeObjectURL(url) } tick() }
+    w.onerror = () => { URL.revokeObjectURL(url); stop() }  // a page that refuses blob: workers: the output follows the editor while it is shown
     worker = w
   } catch { worker = null }  // no workers here: the output follows the editor while it is shown
 }

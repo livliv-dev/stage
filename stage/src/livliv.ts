@@ -155,11 +155,14 @@ export async function stageLine(mid: string, body: StageLineBody, signal?: Abort
   const url = `/api/chat/${encodeURIComponent(mid)}/stage-line`
   let r = await post(url, body, signal)
   if (r.status === 428 && ageGate.ask) {
-    if (!(await ageGate.ask())) throw new Error(tr("未满 18 岁不能用 AI 让角色说话"))
+    // the question stays open for the next line; this one stops waiting when its turn is called off
+    signal?.throwIfAborted()
+    const stopped = new Promise<never>((_, no) => signal?.addEventListener('abort', () => no(signal.reason), { once: true }))
+    if (!(await Promise.race([ageGate.ask(), stopped]))) throw new Error(tr("未满 18 岁不能用 AI 让角色说话"))
     r = await post(url, body, signal)
   }
   if (!r.ok) {
-    const detail = String((await r.json().catch(() => ({})))?.detail ?? '')
+    const said = (await r.json().catch(() => ({})))?.detail, detail = typeof said === 'string' ? said : ''
     if (r.status === 401 || r.status === 402) void refresh()
     const zh = getLocale().startsWith('zh') && detail
     throw new Error(zh ? detail : r.status === 402 ? tr("积分用完了，或者今天、这个月的次数到了上限") : r.status === 403 ? tr("只有作者能在 Stage 里用这个角色")

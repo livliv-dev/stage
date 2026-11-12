@@ -340,16 +340,22 @@ export class Actor {
     } catch (e) {
       if (run !== this.driverRun || this.disposed) return
       this.micStream?.getTracks().forEach((t) => t.stop()); this.micStream = null
-      this.error = deviceError(tr("麦克风"), e as Error)
+      this.error = deviceError(tr("麦克风"), e as Error); changed()
     }
   }
 
   retryInput() { this.driverKey = ''; void this.drive() }
 
-  async prepare(text: string, emotion: Emotion, aloud = true, signal?: AbortSignal, recorded?: string): Promise<Take> {
+  /** recorded: its voice, made already (the demo's, or the site's with the line); null: the site was asked for it with
+   *  the line and made none, so it isn't asked for again */
+  async prepare(text: string, emotion: Emotion, aloud = true, signal?: AbortSignal, recorded?: string | null): Promise<Take> {
     const v = this.item.voice, route = aloud ? voiceRoute(this.item) : 'none'
     this.voiceError = ''
-    if (recorded) {
+    if (recorded === null && route === 'livliv') {
+      this.voiceError = tr("这句的声音没有生成"); changed()
+      return { text, seconds: estimate(text), clip: null, aloud: false, mute: true }
+    }
+    if (recorded && aloud) {
       const r = await fetch(recorded, { signal })
       if (!r.ok) throw new Error(tr("演示声音读取失败（") + r.status + '）')
       const blob = await r.blob()

@@ -7,7 +7,7 @@ import { tr } from './i18n'
 //  - demo: chosen on purpose, for this run of the app only (the model set up stays saved): prepared conversations of
 //    the sample characters with prerecorded voices (demo.ts)
 //  - livliv: on livliv.ai/stage, signed in, no key of one's own: the site writes each line from the character's card and
-//    voices it, paid with points (/api/chat/<id>/stage-line, the site's companion/stage_ai.py); LivLiv characters only
+//    voices it, paid with points (POST /api/chat/<id>/stage-line on the site); LivLiv characters only
 // In the desktop client a model's API is reached through the app (its /__ai pass-through, desktop stageApp.ts): no
 // CORS, so local servers (Ollama) and APIs without browser access work too
 import { useSyncExternalStore } from 'react'
@@ -35,7 +35,8 @@ export type Ask = {
   role: 'host' | 'guest' | null; cutIn: boolean; language: Talk['language']
   /** a viewer's message to answer first */
   viewer: { user: string; text: string } | null
-  /** the line will be heard (not subtitles only): a brain that voices its own lines voices it */
+  /** a brain that voices its own lines voices this one (LivLiv: the site's voice for it, paid): false for subtitles
+   *  only, a muted character, or one voiced another way (the system voice, your own speech API) */
   voiced?: boolean
 }
 export type Reply = Omit<Line, 'id' | 'who' | 'name'>
@@ -77,8 +78,8 @@ function load(): ModelConfig | LivLivConfig {
     if (c?.kind === 'demo') c = JSON.parse(localStorage.getItem(LAST_MODEL) || 'null')
     if (c?.kind === 'openai' && typeof c.base === 'string') return { ...UNSET, ...c, provider: c.provider ?? (PROVIDERS.find((p) => p.base === c.base)?.id ?? 'custom') }
   } catch { /* none saved */ }
-  // nothing chosen yet: on livliv.ai, LivLiv (the site's own, by its sign-in; owner 11-12: from the sidebar a member
-  // goes straight to AI live); elsewhere a model of one's own still to be set up
+  // nothing chosen yet: on livliv.ai, LivLiv (the site's own, by its sign-in: someone signed in goes straight to AI
+  // live); elsewhere a model of one's own still to be set up
   return onSite ? { kind: 'livliv' } : UNSET
 }
 /** the model set up (saved), and what the AI characters think with now: it, or the demo */
@@ -188,7 +189,7 @@ class LivLivBrain implements Brain {
       cast: a.layout.slice(0, 8).map((n) => n.slice(0, 40)), topic: a.topic.slice(0, 200),
       lines: a.lines.slice(-14).map((l) => ({ name: l.name.slice(0, 40), text: l.text.slice(0, 300), me: l.who === a.me.id })),
       viewer: a.viewer ? { user: a.viewer.user.slice(0, 40), text: a.viewer.text.slice(0, 500) } : null,
-      language: a.language, length: a.me.length, role: a.role, voice: a.voiced !== false && !a.me.muted,
+      language: a.language, length: a.me.length, role: a.role, voice: !!a.voiced,
       voice_id: a.me.voice.source === 'livliv' && a.me.voice.livliv ? a.me.voice.livliv : null,
     }, signal)
     const names = [...a.others.map((x) => x.name), ...a.humans]

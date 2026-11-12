@@ -227,7 +227,7 @@ function looks(speaker: CharacterItem | null, line: Line | null, seconds = 0) {
  *  thought) */
 async function deliver(line: Line, c: CharacterItem | null, signal: AbortSignal, ready?: Take) {
   const a = c ? actors.get(c.id) : undefined
-  const take = ready ?? (a && c ? await a.prepare(line.text, line.emotion, !line.human || c.readAloud, signal) : undefined)
+  const take = ready ?? (a && c ? await a.prepare(line.text, line.emotion, (!line.human || c.readAloud) && !c.muted, signal) : undefined)
   signal.throwIfAborted()
   const seconds = take?.seconds ?? estimate(line.text)
   looks(c, line, seconds)
@@ -274,12 +274,19 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
   const chat = audience === undefined ? someViewer() : audience
   if (state.mode === 'live') set({ generations: state.generations + 1 })
   const viewer = chat ? { user: chat.user, text: chat.text } : null
-  const r = await makeBrain(loadBrainConfig()).reply({
+  // heard: not subtitles only, and not muted (a muted character's voice would be made, and paid for, to play at 0).
+  // voiced: the site makes its LivLiv voice together with the line (the line's price on a paid plan depends on it); a
+  // character on the system voice or your own speech API is voiced here instead
+  const cfg = loadBrainConfig(), aloud = !liveOptions?.textOnly && !me.muted
+  const voiced = aloud && voiceRoute(me) === 'livliv'
+  const r = await makeBrain(cfg).reply({
     me, others: ai.filter((c) => c.id !== me.id), humans: people, topic: s.topic, lines: state.lines, role, cutIn, language: t.language, viewer,
-    layout: [...characters(s)].sort((a, b) => across(a) - across(b)).map((c) => c.name),
+    layout: [...characters(s)].sort((a, b) => across(a) - across(b)).map((c) => c.name), voiced,
   }, signal)
-  // its voice is made while it still shows 在想 (a LivLiv voice takes about a second)
-  const take = await actors.get(me.id)?.prepare(r.text, r.emotion, !liveOptions?.textOnly, signal, r.audio)
+  // its voice is made while it still shows 在想 (a LivLiv voice takes about a second). One the site was asked for and
+  // didn't make (null) isn't asked for again: that would be a second paid voice
+  const recorded = r.audio ?? (voiced && cfg.kind === 'livliv' ? null : undefined)
+  const take = await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, recorded)
   signal.throwIfAborted()
   if (liveOptions && !liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音，请设置声音或选择仅字幕"))
   return { r, take, chat }
@@ -287,8 +294,9 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
 
 // The next line is made while this one is said, so it can follow at once: at most one line ahead. It is thrown away
 // when what it answers changes (you said something, the line was cut, the topic changed, the conversation stopped);
-// that costs one model call and one line's voice at most, at the user's own expense, so it isn't done where lines get
-// cut on purpose (AI 抢话). A viewer's message it answers goes back to wait for the next line
+// that costs one model call and one line's voice at most (with LivLiv, one line's points), at the user's own expense,
+// so it isn't done where lines get cut on purpose (AI 抢话). A viewer's message it answers goes back to wait for the
+// next line
 type Ahead = { who: CharacterItem; after: string; topic: string; ctl: AbortController; chat: Chat | null; made: Promise<Awaited<ReturnType<typeof makeLine>> | null> }
 let ahead: Ahead | null = null
 function dropAhead() { if (ahead?.chat) viewers.putBack(ahead.chat); ahead?.ctl.abort(); ahead = null }

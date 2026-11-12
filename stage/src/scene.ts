@@ -105,7 +105,7 @@ export function readExprModes(value: unknown): Record<string, ExprMode> | undefi
   const out: Record<string, ExprMode> = {}
   for (const [id, m] of Object.entries(value as Record<string, unknown>).slice(0, 256)) {
     const mode = (m as ExprMode | null)?.mode, secs = Number((m as ExprMode | null)?.secs)
-    if (!id || id.length > 64 || (mode !== 'toggle' && mode !== 'hold' && mode !== 'timed')) continue
+    if (!id || id.length > 64 || id === '__proto__' || (mode !== 'toggle' && mode !== 'hold' && mode !== 'timed')) continue
     out[id] = mode === 'timed' ? { mode, secs: Number.isFinite(secs) ? Math.max(1, Math.min(30, secs)) : 3 } : { mode }
   }
   return Object.keys(out).length ? out : undefined

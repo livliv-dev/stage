@@ -4545,8 +4545,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "离开后自动暂离": {"zh-Hans": "离开后自动暂离", "zh-Hant": "離開後自動暫離", "en": "Away when you step out", "ja": "離れたら自動で離席"},
   "摄像头 {0} 秒看不到你，角色就闭眼打瞌睡，回来就醒": {"zh-Hans": "摄像头 {0} 秒看不到你，角色就闭眼打瞌睡，回来就醒", "zh-Hant": "攝影機 {0} 秒看不到你，角色就閉眼打瞌睡，回來就醒", "en": "After {0} s without you in the camera, the character dozes off; it wakes when you’re back", "ja": "カメラに{0}秒映らないとキャラクターが居眠りし、戻ると起きます"},
   "别让其他窗口完全盖住输出窗口，否则画面会停住。": {"zh-Hans": "别让其他窗口完全盖住输出窗口，否则画面会停住。", "zh-Hant": "別讓其他視窗完全蓋住輸出視窗，否則畫面會停住。", "en": "Don’t let another window cover the output window completely, or its picture stops.", "ja": "ほかのウィンドウで出力ウィンドウを完全に隠すと、映像が止まります。"},
-  "LivLiv 积分": {"zh-Hans": "LivLiv 积分", "zh-Hant": "LivLiv 積分", "en": "LivLiv points", "ja": "LivLiv ポイント"},
-  "LivLiv 积分只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型": {"zh-Hans": "LivLiv 积分只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型", "zh-Hant": "LivLiv 積分只能讓 LivLiv 的角色說話：給「{0}」接上你自己的模型", "en": "LivLiv points work for LivLiv characters only: connect your own model for “{0}”", "ja": "LivLiv ポイントで話せるのは LivLiv のキャラクターだけです。「{0}」には自分のモデルをつないでください"},
   "未满 18 岁不能用 AI 让角色说话": {"zh-Hans": "未满 18 岁不能用 AI 让角色说话", "zh-Hant": "未滿 18 歲不能用 AI 讓角色說話", "en": "You need to be 18 or over to let AI speak for characters", "ja": "18 歳未満は AI でキャラクターを話させることはできません"},
   "积分用完了，或者今天、这个月的次数到了上限": {"zh-Hans": "积分用完了，或者今天、这个月的次数到了上限", "zh-Hant": "積分用完了，或者今天、這個月的次數到了上限", "en": "Out of points, or today’s or this month’s limit is reached", "ja": "ポイントが足りないか、今日または今月の上限に達しました"},
   "只有作者能在 Stage 里用这个角色": {"zh-Hans": "只有作者能在 Stage 里用这个角色", "zh-Hant": "只有作者能在 Stage 裡用這個角色", "en": "Only its author can use this character in Stage", "ja": "このキャラクターを Stage で使えるのは作者だけです"},
@@ -4559,4 +4557,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型": {"zh-Hans": "LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型", "zh-Hant": "LivLiv 只能讓 LivLiv 的角色說話：給「{0}」接上你自己的模型", "en": "LivLiv works for LivLiv characters only: connect your own model for “{0}”", "ja": "LivLiv で話せるのは LivLiv のキャラクターだけです。「{0}」には自分のモデルをつないでください"},
   "不用密钥：用 livliv.ai 积分让角色说话，每句 {0} 积分（会员不出声的台词免费）。只能用于 LivLiv 的角色。": {"zh-Hans": "不用密钥：用 livliv.ai 积分让角色说话，每句 {0} 积分（会员不出声的台词免费）。只能用于 LivLiv 的角色。", "zh-Hant": "不用金鑰：用 livliv.ai 積分讓角色說話，每句 {0} 積分（會員不出聲的台詞免費）。只能用於 LivLiv 的角色。", "en": "No key needed: characters speak with your livliv.ai points, {0} points a line (lines without a voice are free on a paid plan). LivLiv characters only.", "ja": "キー不要：livliv.ai のポイントでキャラクターが話します。1 行 {0} ポイント（有料プランなら音声なしのセリフは無料）。LivLiv のキャラクターのみ。"},
   "登录 livliv.ai 后可用": {"zh-Hans": "登录 livliv.ai 后可用", "zh-Hant": "登入 livliv.ai 後可用", "en": "Available after you sign in to livliv.ai", "ja": "livliv.ai にログインすると使えます"},
+  "这句的声音没有生成": {"zh-Hans": "这句的声音没有生成", "zh-Hant": "這句的聲音沒有生成", "en": "This line’s voice wasn’t made", "ja": "このセリフの音声は作られませんでした"},
+  "用积分的台词，请从「对谈」或「AI 直播」开始": {"zh-Hans": "用积分的台词，请从「对谈」或「AI 直播」开始", "zh-Hant": "用積分的台詞，請從「對談」或「AI 直播」開始", "en": "Lines paid with points start from Chat or AI live", "ja": "ポイントを使うセリフは「対話」か「AI配信」から始めてください"},
 }
