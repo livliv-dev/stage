@@ -22,6 +22,7 @@
     "test:journey": "node test/journey.mjs",
     "test:live": "node test/live.mjs",
     "test:points": "node test/points.mjs",
+    "test:guest": "node test/guest.mjs",
     "build:site": "node scripts/build-site.mjs"
   },
   "dependencies": {

@@ -616,6 +616,11 @@ input,textarea { min-width:0 }
 
 /* Keep navigation and close available while long settings forms scroll. */
 .popover.settings { display:flex;flex-direction:column;padding:0;overflow:hidden }
+/* the small questions over everything (the age question, a guest's sign-in): a padded card of their own */
+.popover.settings.age-check { width: 400px; padding: 20px 22px 18px; gap: 8px; overflow: visible; }
+.popover.settings.age-check header .title { font-size: 17px; line-height: 24px; font-weight: 650; }
+.popover.settings.age-check .hint { margin: 0; }
+.popover.settings.age-check .row.end { display: flex; margin-top: 10px; gap: 8px; justify-content: flex-end; }
 .settings-head { flex:none;padding:14px 16px 0 }
 .settings-head>header { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px }
 .settings-body { min-height:0;overflow-y:auto;padding:0 16px 16px;overscroll-behavior:contain }

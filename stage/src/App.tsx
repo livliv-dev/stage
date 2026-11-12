@@ -50,6 +50,7 @@ import { tr, getLocale, useLocale } from './i18n'
 import { onSite, small } from './host'
 import { linkedAs, linkedId, openLinked } from './entry'
 import { PhoneIntro, SiteWelcome } from './SiteIntro'
+import { GuestGate } from './GuestGate'
 import { connectLiveKeys, liveCharacter } from './live'
 import { connectOutputFeed } from './outputFeed'
 import { GoLiveGuide } from './GoLive'
@@ -203,6 +204,7 @@ export default function App() {
 
       </>}
       {ageAsk && <AgeDialog onAnswer={(adult) => void answerAge(adult)} />}
+      <GuestGate />
       {note && <div className="toast">{note}</div>}
     </div>
   )
