@@ -5,7 +5,7 @@ import { tr } from './i18n'
 // there.
 import { localModels, uid, type ModelRef } from './scene'
 import { cardOf, local, sampleUrl, SAMPLES, type Card as SampleCard } from './samples'
-import { api } from './livliv'
+import { api, signedIn } from './livliv'
 import { keep, type Kept } from './vault'
 import type { PngSlot } from './bodies/png'
 
@@ -23,11 +23,15 @@ export const samples = (): Pick[] => [...SAMPLES].sort((a, b) => (FEATURED[a.id]
   label: s.refined ? tr("{0} · 精修", s.name) : s.name,
 }))
 
-/** one character by id (a showcase one the gallery doesn't list, or your own with its key) */
+/** one character by id: a showcase one the gallery doesn't list, your own, or anyone's the site lets you use. Someone
+ *  else's that you may only watch (the site promises its author that others can't stream or record it) is refused; a
+ *  missing one may be your own private one while signed out */
 export async function byId(id: string): Promise<Pick> {
   const r = await api(`/api/models/${encodeURIComponent(id)}`)
-  if (!r.ok) throw new Error(r.status === 404 ? tr("没有 {0} 这个角色", id) : tr("拿不到 {0}（{1}）", id, r.status))
-  return fromCard(await r.json() as Card)
+  if (!r.ok) throw new Error(r.status === 404 ? (signedIn() ? tr("没有 {0} 这个角色", id) : tr("找不到 {0}。如果是你自己的角色，登录后再打开", id)) : tr("拿不到 {0}（{1}）", id, r.status))
+  const card = await r.json() as Card & { access?: { can_use?: boolean } }
+  if (card.access?.can_use === false) throw new Error(tr("{0} 只有作者能在 Stage 里用", card.name || id))
+  return fromCard(card)
 }
 
 /** the characters of the account signed in on livliv.ai (on livliv.ai/stage, by the site's cookie), newest first */

@@ -4520,4 +4520,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "在这里继续": {"zh-Hans": "在这里继续", "zh-Hant": "在這裡繼續", "en": "Continue here", "ja": "ここで続ける"},
   "拿不到你的角色（{0}）": {"zh-Hans": "拿不到你的角色（{0}）", "zh-Hant": "拿不到你的角色（{0}）", "en": "Couldn’t load your characters ({0})", "ja": "キャラクターを読み込めませんでした（{0}）"},
   "你在 livliv.ai 的角色": {"zh-Hans": "你在 livliv.ai 的角色", "zh-Hant": "你在 livliv.ai 的角色", "en": "Your characters on livliv.ai", "ja": "livliv.aiのあなたのキャラクター"},
+  "找不到 {0}。如果是你自己的角色，登录后再打开": {"zh-Hans": "找不到 {0}。如果是你自己的角色，登录后再打开", "zh-Hant": "找不到 {0}。如果是你自己的角色，登入後再打開", "en": "Can’t find {0}. If it’s your own character, sign in and open it again", "ja": "{0}が見つかりません。自分のキャラクターなら、ログインしてから開いてください"},
+  "{0} 只有作者能在 Stage 里用": {"zh-Hans": "{0} 只有作者能在 Stage 里用", "zh-Hant": "{0} 只有作者能在 Stage 裡用", "en": "Only the author of {0} can use it in Stage", "ja": "{0}をStageで使えるのは作者だけです"},
+  "给它加「色度键」滤镜，去掉绿色。": {"zh-Hans": "给它加「色度键」滤镜，去掉绿色。", "zh-Hant": "給它加「色度鍵」濾鏡，去掉綠色。", "en": "Add a “Chroma Key” filter to remove the green.", "ja": "「クロマキー」フィルターを追加して緑を消します。"},
 }

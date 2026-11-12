@@ -11,8 +11,11 @@ export function detectLocale(language: string): Locale {
   if (/^zh(?:-|$)/i.test(language)) return /Hant|TW|HK|MO/i.test(language) ? 'zh-Hant' : 'zh-Hans'
   return /^ja(?:-|$)/i.test(language) ? 'ja' : 'en'
 }
+/** livliv.ai's own language choice (its lm_lang), for Stage served there */
+const SITE_LANG: Record<string, Locale> = { zh: 'zh-Hans', zht: 'zh-Hant', en: 'en', ja: 'ja' }
 function savedLocale(): Locale {
   try { const value = localStorage.getItem(KEY); if (LANGUAGES.some((language) => language.id === value)) return value as Locale } catch { /* Browser storage may be unavailable. */ }
+  try { if (import.meta.env.VITE_STAGE_HOST === 'livliv') { const site = SITE_LANG[localStorage.getItem('lm_lang') ?? '']; if (site) return site } } catch { /* as above */ }
   return typeof window === 'undefined' ? 'zh-Hans' : detectLocale(navigator.language)
 }
 let locale = savedLocale()
