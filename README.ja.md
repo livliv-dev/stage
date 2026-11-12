@@ -10,7 +10,7 @@
 <p align="center">
   2D キャラクターのためのステージ。ブラウザでもデスクトップアプリでも動きます。たくさんのキャラクターをひとつのキャンバスに並べ、
   Web カメラで自分が演じ、AI VTuber どうしの掛け合いや配信コメントへの返事を任せて、動画に書き出したり OBS で配信したりできます。<br>
-  <a href="https://github.com/livliv-dev/player">LivLiv Player</a> がベースで、厳選キャラクター 18 体を同梱。すぐに使えます。
+  <a href="https://github.com/livliv-dev/player">LivLiv Player</a> がベースで、厳選キャラクター 23 体を同梱。すぐに使えます。
 </p>
 
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-CN.md">中文</a> · <b>日本語</b></p>
@@ -53,7 +53,7 @@ npm --prefix desktop run stage:dev   # stage:mac と stage:win でインスト�
 
 ## キャラクター
 
-[`stage/public/characters/`](stage/public/characters/) に厳選キャラクター 18 体が入っています。コードのライセンスの対象外です。
+[`stage/public/characters/`](stage/public/characters/) に厳選キャラクター 23 体が入っています。コードのライセンスの対象外です。
 個人の非商用の動画や配信では無料で使えます。クレジット（「キャラクター：LivLiv（livliv.ai）」）を入れてください。
 条件は [LICENSE.md](stage/public/characters/LICENSE.md) にあります。
 

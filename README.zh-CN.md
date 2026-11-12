@@ -10,7 +10,7 @@
 <p align="center">
   2D 角色的舞台，浏览器和桌面都能用。把很多角色放上同一张舞台，用摄像头扮演其中一个，让 AI 主播彼此聊天、回应直播弹幕，
   再录成视频，或者通过 OBS 开播。<br>
-  基于 <a href="https://github.com/livliv-dev/player">LivLiv Player</a>，自带 18 个精选角色，开箱即用。
+  基于 <a href="https://github.com/livliv-dev/player">LivLiv Player</a>，自带 23 个精选角色，开箱即用。
 </p>
 
 <p align="center"><a href="README.md">English</a> · <b>中文</b> · <a href="README.ja.md">日本語</a></p>
@@ -51,7 +51,7 @@ npm --prefix desktop run stage:dev   # stage:mac、stage:win 打安装包
 
 ## 角色
 
-[`stage/public/characters/`](stage/public/characters/) 里有 18 个精选角色。它们不在代码许可的范围内：个人非商业的视频和直播可以免费使用，
+[`stage/public/characters/`](stage/public/characters/) 里有 23 个精选角色。它们不在代码许可的范围内：个人非商业的视频和直播可以免费使用，
 请署名「角色：LivLiv（livliv.ai）」。条款见 [LICENSE.md](stage/public/characters/LICENSE.md)。
 
 用「导入」放上你自己的角色：

@@ -10,7 +10,7 @@
 <p align="center">
   A stage for 2D characters, in the browser or as a desktop app. Put many characters on one canvas, play one with your
   webcam, let AI VTubers talk to each other and to your live chat, then record a video or go live through OBS.<br>
-  Built on <a href="https://github.com/livliv-dev/player">LivLiv Player</a>, with 18 featured characters ready to use.
+  Built on <a href="https://github.com/livliv-dev/player">LivLiv Player</a>, with 23 featured characters ready to use.
 </p>
 
 <p align="center"><b>English</b> · <a href="README.zh-CN.md">中文</a> · <a href="README.ja.md">日本語</a></p>
@@ -55,7 +55,7 @@ Kai talk (recorded voices, no key needed), or pick a template and connect a mode
 
 ## Characters
 
-18 featured characters come with Stage in [`stage/public/characters/`](stage/public/characters/). They are not covered
+23 featured characters come with Stage in [`stage/public/characters/`](stage/public/characters/). They are not covered
 by the code licence: use them free for personal, non-commercial videos and streams, with credit ("Characters: LivLiv
 (livliv.ai)"). The terms are in [LICENSE.md](stage/public/characters/LICENSE.md).
 
