@@ -6,11 +6,14 @@ import { tr } from './i18n'
 //    conversation asks for it (conversation.ts NeedModel)
 //  - demo: chosen on purpose, for this run of the app only (the model set up stays saved): prepared conversations of
 //    the sample characters with prerecorded voices (demo.ts)
+//  - livliv: on livliv.ai/stage, signed in, no key of one's own: the site writes each line from the character's card and
+//    voices it, paid with points (/api/chat/<id>/stage-line, the site's companion/stage_ai.py); LivLiv characters only
 // In the desktop client a model's API is reached through the app (its /__ai pass-through, desktop stageApp.ts): no
 // CORS, so local servers (Ollama) and APIs without browser access work too
 import { useSyncExternalStore } from 'react'
 import { desktopFetch } from './request'
 import { onSite } from './host'
+import { modelId, signedIn, stageLine } from './livliv'
 import { demoReply } from './demo'
 import { LENGTHS, type CharacterItem, type Talk } from './scene'
 
@@ -32,12 +35,15 @@ export type Ask = {
   role: 'host' | 'guest' | null; cutIn: boolean; language: Talk['language']
   /** a viewer's message to answer first */
   viewer: { user: string; text: string } | null
+  /** the line will be heard (not subtitles only): a brain that voices its own lines voices it */
+  voiced?: boolean
 }
 export type Reply = Omit<Line, 'id' | 'who' | 'name'>
 export interface Brain { reply(a: Ask, signal: AbortSignal): Promise<Reply> }
 
 export type ModelConfig = { kind: 'openai'; provider: string; base: string; key: string; model: string }
-export type BrainConfig = { kind: 'demo' } | ModelConfig
+export type LivLivConfig = { kind: 'livliv' }
+export type BrainConfig = { kind: 'demo' } | ModelConfig | LivLivConfig
 
 /** the usual OpenAI-compatible APIs: where they are, where their keys are made, which of their models to pick first */
 export type Provider = { id: string; label: string; base: string; keyUrl?: string; noKey?: boolean; prefer?: RegExp }
@@ -57,14 +63,16 @@ export const PROVIDERS: Provider[] = [
 export const PROVIDERS_HERE = onSite ? PROVIDERS.filter((p) => !['zhipu', 'ollama', 'custom'].includes(p.id)) : PROVIDERS
 export const providerOf = (c: ModelConfig) => PROVIDERS.find((p) => p.id === c.provider) ?? PROVIDERS.at(-1)!
 /** a model to talk with is set: where, and which */
-export const brainReady = (c: BrainConfig) => c.kind === 'demo' || (!!c.base && !!c.model && (!!c.key || c.provider === 'custom' || !!providerOf(c).noKey))
+export const brainReady = (c: BrainConfig) => c.kind === 'demo' || (c.kind === 'livliv' ? onSite && signedIn()
+  : !!c.base && !!c.model && (!!c.key || c.provider === 'custom' || !!providerOf(c).noKey))
 
 const KEY = 'livliv-stage:brain', LAST_MODEL = 'livliv-stage:brain-api'
 const UNSET: ModelConfig = { kind: 'openai', provider: '', base: '', key: '', model: '' }
 const DEMO: BrainConfig = { kind: 'demo' }
-function load(): ModelConfig {
+function load(): ModelConfig | LivLivConfig {
   try {
     let c = JSON.parse(localStorage.getItem(KEY) || 'null')
+    if (c?.kind === 'livliv' && onSite) return { kind: 'livliv' }
     // earlier versions saved the demo in the model's place, and the model set up before it apart
     if (c?.kind === 'demo') c = JSON.parse(localStorage.getItem(LAST_MODEL) || 'null')
     if (c?.kind === 'openai' && typeof c.base === 'string') return { ...UNSET, ...c, provider: c.provider ?? (PROVIDERS.find((p) => p.base === c.base)?.id ?? 'custom') }
@@ -76,8 +84,10 @@ let saved = load()
 let config: BrainConfig = saved
 const subs = new Set<() => void>()
 export const loadBrainConfig = () => config
-export const previousModelConfig = (): ModelConfig => saved
-export function saveBrainConfig(c: ModelConfig) {
+export const previousModelConfig = (): ModelConfig => (saved.kind === 'openai' ? saved : UNSET)
+/** the saved choice: a model of one's own, or LivLiv's points */
+export const savedBrain = () => saved
+export function saveBrainConfig(c: ModelConfig | LivLivConfig) {
   saved = config = c
   try { localStorage.setItem(KEY, JSON.stringify(c)) } catch { /* private mode */ }
   subs.forEach((f) => f())
@@ -161,7 +171,32 @@ export async function testModel(c: ModelConfig, signal?: AbortSignal): Promise<n
 }
 
 export function makeBrain(c: BrainConfig): Brain {
-  return c.kind === 'openai' ? new OpenAIBrain(c) : new DemoBrain()
+  return c.kind === 'openai' ? new OpenAIBrain(c) : c.kind === 'livliv' ? new LivLivBrain() : new DemoBrain()
+}
+
+// ---------------------------------------------------------------- LivLiv's points (livliv.ai/stage)
+
+/** the next line from the site: written from the character's card, checked, voiced in its LivLiv voice; what is sent
+ *  is only data (who stands where, the topic, the last lines, a viewer's message) */
+class LivLivBrain implements Brain {
+  async reply(a: Ask, signal: AbortSignal): Promise<Reply> {
+    const mid = modelId(a.me)
+    if (!mid) throw new Error(tr("LivLiv 积分只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型", a.me.name))
+    const r = await stageLine(mid, {
+      cast: a.layout.slice(0, 8).map((n) => n.slice(0, 40)), topic: a.topic.slice(0, 200),
+      lines: a.lines.slice(-14).map((l) => ({ name: l.name.slice(0, 40), text: l.text.slice(0, 300), me: l.who === a.me.id })),
+      viewer: a.viewer ? { user: a.viewer.user.slice(0, 40), text: a.viewer.text.slice(0, 500) } : null,
+      language: a.language, length: a.me.length, role: a.role, voice: a.voiced !== false && !a.me.muted,
+      voice_id: a.me.voice.source === 'livliv' && a.me.voice.livliv ? a.me.voice.livliv : null,
+    }, signal)
+    const names = [...a.others.map((x) => x.name), ...a.humans]
+    return {
+      text: r.text, emotion: EMOTIONS.includes(r.emotion as Emotion) ? (r.emotion as Emotion) : 'neutral',
+      action: MOVES.includes(r.action as Move) ? (r.action as Move) : 'none',
+      to: r.to && names.includes(r.to) ? r.to : null, look: r.look && (names.includes(r.look) || r.look === 'camera' || r.look === 'away') ? r.look : null,
+      ...(r.audio ? { audio: r.audio } : {}),
+    }
+  }
 }
 
 const EMOTIONS: Emotion[] = ['neutral', 'happy', 'shy', 'angry', 'sad', 'surprised']
