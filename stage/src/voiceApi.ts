@@ -62,7 +62,7 @@ export const useSpeech = () => useSyncExternalStore((f) => { subs.add(f); return
 /** the speech API that comes with this model's key: the same service, the same address and key (while the demo
  *  plays, the saved model's) */
 export function speechOfModel(c: BrainConfig = loadBrainConfig()): SpeechApi | null {
-  const b = c.kind === 'demo' ? previousModelConfig() : c
+  const b = c.kind === 'openai' ? c : previousModelConfig()  // the demo, LivLiv's points: the saved model's key
   if (!b.key) return null
   const p = SPEECH_PROVIDERS.find((q) => q.id === b.provider && q.women && q.id !== 'openai')
   return p ? { provider: p.id, base: p.id === 'qwen' ? b.base.replace(/\/compatible-mode\/v1\/?$/, '/api/v1') : b.base, key: b.key, model: p.model, voice: '', asr: p.asr } : null

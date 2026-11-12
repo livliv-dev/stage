@@ -1,4 +1,4 @@
-import { tr } from './i18n'
+import { getLocale, tr } from './i18n'
 // LivLiv, the site the characters come from: your account there and a character's own voice.
 //  - account: connected through the browser with a code (/api/connect: the site's /connect page, signed in there any
 //    way, Google and Discord too): the session the site gives back is kept here and sent as a bearer token, and the
@@ -128,6 +128,42 @@ export async function logout() {
   }
   keep('')
   set({ status: 'out', email: '', points: 0, error: '' })
+}
+
+// ---------------------------------------------------------------- AI lines paid with points (livliv.ai/stage)
+
+/** asks the visitor whether they are 18 or over (App's AgeDialog); true: they are. Unset: nobody can answer */
+export const ageGate: { ask: null | (() => Promise<boolean>) } = { ask: null }
+/** answers the site's age question (chat's), for this account */
+export async function setAge(adult: boolean) {
+  await answer(await post('/api/chat/profile/age', { age_group: adult ? 'adult' : 'minor' }))
+}
+
+export type StageLineBody = {
+  cast: string[]; topic: string; lines: { name: string; text: string; me: boolean }[]; viewer: { user: string; text: string } | null
+  language: string; length: string; role: 'host' | 'guest' | null; voice: boolean; voice_id: string | null
+}
+export type StageLine = { text: string; emotion: string; action: string; to: string | null; look: string | null; audio: string | null; points?: number }
+
+/** the character's next line on the stage, from the site (written, checked, voiced, paid with points). The age
+ *  question first, when the site asks it; the site's refusals as plain messages */
+export async function stageLine(mid: string, body: StageLineBody, signal?: AbortSignal): Promise<StageLine> {
+  const url = `/api/chat/${encodeURIComponent(mid)}/stage-line`
+  let r = await post(url, body, signal)
+  if (r.status === 428 && ageGate.ask) {
+    if (!(await ageGate.ask())) throw new Error(tr("未满 18 岁不能用 AI 让角色说话"))
+    r = await post(url, body, signal)
+  }
+  if (!r.ok) {
+    const detail = String((await r.json().catch(() => ({})))?.detail ?? '')
+    if (r.status === 401 || r.status === 402) void refresh()
+    const zh = getLocale().startsWith('zh') && detail
+    throw new Error(zh ? detail : r.status === 402 ? tr("积分用完了，或者今天、这个月的次数到了上限") : r.status === 403 ? tr("只有作者能在 Stage 里用这个角色")
+      : r.status === 429 ? tr("说得太快了，歇一下再继续") : tr("角色暂时没有回应，稍后再试"))
+  }
+  const j = await r.json() as StageLine
+  if (typeof j.points === 'number') set({ points: j.points })
+  return j
 }
 
 /** a LivLiv character's id (a sample that comes with Stage, or one of LivLiv's by id); null for a model package

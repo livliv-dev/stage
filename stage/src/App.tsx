@@ -9,7 +9,7 @@ import {
   FileBox, Plus, RefreshCw, SlidersHorizontal, Volume2, VolumeX,
   MonitorPlay, Pencil, Pause, Play, Redo2, RotateCcw, Save, Send, SkipForward, Square, StepForward, Settings, Sparkles, Type, Undo2, UserPlus, X,
 } from 'lucide-react'
-import { brainReady, listModels, playDemo, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveBrainConfig, testModel, useBrainConfig, type ModelConfig } from './brain'
+import { brainReady, listModels, playDemo, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveBrainConfig, savedBrain, testModel, useBrainConfig, type ModelConfig } from './brain'
 import { conversation, talk, useConversation } from './conversation'
 import { Panel, PanelTab, TalkSettings } from './Inspector'
 import { byId, fromFiles, fromKept, fromPngs, mine as accountCharacters, samples, type Pick } from './library'
@@ -25,7 +25,7 @@ import { CollabPanel } from './CollabPanel'
 import { useRoom } from './collab/session'
 import { connectDesktop, desktop } from './desktop'
 import { ROOM, useCrowded } from './contexts'
-import { checkConnect, refresh, useAccount } from './livliv'
+import { ageGate, checkConnect, connect, refresh, setAge, useAccount } from './livliv'
 import { rec, takeLimit, useRecording } from './recording'
 import { cancel as pttCancel, clearError as pttClear, holdKey, press as pttPress, release as pttRelease, usePtt } from './ptt'
 import { asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, useActiveSpeech, transcribeApi, useSpeech, voiceRoute, type SpeechApi } from './voiceApi'
@@ -105,6 +105,13 @@ export default function App() {
   const toggle = (p: Pop) => { if (p === 'settings') setSettingsTab('general'); setPop((x) => (x === p ? null : p)) }
   const openSettings = () => { setSettingsTab('general'); setPop('settings') }
   useEffect(() => { void refresh() }, [])  // the LivLiv account, if one is connected
+  // LivLiv's points AI asks the site's age question once (livliv.ts stageLine): answered here
+  const [ageAsk, setAgeAsk] = useState<((adult: boolean) => void) | null>(null)
+  useEffect(() => { ageGate.ask = () => new Promise<boolean>((resolve) => setAgeAsk(() => resolve)); return () => { ageGate.ask = null } }, [])
+  const answerAge = async (adult: boolean) => {
+    try { await setAge(adult) } catch { /* the line that asked says what went wrong */ }
+    ageAsk?.(adult); setAgeAsk(null)
+  }
   useEffect(() => {
     if (onSite && (phone || (!hadSaved && !linkedId()))) void ensureTrio().then(() => { store.select(null); if (phone) store.setMode('show') }, () => {})
     const id = linkedId()
@@ -178,6 +185,7 @@ export default function App() {
         {menu && <ContextMenu at={menu} close={() => setMenu(null)} />}
 
       </>}
+      {ageAsk && <AgeDialog onAnswer={(adult) => void answerAge(adult)} />}
       {note && <div className="toast">{note}</div>}
     </div>
   )
@@ -803,10 +811,22 @@ function RecordCard({ onClose, onVoices }: { onClose: () => void; onVoices: () =
   )
 }
 
+/** the site's age question, asked once before LivLiv's points AI speaks (chat's rule: 18 and over) */
+function AgeDialog({ onAnswer }: { onAnswer: (adult: boolean) => void }) {
+  return <>
+    <div className="scrim" />
+    <div className="card popover settings age-check" role="dialog" aria-modal="true" aria-labelledby="age-title" onPointerDown={(e) => e.stopPropagation()}>
+      <header><span className="title" id="age-title">{tr("确认年龄")}</span></header>
+      <p className="hint">{tr("用 AI 让角色说话前，请确认你已年满 18 岁。")}</p>
+      <div className="row end"><button onClick={() => onAnswer(false)}>{tr("未满 18 岁")}</button><button className="primary" autoFocus onClick={() => onAnswer(true)}>{tr("已满 18 岁")}</button></div>
+    </div>
+  </>
+}
+
 /** the model in the console: which one the AI characters think with; not set up yet, an invitation */
 function ModelButton({ on, onClick }: { on: boolean; onClick: () => void }) {
   const c = useBrainConfig(), ready = brainReady(c)
-  const label = c.kind === 'demo' ? tr("演示") : ready ? c.model : tr("接入模型")
+  const label = c.kind === 'demo' ? tr("演示") : c.kind === 'livliv' ? tr("LivLiv 积分") : ready ? c.model : tr("接入模型")
   return (
     <button className={`model-btn${on ? ' on' : ''}${ready ? '' : ' need'}`} aria-label={tr("AI 模型")} title={c.kind === 'openai' && ready ? `${tr(providerOf(c).label)} · ${c.model}` : tr("AI 角色用什么模型想台词")} onClick={onClick}>
       <Bot size={14} /><span>{tr(label)}</span><ChevronDown size={12} />
@@ -819,6 +839,9 @@ function ModelForm({ forStart, done, demoDone }: { forStart?: boolean; done?: ()
   const cur = useBrainConfig(), { scene } = useScene()
   const demoAvailable = demoFor(participants(scene))?.script.template === 'trio'
   const [demo, setDemo] = useState(cur.kind === 'demo')
+  // livliv.ai/stage: LivLiv's points instead of a key of one's own (the site writes and voices the lines)
+  const [points, setPoints] = useState(onSite && (cur.kind === 'livliv' || (cur.kind === 'demo' && savedBrain().kind === 'livliv')))
+  const account = useAccount()
   const [d, setD] = useState<ModelConfig>(() => (previousModelConfig().provider ? previousModelConfig() : { kind: 'openai', provider: PROVIDERS_HERE[0].id, base: PROVIDERS_HERE[0].base, key: '', model: '' }))
   const [models, setModels] = useState<string[]>([])
   const [st, setSt] = useState<{ busy?: 'list' | 'test' | 'demo'; ok?: number; err?: string }>({})
@@ -829,7 +852,7 @@ function ModelForm({ forStart, done, demoDone }: { forStart?: boolean; done?: ()
   const choose = (id: string) => {
     request.current?.abort(); request.current = null
     const q = PROVIDERS.find((x) => x.id === id)!
-    setDemo(false); setModels([]); setSt({})
+    setDemo(false); setPoints(false); setModels([]); setSt({})
     setD((x) => ({ ...x, provider: id, base: q.base || (x.provider === 'custom' ? x.base : ''), key: x.provider === id ? x.key : '', model: x.provider === id ? x.model : '' }))
   }
   const fetchModels = async (c = d) => {
@@ -853,17 +876,21 @@ function ModelForm({ forStart, done, demoDone }: { forStart?: boolean; done?: ()
     request.current?.abort(); request.current = null
     try {
       if (playDemo) { setSt({ busy: 'demo' }); await beginDemo(demoDone ?? done) }
-      else { if (cur.kind === 'demo') talk.stop(); saveBrainConfig(d); done?.(); if (forStart) talk.start() }
+      else { if (cur.kind === 'demo') talk.stop(); saveBrainConfig(points ? { kind: 'livliv' } : d); done?.(); if (forStart) talk.start() }
       setSt({})
     } catch (error) { setSt({ err: (error as Error).message }) }
   }
   return <div className="model-form">
     <div className="demo-launch"><div><b>{tr('三人对谈演示')}</b><span>{tr('无需密钥')}</span></div><button disabled={st.busy === 'demo'} onClick={() => void save(true)}>{st.busy === 'demo' ? <LoaderCircle size={14} className="spin" /> : <Play size={14} />}{tr(demoAvailable ? '看演示' : '打开演示舞台')}</button></div>
     <div className="providers">
-      {PROVIDERS_HERE.map((q) => <button key={q.id} className={!demo && d.provider === q.id ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
+      {onSite && <button className={!demo && points ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(false); setPoints(true); setSt({}) }}>{tr("LivLiv 积分")}</button>}
+      {PROVIDERS_HERE.map((q) => <button key={q.id} className={!demo && !points && d.provider === q.id ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
     </div>
-    {onSite && <p className="hint">{tr("网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。")}</p>}
-    {!demo && <>
+    {points && !demo ? <>
+      <p className="hint">{tr("不用密钥：用 livliv.ai 的积分让角色说话，每句约 0.8 积分，含角色自己的声音。只能用于 LivLiv 的角色。")}</p>
+      {account.status !== 'in' && <button onClick={() => void connect()}><ExternalLink size={14} />{tr("登录 livliv.ai")}</button>}
+    </> : onSite && <p className="hint">{tr("网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。")}</p>}
+    {!demo && !points && <>
       {(p.id === 'custom' || p.id === 'ollama') && <label className="field"><span>{tr("接口地址")}</span>
         <input value={d.base} placeholder="https://…/v1" onChange={(e) => change({ base: e.target.value, model: '' })} onBlur={() => void fetchModels()} /></label>}
       {!p.noKey && <label className="field"><span>{tr("密钥")}<span className="lock" title={tr("只存在这台电脑上")}><Lock size={11} /></span>{p.keyUrl && <a className="get" href={p.keyUrl} target="_blank" rel="noreferrer">{tr("获取")}<ExternalLink size={11} /></a>}</span>
@@ -878,11 +905,11 @@ function ModelForm({ forStart, done, demoDone }: { forStart?: boolean; done?: ()
     </>}
     {st.err && <p className="hint error" role="alert">{st.err}</p>}
     {!demo && <div className="row end">
-      {!demo && <button disabled={!brainReady(d) || st.busy === 'test'} onClick={() => void test()}>
+      {!demo && !points && <button disabled={!brainReady(d) || st.busy === 'test'} onClick={() => void test()}>
         {st.busy === 'test' ? <LoaderCircle size={14} className="spin" /> : st.ok !== undefined ? <Check size={14} /> : null}
         {st.ok !== undefined ? tr("{0} 秒", st.ok.toFixed(1)) : tr("测试")}
       </button>}
-      <button className="primary" disabled={!demo && !brainReady(d)} onClick={() => void save()}>{forStart || demo ? <><Play size={14} />{demo ? tr("看演示") : tr("开始")}</> : tr("保存")}</button>
+      <button className="primary" disabled={!demo && (points ? account.status !== 'in' : !brainReady(d))} onClick={() => void save()}>{forStart || demo ? <><Play size={14} />{demo ? tr("看演示") : tr("开始")}</> : tr("保存")}</button>
     </div>}
   </div>
 }
