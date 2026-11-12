@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" >
+<style>@media(prefers-color-scheme:dark){.brackets{stroke:#f4f5f7}.eye{fill:#f4f5f7}}</style><defs><linearGradient id="ink" x2=".8" y2="1"><stop stop-color="#1c1e23"/><stop offset="1" stop-color="#111317"/></linearGradient><linearGradient id="star" x2=".6" y2="1"><stop stop-color="#4b8aff"/><stop offset="1" stop-color="#2e6de8"/></linearGradient></defs>
+<path class="brackets" d="M282 205A360 360 0 0 0 282 819M742 205A360 360 0 0 1 742 819" fill="none" stroke="url(#ink)" stroke-width="128" stroke-linecap="round"/>
+<circle class="eye" cx="361" cy="512" r="86" fill="url(#ink)"/>
+<path d="M644 366Q658 498 790 512Q658 526 644 658Q630 526 498 512Q630 498 644 366Z" fill="url(#star)" stroke="url(#star)" stroke-width="16" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,146 @@
+{
+  "template": "trio",
+  "cast": [
+    "k01",
+    "d03ft",
+    "v04"
+  ],
+  "topic": "第一次同台",
+  "lines": [
+    {
+      "who": "d03ft",
+      "text": "我写了三页开场白。\n然后……忘带了。",
+      "emotion": "shy",
+      "action": "tilt",
+      "to": null,
+      "look": "away",
+      "pauseAfter": 0.3
+    },
+    {
+      "who": "k01",
+      "text": "没关系，交给我！\n开场先来个高音怎么样？",
+      "emotion": "happy",
+      "action": "hop",
+      "to": null,
+      "look": "d03ft",
+      "pauseAfter": 0.12
+    },
+    {
+      "who": "v04",
+      "text": "小声点。有人还没睡醒。",
+      "emotion": "neutral",
+      "action": "none",
+      "to": null,
+      "look": "k01",
+      "pauseAfter": 0.16
+    },
+    {
+      "who": "k01",
+      "text": "你说的有人……\n不会就是你吧？",
+      "emotion": "surprised",
+      "action": "tilt",
+      "to": "v04",
+      "look": "v04",
+      "pauseAfter": 0.18
+    },
+    {
+      "who": "v04",
+      "text": "刚醒。省电模式，还没关。",
+      "emotion": "neutral",
+      "action": "none",
+      "to": null,
+      "look": "k01",
+      "pauseAfter": 0.26
+    },
+    {
+      "who": "d03ft",
+      "text": "那吃块蛋糕？\n我烤了三次，这回终于成功啦。",
+      "emotion": "happy",
+      "action": "nod",
+      "to": "v04",
+      "look": "v04",
+      "pauseAfter": 0.14
+    },
+    {
+      "who": "k01",
+      "text": "终于？前两次呢？",
+      "emotion": "surprised",
+      "action": "none",
+      "to": "d03ft",
+      "look": "d03ft",
+      "pauseAfter": 0.12
+    },
+    {
+      "who": "d03ft",
+      "text": "第一次像饼干。\n第二次……不太像食物。",
+      "emotion": "shy",
+      "action": "shy",
+      "to": null,
+      "look": "away",
+      "pauseAfter": 0.32
+    },
+    {
+      "who": "v04",
+      "text": "我作证。这次，真的挺好吃。",
+      "emotion": "happy",
+      "action": "nod",
+      "to": null,
+      "look": "d03ft",
+      "pauseAfter": 0.18
+    },
+    {
+      "who": "k01",
+      "text": "那我要草莓最多的那块！",
+      "emotion": "happy",
+      "action": "nod",
+      "to": null,
+      "look": "d03ft",
+      "pauseAfter": 0.16
+    },
+    {
+      "who": "d03ft",
+      "text": "有呀。你的草莓，\n他的巧克力，都记着呢。",
+      "emotion": "happy",
+      "action": "none",
+      "to": null,
+      "look": "k01",
+      "pauseAfter": 0.34
+    },
+    {
+      "who": "v04",
+      "text": "开场白忘了。这个倒记得。",
+      "emotion": "neutral",
+      "action": "tilt",
+      "to": null,
+      "look": "d03ft",
+      "pauseAfter": 0.26
+    },
+    {
+      "who": "d03ft",
+      "text": "当然呀。你们喜欢什么，\n我怎么会忘。",
+      "emotion": "happy",
+      "action": "nod",
+      "to": null,
+      "look": "v04",
+      "pauseAfter": 0.38
+    },
+    {
+      "who": "k01",
+      "text": "开场就用这句！\n比念稿好听多了。",
+      "emotion": "happy",
+      "action": "none",
+      "to": null,
+      "look": "d03ft",
+      "pauseAfter": 0.22
+    },
+    {
+      "who": "d03ft",
+      "text": "那，欢迎来我们的小舞台。\n坐近一点，一起聊吧。",
+      "emotion": "happy",
+      "action": "none",
+      "to": null,
+      "look": "camera",
+      "pauseAfter": 0.0
+    }
+  ]
+}

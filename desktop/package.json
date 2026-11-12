@@ -1,0 +1,32 @@
+{
+  "name": "livliv-desktop",
+  "productName": "LivLiv",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "description": "LivLiv desktop shell: LivLiv Stage, or the website with a transparent stage window, global hotkeys and a local command endpoint",
+  "author": "LivLiv",
+  "main": "dist/main.js",
+  "scripts": {
+    "postinstall": "node node_modules/electron/install.js",
+    "build": "tsc -p tsconfig.json",
+    "dev": "npm run build && electron .",
+    "start": "npm run build && electron . --url=https://livliv.ai",
+    "test": "npm run build && node --test \"dist/test/*.test.js\"",
+    "pack": "npm run build && electron-builder --dir",
+    "dist:win": "npm run build && electron-builder --win",
+    "stage:web": "npm --prefix ../stage run build",
+    "stage:pack": "npm run build && npm run stage:web && electron-builder --config electron-builder.stage.yml --dir",
+    "stage:mac": "npm run build && npm run stage:web && electron-builder --config electron-builder.stage.yml --mac",
+    "stage:win": "npm run build && npm run stage:web && electron-builder --config electron-builder.stage.yml --win",
+    "stage:dev": "npm run build && npm run stage:web && electron . --app=stage",
+    "test:stage": "npm run build && npm run stage:web && node test/stage.mjs",
+    "test:stage-api": "npm run build && npm run stage:web && node test/stage-api.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.15",
+    "electron": "45.2.1",
+    "electron-builder": "26.18.0",
+    "typescript": "6.0.3"
+  }
+}

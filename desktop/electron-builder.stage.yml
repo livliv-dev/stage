@@ -1,0 +1,77 @@
+# LivLiv Stage as an app: this shell in its Stage flavor (config.ts APP, from extraMetadata below) with the Stage
+# editor's web build inside (stage/dist, `npm run stage:web`), served at livliv-stage://app. Unsigned: macOS asks the
+# first time it is opened (right-click, Open; since macOS 15, System Settings → Privacy & Security → Open Anyway),
+# Windows SmartScreen warns. Nothing is published.
+#   npm run stage:mac    dmg + zip, Apple silicon and Intel
+#   npm run stage:win    NSIS installer, x64
+#   npm run stage:pack   an unpacked app for this machine
+appId: ai.livliv.stage
+productName: LivLiv Stage
+copyright: Copyright © 2026 LivLiv
+extraMetadata:
+  name: livliv-stage-app
+  version: 0.2.2-preview.1  # the same as stage/package.json, which the About section shows
+  productName: LivLiv Stage
+  description: "LivLiv Stage: one stage, many characters, each with its own driver; characters talk to each other"
+  livliv:
+    app: stage
+directories:
+  output: release-stage
+  buildResources: build/stage
+files:
+  - dist/**/*.js
+  - "!dist/test/**"
+  - assets/**/*
+  - package.json
+extraResources:
+  - from: ../stage/dist
+    to: stage
+  - from: build/stage/localizations
+    to: .
+asar: true
+# switches in the Electron binary: it never runs as plain Node, ignores NODE_OPTIONS and --inspect, and loads only
+# the app.asar it was built with
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: true
+  enableEmbeddedAsarIntegrityValidation: true
+afterPack: scripts/check-stage-pack.cjs
+electronLanguages: [zh-CN, zh-TW, en-US, ja]
+publish: null
+# the NSIS toolset with a makensis that runs on Apple silicon (the default one is Intel only: it needs Rosetta)
+toolsets:
+  nsis: "1.2.1"
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: LivLiv Stage
+  language: "2052"
+  installerLanguages: [zh_CN, en_US]
+  artifactName: LivLiv-Stage-Setup-${version}.${ext}
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  category: public.app-category.video
+  # ad-hoc: without a valid signature, a downloaded app on Apple silicon is called damaged, with no way to open it
+  identity: "-"
+  hardenedRuntime: false
+  artifactName: LivLiv-Stage-${version}-${arch}.${ext}
+  extendInfo:
+    NSCameraUsageDescription: LivLiv Stage 用摄像头做面捕，画面只在这台电脑上处理。
+    NSLocalNetworkUsageDescription: LivLiv Stage 连接同一网络的手机与追踪应用，接收角色动作。
+    NSMicrophoneUsageDescription: LivLiv Stage 用麦克风做口型和按住说话。
+dmg:
+  title: LivLiv Stage
+linux:
+  target: [dir]

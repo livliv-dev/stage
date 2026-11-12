@@ -1,0 +1,74 @@
+{
+  "template": "duo",
+  "cast": [
+    "k01",
+    "v04"
+  ],
+  "topic": "周末去哪儿玩",
+  "lines": [
+    {
+      "who": "k01",
+      "text": "周末去哪儿玩？Kai，别告诉我你又打算在游戏里过周末！",
+      "emotion": "happy",
+      "action": "nod",
+      "to": "v04",
+      "look": "v04"
+    },
+    {
+      "who": "v04",
+      "text": "本来是这么想的。直到我家猫踩了键盘，把存档点变成了复活点。",
+      "emotion": "neutral",
+      "action": "tilt",
+      "to": null,
+      "look": "k01"
+    },
+    {
+      "who": "k01",
+      "text": "哈哈哈，那今天换个地图！我们去游戏厅，我要挑战音乐机。",
+      "emotion": "happy",
+      "action": "hop",
+      "to": null,
+      "look": "v04"
+    },
+    {
+      "who": "v04",
+      "text": "可以。先说好，唱歌加分的话，那不算公平对战。",
+      "emotion": "neutral",
+      "action": "shake",
+      "to": null,
+      "look": "k01"
+    },
+    {
+      "who": "k01",
+      "text": "我这是实力！你负责打节奏，我负责给全场开演唱会。",
+      "emotion": "happy",
+      "action": "nod",
+      "to": null,
+      "look": "v04"
+    },
+    {
+      "who": "v04",
+      "text": "专业耳机带上了。保持冷静，是职业选手的基本素养。",
+      "emotion": "neutral",
+      "action": "tilt",
+      "to": null,
+      "look": "camera"
+    },
+    {
+      "who": "k01",
+      "text": "嘴硬！输了的人请奶茶，观众帮我们记分！",
+      "emotion": "happy",
+      "action": "hop",
+      "to": null,
+      "look": "v04"
+    },
+    {
+      "who": "v04",
+      "text": "成交。新地图，双人组队。猫留在家里保管键盘。",
+      "emotion": "happy",
+      "action": "nod",
+      "to": null,
+      "look": "camera"
+    }
+  ]
+}

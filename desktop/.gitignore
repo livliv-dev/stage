@@ -1,0 +1,5 @@
+node_modules/
+dist/
+# electron-builder output (electron-builder.yml and electron-builder.stage.yml: directories.output)
+release/
+release-stage/

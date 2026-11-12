@@ -1,0 +1,44 @@
+# The livliv.ai website's desktop shell (LivLiv Stage is electron-builder.stage.yml). Nothing here signs, notarises,
+# publishes or updates yet. `npm run pack` makes an unpacked app for this machine; `npm run dist:win` an NSIS
+# installer (unsigned: SmartScreen warns).
+appId: ai.livliv.desktop
+productName: LivLiv
+copyright: Copyright © 2026 LivLiv
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*.js
+  - "!dist/test/**"
+  - assets/**/*
+  - package.json
+asar: true
+# switches in the Electron binary: it never runs as plain Node, ignores NODE_OPTIONS and --inspect, and loads only
+# the app.asar it was built with
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: true
+  enableEmbeddedAsarIntegrityValidation: true
+  # nothing signs the macOS app afterwards (identity: null): re-sign it ad hoc, or Apple silicon won't open it
+  resetAdHocDarwinSignature: true
+electronLanguages: [zh-CN, zh-TW, en-US, ja]
+publish: null
+win:
+  target: [nsis]
+  # the Microsoft Store would be the `appx` target; it needs a Partner Center identity first
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: LivLiv-Setup-${version}.${ext}
+mac:
+  target: [dir]
+  category: public.app-category.entertainment
+  identity: null
+  extendInfo:
+    NSCameraUsageDescription: LivLiv 用摄像头做面捕，画面只在这台电脑上处理。
+    NSMicrophoneUsageDescription: LivLiv 用麦克风做口型。
+linux:
+  target: [dir]

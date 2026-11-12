@@ -1,0 +1,81 @@
+import { tr } from './i18n'
+// Where characters come from: the samples that come with Stage (LivLiv's showcase, samples.ts), one of LivLiv's by its
+// id (the site's /api/models/<id> and /models/<id>/, here through the dev server's proxy), or a model package exported
+// from LivLiv: its folder, or the zip as downloaded, kept in this browser afterwards (vault.ts) and placed again from
+// there.
+import { localModels, uid, type ModelRef } from './scene'
+import { cardOf, local, sampleUrl, SAMPLES, type Card as SampleCard } from './samples'
+import { api } from './livliv'
+import { keep, type Kept } from './vault'
+import type { PngSlot } from './bodies/png'
+
+/** label: how the picker names it (when two share a name) */
+export type Pick = { name: string; persona: string; model: ModelRef; thumb?: string; label?: string; id?: string; card?: SampleCard }
+
+type Card = { id: string; name: string; tagline?: string; tags?: string[]; v?: number }
+
+const persona = (c: { tagline?: string; tags?: string[] }) => [c.tagline, c.tags?.length ? tr("标签：{0}", c.tags.join('、')) : ''].filter(Boolean).join('；')
+
+const FEATURED: Record<string, number> = { d03ft: 0, k01: 1, v04: 2 }
+/** Featured characters first; keep the rest of the bundled library available. */
+export const samples = (): Pick[] => [...SAMPLES].sort((a, b) => (FEATURED[a.id] ?? 3) - (FEATURED[b.id] ?? 3)).map((s) => ({
+  id: s.id, name: s.name, persona: s.persona || persona(s), card: cardOf(s), model: { type: 'url', url: sampleUrl(s.id) }, thumb: `${sampleUrl(s.id)}avatar.webp`,
+  label: s.refined ? tr("{0} · 精修", s.name) : s.name,
+}))
+
+/** one character by id (a showcase one the gallery doesn't list, or your own with its key) */
+export async function byId(id: string): Promise<Pick> {
+  const r = await api(`/api/models/${encodeURIComponent(id)}`)
+  if (!r.ok) throw new Error(r.status === 404 ? tr("没有 {0} 这个角色", id) : tr("拿不到 {0}（{1}）", id, r.status))
+  return fromCard(await r.json() as Card)
+}
+
+function fromCard(c: Card): Pick {
+  const url = local(`/models/${c.id}/`)
+  return { id: c.id, name: c.name, persona: persona(c), model: { type: 'url', url }, thumb: url === `/models/${c.id}/` ? `${url}avatar.webp${c.v ? `?v=${c.v}` : ''}` : `${url}avatar.webp` }
+}
+
+/** a model package from files: a picked folder, or a .livliv (or .zip) file; a .vrm file is a VRM */
+export async function fromFiles(files: FileList | File[]): Promise<Pick> {
+  const list = [...files]
+  if (list.length === 1 && /\.vrm$/i.test(list[0].name)) return fromVrm(list[0])
+  const map = new Map<string, Blob>()
+  if (list.length === 1 && /\.(livliv|zip)$/i.test(list[0].name)) {
+    const file = list[0], key = uid(), name = file.name.replace(/\.(livliv|zip)$/i, '') || tr("角色")
+    map.set(file.name, file)
+    localModels.set(key, map)
+    await keep({ key, name, at: Date.now() }, map)
+    return { name, persona: '', model: { type: 'files', key } }
+  } else {
+    for (const f of list) map.set(f.webkitRelativePath || f.name, f)
+  }
+  // the shallowest model.json: the package's (a zip may hold one folder, or the files at its top)
+  const json = [...map.keys()].filter((p) => p.split('/').pop() === 'model.json').sort((a, b) => a.split('/').length - b.split('/').length)[0]
+  if (!json) throw new Error(tr("里面没有 model.json：选 LivLiv 导出的模型包（.livliv、zip 或文件夹）"))
+  let name = tr("角色")
+  try { name = JSON.parse(await map.get(json)!.text()).name || name } catch { /* the player says what is wrong */ }
+  const key = uid()
+  localModels.set(key, map)
+  await keep({ key, name, at: Date.now() }, map)
+  return { name, persona: '', model: { type: 'files', key } }
+}
+
+/** a VRM (VRoid and others): the file, kept in this browser like a package */
+export async function fromVrm(file: File): Promise<Pick> {
+  const name = file.name.replace(/\.vrm$/i, '') || 'VRM', key = uid(), map = new Map<string, Blob>([['model.vrm', file]])
+  localModels.set(key, map)
+  await keep({ key, name, at: Date.now(), format: 'vrm' }, map)
+  return { name, persona: '', model: { type: 'files', key, format: 'vrm' } }
+}
+
+/** a PNGTuber: its pictures by slot (bodies/png.ts: closed and open needed, blink and blink-open if there) */
+export async function fromPngs(pics: Partial<Record<PngSlot, File>>, name: string): Promise<Pick> {
+  const key = uid(), map = new Map<string, Blob>([['name.txt', new Blob([name])]])
+  for (const [slot, f] of Object.entries(pics)) if (f) map.set(`${slot}.png`, f)
+  localModels.set(key, map)
+  await keep({ key, name, at: Date.now(), format: 'png' }, map)
+  return { name, persona: '', model: { type: 'files', key, format: 'png' } }
+}
+
+/** a package kept from an earlier import */
+export const fromKept = (k: Kept): Pick => ({ name: k.name, persona: '', model: { type: 'files', key: k.key, ...(k.livlivId ? { livlivId: k.livlivId } : {}), ...(k.sampleId ? { sampleId: k.sampleId } : {}), ...(k.format && k.format !== 'livliv' ? { format: k.format } : {}) } })

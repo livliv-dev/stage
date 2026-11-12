@@ -1,0 +1,3 @@
+"NSCameraUsageDescription" = "LivLiv Stageはカメラで表情や動きをトラッキングします。";
+"NSMicrophoneUsageDescription" = "LivLiv Stageはマイクでリップシンクと音声入力を行います。";
+"NSLocalNetworkUsageDescription" = "LivLiv Stageは同じネットワークのスマホやトラッキングアプリから動作を受信します。";

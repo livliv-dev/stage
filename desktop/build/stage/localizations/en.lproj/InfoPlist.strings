@@ -1,0 +1,3 @@
+"NSCameraUsageDescription" = "LivLiv Stage uses your camera for face tracking.";
+"NSMicrophoneUsageDescription" = "LivLiv Stage uses your microphone for lip sync and voice input.";
+"NSLocalNetworkUsageDescription" = "LivLiv Stage connects to phones and tracking apps on your network to receive avatar motion.";

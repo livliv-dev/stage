@@ -1,0 +1,3 @@
+"NSCameraUsageDescription" = "LivLiv Stage 使用攝影機追蹤你的表情和動作。";
+"NSMicrophoneUsageDescription" = "LivLiv Stage 使用麥克風進行嘴型同步和語音輸入。";
+"NSLocalNetworkUsageDescription" = "LivLiv Stage 連接同一網路的手機與追蹤應用程式，接收角色動作。";
