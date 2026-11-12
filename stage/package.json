@@ -4,7 +4,10 @@
   "version": "0.2.2-preview.1",
   "private": true,
   "license": "AGPL-3.0-only",
-  "description": "LivLiv Stage prototype: one canvas, many characters, each with its own driver (face, script, AI); characters can talk to each other",
+  "homepage": "https://github.com/livliv-dev/stage",
+  "repository": { "type": "git", "url": "git+https://github.com/livliv-dev/stage.git", "directory": "stage" },
+  "bugs": "https://github.com/livliv-dev/stage/issues",
+  "description": "Your AI-Native VTuber Studio: many 2D characters on one stage, each driven by your face, a script or AI, talking to each other and to your chat",
   "type": "module",
   "scripts": {
     "dev": "vite",

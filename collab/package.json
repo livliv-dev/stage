@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "license": "AGPL-3.0-only",
+  "homepage": "https://github.com/livliv-dev/stage",
+  "repository": { "type": "git", "url": "git+https://github.com/livliv-dev/stage.git", "directory": "collab" },
+  "bugs": "https://github.com/livliv-dev/stage/issues",
   "type": "module",
   "description": "Self-hosted signaling for LivLiv Stage co-streams; model data and audio use WebRTC.",
   "scripts": {
