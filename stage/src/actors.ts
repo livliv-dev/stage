@@ -10,7 +10,7 @@ import { networkSource } from './networkTracking'
 import { gamepadSource } from './gamepad'
 import { deviceError, inputs, microphoneConstraints, onInputs, refreshDevices } from './devices'
 import type { Emotion, Move } from './brain'
-import { participants as characters, store, type CharacterItem, type ModelRef } from './scene'
+import { AUTO_AWAY, participants as characters, store, type CharacterItem, type ModelRef } from './scene'
 import { estimate, say, type Utterance } from './speech'
 import { isOutput, outputOpen, post } from './link'
 import { length, modelId, voiceLine, type Clip } from './livliv'
@@ -93,6 +93,15 @@ export class Actor {
   private expressionId: string | null = null
   private expressionRevision = 0
   private expressionExpiry = 0
+  /** dozing (setAway): by your hand (manual), or because the camera saw no face for a while (auto, ends when one is back) */
+  private awayBy: 'manual' | 'auto' | null = null
+  /** the face driver: when it last saw a face, and since when it sees one again (0: none now) */
+  private faceAt = 0
+  private faceSince = 0
+  /** the last frame the player's own loop drew, and the last one drawn for it while that loop stood still (keepUp) */
+  private loopAt = performance.now()
+  private stepAt = 0
+  private stepping = false
 
   constructor(canvas: HTMLCanvasElement, item: CharacterItem) {
     this.item = item
@@ -114,6 +123,7 @@ export class Actor {
     }
     this.player.onFrame = (pose) => {
       this.lastPose = pose
+      if (!this.stepping) this.loopAt = performance.now()
       if (outputOpen()) post({ t: 'pose', id: this.item.id, pose })
       for (const f of frameTaps) f(this)
     }
@@ -130,6 +140,7 @@ export class Actor {
       } })
       if (!item.remote) this.player.use({ order: 20, update: (f) => {
         if (this.utter) { f.params.mouthOpen = Math.max(f.params.mouthOpen, this.utter.level()); f.params.vowel = this.utter.vowel() }
+        this.watchFace()
         if (!f.tracked && this.listening && !this.utter) {
           if (this.nodTime < 0 && f.time > this.nodAt) this.nodTime = 0
           if (this.nodTime >= 0) {
@@ -161,6 +172,37 @@ export class Actor {
     return true
   }
   get tracking() { return this.face ? { face: this.face.face, fps: this.face.fps, dark: this.face.dark } : null }
+  /** dozing: eyes closed, head down (B, act:away), or by itself after the camera saw no face for a while */
+  get away() { return this.awayBy !== null }
+  setAway(on: boolean, auto = false) {
+    const by = on ? (auto ? 'auto' : 'manual') : null
+    if (by === this.awayBy) return
+    this.awayBy = by; this.player.setAway(on); changed()
+  }
+  /** away by itself once no face was seen for item.autoAway seconds (after one was seen), back after a second with one */
+  private watchFace() {
+    const t = this.face, now = performance.now()
+    if (!t) { if (this.awayBy === 'auto') this.setAway(false); return }
+    if (t.face) { this.faceAt = now; this.faceSince ||= now } else this.faceSince = 0
+    const after = this.item.autoAway ?? AUTO_AWAY
+    if (this.awayBy === 'auto' && (this.faceSince && now - this.faceSince > 1000 || after <= 0)) this.setAway(false)
+    else if (!this.awayBy && after > 0 && this.faceAt && now - this.faceAt > after * 1000) this.setAway(true, true)
+  }
+  /** Draws a frame now when the player's own loop has stood still: a browser gives a page out of sight no animation
+   *  frames (another tab in front, the window minimised), and the output window would freeze. Called by a worker's
+   *  clock while an output is open (outputFeed.ts); on a page in sight only after a second without a frame, so a slow
+   *  machine isn't given more to draw. The Player draws its frames in a method it keeps to itself (draw, 0.4.0);
+   *  without it, resize() draws one too, without time passing */
+  keepUp(now: number) {
+    if (isOutput || this.item.remote || this.disposed || this.status !== 'ready' || !this.player.playing) return
+    if (now - this.loopAt < (document.hidden ? 150 : 1000)) { this.stepAt = 0; return }
+    const dt = this.stepAt ? Math.min(0.05, (now - this.stepAt) / 1000) : 1 / 30
+    this.stepAt = now; this.stepping = true
+    try {
+      const draw = (this.player as unknown as { draw?: (dt: number) => void }).draw
+      if (typeof draw === 'function') draw.call(this.player, dt); else this.player.resize()
+    } finally { this.stepping = false }
+  }
   get inputLevel() { return this.mic?.level ?? this.voice.level }
   get speaking() { return !!this.utter }
   get audio() { return this.voice.stream }
@@ -229,11 +271,13 @@ export class Actor {
 
   private async drive() {
     const kind = this.item.driver, device = kind === 'face' ? inputs().camera : kind === 'mic' ? inputs().microphone : ''
-    const key = JSON.stringify([kind, device, kind === 'face' || kind === 'replay' ? [this.item.smooth, this.item.tuning.faceFollow, this.item.tuning.faceFps] : 0])
+    // the face driver with the microphone on the mouth too (faceMic): the camera's mouth and the voice's, whichever is wider
+    const withMic = kind === 'face' && !!this.item.faceMic
+    const key = JSON.stringify([kind, device, kind === 'face' || kind === 'replay' ? [this.item.smooth, this.item.tuning.faceFollow, this.item.tuning.faceFps] : 0, withMic ? inputs().microphone : null])
     if (key === this.driverKey) return
     this.driverKey = key
     const run = ++this.driverRun
-    this.stopDriver?.(); this.stopDriver = null; this.face = null; this.input = null; this.mic = null
+    this.stopDriver?.(); this.stopDriver = null; this.face = null; this.input = null; this.mic = null; this.faceAt = 0; this.faceSince = 0
     this.micStream?.getTracks().forEach((t) => t.stop()); this.micStream = null
     this.inputPhase = kind === 'face' || kind === 'replay' || kind === 'mic' || kind === 'gamepad' || kind === 'network' ? 'opening' : 'idle'
     this.error = ''; changed()
@@ -245,6 +289,7 @@ export class Actor {
         this.face = t; this.stopDriver = () => t.stop()
         this.inputPhase = 'on'
         void refreshDevices()
+        if (withMic) { changed(); await this.mouthFromMic(run, () => t.stop()) }
       } else if (kind === 'network') {
         const tracking = startInputTracking(this.player, networkSource(), { profile: {}, smoothing: () => this.item.smooth,
           status: (active, error) => {
@@ -280,6 +325,23 @@ export class Actor {
       this.micStream?.getTracks().forEach((t) => t.stop()); this.micStream = null
     }
     changed()
+  }
+
+  /** the microphone on the mouth beside the camera: one that can't be had leaves the camera on and says why */
+  private async mouthFromMic(run: number, stopFace: () => void) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints() })
+      if (run !== this.driverRun || this.disposed) { stream.getTracks().forEach((t) => t.stop()); return }
+      this.micStream = stream
+      const m = await startLipSync(this.player, stream, { motion: 0 })
+      if (run !== this.driverRun || this.disposed) { m.stop(); stream.getTracks().forEach((t) => t.stop()); return }
+      this.mic = m; m.gain = this.item.micGain
+      this.stopDriver = () => { stopFace(); m.stop() }
+    } catch (e) {
+      if (run !== this.driverRun || this.disposed) return
+      this.micStream?.getTracks().forEach((t) => t.stop()); this.micStream = null
+      this.error = deviceError(tr("麦克风"), e as Error)
+    }
   }
 
   retryInput() { this.driverKey = ''; void this.drive() }

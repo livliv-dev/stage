@@ -26,6 +26,7 @@ import { PropPanel } from './PropPanel'
 import { AvatarView } from './AvatarView'
 import { SidebarToggle } from './SidebarToggle'
 import { CONTROLS, controlOf, controlSettings } from './workflow'
+import { keysOf, modeOf, MOVE_KEYS } from './live'
 
 const settingsLabel = (item?: Item) => tr(item ? ({ character: '角色设置', subtitle: '字幕设置', text: '文字设置', image: '图片设置' })[item.kind] : '舞台设置')
 
@@ -157,12 +158,16 @@ function VoiceSection({ c, patch }: { c: CharacterItem; patch: (p: Partial<Chara
   )
 }
 
+/** an expression's name in the page's language */
+const nameOf = (x: { label: string; labels?: Record<string, string> }) => x.labels?.[getLocale()] ?? x.labels?.[getLocale().split('-')[0]] ?? x.labels?.en ?? x.label
+const moveKey = (m: string) => Object.entries(MOVE_KEYS).find(([, id]) => id === m)?.[0].toUpperCase() ?? ''
+
 function CharacterPanel({ c, patch }: { c: CharacterItem; patch: (p: Partial<CharacterItem>) => void }) {
   const { scene } = useScene()
   const [, redraw] = useState(0)
   useEffect(() => onActors(() => redraw((n) => n + 1)), [])
   useEffect(() => onVoices(() => redraw((n) => n + 1)), [])
-  const a = actors.get(c.id)
+  const a = actors.get(c.id), keys = new Map(a ? keysOf(a).map((k) => [k.id, k.key]) : [])
   const hasBubble = scene.items.some((i) => i.kind === 'subtitle' && i.of === c.id)
   const voiced = c.lines === 'ai' || (c.lines === 'me' && c.readAloud)
   const tracked = c.driver === 'face' || c.driver === 'replay'
@@ -242,13 +247,28 @@ function CharacterPanel({ c, patch }: { c: CharacterItem; patch: (p: Partial<Cha
     {a?.status === 'ready' && <Section title={a.format === 'png' ? tr("动作") : tr("表情与动作")}>
       {a.format !== 'png' && <Slider label={tr("表情强度")} value={c.tuning.expressionStrength} min={0} max={1} step={.05} show={`${Math.round(c.tuning.expressionStrength * 100)}%`} set={(expressionStrength) => patch({ tuning: { ...c.tuning, expressionStrength } })} />}
       {a.format !== 'png' && <div className="chips">
-        {a.player.expressions.map((x) => <button key={x.id} className={a.expression === x.id ? 'on' : ''} onClick={() => a.setExpression(x.id)}>{x.labels?.[getLocale()] ?? x.labels?.[getLocale().split('-')[0]] ?? x.labels?.en ?? x.label}</button>)}
-        <button onClick={() => a.setExpression(null)}>{tr("恢复")}</button>
+        {a.player.expressions.map((x) => <button key={x.id} className={a.expression === x.id ? 'on' : ''} onClick={() => a.setExpression(x.id)}>{nameOf(x)}{keys.get(x.id) && <kbd>{keys.get(x.id)}</kbd>}</button>)}
+        <button onClick={() => a.setExpression(null)}>{tr("恢复")}<kbd>0</kbd></button>
       </div>}
       <div className="chips">
         {([['nod', tr("点头")], ['shake', tr("摇头")], ['tilt', tr("歪头")], ['hop', tr("跳一下")], ['shy', tr("害羞")]] as const).map(([m, l]) =>
-          <button key={m} onClick={() => a.player.act(m)}>{l}</button>)}
+          <button key={m} onClick={() => a.player.act(m)}>{l}<kbd>{moveKey(m)}</kbd></button>)}
+        <button className={a.away ? 'on' : ''} onClick={() => a.setAway(!a.away)}>{tr("暂离")}<kbd>B</kbd></button>
       </div>
+      {keys.size > 0 && <details className="key-modes"><summary>{tr("数字键的触发方式")}</summary>
+        {a.player.expressions.filter((x) => keys.has(x.id)).map((x) => {
+          const m = modeOf(c, x.id), value = m.mode === 'timed' ? `timed:${m.secs ?? 3}` : m.mode
+          return <label key={x.id} className="key-mode"><kbd>{keys.get(x.id)}</kbd><span>{nameOf(x)}</span>
+            <select value={value} aria-label={tr("{0} 的触发方式", nameOf(x))} onChange={(e) => {
+              const v = e.target.value, next = v.startsWith('timed') ? { mode: 'timed' as const, secs: Number(v.split(':')[1]) } : { mode: v as 'toggle' | 'hold' }
+              patch({ exprModes: { ...c.exprModes, [x.id]: next } })
+            }}>
+              <option value="toggle">{tr("按一下开关")}</option><option value="hold">{tr("按住时显示")}</option><option value="timed:3">{tr("显示 {0} 秒", 3)}</option>
+              {m.mode === 'timed' && m.secs !== 3 && <option value={value}>{tr("显示 {0} 秒", m.secs ?? 3)}</option>}
+            </select>
+          </label>
+        })}
+      </details>}
     </Section>}
   </>
 }

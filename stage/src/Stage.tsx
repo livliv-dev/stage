@@ -18,6 +18,7 @@ import { estimate } from './speech'
 import { geometryBounds, imageGeometry, localPoint, moveImage, turn } from './attachments'
 import { propSource, useImageGeometry } from './propGeometry'
 import { CONTROLS, controlOf, controlSettings, type Control } from './workflow'
+import { aiLabelBox, markBox, showsAI } from './paint'
 
 export type Insets = { top: number; right: number; bottom: number; left: number }
 export type Zoom = 'fit' | number
@@ -26,8 +27,9 @@ type Guide = { axis: 'x' | 'y'; at: number }
 type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
 export const ZOOMS = [0.25, 0.33, 0.5, 0.67, 0.75, 1, 1.25, 1.5, 2]
 
-export function Stage({ insets, empty, onMenu, zoom, setZoom }: {
-  insets: Insets; empty: ReactNode; onMenu: (m: MenuAt) => void; zoom: Zoom; setZoom: (z: Zoom) => void
+/** mark: the LivLiv mark in the corner (the output window on livliv.ai/stage on the free plan, outputFeed.ts) */
+export function Stage({ insets, empty, onMenu, zoom, setZoom, mark = false }: {
+  insets: Insets; empty: ReactNode; onMenu: (m: MenuAt) => void; zoom: Zoom; setZoom: (z: Zoom) => void; mark?: boolean
 }) {
   const { scene, selected, mode } = useScene()
   const box = useRef<HTMLDivElement>(null)
@@ -63,6 +65,8 @@ export function Stage({ insets, empty, onMenu, zoom, setZoom }: {
       {zoomed && <div className="scroll-size" style={{ width: left + w + pad + insets.right, height: top + h + pad + foot + insets.bottom }} onPointerDown={deselect} />}
       <div className="stage" style={{ width: scene.width, height: scene.height, transform: `scale(${s})`, left, top, ...bg }} onPointerDown={deselect}>
         {scene.items.map((it) => (it.kind === 'character' || !it.hidden) && <Placed key={it.id} item={it} edit={edit} drag={drag} onMenu={onMenu} onHover={setHover} />)}
+        {showsAI(scene) && <AiLabel w={scene.width} h={scene.height} />}
+        {mark && <Mark w={scene.width} h={scene.height} />}
       </div>
       {edit && (
         <div className="overlay" style={{ left, top, width: w, height: h }}>
@@ -88,6 +92,18 @@ export function Stage({ insets, empty, onMenu, zoom, setZoom }: {
       {edit && !scene.items.length && <div className="empty" style={{ left: insets.left, right: insets.right, top: insets.top, bottom: insets.bottom }}>{empty}</div>}
     </div>
   )
+}
+
+/** 「AI 生成」 over a stage with an AI character in sight, as recordings draw it (paint.ts) */
+function AiLabel({ w, h }: { w: number; h: number }) {
+  const { size, at } = aiLabelBox(w, h)
+  return <span className="ai-label" style={{ top: at, left: at, fontSize: size }}>{tr("AI 生成")}</span>
+}
+
+/** the LivLiv mark, as recordings draw it (paint.ts) */
+function Mark({ w, h }: { w: number; h: number }) {
+  const { px, pad } = markBox(w, h)
+  return <span className="stage-mark" style={{ right: pad, bottom: pad, fontSize: px }} aria-hidden="true"><b>LivLiv</b><small>livliv.ai/stage</small></span>
 }
 
 // ---------------------------------------------------------------- moving and resizing
@@ -251,14 +267,16 @@ function Toolbar({ item, style }: { item: Item; style: CSSProperties }) {
  *  mouth or selected, and while it thinks or waits for you (the cast below the stage says it all the time) */
 function Tag({ c, s, stageH, near }: { c: CharacterItem; s: number; stageH: number; near: boolean }) {
   const conv = useConversation()
-  const speaking = conv.speaking?.who === c.id, yours = conv.waiting === c.id, thinking = conv.thinking === c.id
+  const [, redraw] = useState(0)
+  useEffect(() => onActors(() => redraw((n) => n + 1)), [])
+  const speaking = conv.speaking?.who === c.id, yours = conv.waiting === c.id, thinking = conv.thinking === c.id, away = !!actors.get(c.id)?.away
   const lines = LINES.find((l) => l.id === c.lines)
   const driver = c.driver === 'auto' ? null : DRIVERS.find((d) => d.kind === c.driver)
   return (
-    <span className={`tag${speaking ? ' speaking' : ''}${yours ? ' yours' : ''}${c.locked ? ' locked' : ''}${near || yours || thinking ? '' : ' quiet'}`}
+    <span className={`tag${speaking ? ' speaking' : ''}${yours ? ' yours' : ''}${c.locked ? ' locked' : ''}${near || yours || thinking || away ? '' : ' quiet'}`}
       style={{ left: (c.x + c.w / 2) * s, top: Math.min(c.y + c.h, stageH) * s - 10, ['--who' as string]: c.color }}>
       <i />{c.name}
-      {yours ? <em>{tr("轮到你了")}</em> : thinking ? <em>{tr("在想…")}</em> : speaking ? <em>{tr("在说")}</em> : <><em>{tr(lines?.label ?? '')}</em>{driver && <em>{tr(driver.label ?? '')}</em>}</>}
+      {yours ? <em>{tr("轮到你了")}</em> : thinking ? <em>{tr("在想…")}</em> : speaking ? <em>{tr("在说")}</em> : away ? <em>{tr("暂离")}</em> : <><em>{tr(lines?.label ?? '')}</em>{driver && <em>{tr(driver.label ?? '')}</em>}</>}
       {c.locked && <Lock size={11} />}
     </span>
   )

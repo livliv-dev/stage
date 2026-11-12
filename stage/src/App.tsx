@@ -48,8 +48,11 @@ import { GeneralPanel } from './GeneralPanel'
 import { SidebarToggle } from './SidebarToggle'
 import { tr, getLocale, useLocale } from './i18n'
 import { onSite, small } from './host'
-import { linkedId, openLinked } from './entry'
+import { linkedAs, linkedId, openLinked } from './entry'
 import { PhoneIntro, SiteWelcome } from './SiteIntro'
+import { connectLiveKeys, liveCharacter } from './live'
+import { connectOutputFeed } from './outputFeed'
+import { GoLiveGuide } from './GoLive'
 
 type SettingsTab = 'general' | 'ai' | 'hotkeys' | 'account'
 
@@ -102,13 +105,19 @@ export default function App() {
   // welcome with the ways in (none for a link to a character, which opens that one instead)
   const phone = onSite && small()
   const [welcome, setWelcome] = useState(() => onSite && !phone && !hadSaved && !linkedId())
+  // the site's 开播 (?c=<id>&as=face): its card, where the first-visit checklist goes
+  const [goLive, setGoLive] = useState<string | null>(null)
   const toggle = (p: Pop) => { if (p === 'settings') setSettingsTab('general'); setPop((x) => (x === p ? null : p)) }
   const openSettings = () => { setSettingsTab('general'); setPop('settings') }
   useEffect(() => { void refresh() }, [])  // the LivLiv account, if one is connected
   useEffect(() => {
     if (onSite && (phone || (!hadSaved && !linkedId()))) void ensureTrio().then(() => { store.select(null); if (phone) store.setMode('show') }, () => {})
-    const id = linkedId()
-    if (id && !phone) void openLinked(id).then((note) => { if (note) say(note) })
+    const id = linkedId(), as = linkedAs()
+    if (id && !phone) void openLinked(id, as).then(({ note, character }) => {
+      if (note) say(note)
+      if (character && as === 'face') { setGoLive(character); setLeftFolded(false) }
+      if (character && as === 'ai') setPop('live')
+    })
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
   // on the site, signing in or out happens on its own pages, maybe in another tab: asked again when this one is back
   useEffect(() => { if (!onSite) return; const again = () => void refresh(); addEventListener('focus', again); return () => removeEventListener('focus', again) }, [])
@@ -117,6 +126,8 @@ export default function App() {
   useEffect(connectAudienceActions, [])
   useEffect(connectNetworkTracking, [])
   useEffect(() => holdKey(), [])  // push to talk: hold `
+  useEffect(connectLiveKeys, [])  // 1-9 0 Q W E R T B (live.ts)
+  useEffect(connectOutputFeed, [])
   // an AI turn came with no model set up: the model card opens over the console, its button starts the conversation
   const conv = useConversation()
   const [forStart, setForStart] = useState(false)
@@ -157,7 +168,7 @@ export default function App() {
           onCamera={() => { setWelcome(false); void template('solo') }}
           onModel={() => { setWelcome(false); setForStart(false); setPop('model') }}
           onCharacter={() => { setWelcome(false); setPop('add') }} />}
-        {!leftFolded && <Cast guide={coach && !welcome && !pop && scene.items.length > 0 ? <Checklist
+        {!leftFolded && <Cast guide={goLive ? <GoLiveGuide id={goLive} onClose={() => setGoLive(null)} /> : coach && !welcome && !pop && scene.items.length > 0 ? <Checklist
           done={() => { setCoach(false); try { localStorage.setItem(COACHED, '1') } catch { /* private mode */ } }}
           onModel={() => { setForStart(false); setPop('model') }} onVoice={() => { setSettingsTab('ai'); setPop('settings') }}
           onCharacter={() => { setBare(false); store.select(characters(store.get())[0]?.id ?? null) }} onOutput={() => setPop('output')} /> : null} />}
@@ -210,7 +221,7 @@ function useShortcuts(keys: Keys) {
       if (e.code === 'Space' && !t.closest('button')) {
         e.preventDefault()
         const c = conversation()
-        if (!participants(store.get()).some((x) => x.lines === 'ai')) actors.forEach((a) => { if (a.item.lines === 'me') a.calibrate() }); else if (!c.running) talk.start(); else if (c.paused) talk.resume(); else talk.pause()
+        if (!characters(store.get()).some((x) => x.lines === 'ai')) actors.forEach((a) => { if (a.item.lines === 'me') a.calibrate() }); else if (!c.running) talk.start(); else if (c.paused) talk.resume(); else talk.pause()
         return
       }
       if (!id || store.mode() !== 'edit') return
@@ -579,10 +590,12 @@ function SoloStatus() {
   useEffect(() => { const off = onActors(() => redraw((n) => n + 1)), timer = setInterval(() => redraw((n) => n + 1), 500); return () => { off(); clearInterval(timer) } }, [])
   const cast = participants(scene)
   if (!cast.length) return null
-  const human = cast.find((c) => c.lines === 'me'), actor = human && actors.get(human.id), track = actor?.tracking
-  const label = actor?.inputPhase === 'error' ? actor.error : actor?.inputPhase === 'opening' ? tr("正在连接摄像头…")
+  // the one 开播 put on the stage, else the first you play (in sight first)
+  const human = cast.find((c) => c.id === liveCharacter() && !c.hidden) ?? cast.find((c) => c.lines === 'me' && !c.hidden) ?? cast.find((c) => c.lines === 'me')
+  const actor = human && actors.get(human.id), track = actor?.tracking
+  const label = actor?.inputPhase === 'error' ? actor.error : actor?.away ? tr("暂离中，按 B 回来") : actor?.inputPhase === 'opening' ? tr("正在连接摄像头…")
     : track ? track.face ? tr("面捕已连接") : tr("未识别到面部") : tr("画面实时更新")
-  return <div className="solo-status"><span><i className={'live-dot' + (ptt.phase !== 'idle' ? ' recording' : track && !track.face ? ' waiting' : '')} />{ptt.phase === 'listening' ? tr("正在听…") : ptt.phase === 'opening' ? tr("正在打开麦克风…") : ptt.phase === 'recognizing' ? tr("正在识别…") : label}</span>
+  return <div className="solo-status"><span><i className={'live-dot' + (ptt.phase !== 'idle' ? ' recording' : actor?.away || (track && !track.face) ? ' waiting' : '')} />{ptt.phase === 'listening' ? tr("正在听…") : ptt.phase === 'opening' ? tr("正在打开麦克风…") : ptt.phase === 'recognizing' ? tr("正在识别…") : label}</span>
     {ptt.phase !== 'idle' ? <button onClick={ptt.phase === 'listening' ? () => void pttRelease() : pttCancel}>{ptt.phase === 'listening' ? tr("结束语音输入") : tr("取消")}</button> : track?.face && <button onClick={() => actor?.calibrate()}>{tr("校准正面")}</button>}
     {ptt.error && <span className="error">{tr(ptt.error ?? '')}</span>}</div>
 }
@@ -643,7 +656,7 @@ function ShowControls() {
 }
 
 const KEYS: [string, string][] = [
-  ['空格', '开始 / 暂停'], ['⌘Z / ⇧⌘Z', '撤销 / 重做'], ['⌘D', '复制选中的'], ['Delete', '删除选中的'],
+  ['空格', '开始 / 暂停 AI；没有 AI 角色时校准正面'], ['1–9 / 0', '表情 / 恢复'], ['Q W E R T', '点头、摇头、歪头、跳一下、害羞'], ['B', '暂离 / 回来'], ['⌘Z / ⇧⌘Z', '撤销 / 重做'], ['⌘D', '复制选中的'], ['Delete', '删除选中的'],
   ['方向键', '移动 1 像素（按住 ⇧ 移动 10）'], ['拖动时按住 Alt', '不吸附'], ['⇧1 / ⇧0', '适应窗口 / 100%'], ['⌘\\', '收起 / 展开右边的面板'],
   ['按住 `', '按住说话，松开说出去'], ['双击文字', '直接改字'], ['右键', '更多操作'], ['Esc', '取消选中 / 回到编辑'], ['?', '这张表'],
 ]

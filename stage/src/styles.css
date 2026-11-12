@@ -68,6 +68,14 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent-soft); outli
 .seg button.on { background: #fff; color: var(--fg); box-shadow: 0 1px 2px rgb(0 0 0 / .1); }
 .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
 .chips button { padding: 3px 11px; }
+.chips button kbd { margin-left: 5px; padding: 0; font-size: 11px; }
+.chips button.on kbd { color: inherit; opacity: .7; }
+.key-modes { margin-top: 8px; font-size: 12px; color: var(--fg-3); }
+.key-modes > summary { cursor: pointer; }
+.key-mode { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-top: 6px; color: var(--fg-2); }
+.key-mode kbd { margin: 0; padding: 0; text-align: center; }
+.key-mode span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.key-mode select { width: auto; max-width: 132px; font-size: 12px; }
 .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 6px; }
 .row.center { justify-content: center; }
 .row.two { flex-wrap: nowrap; gap: 12px; }
@@ -152,6 +160,11 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent-soft); outli
 .stage-box { position: absolute; inset: 0; }
 .scroll-size { position: absolute; left: 0; top: 0; }
 .stage { position: absolute; transform-origin: 0 0; overflow: hidden; }
+/* over the picture, sized in stage pixels (paint.ts draws the same into recordings) */
+.ai-label { position: absolute; z-index: 1; padding: .3em .75em; border-radius: 999px; background: rgb(0 0 0 / .42); color: #fff; font-weight: 650; line-height: 1.25; white-space: nowrap; pointer-events: none; }
+.stage-mark { position: absolute; z-index: 1; display: flex; flex-direction: column; align-items: flex-end; color: rgb(255 255 255 / .92); font-family: "Inter Variable", Inter, system-ui, sans-serif; line-height: 1; text-shadow: 0 .05em .35em rgb(0 0 0 / .45); pointer-events: none; }
+.stage-mark b { font-weight: 700; }
+.stage-mark small { margin-top: .16em; font-size: .46em; font-weight: 500; }
 .stage-box.edit .stage { box-shadow: 0 0 0 1px rgb(0 0 0 / .08), 0 14px 44px rgb(0 0 0 / .08); }
 .placed { position: absolute; touch-action: none; animation: appear .2s ease-out; }
 .placed.editable { cursor: grab; }
@@ -829,6 +842,9 @@ button.account-cta:hover:not(:disabled) { background:#68549e;border-color:#68549
 .coach-next { display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:4px;width:100%;padding:5px 0;border:0;background:transparent;white-space:normal;line-height:18px }
 .coach-next b { font-size:12px;color:var(--accent);text-wrap:balance }
 .coach-next>span { font-size:11px;color:var(--fg-3);text-wrap:balance }
+.coach-next>span.error { color:var(--error) }
+.cast-guide .coach.golive > button { margin-top:6px;font-size:12px }
+.golive-keys { margin:8px 0 0;font-size:11px;line-height:16px;color:var(--fg-3);text-wrap:balance }
 .cast-guide .coach li { gap:6px;padding:4px 0 }
 
 .voice-demo { display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg-2);margin:0 0 10px }

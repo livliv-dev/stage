@@ -7,6 +7,7 @@ import { conversation, talk } from './conversation'
 import { getLocale } from './i18n'
 import { cancel as cancelPtt, canHear, pttState, togglePtt } from './ptt'
 import { store, type CharacterItem } from './scene'
+import { liveCharacter } from './live'
 
 export function stageState() {
   const scene = store.get(), conv = conversation()
@@ -51,7 +52,8 @@ export function performStageCommand(cmd: StageCommand): StageResult {
     return { ok: true }
   }
   const visible = cast.filter((c) => !c.hidden)
-  const target = cmd.character ? cast.find((c) => c.id === cmd.character) : visible.find((c) => c.id === store.selected()) ?? visible.find((c) => c.lines === 'me') ?? visible.find((c) => !c.remote)
+  // as the live keys (live.ts): the one 开播 put on the stage first
+  const target = cmd.character ? cast.find((c) => c.id === cmd.character) : visible.find((c) => c.id === liveCharacter() && !c.remote) ?? visible.find((c) => c.id === store.selected()) ?? visible.find((c) => c.lines === 'me') ?? visible.find((c) => !c.remote)
   if (!target) return { ok: false, status: 404, error: 'Avatar not found' }
   if (cmd.do === 'mute') { store.patch(target.id, { muted: cmd.on ?? !target.muted }); return { ok: true, character: target.id } }
   if (target.remote) return { ok: false, status: 409, error: 'This avatar is controlled by a friend' }
@@ -64,8 +66,8 @@ export function performStageCommand(cmd: StageCommand): StageResult {
     if (cmd.duration !== undefined) actor.pulseExpression(id, cmd.duration, cmd.weight)
     else if (cmd.on !== false || actor.expression === id) actor.setExpression(cmd.on === false ? null : id, cmd.weight)
   } else if (cmd.do === 'act') {
-    if (cmd.id === 'away') actor.player.setAway(true); else actor.player.act(cmd.id)
-  } else if (cmd.do === 'clear') { actor.player.setAway(false); actor.setExpression(null) }
+    if (cmd.id === 'away') actor.setAway(true); else actor.player.act(cmd.id)
+  } else if (cmd.do === 'clear') { actor.setAway(false); actor.setExpression(null) }
   else if (cmd.do === 'calibrate') {
     if (!actor.canCalibrate) return { ok: false, status: 409, error: 'No tracking input is active' }
     actor.calibrate()

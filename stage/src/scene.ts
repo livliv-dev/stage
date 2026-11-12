@@ -86,6 +86,29 @@ export type CharacterItem = Box & {
   muted: boolean
   tuning: CharacterTuning
   remote?: { peer: string; person: string }
+  /** the face driver also opens the mouth from the microphone (the site's live window had both on) */
+  faceMic?: boolean
+  /** seconds without a face before it dozes off by itself (away), 0 never; unset: AUTO_AWAY */
+  autoAway?: number
+  /** how its number keys show each expression, by id (live.ts); one not here goes on and off */
+  exprModes?: Record<string, ExprMode>
+}
+/** how a number key shows an expression live: on and off (toggle), while held (hold), or for `secs` seconds (timed).
+ *  The site sets these on a character's 表情 tab (meta.live.expr) */
+export type ExprMode = { mode: 'toggle' | 'hold' | 'timed'; secs?: number }
+/** the site's default: a minute without a face */
+export const AUTO_AWAY = 60
+
+/** expression modes as saved, or as a site's card has them: the known modes only, timed 1..30 s (3 unless said) */
+export function readExprModes(value: unknown): Record<string, ExprMode> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const out: Record<string, ExprMode> = {}
+  for (const [id, m] of Object.entries(value as Record<string, unknown>).slice(0, 256)) {
+    const mode = (m as ExprMode | null)?.mode, secs = Number((m as ExprMode | null)?.secs)
+    if (!id || id.length > 64 || (mode !== 'toggle' && mode !== 'hold' && mode !== 'timed')) continue
+    out[id] = mode === 'timed' ? { mode, secs: Number.isFinite(secs) ? Math.max(1, Math.min(30, secs)) : 3 } : { mode }
+  }
+  return Object.keys(out).length ? out : undefined
 }
 export type TextItem = Box & { kind: 'text'; text: string; size: number; color: string; bg: string }
 export type ImageItem = Box & { kind: 'image'; url: string; name: string; asset?: string; rotation?: number; flip?: boolean; attachment?: PropAttachment }
@@ -176,10 +199,21 @@ function normalize(i: Item): Item {
   const url = i.model.type === 'url' ? local(i.model.url) : '', sample = url ? sampleAt(url) : undefined
   const card = sample && !i.tagline && i.persona.startsWith(sample.tagline) ? cardOf(sample) : null
   return {
-    ...i, ...card, tuning: readTuning(i.tuning), driver, lines, readAloud: i.readAloud ?? driver !== 'mic', chatty: i.chatty ?? 1, length: i.length ?? 'normal',
+    ...withoutLive(i), ...card, tuning: readTuning(i.tuning), driver, lines, readAloud: i.readAloud ?? driver !== 'mic', chatty: i.chatty ?? 1, length: i.length ?? 'normal',
     motion: i.motion ?? 'natural', talk: i.talk ?? 0.6, gaze: i.gaze ?? 'people', mirror: i.mirror ?? false, shadow: i.shadow ?? true,
-    smooth: i.smooth ?? 0.5, micGain: i.micGain ?? 1, muted: i.muted ?? false, model: i.model.type === 'url' ? { type: 'url', url: local(i.model.url) } : i.model, voice: { ...i.voice, source: i.voice?.source ?? 'auto', livliv: i.voice?.livliv ?? '', api: i.voice?.api ?? '' },
+    smooth: i.smooth ?? 0.5, micGain: i.micGain ?? 1, muted: i.muted ?? false, ...liveFields(i), model: i.model.type === 'url' ? { type: 'url', url: local(i.model.url) } : i.model, voice: { ...i.voice, source: i.voice?.source ?? 'auto', livliv: i.voice?.livliv ?? '', api: i.voice?.api ?? '' },
   }
+}
+
+/** the live settings a character was saved with, where they make sense (the rest left out, not set to undefined) */
+function liveFields({ faceMic, autoAway, exprModes }: CharacterItem): Pick<CharacterItem, 'faceMic' | 'autoAway' | 'exprModes'> {
+  const modes = readExprModes(exprModes)
+  return { ...(typeof faceMic === 'boolean' ? { faceMic } : {}), ...(typeof autoAway === 'number' && Number.isFinite(autoAway) ? { autoAway: Math.max(0, Math.min(600, autoAway)) } : {}), ...(modes ? { exprModes: modes } : {}) }
+}
+function withoutLive(i: CharacterItem): CharacterItem {
+  const copy = { ...i }
+  delete copy.faceMic; delete copy.autoAway; delete copy.exprModes
+  return copy
 }
 
 /** a saved scene, made whole: what earlier versions lacked, at its defaults. Characters imported from files come back

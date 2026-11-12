@@ -13,6 +13,7 @@ export type Msg =
   | { t: 'scene'; scene: unknown } | { t: 'conv'; conv: unknown } | { t: 'close' }  // editor -> output
   | { t: 'pose'; id: string; pose: PlaybackPose }
   | { t: 'assets'; key: string; files: [string, Blob][] }
+  | { t: 'mark'; on: boolean }                                                  // the LivLiv mark in the corner (outputFeed.ts)
 
 const ch = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('livliv-stage') : null
 const handlers = new Set<(m: Msg) => void>()

@@ -4,6 +4,7 @@ import { MonitorPlay, X } from 'lucide-react'
 import { closeOutput, openOutput, outputOpen, reopenOutput } from './link'
 import { store, useScene } from './scene'
 import { onSite } from './host'
+import { desktop } from './desktopBridge'
 
 export function OutputPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { scene } = useScene()
@@ -28,6 +29,7 @@ export function OutputPanel({ open, onClose }: { open: boolean; onClose: () => v
     <details className="output-help"><summary>{tr("声音与背景设置")}</summary>
       <p className="hint">{tr("角色声音：采集 LivLiv Stage 的应用音频。你的声音：添加麦克风音频输入。")}</p>
       <p className="hint">{tr("透明采集出现黑底时，切换绿幕并在 OBS 添加色度键滤镜。")}</p>
+      {!desktop && <p className="hint">{tr("别让其他窗口完全盖住输出窗口，否则画面会停住。")}</p>}
     </details>
     <button className="primary wide" onClick={() => { if (outputOpen()) closeOutput(); else openOutput(scene.width, scene.height, scene.background === 'transparent'); setConnected(outputOpen()) }}>
       <MonitorPlay size={15} />{connected ? tr("关闭输出窗口") : tr("打开输出窗口")}

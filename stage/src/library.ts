@@ -3,16 +3,40 @@ import { tr } from './i18n'
 // id (the site's /api/models/<id> and /models/<id>/, here through the dev server's proxy), or a model package exported
 // from LivLiv: its folder, or the zip as downloaded, kept in this browser afterwards (vault.ts) and placed again from
 // there.
-import { localModels, uid, type ModelRef } from './scene'
+import { localModels, readExprModes, uid, type ExprMode, type ModelRef } from './scene'
 import { cardOf, local, sampleUrl, SAMPLES, type Card as SampleCard } from './samples'
 import { api, signedIn } from './livliv'
 import { keep, type Kept } from './vault'
 import type { PngSlot } from './bodies/png'
 
-/** label: how the picker names it (when two share a name) */
-export type Pick = { name: string; persona: string; model: ModelRef; thumb?: string; label?: string; id?: string; card?: SampleCard }
+/** label: how the picker names it (when two share a name); live: how it goes live, as its page on the site sets it */
+export type Pick = { name: string; persona: string; model: ModelRef; thumb?: string; label?: string; id?: string; card?: SampleCard; live?: Live }
 
-type Card = { id: string; name: string; tagline?: string; tags?: string[]; v?: number }
+type Card = { id: string; name: string; tagline?: string; tags?: string[]; v?: number; live?: unknown }
+
+/** a character's live settings on the site (its meta.live, set on its page: the site's lib/live.ts), read only:
+ *  face smoothing 0..1, how far the body's movement carries it 0..2, how much the voice moves the head 0..2, hops on
+ *  syllables, seconds without a face before it dozes off (0 never), and how each expression's key shows it */
+export type Live = { smooth?: number; follow?: number; talk?: number; bounce?: boolean; autoAway?: number; expr?: Record<string, ExprMode> }
+export function readLive(value: unknown): Live | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const v = value as Record<string, unknown>, out: Live = {}
+  const num = (k: 'smooth' | 'follow' | 'talk' | 'autoAway', max: number) => { const n = v[k]; if (typeof n === 'number' && Number.isFinite(n)) out[k] = Math.max(0, Math.min(max, n)) }
+  num('smooth', 1); num('follow', 2); num('talk', 2); num('autoAway', 600)
+  if (typeof v.bounce === 'boolean') out.bounce = v.bounce
+  const expr = readExprModes(v.expr)
+  if (expr) out.expr = expr
+  return out
+}
+
+/** the live settings of a character the site has, by its card (a featured one, which comes with Stage, is otherwise
+ *  never asked for); none when the site doesn't answer */
+export async function liveOf(id: string): Promise<Live | undefined> {
+  try {
+    const r = await api(`/api/models/${encodeURIComponent(id)}`)
+    return r.ok ? readLive((await r.json() as Card).live) : undefined
+  } catch { return undefined }
+}
 
 const persona = (c: { tagline?: string; tags?: string[] }) => [c.tagline, c.tags?.length ? tr("标签：{0}", c.tags.join('、')) : ''].filter(Boolean).join('；')
 
@@ -42,8 +66,8 @@ export async function mine(): Promise<Pick[]> {
 }
 
 function fromCard(c: Card): Pick {
-  const url = local(`/models/${c.id}/`)
-  return { id: c.id, name: c.name, persona: persona(c), model: { type: 'url', url }, thumb: url === `/models/${c.id}/` ? `${url}avatar.webp${c.v ? `?v=${c.v}` : ''}` : `${url}avatar.webp` }
+  const url = local(`/models/${c.id}/`), live = readLive(c.live)
+  return { id: c.id, name: c.name, persona: persona(c), model: { type: 'url', url }, ...(live ? { live } : {}), thumb: url === `/models/${c.id}/` ? `${url}avatar.webp${c.v ? `?v=${c.v}` : ''}` : `${url}avatar.webp` }
 }
 
 /** a model package from files: a picked folder, or a .livliv (or .zip) file; a .vrm file is a VRM */

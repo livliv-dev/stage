@@ -24,7 +24,8 @@ const FREE = { recordSeconds: 30, recordMark: true }
 let account: Account = { status: 'unknown', email: '', points: 0, error: '', closed: false, connect: null, ...FREE }
 const subs = new Set<() => void>()
 const set = (p: Partial<Account>) => { account = { ...account, ...p }; subs.forEach((f) => f()) }
-export const useAccount = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => account)
+export const onAccount = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
+export const useAccount = () => useSyncExternalStore(onAccount, () => account)
 export const signedIn = () => account.status === 'in'
 export const accountNow = () => account
 

@@ -2,7 +2,7 @@
 // capture: a browser source runs in another browser, which the editor can't reach). It shows what the editor sends
 // (link.ts): the scene, the conversation's lines and turns, each character's pose every frame, and makes no sound.
 // A transparent stage stays transparent, in a see-through window with no frame: drag it anywhere to move it, close it
-// from the editor's button.
+// from the editor's button. On livliv.ai/stage on the free plan the editor asks for the LivLiv mark in the corner.
 import { useEffect, useState } from 'react'
 import { actors } from './actors'
 import { mirrorConv, type ConvState } from './conversation'
@@ -15,7 +15,7 @@ const NONE = { top: 0, right: 0, bottom: 0, left: 0 }
 
 export default function Output() {
   const locale = useLocale()
-  const [linked, setLinked] = useState(false)
+  const [linked, setLinked] = useState(false), [mark, setMark] = useState(false)
   useEffect(() => {
     document.documentElement.classList.add('output')
     if (isClear) document.documentElement.classList.add('clear')
@@ -35,6 +35,7 @@ export default function Output() {
       }
       else if (m.t === 'conv') mirrorConv(m.conv as Partial<ConvState>)
       else if (m.t === 'pose') actors.get(m.id)?.follow(m.pose)
+      else if (m.t === 'mark') setMark(m.on)
       else if (m.t === 'close') window.close()
     })
     return () => { clearInterval(alive); off(); window.removeEventListener('pagehide', bye) }
@@ -42,7 +43,7 @@ export default function Output() {
   useEffect(() => { document.title = tr("LivLiv Stage · 输出") }, [locale])
   return (
     <div className="app show output">
-      <Stage insets={NONE} zoom="fit" setZoom={() => {}} onMenu={() => {}} empty={null} />
+      <Stage insets={NONE} zoom="fit" setZoom={() => {}} onMenu={() => {}} empty={null} mark={mark} />
       {!linked && <p className="output-wait">{tr("正在连接舞台…")}</p>}
     </div>
   )

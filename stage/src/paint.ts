@@ -240,3 +240,37 @@ export function paintSubtitle(g: CanvasRenderingContext2D, it: SubtitleItem, s: 
   ls.forEach((l, i) => drawLine(g, l, cx, lineY(i), 'fill'))
   g.restore()
 }
+
+/** the LivLiv mark in the corner (recordings and the output window on livliv.ai/stage on the free plan): px its name's
+ *  size, pad its distance from the edges. The output shows it in CSS (Stage.tsx) */
+export const markBox = (w: number, h: number) => { const short = Math.min(w, h); return { px: Math.round(short * 0.042), pad: Math.round(short * 0.035) } }
+/** the mark: the name and the address, white over a soft shadow, so it reads on any background */
+export function paintMark(g: CanvasRenderingContext2D, w: number, h: number) {
+  const { px, pad } = markBox(w, h)
+  g.save()
+  g.textAlign = 'right'; g.textBaseline = 'alphabetic'
+  g.shadowColor = 'rgb(0 0 0 / .45)'; g.shadowBlur = px * 0.35; g.shadowOffsetY = px * 0.05
+  g.fillStyle = 'rgb(255 255 255 / .92)'
+  g.font = `700 ${px}px "Inter Variable", Inter, system-ui, sans-serif`
+  g.fillText('LivLiv', w - pad, h - pad - px * 0.62)
+  g.font = `500 ${Math.round(px * 0.46)}px "Inter Variable", Inter, system-ui, sans-serif`
+  g.fillText('livliv.ai/stage', w - pad, h - pad)
+  g.restore()
+}
+
+/** an AI character is in sight: the picture carries the 「AI 生成」 label */
+export const showsAI = (s: Scene) => s.items.some((i) => i.kind === 'character' && i.lines === 'ai' && !i.hidden)
+/** the label: a pill in the top left corner, its text about 28 px on a 1080p stage (size), `at` from the edges, white
+ *  on dark glass so it reads on any background. The stage and the output show the same in CSS (Stage.tsx) */
+export const aiLabelBox = (w: number, h: number) => { const short = Math.min(w, h); return { size: Math.round(short * 0.026), at: Math.round(short * 0.022) } }
+export function paintAiLabel(g: CanvasRenderingContext2D, w: number, h: number) {
+  const { size, at } = aiLabelBox(w, h), text = tr('AI 生成')
+  g.save()
+  g.font = `650 ${size}px ${font()}`
+  const bw = g.measureText(text).width + size * 1.5, bh = size * 1.85
+  g.fillStyle = 'rgb(0 0 0 / .42)'
+  g.beginPath(); g.roundRect(at, at, bw, bh, bh / 2); g.fill()
+  g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle'
+  g.fillText(text, at + bw / 2, at + bh / 2)
+  g.restore()
+}

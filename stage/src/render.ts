@@ -17,7 +17,7 @@ import { actors, onActors } from './actors'
 import { type CharacterItem, type Scene } from './scene'
 import { imageGeometry } from './attachments'
 import type { AnchorName } from '@livliv-dev/player'
-import { GREEN, paintBackground, paintCharacter, paintImage, paintSubtitle, paintText, pictures, spans, subtitleAt } from './paint'
+import { GREEN, paintAiLabel, paintBackground, paintCharacter, paintImage, paintMark, paintSubtitle, paintText, pictures, showsAI, spans, subtitleAt } from './paint'
 import { onTape, type Take, type Track } from './tape'
 
 export const FPS = 30
@@ -145,21 +145,6 @@ async function makeRoom(need: number): Promise<(() => Promise<void>) | null> {
 /** missing: the sounds and pictures that couldn't go in */
 export type Made = { file: File; seconds: number; missing: { sounds: number; pictures: number } }
 
-/** the LivLiv mark in the corner of a recording made on livliv.ai/stage on the free plan: the name and the address,
- *  white over a soft shadow, so it reads on any background */
-function paintMark(g: CanvasRenderingContext2D, w: number, h: number) {
-  const short = Math.min(w, h), px = Math.round(short * 0.042), pad = Math.round(short * 0.035)
-  g.save()
-  g.textAlign = 'right'; g.textBaseline = 'alphabetic'
-  g.shadowColor = 'rgb(0 0 0 / .45)'; g.shadowBlur = px * 0.35; g.shadowOffsetY = px * 0.05
-  g.fillStyle = 'rgb(255 255 255 / .92)'
-  g.font = `700 ${px}px "Inter Variable", Inter, system-ui, sans-serif`
-  g.fillText('LivLiv', w - pad, h - pad - px * 0.62)
-  g.font = `500 ${Math.round(px * 0.46)}px "Inter Variable", Inter, system-ui, sans-serif`
-  g.fillText('livliv.ai/stage', w - pad, h - pad)
-  g.restore()
-}
-
 /** mark: draw the LivLiv mark on every frame (the free plan on livliv.ai/stage) */
 export async function renderTake(take: Take, name: string, onProgress: (share: number) => void, signal: AbortSignal, opts: { mark?: boolean } = {}): Promise<Made> {
   const first = take.scenes[0].scene, W = first.width, H = first.height
@@ -228,6 +213,7 @@ export async function renderTake(take: Take, name: string, onProgress: (share: n
           else { const s = subtitleAt(it, scene, conv, sp, t); if (s) paintSubtitle(g, it, s, t) }
         }
         g.restore()
+        if (showsAI(scene)) paintAiLabel(g, W, H)
         if (opts.mark) paintMark(g, W, H)
         await video.add(t, dt)
         // the sound alongside, a second at a time
