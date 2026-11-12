@@ -900,7 +900,7 @@ function ModelForm({ forStart, done, demoDone }: { forStart?: boolean; done?: ()
       {PROVIDERS_HERE.map((q) => <button key={q.id} className={!demo && !points && d.provider === q.id ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
     </div>
     {points && !demo ? <>
-      <p className="hint">{tr("不用密钥：用 livliv.ai 的积分让角色说话，含角色自己的声音，按实际用量扣，长台词和系统声音会多一些。只能用于 LivLiv 的角色。")}</p>
+      <p className="hint">{tr("不用密钥：用 livliv.ai 积分让角色说话，每句 {0} 积分（会员不出声的台词免费）。只能用于 LivLiv 的角色。", account.linePoints)}</p>
       {account.status === 'out' && <button onClick={() => void connect()}><ExternalLink size={14} />{tr("登录 livliv.ai")}</button>}
     </> : onSite && <p className="hint">{tr("网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。")}</p>}
     {!demo && !points && <>
