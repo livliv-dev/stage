@@ -99,7 +99,5 @@ npm --prefix collab test
 
 ## ライセンス
 
-コードは [GNU AGPL バージョン 3](LICENSE) と[追加条項](LICENSE-ADDITIONAL-TERMS.md)のもとで公開しています。Stage で作ったものはあなたのものです。
-コピーや改変版では「設定 → 概要」の「© LivLiv（livliv.ai）」の表記を残し、改変版には独自の名前とアイコンを使ってください。
-厳選キャラクターには[独自のライセンス](stage/public/characters/LICENSE.md)があります。LivLiv の名称とロゴはコードのライセンスに含まれません：
-[TRADEMARKS.md](TRADEMARKS.md)。
+コードは [GNU AGPL バージョン 3](LICENSE) で公開しています。厳選キャラクターには[独自のライセンス](stage/public/characters/LICENSE.md)があります。
+LivLiv の名称とロゴはコードのライセンスに含まれません：[TRADEMARKS.md](TRADEMARKS.md)。

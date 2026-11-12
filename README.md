@@ -104,7 +104,5 @@ co-streaming server in [collab/README.md](collab/README.md). Contributions are w
 
 ## License
 
-The code is under the [GNU AGPL version 3](LICENSE) with [additional terms](LICENSE-ADDITIONAL-TERMS.md): what you make
-with Stage is yours; a copy or modified version keeps the "© LivLiv (livliv.ai)" credit in Settings → About and a
-modified one uses its own name and icon. The featured characters have [their own licence](stage/public/characters/LICENSE.md).
+The code is under the [GNU AGPL version 3](LICENSE). The featured characters have [their own licence](stage/public/characters/LICENSE.md).
 The LivLiv names and logos are not licensed with the code: [TRADEMARKS.md](TRADEMARKS.md).

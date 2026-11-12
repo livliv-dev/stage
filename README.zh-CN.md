@@ -93,6 +93,5 @@ npm --prefix collab test
 
 ## 许可
 
-代码采用 [GNU AGPL 第 3 版](LICENSE)，另有[附加条款](LICENSE-ADDITIONAL-TERMS.md)：你用 Stage 做出来的东西归你；副本和修改版要在
-「设置 → 关于」里保留「© LivLiv（livliv.ai）」的署名，修改版要用自己的名字和图标。精选角色有[自己的许可](stage/public/characters/LICENSE.md)。
+代码采用 [GNU AGPL 第 3 版](LICENSE)。精选角色有[自己的许可](stage/public/characters/LICENSE.md)。
 LivLiv 的名称和标志不随代码授权，见 [TRADEMARKS.md](TRADEMARKS.md)。

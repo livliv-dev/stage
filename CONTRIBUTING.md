@@ -2,7 +2,7 @@
 
 Issues and pull requests are welcome. Please be kind.
 
-There is no CLA. Contributions are under the GNU AGPL version 3 with the same additional terms as the rest of the code ([LICENSE-ADDITIONAL-TERMS.md](LICENSE-ADDITIONAL-TERMS.md)).
+There is no CLA. Contributions are under the GNU AGPL version 3, like the rest of the code ([LICENSE](LICENSE)).
 
 ## Pull requests
 
