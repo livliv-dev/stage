@@ -16,8 +16,9 @@ import { isOutput, outputOpen, post } from './link'
 import { length, modelId, voiceLine, type Clip } from './livliv'
 import { activeSpeech, apiVoice, speakApi, speakLive, speechProviderOf, voiceRoute } from './voiceApi'
 import { crowd, released } from './contexts'
+import { mediapipeBase } from './host'
 
-const FACE_MODEL = { wasmUrl: import.meta.env.BASE_URL + 'mediapipe/wasm', modelUrl: import.meta.env.BASE_URL + 'mediapipe/face_landmarker.task' }
+const FACE_MODEL = { wasmUrl: mediapipeBase + 'wasm', modelUrl: mediapipeBase + 'face_landmarker.task' }
 const FEELING: Record<Exclude<Emotion, 'neutral'>, string[]> = {
   happy: ['笑', '开心', 'smile', 'happy'], shy: ['害羞', 'shy'], angry: ['生气', 'angry'], sad: ['难过', 'sad'], surprised: ['惊讶', 'surprised'],
 }

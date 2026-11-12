@@ -30,6 +30,13 @@ export async function byId(id: string): Promise<Pick> {
   return fromCard(await r.json() as Card)
 }
 
+/** the characters of the account signed in on livliv.ai (on livliv.ai/stage, by the site's cookie), newest first */
+export async function mine(): Promise<Pick[]> {
+  const r = await api('/api/models?mine=1')
+  if (!r.ok) throw new Error(tr("拿不到你的角色（{0}）", r.status))
+  return (await r.json() as Card[]).map(fromCard)
+}
+
 function fromCard(c: Card): Pick {
   const url = local(`/models/${c.id}/`)
   return { id: c.id, name: c.name, persona: persona(c), model: { type: 'url', url }, thumb: url === `/models/${c.id}/` ? `${url}avatar.webp${c.v ? `?v=${c.v}` : ''}` : `${url}avatar.webp` }

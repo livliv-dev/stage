@@ -10,6 +10,7 @@ import { tr } from './i18n'
 // CORS, so local servers (Ollama) and APIs without browser access work too
 import { useSyncExternalStore } from 'react'
 import { desktopFetch } from './request'
+import { onSite } from './host'
 import { demoReply } from './demo'
 import { LENGTHS, type CharacterItem, type Talk } from './scene'
 
@@ -51,6 +52,9 @@ export const PROVIDERS: Provider[] = [
   { id: 'ollama', label: 'Ollama', base: 'http://localhost:11434/v1', noKey: true },
   { id: 'custom', label: '其他', base: '' },
 ]
+/** the ones offered: on livliv.ai/stage only those whose APIs answer a web page straight (tested 2026-11-12: Zhipu's
+ *  chat refuses browsers, Ollama runs on your computer, any other service is unknown); the desktop app reaches all */
+export const PROVIDERS_HERE = onSite ? PROVIDERS.filter((p) => !['zhipu', 'ollama', 'custom'].includes(p.id)) : PROVIDERS
 export const providerOf = (c: ModelConfig) => PROVIDERS.find((p) => p.id === c.provider) ?? PROVIDERS.at(-1)!
 /** a model to talk with is set: where, and which */
 export const brainReady = (c: BrainConfig) => c.kind === 'demo' || (!!c.base && !!c.model && (!!c.key || c.provider === 'custom' || !!providerOf(c).noKey))

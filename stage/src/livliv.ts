@@ -14,14 +14,19 @@ import type { Emotion } from './brain'
 import type { CharacterItem } from './scene'
 import { SAMPLES } from './samples'
 import type { Live } from './voiceApi'
+import { onSite, signInUrl } from './host'
 
-/** connect: a code waiting for its approval on the site (shown here, the same on the page) */
-export type Account = { status: 'unknown' | 'out' | 'in'; email: string; points: number; error: string; closed: boolean; connect: { code: string; url: string } | null }
-let account: Account = { status: 'unknown', email: '', points: 0, error: '', closed: false, connect: null }
+/** connect: a code waiting for its approval on the site (shown here, the same on the page). recordSeconds,
+ *  recordMark: on livliv.ai/stage, how long a recording may run and whether it carries the LivLiv mark (the plan's, as
+ *  the site's 录制: free 30 s with the mark, paid 5 min); elsewhere unused */
+export type Account = { status: 'unknown' | 'out' | 'in'; email: string; points: number; error: string; closed: boolean; connect: { code: string; url: string } | null; recordSeconds: number; recordMark: boolean }
+const FREE = { recordSeconds: 30, recordMark: true }
+let account: Account = { status: 'unknown', email: '', points: 0, error: '', closed: false, connect: null, ...FREE }
 const subs = new Set<() => void>()
 const set = (p: Partial<Account>) => { account = { ...account, ...p }; subs.forEach((f) => f()) }
 export const useAccount = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => account)
 export const signedIn = () => account.status === 'in'
+export const accountNow = () => account
 
 /** the site's answer, or its message as the error */
 async function answer(r: Response) {
@@ -29,9 +34,10 @@ async function answer(r: Response) {
   if (!r.ok) throw Object.assign(new Error(typeof body?.detail === 'string' ? body.detail : tr("LivLiv 返回 {0}", r.status)), { status: r.status })
   return body
 }
-// the session the site gave this app (connect), on this computer
+// the session the site gave this app (connect), on this computer. On livliv.ai/stage the site's own cookie is the
+// session: no token is kept or sent there
 const TOKEN = 'livliv-stage:session'
-const token = () => { try { return localStorage.getItem(TOKEN) || '' } catch { return '' } }
+const token = () => { if (onSite) return ''; try { return localStorage.getItem(TOKEN) || '' } catch { return '' } }
 const keep = (t: string) => { try { if (t) localStorage.setItem(TOKEN, t); else localStorage.removeItem(TOKEN) } catch { /* private mode: the cookie still works */ } }
 
 /** a request to LivLiv's API, as this app's session */
@@ -51,10 +57,13 @@ export async function refresh() {
     // a kept session the site no longer takes: it ends with the sign-in that allowed it
     const lapsed = !me.signed_in && !!token()
     if (lapsed) keep('')
-    set(me.signed_in ? { status: 'in', email: me.email || me.name || '', points: me.points ?? 0, error: '' }
-      : { status: 'out', email: '', points: 0, ...(lapsed ? { error: tr("登录过期了，重新登录一下") } : {}) })
+    // the plan's recording: what the site says, else by the plan (any paid plan: 5 min, no mark)
+    const paid = !!me.plan && me.plan !== 'free'
+    const plan = { recordSeconds: typeof me.record_seconds === 'number' ? me.record_seconds : paid ? 300 : 30, recordMark: typeof me.record_mark === 'boolean' ? me.record_mark : !paid }
+    set(me.signed_in ? { status: 'in', email: me.email || me.name || '', points: me.points ?? 0, error: '', ...plan }
+      : { status: 'out', email: '', points: 0, ...FREE, ...(lapsed ? { error: tr("登录过期了，重新登录一下") } : {}) })
   } catch {
-    set({ status: 'out', email: '', points: 0, error: tr("连不上 LivLiv") })
+    set({ status: 'out', email: '', points: 0, ...FREE, error: tr("连不上 LivLiv") })
   }
 }
 
@@ -63,7 +72,7 @@ let waiting: AbortController | null = null
 /** whether the site gives codes yet: an empty request, which it refuses (422) without making one, or doesn't know (404,
  *  405). Asked each time a card with the sign-in opens, so the button comes alive by itself; unreachable changes nothing */
 export async function checkConnect() {
-  if (account.status === 'in') return
+  if (account.status === 'in' || onSite) return  // the site signs in with its own page
   try {
     const r = await fetch('/api/connect/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '' })
     set({ closed: r.status === 404 || r.status === 405 })
@@ -80,6 +89,7 @@ export const openConnect = () => { if (account.connect) window.open(account.conn
 
 /** asks LivLiv for a code, opens its page, and waits (up to the code's 10 minutes) for it to be allowed there */
 export async function connect() {
+  if (onSite) { location.assign(signInUrl()); return }  // the site's own sign-in, back here afterwards
   cancelConnect()
   const ctl = new AbortController()
   waiting = ctl

@@ -840,3 +840,27 @@ button.account-cta:hover:not(:disabled) { background:#68549e;border-color:#68549
 .cast-guide .coach.mini { display:block }
 .cast-guide .coach header>span:first-child { display:block;min-width:0;white-space:nowrap }
 .cast-guide .coach header>span:last-child { flex:none }
+
+/* livliv.ai/stage (SiteIntro.tsx): the first visit's welcome over the stage, a phone's intro, and the note shown while
+   another tab edits (TabGate.tsx) */
+.site-welcome { position: absolute; left: 50%; bottom: 136px; transform: translateX(-50%); width: min(600px, calc(100vw - 32px)); padding: 18px 20px 16px; text-align: center; z-index: var(--z-pop); }
+.site-welcome .close { position: absolute; right: 10px; top: 10px; }
+.site-welcome .big { font-size: 20px; line-height: 28px; font-weight: 600; margin: 4px 0 4px; text-wrap: balance; }
+.site-welcome > .hint { margin: 0 0 10px; }
+.site-welcome .welcome-demo { max-width: none; margin: 8px 0 14px; }
+.site-ways { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.site-ways .workflow-tile { width: auto; align-items: center; gap: 4px; }
+.site-ways .workflow-tile svg { color: var(--accent); }
+.phone-intro { position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); padding: 16px; display: grid; gap: 10px; justify-items: center; text-align: center; z-index: var(--z-pop); }
+.phone-intro .phone-mark { height: 26px; }
+.phone-intro .hint { margin: 0; text-wrap: balance; }
+.phone-intro .welcome-demo { margin: 2px 0; padding: 12px; gap: 10px; }
+.phone-intro .welcome-cast img { width: 44px; height: 44px; }
+.phone-intro.running { display: flex; justify-content: center; gap: 8px; padding: 8px; left: 50%; right: auto; transform: translateX(-50%); background: rgb(255 255 255 / .94); border-radius: 999px; box-shadow: var(--shadow); }
+.tab-gate { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: var(--bg, #f6f5f2); }
+.tab-gate .card { max-width: 420px; padding: 24px; display: grid; gap: 10px; justify-items: center; text-align: center; }
+.tab-gate img { height: 28px; margin-bottom: 6px; }
+.tab-gate .big { font-size: 18px; font-weight: 600; margin: 0; }
+.tab-gate .hint { margin: 0; text-wrap: balance; }
+.tab-gate .warn { color: #a05a00; }
+@media (max-width: 700px) { .site-ways { grid-template-columns: 1fr; } }

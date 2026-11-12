@@ -8,6 +8,12 @@ import { conversation, talk } from './conversation'
 import { renderTake, type Made } from './render'
 import { store } from './scene'
 import { MAX_SECONDS, record, type Recorder, type Take } from './tape'
+import { onSite } from './host'
+import { accountNow } from './livliv'
+
+/** how long a take may run, and whether its video carries the LivLiv mark: on livliv.ai/stage the visitor's plan says
+ *  (as the site's 录制: free 30 s with the mark, paid 5 min), elsewhere 10 minutes and no mark of Stage's own */
+export const takeLimit = () => onSite ? { seconds: Math.min(MAX_SECONDS, accountNow().recordSeconds), mark: accountNow().recordMark } : { seconds: MAX_SECONDS, mark: false }
 
 export type RecPhase = 'idle' | 'starting' | 'recording' | 'making' | 'done' | 'error'
 /** retry: the video failed and its take is kept, to make it again */
@@ -24,6 +30,7 @@ let stopTalk: (() => void) | null = null
 let limit = 0
 let making: AbortController | null = null
 let kept: Take | null = null
+let marked = false  // this take's video gets the mark (decided when it started)
 
 /** a file name from the stage's name and the time: 未命名舞台-20261103-1142 */
 function fileName() {
@@ -37,7 +44,7 @@ async function make(take: Take) {
   set({ phase: 'making', progress: 0, retry: false })
   const ctl = making = new AbortController()
   try {
-    const made = await renderTake(take, fileName(), (progress) => set({ progress }), ctl.signal)
+    const made = await renderTake(take, fileName(), (progress) => set({ progress }), ctl.signal, { mark: marked })
     set({ phase: 'done', made })
   } catch (e) {
     if (ctl.signal.aborted) set({ phase: 'idle' })
@@ -56,8 +63,10 @@ export const rec = {
       set({ phase: 'error', error: o.mic ? tr("麦克风没有打开：{0}", (e as Error).message) : (e as Error).message })
       return
     }
+    const most = takeLimit()
+    marked = most.mark
     set({ phase: 'recording', started: performance.now() })
-    limit = window.setTimeout(() => void rec.stop(), MAX_SECONDS * 1000)
+    limit = window.setTimeout(() => void rec.stop(), most.seconds * 1000)
     stopTalk = o.talk && !conversation().running ? talk.start() : null
   },
 

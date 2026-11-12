@@ -211,6 +211,8 @@ function restore(): Project {
   } catch { const first = emptyScene(); return { active: first.id, scenes: [first] } }
 }
 
+/** whether a project was saved in this browser before (a first visit starts empty) */
+export const hadSaved = (() => { try { return !!(localStorage.getItem(SHOTS_KEY) || localStorage.getItem(KEY)) } catch { return false } })()
 const restored = restore()
 let scenes: Scene[] = restored.scenes
 let scene: Scene = scenes.find((s) => s.id === restored.active)!
@@ -244,7 +246,10 @@ function emit() {
   sendScene()
 }
 
+// whether this tab saves and feeds the output window: only the one tab that edits (tabs.ts); none until that is known
+let editing = false
 function persist() {
+  if (!editing) return
   try {
     localStorage.setItem(SHOTS_KEY, JSON.stringify({ active: scene.id, scenes: scenes.map(persistentScene) }))
     localStorage.setItem(KEY, JSON.stringify(persistentScene(scene)))
@@ -268,6 +273,7 @@ function publishScene() {
   sent = scene; post({ t: 'scene', scene })
 }
 function sendScene(now = false) {
+  if (!editing) return
   if (!outputOpen() && !now) { sentModels.clear(); return }
   clearTimeout(sendTimer)
   if (now || sent?.id !== scene.id) { publishScene(); return }
@@ -291,6 +297,12 @@ function restoreHistory(value: Project) {
 }
 
 export const store = {
+  /** this tab edits (tabs.ts): it saves and feeds the output from now on */
+  edit() { editing = true; clearTimeout(saveTimer); persist(); sendScene(true) },
+  /** saves now (another tab takes over) */
+  flush() { clearTimeout(saveTimer); persist() },
+  /** the project as saved (by the tab that edited before this one), history cleared */
+  reload() { const p = restore(); past.length = 0; future.length = 0; selected = null; applyProject({ active: p.active, scenes: p.scenes }); lastKey = ''; emit() },
   get: () => scene,
   project,
   selected: () => selected,
