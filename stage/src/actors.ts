@@ -15,6 +15,7 @@ import { estimate, say, type Utterance } from './speech'
 import { isOutput, outputOpen, post } from './link'
 import { length, modelId, voiceLine, type Clip } from './livliv'
 import { activeSpeech, apiVoice, speakApi, speakLive, speechProviderOf, voiceRoute } from './voiceApi'
+import { crowd, released } from './contexts'
 
 const FACE_MODEL = { wasmUrl: import.meta.env.BASE_URL + 'mediapipe/wasm', modelUrl: import.meta.env.BASE_URL + 'mediapipe/face_landmarker.task' }
 const FEELING: Record<Exclude<Emotion, 'neutral'>, string[]> = {
@@ -36,7 +37,13 @@ addEventListener('pointermove', (e) => { mouse.x = e.clientX; mouse.y = e.client
 document.addEventListener('pointerout', (e) => { if (!e.relatedTarget) mouse.seen = false })
 document.addEventListener('pointerdown', () => actors.forEach((a) => a.unlock()), { capture: true })
 
-function refused(e: unknown) {
+/** another character still draws: a context that went away was taken for room (contexts.ts). With none left
+ *  anywhere, the graphics device went away instead */
+const othersDraw = (self?: Actor) => [...actors.values()].some((a) => a !== self && a.status !== 'error' && !a.player.contextLost)
+/** the browser gave this character no WebGL context, or took it, because there are too many on the page */
+export const crowdedOut = (e: unknown, self?: Actor) => e instanceof LivLivError && (e.code === 'context-lost' || e.code === 'no-webgl') && othersDraw(self)
+
+export function refused(e: unknown) {
   if (!(e instanceof LivLivError)) return (e as Error).message
   if (e.code === 'newer-format' || e.code === 'missing-feature') return tr("这个模型需要更新版本的 Stage")
   if (e.code === 'no-webgl') return tr("这台电脑无法启动 WebGL2")
@@ -98,7 +105,12 @@ export class Actor {
     this.offMixer = isOutput || item.remote ? () => {} : onMixer(() => this.syncVolume())
     this.offInputs = isOutput || item.remote ? () => {} : onInputs(() => void this.drive())
     actors.set(item.id, this)
-    this.player.onContextLost = () => { this.status = 'error'; this.error = tr("图形设备已重置，请重新加载角色"); changed() }
+    this.player.onContextLost = () => {
+      if (this.disposed) return
+      this.status = 'error'; this.error = tr("图形设备已重置，请重新加载角色")
+      if (othersDraw(this)) crowd(this.item.id)
+      changed()
+    }
     this.player.onFrame = (pose) => {
       this.lastPose = pose
       if (outputOpen()) post({ t: 'pose', id: this.item.id, pose })
@@ -209,6 +221,7 @@ export class Actor {
     } catch (e) {
       if ((e as Error).name === 'AbortError' || this.disposed) return
       this.status = 'error'; this.error = refused(e)
+      if (crowdedOut(e, this)) crowd(this.item.id)
     }
     changed()
   }
@@ -369,9 +382,11 @@ export class Actor {
     this.disposed = true; this.driverRun++
     clearTimeout(this.calm); clearTimeout(this.expressionExpiry); this.silence(); this.offInputs(); this.offQuality(); this.offMixer(); this.stopDriver?.()
     this.micStream?.getTracks().forEach((t) => t.stop())
+    const live = this.format !== 'png' && !this.player.contextLost  // a PNGTuber draws in 2D
     this.voice.dispose(); this.player.dispose({ release: true })
     if (actors.get(this.item.id) === this) actors.delete(this.item.id)
     changed()
+    if (live) released()
   }
 }
 export const faceOf = (c: CharacterItem) => ({ x: c.x + c.w / 2, y: c.y + c.h * 0.28 })

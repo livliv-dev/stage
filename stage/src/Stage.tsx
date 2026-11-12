@@ -10,7 +10,8 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { ArrowDown, ArrowUp, Copy, FlipHorizontal2, Lock, LockOpen, Minus, Plus, Trash, EyeOff } from 'lucide-react'
 import { AssetImage, imageBackground, usePicture } from './assets'
 import { formatOf } from './bodies'
-import { Actor, actors, onActors } from './actors'
+import { Actor, actors, crowdedOut, onActors, refused } from './actors'
+import { crowd, onRetry, useCrowded } from './contexts'
 import { talk, useConversation } from './conversation'
 import { DRIVERS, KIND_LABEL, LINES, store, useScene, type CharacterItem, type Item, type SubtitleItem, type TextItem } from './scene'
 import { estimate } from './speech'
@@ -308,22 +309,30 @@ function CharacterView({ item }: { item: CharacterItem }) {
   const [, redraw] = useState(0)
   const [revision, setRevision] = useState(0), [error, setError] = useState('')
   const conv = useConversation()
+  // too many characters for the page's WebGL contexts (contexts.ts): this one says so, and starts again on a new
+  // canvas when there is room. Hidden while any is short of one, it gives its own up until shown again
+  const crowded = useCrowded(), [parked, setParked] = useState(false)
+  const park = !!item.hidden && (parked || crowded.size > 0)
+  useEffect(() => setParked(park), [park])
+  useEffect(() => onRetry(item.id, () => setRevision((n) => n + 1)), [item.id])
+  useEffect(() => () => crowd(item.id, false), [item.id])
   // one player for the item's life, later changes go through sync below; another kind of model (LivLiv, VRM, PNG)
   // needs a new canvas (its context kind) and a new player
   const format = formatOf(item.model)
   useEffect(() => {
+    if (park) { setError(''); crowd(item.id, false); return }
     let a: Actor
-    try { a = new Actor(canvas.current!, item); setError('') } catch (e) { setError((e as Error).message); return }
+    try { a = new Actor(canvas.current!, item); setError(''); crowd(item.id, false) } catch (e) { setError(refused(e)); crowd(item.id, crowdedOut(e)); return }
     actor.current = a
     const off = onActors(() => redraw((n) => n + 1))
     return () => { off(); a.dispose(); actor.current = null }
-  }, [item.id, format, revision])  // eslint-disable-line react-hooks/exhaustive-deps
+  }, [item.id, format, revision, park])  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { void actor.current?.sync(item) }, [item])
   const a = actor.current ?? actors.get(item.id)
   return <>
-    <canvas key={format + revision} ref={canvas} style={{ imageRendering: item.tuning.pixelated && format === 'png' ? 'pixelated' : undefined }} className={`character${item.mirror ? ' flip' : ''}${item.shadow ? ' shadow' : ''}`} />
+    <canvas key={format + revision + (park ? ' parked' : '')} ref={canvas} style={{ imageRendering: item.tuning.pixelated && format === 'png' ? 'pixelated' : undefined }} className={`character${item.mirror ? ' flip' : ''}${item.shadow ? ' shadow' : ''}`} />
     {a?.status === 'loading' && <span className="badge">{tr("载入中…")}</span>}
-    {(error || a?.status === 'error') && <span className="badge err">{error || a?.error}<button onClick={() => setRevision((n) => n + 1)}>{tr("重新加载")}</button></span>}
+    {(error || a?.status === 'error') && <span className="badge err">{crowded.has(item.id) ? tr("角色太多，这个角色显示不出来") : error || a?.error}<button onClick={() => setRevision((n) => n + 1)}>{tr("重新加载")}</button></span>}
     {a?.status === 'ready' && a.error && <span className="badge err">{tr(a.error ?? '')}</span>}
     {conv.thinking === item.id && <span className="thinking"><i /><i /><i /></span>}
   </>

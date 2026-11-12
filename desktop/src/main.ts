@@ -6,7 +6,7 @@
 import { randomBytes } from 'node:crypto'
 import { app, BrowserWindow, globalShortcut, Menu, type MenuItemConstructorOptions } from 'electron'
 import { parseDo } from './commands'
-import { APP, APP_ORIGIN, DEV, flag, LIVLIV_API, ORIGINS, STAGE_BUILT, STAGE_DIR, VERSION } from './config'
+import { APP, APP_ORIGIN, DEV, flag, LIVLIV_API, ORIGINS, STAGE_BUILT, STAGE_DIR, VERSION, WEBGL_CONTEXTS } from './config'
 import { applyHotkeys, defaultBindings, hotkeyState, stageBindings } from './hotkeys'
 import { registerIpc } from './ipc'
 import { startLocalApi, type LocalApi } from './localApi'
@@ -106,7 +106,13 @@ function startStage() {
   console.log(`[livliv] LivLiv Stage ${VERSION} on ${APP_ORIGIN}${STAGE_BUILT ? ` (${STAGE_DIR}, LivLiv at ${LIVLIV_API})` : ''}${DEV ? ' (development)' : ''}`)
 }
 
-if (APP === 'stage') registerStageScheme()
+if (APP === 'stage') {
+  registerStageScheme()
+  // Each character on the stage holds a WebGL context, and the video being made one more for each of its characters.
+  // Chromium keeps 16 live per renderer process and takes one away past that; this switch raises it (Chromium has no
+  // separate per-page cap to lift). Measured: 24 characters at 50 fps, 32 at 23 fps
+  app.commandLine.appendSwitch('max-active-webgl-contexts', String(WEBGL_CONTEXTS))
+}
 if (!app.requestSingleInstanceLock()) app.quit()
 else {
   app.on('second-instance', (_e, argv) => { if (APP === 'stage' || !stageArg(argv)) openMain() })

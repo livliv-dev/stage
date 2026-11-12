@@ -46,4 +46,7 @@ export const APP_ORIGIN = origin
 export const ORIGINS: ReadonlySet<string> = new Set([origin])
 
 export const VERSION = app.getVersion()
+/** live WebGL contexts LivLiv Stage's pages may hold (Chromium's default is 16); stage/src/contexts.ts tells people
+ *  how many characters that is */
+export const WEBGL_CONTEXTS = 32
 export const NAME = APP === 'stage' ? 'LivLiv Stage' : 'LivLiv'

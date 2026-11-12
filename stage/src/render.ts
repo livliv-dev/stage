@@ -11,6 +11,7 @@ import { tr } from './i18n'
 //    private files (OPFS) as it is made, so a long take never sits in memory whole
 import type { PlaybackPose } from '@livliv-dev/player'
 import { formatOf, makePlayer, setPixelated, sourceOf, type StagePlayer } from './bodies'
+import { released } from './contexts'
 import { type CharacterItem, type Scene } from './scene'
 import { imageGeometry } from './attachments'
 import type { AnchorName } from '@livliv-dev/player'
@@ -80,6 +81,7 @@ function at<T extends { t: number }>(list: T[], t: number, i: { n: number }): T 
 class Double {
   readonly canvas = document.createElement('canvas')
   private player!: StagePlayer
+  private webgl = false
   private pose!: PlaybackPose
   private i = { n: 0 }
   readonly track: Track
@@ -89,6 +91,7 @@ class Double {
   async load(it: CharacterItem) {
     const ref = it.model, format = formatOf(ref)
     this.player = makePlayer(this.canvas, format, { autoplay: false })
+    this.webgl = format !== 'png'
     // the mark a LivLiv package carries; the other kinds have none
     await this.player.load(this.track.source ?? await sourceOf(ref))
     this.pose = this.player.getPose()
@@ -111,7 +114,13 @@ class Double {
     return true
   }
   getAnchor(name: AnchorName) { return this.player.getAnchor(name) }
-  dispose() { this.player?.dispose({ release: true }) }
+  /** a character on the stage that lost its context to this one can have it back (contexts.ts) */
+  dispose() {
+    if (!this.player) return
+    const live = this.webgl && !this.player.contextLost
+    this.player.dispose({ release: true })
+    if (live) released()
+  }
 }
 
 /** missing: the sounds and pictures that couldn't go in */

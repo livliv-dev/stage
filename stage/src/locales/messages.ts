@@ -2898,6 +2898,24 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Graphics context reset; reload the avatar",
     "ja": "描画がリセットされました。キャラクターを再読み込みしてください"
   },
+  "角色太多，这个角色显示不出来": {
+    "zh-Hans": "角色太多，这个角色显示不出来",
+    "zh-Hant": "角色太多，這個角色顯示不出來",
+    "en": "Too many avatars to show this one",
+    "ja": "キャラクターが多すぎて表示できません"
+  },
+  "舞台上的角色太多，这个浏览器显示不过来。浏览器里大约 {0} 个能正常显示，桌面版可以更多。请隐藏或移除一些角色。": {
+    "zh-Hans": "舞台上的角色太多，这个浏览器显示不过来。浏览器里大约 {0} 个能正常显示，桌面版可以更多。请隐藏或移除一些角色。",
+    "zh-Hant": "舞台上的角色太多，這個瀏覽器顯示不過來。瀏覽器裡大約 {0} 個能正常顯示，桌面版可以更多。請隱藏或移除一些角色。",
+    "en": "Too many avatars on stage for this browser. About {0} work well in a browser, more in the desktop app. Hide or remove some.",
+    "ja": "ステージのキャラクターが多すぎて、このブラウザーでは表示しきれません。ブラウザーでは{0}体ほどまで、デスクトップ版ではもっと表示できます。いくつか非表示にするか削除してください。"
+  },
+  "舞台上的角色太多，显示不过来。桌面版大约 {0} 个能正常显示。请隐藏或移除一些角色。": {
+    "zh-Hans": "舞台上的角色太多，显示不过来。桌面版大约 {0} 个能正常显示。请隐藏或移除一些角色。",
+    "zh-Hant": "舞台上的角色太多，顯示不過來。桌面版大約 {0} 個能正常顯示。請隱藏或移除一些角色。",
+    "en": "Too many avatars on stage. About {0} work well in the desktop app. Hide or remove some.",
+    "ja": "ステージのキャラクターが多すぎて表示しきれません。デスクトップ版では{0}体ほどまで表示できます。いくつか非表示にするか削除してください。"
+  },
   "这个模型超出了播放器的大小限制": {
     "zh-Hans": "这个模型超出了播放器的大小限制",
     "zh-Hant": "這個模型超出了播放器的大小限制",

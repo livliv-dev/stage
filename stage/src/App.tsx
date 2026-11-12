@@ -23,7 +23,8 @@ import { LivePanel } from './LivePanel'
 import { HotkeysPanel } from './HotkeysPanel'
 import { CollabPanel } from './CollabPanel'
 import { useRoom } from './collab/session'
-import { connectDesktop } from './desktop'
+import { connectDesktop, desktop } from './desktop'
+import { ROOM, useCrowded } from './contexts'
 import { checkConnect, refresh, useAccount } from './livliv'
 import { rec, useRecording } from './recording'
 import { cancel as pttCancel, clearError as pttClear, holdKey, press as pttPress, release as pttRelease, usePtt } from './ptt'
@@ -126,6 +127,7 @@ export default function App() {
       <Stage insets={insets} onMenu={setMenu} zoom={zoom} setZoom={setZoom} empty={<Empty onTemplate={template} onAdd={() => setPop('add')} />} />
       {show ? <ShowControls /> : <>
         <TopBar pop={pop} toggle={toggle} onTemplate={template} say={say} />
+        <CrowdNotice insets={insets} />
         <Rail pop={pop} toggle={toggle} folded={leftFolded} onFold={foldLeft} />
         {bare ? <PanelTab onOpen={() => setBare(false)} /> : <Panel onFold={() => setBare(true)} />}
         {!leftFolded && <Cast guide={coach && !pop && scene.items.length > 0 ? <Checklist
@@ -431,6 +433,20 @@ function Empty({ onTemplate, onAdd }: { onTemplate: (id: TemplateId) => void; on
     <button className="link" onClick={onAdd}>{tr('自己放角色')}</button>
     {error && <p className="hint error" role="alert">{error}</p>}
   </div>
+}
+
+/** said once over the stage while a character shows nothing because the page has no WebGL context left for it
+ *  (contexts.ts); gone when there is room again: characters removed or hidden */
+function CrowdNotice({ insets }: { insets: Insets }) {
+  const crowded = useCrowded(), { scene } = useScene()
+  if (!scene.items.some((i) => i.kind === 'character' && !i.hidden && crowded.has(i.id))) return null
+  return (
+    <div className="crowd-notice" role="status" style={{ left: insets.left + 16, right: insets.right + 16 }}>
+      <p><CircleAlert size={15} />{desktop
+        ? tr("舞台上的角色太多，显示不过来。桌面版大约 {0} 个能正常显示。请隐藏或移除一些角色。", ROOM)
+        : tr("舞台上的角色太多，这个浏览器显示不过来。浏览器里大约 {0} 个能正常显示，桌面版可以更多。请隐藏或移除一些角色。", ROOM)}</p>
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------- bottom: the cast and the console

@@ -21,7 +21,8 @@
     "stage:win": "npm run build && npm run stage:web && electron-builder --config electron-builder.stage.yml --win",
     "stage:dev": "npm run build && npm run stage:web && electron . --app=stage",
     "test:stage": "npm run build && npm run stage:web && node test/stage.mjs",
-    "test:stage-api": "npm run build && npm run stage:web && node test/stage-api.mjs"
+    "test:stage-api": "npm run build && npm run stage:web && node test/stage-api.mjs",
+    "test:stage-contexts": "npm run build && node test/contexts.mjs"
   },
   "devDependencies": {
     "@types/node": "24.10.15",
