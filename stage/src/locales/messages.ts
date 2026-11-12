@@ -4439,8 +4439,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "系统未允许接收追踪数据": {"zh-Hans": "系统未允许接收追踪数据", "zh-Hant": "系統未允許接收追蹤資料", "en": "System permission to receive tracking data was denied", "ja": "トラッキングデータ受信のシステム権限がありません"},
   "无法连接手机，请检查 IP 和 Wi-Fi": {"zh-Hans": "无法连接手机，请检查 IP 和 Wi-Fi", "zh-Hant": "無法連接手機，請檢查 IP 和 Wi-Fi", "en": "Can't reach the phone. Check its IP and Wi-Fi.", "ja": "スマホに接続できません。IPとWi-Fiを確認してください"},
   "角色对谈演示": {"zh-Hans": "角色对谈演示", "zh-Hant": "角色對談示範", "en": "Character conversation demo", "ja": "キャラクターの会話デモ"},
-  "无需密钥": {"zh-Hans": "无需密钥", "zh-Hant": "無需金鑰", "en": "No API key needed", "ja": "APIキー不要"},
-  "打开演示舞台": {"zh-Hans": "打开演示舞台", "zh-Hant": "開啟示範舞台", "en": "Open demo stage", "ja": "デモステージを開く"},
   "范围映射": {"zh-Hans": "范围映射", "zh-Hant": "範圍映射", "en": "Range mapping", "ja": "範囲マッピング"},
   "展开左侧栏": {"zh-Hans": "展开左侧栏", "zh-Hant": "展開左側欄", "en": "Expand sidebar", "ja": "サイドバーを開く"},
   "收起左侧栏": {"zh-Hans": "收起左侧栏", "zh-Hant": "收合左側欄", "en": "Collapse sidebar", "ja": "サイドバーを閉じる"},
@@ -4559,8 +4557,8 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "未满 18 岁": {"zh-Hans": "未满 18 岁", "zh-Hant": "未滿 18 歲", "en": "Under 18", "ja": "18 歳未満"},
   "已满 18 岁": {"zh-Hans": "已满 18 岁", "zh-Hant": "已滿 18 歲", "en": "18 or over", "ja": "18 歳以上"},
   "LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型": {"zh-Hans": "LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型", "zh-Hant": "LivLiv 只能讓 LivLiv 的角色說話：給「{0}」接上你自己的模型", "en": "LivLiv works for LivLiv characters only: connect your own model for “{0}”", "ja": "LivLiv で話せるのは LivLiv のキャラクターだけです。「{0}」には自分のモデルをつないでください"},
-  "不用密钥：用 livliv.ai 积分让角色说话，每句 {0} 积分（会员不出声的台词免费）。只能用于 LivLiv 的角色。": {"zh-Hans": "不用密钥：用 livliv.ai 积分让角色说话，每句 {0} 积分（会员不出声的台词免费）。只能用于 LivLiv 的角色。", "zh-Hant": "不用金鑰：用 livliv.ai 積分讓角色說話，每句 {0} 積分（會員不出聲的台詞免費）。只能用於 LivLiv 的角色。", "en": "No key needed: characters speak with your livliv.ai points, {0} points a line (lines without a voice are free on a paid plan). LivLiv characters only.", "ja": "キー不要：livliv.ai のポイントでキャラクターが話します。1 行 {0} ポイント（有料プランなら音声なしのセリフは無料）。LivLiv のキャラクターのみ。"},
   "登录 livliv.ai 后可用": {"zh-Hans": "登录 livliv.ai 后可用", "zh-Hant": "登入 livliv.ai 後可用", "en": "Available after you sign in to livliv.ai", "ja": "livliv.ai にログインすると使えます"},
   "这句的声音没有生成": {"zh-Hans": "这句的声音没有生成", "zh-Hant": "這句的聲音沒有生成", "en": "This line’s voice wasn’t made", "ja": "このセリフの音声は作られませんでした"},
   "用积分的台词，请从「对谈」或「AI 直播」开始": {"zh-Hans": "用积分的台词，请从「对谈」或「AI 直播」开始", "zh-Hant": "用積分的台詞，請從「對談」或「AI 直播」開始", "en": "Lines paid with points start from Chat or AI live", "ja": "ポイントを使うセリフは「対話」か「AI配信」から始めてください"},
+  "无需密钥。消耗 livliv.ai 积分，每句台词约 {0}–{1} 积分，只能用于 LivLiv 的角色。": {"zh-Hans": "无需密钥。消耗 livliv.ai 积分，每句台词约 {0}–{1} 积分，只能用于 LivLiv 的角色。", "zh-Hant": "無需金鑰。消耗 livliv.ai 積分，每句台詞約 {0}–{1} 積分，只能用於 LivLiv 的角色。", "en": "No key needed. Uses your livliv.ai points, about {0}–{1} points a line. LivLiv characters only.", "ja": "キー不要。livliv.ai のポイントを使います。1 行あたり約 {0}–{1} ポイント。LivLiv のキャラクターのみ。"},
 }

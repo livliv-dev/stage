@@ -18,12 +18,12 @@ import { onSite, signInUrl } from './host'
 
 /** connect: a code waiting for its approval on the site (shown here, the same on the page). recordSeconds,
  *  recordMark: on livliv.ai/stage, how long a recording may run and whether it carries the LivLiv mark (the plan's, as
- *  the site's 录制: free 30 s with the mark, paid 5 min); elsewhere unused. linePoints: what a LivLiv line takes, as
- *  the site says (on a paid plan a line without a voice is free) */
-export type Account = { status: 'unknown' | 'out' | 'in'; email: string; points: number; error: string; closed: boolean; connect: { code: string; url: string } | null; recordSeconds: number; recordMark: boolean; linePoints: number }
+ *  the site's 录制: free 30 s with the mark, paid 5 min); elsewhere unused */
+export type Account = { status: 'unknown' | 'out' | 'in'; email: string; points: number; error: string; closed: boolean; connect: { code: string; url: string } | null; recordSeconds: number; recordMark: boolean }
 const FREE = { recordSeconds: 30, recordMark: true }
-const LINE_POINTS = 0.5
-let account: Account = { status: 'unknown', email: '', points: 0, error: '', closed: false, connect: null, ...FREE, linePoints: LINE_POINTS }
+/** what a LivLiv line takes, as the model form says it (about this many points a line): change it with the site's price */
+export const LINE_PRICE = { from: 0.1, to: 0.5 }
+let account: Account = { status: 'unknown', email: '', points: 0, error: '', closed: false, connect: null, ...FREE }
 const subs = new Set<() => void>()
 const set = (p: Partial<Account>) => { account = { ...account, ...p }; subs.forEach((f) => f()) }
 export const onAccount = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
@@ -63,9 +63,8 @@ export async function refresh() {
     // the plan's recording: what the site says, else by the plan (any paid plan: 5 min, no mark)
     const paid = !!me.plan && me.plan !== 'free'
     const plan = { recordSeconds: typeof me.record_seconds === 'number' ? me.record_seconds : paid ? 300 : 30, recordMark: typeof me.record_mark === 'boolean' ? me.record_mark : !paid }
-    const linePoints = typeof me.stage_line_points === 'number' ? me.stage_line_points : LINE_POINTS
-    set(me.signed_in ? { status: 'in', email: me.email || me.name || '', points: me.points ?? 0, error: '', ...plan, linePoints }
-      : { status: 'out', email: '', points: 0, ...FREE, linePoints, ...(lapsed ? { error: tr("登录过期了，重新登录一下") } : {}) })
+    set(me.signed_in ? { status: 'in', email: me.email || me.name || '', points: me.points ?? 0, error: '', ...plan }
+      : { status: 'out', email: '', points: 0, ...FREE, ...(lapsed ? { error: tr("登录过期了，重新登录一下") } : {}) })
   } catch {
     set({ status: 'out', email: '', points: 0, ...FREE, error: tr("连不上 LivLiv") })
   }

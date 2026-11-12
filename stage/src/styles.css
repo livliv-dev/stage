@@ -812,11 +812,6 @@ button.account-cta:hover:not(:disabled) { background:#68549e;border-color:#68549
 .general-panel > .network-panel { margin: 0 0 18px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--hover); }
 .general-panel > .network-panel > .field { max-width: 360px; }
 
-.demo-launch { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;margin:0 0 16px;border-radius:12px;background:linear-gradient(115deg,#eef2ff,#fff0f3) }
-.demo-launch>div { display:grid;gap:3px;min-width:0 }
-.demo-launch b { font-size:13px;font-weight:600;text-wrap:balance }
-.demo-launch span { font-size:11px;color:var(--fg-3) }
-.demo-launch button { flex:none;max-width:60%;font-size:12px;text-wrap:balance }
 .tracking-mapping { border-top:1px solid var(--line);margin:12px 0;padding-top:8px }
 .tracking-mapping>summary { color:var(--fg-3);font-size:12px;cursor:pointer;margin-bottom:10px }
 

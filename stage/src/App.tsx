@@ -25,7 +25,7 @@ import { CollabPanel } from './CollabPanel'
 import { useRoom } from './collab/session'
 import { connectDesktop, desktop } from './desktop'
 import { ROOM, useCrowded } from './contexts'
-import { ageGate, checkConnect, connect, refresh, setAge, useAccount } from './livliv'
+import { ageGate, checkConnect, connect, LINE_PRICE, refresh, setAge, useAccount } from './livliv'
 import { rec, takeLimit, useRecording } from './recording'
 import { cancel as pttCancel, clearError as pttClear, holdKey, press as pttPress, release as pttRelease, usePtt } from './ptt'
 import { asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, useActiveSpeech, transcribeApi, useSpeech, voiceRoute, type SpeechApi } from './voiceApi'
@@ -859,14 +859,15 @@ function ModelButton({ on, onClick }: { on: boolean; onClick: () => void }) {
   )
 }
 
-/** where the AI characters' lines come from: your own model (a preset, or any OpenAI-compatible API), or the demo */
-function ModelForm({ forStart, done, demoDone }: { forStart?: boolean; done?: () => void; demoDone?: () => void }) {
-  const cur = useBrainConfig(), { scene } = useScene()
-  const demoAvailable = demoFor(participants(scene))?.script.template === 'trio'
+/** where the AI characters' lines come from: your own model (a preset, or any OpenAI-compatible API), LivLiv's points
+ *  on livliv.ai, or the demo (one more option in the row). onPick: what is chosen now, saved or not */
+function ModelForm({ forStart, done, demoDone, onPick }: { forStart?: boolean; done?: () => void; demoDone?: () => void; onPick?: (kind: 'demo' | 'livliv' | 'openai') => void }) {
+  const cur = useBrainConfig()
   const [demo, setDemo] = useState(cur.kind === 'demo')
   // livliv.ai/stage: LivLiv's points instead of a key of one's own (the site writes and voices the lines)
   const [points, setPoints] = useState(onSite && (cur.kind === 'livliv' || (cur.kind === 'demo' && savedBrain().kind === 'livliv')))
   const account = useAccount()
+  useEffect(() => { onPick?.(demo ? 'demo' : points ? 'livliv' : 'openai') }, [demo, points])  // eslint-disable-line react-hooks/exhaustive-deps
   const [d, setD] = useState<ModelConfig>(() => (previousModelConfig().provider ? previousModelConfig() : { kind: 'openai', provider: PROVIDERS_HERE[0].id, base: PROVIDERS_HERE[0].base, key: '', model: '' }))
   const [models, setModels] = useState<string[]>([])
   const [st, setSt] = useState<{ busy?: 'list' | 'test' | 'demo'; ok?: number; err?: string }>({})
@@ -906,13 +907,14 @@ function ModelForm({ forStart, done, demoDone }: { forStart?: boolean; done?: ()
     } catch (error) { setSt({ err: (error as Error).message }) }
   }
   return <div className="model-form">
-    <div className="demo-launch"><div><b>{tr('三人对谈演示')}</b><span>{tr('无需密钥')}</span></div><button disabled={st.busy === 'demo'} onClick={() => void save(true)}>{st.busy === 'demo' ? <LoaderCircle size={14} className="spin" /> : <Play size={14} />}{tr(demoAvailable ? '看演示' : '打开演示舞台')}</button></div>
     <div className="providers">
       {onSite && <button className={!demo && points ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(false); setPoints(true); setSt({}) }}>LivLiv</button>}
       {PROVIDERS_HERE.map((q) => <button key={q.id} className={!demo && !points && d.provider === q.id ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
+      {/* the three's prepared conversation in their recorded voices: no key, no model */}
+      <button className={`demo${demo ? ' on' : ''}`} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(true); setSt({}) }}>{tr("演示")}</button>
     </div>
-    {points && !demo ? <>
-      <p className="hint">{tr("不用密钥：用 livliv.ai 积分让角色说话，每句 {0} 积分（会员不出声的台词免费）。只能用于 LivLiv 的角色。", account.linePoints)}</p>
+    {demo ? null : points ? <>
+      <p className="hint">{tr("无需密钥。消耗 livliv.ai 积分，每句台词约 {0}–{1} 积分，只能用于 LivLiv 的角色。", LINE_PRICE.from, LINE_PRICE.to)}</p>
       {account.status === 'out' && <button onClick={() => void connect()}><ExternalLink size={14} />{tr("登录 livliv.ai")}</button>}
     </> : onSite && <p className="hint">{tr("网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。")}</p>}
     {!demo && !points && <>
@@ -929,13 +931,14 @@ function ModelForm({ forStart, done, demoDone }: { forStart?: boolean; done?: ()
       </label>
     </>}
     {st.err && <p className="hint error" role="alert">{st.err}</p>}
-    {!demo && <div className="row end">
+    <div className="row end">
       {!demo && !points && <button disabled={!brainReady(d) || st.busy === 'test'} onClick={() => void test()}>
         {st.busy === 'test' ? <LoaderCircle size={14} className="spin" /> : st.ok !== undefined ? <Check size={14} /> : null}
         {st.ok !== undefined ? tr("{0} 秒", st.ok.toFixed(1)) : tr("测试")}
       </button>}
-      <button className="primary" disabled={!demo && (points ? account.status !== 'in' : !brainReady(d))} onClick={() => void save()}>{forStart || demo ? <><Play size={14} />{demo ? tr("看演示") : tr("开始")}</> : tr("保存")}</button>
-    </div>}
+      <button className="primary" disabled={st.busy === 'demo' || (!demo && (points ? account.status !== 'in' : !brainReady(d)))} onClick={() => void save()}>
+        {forStart || demo ? <>{st.busy === 'demo' ? <LoaderCircle size={14} className="spin" /> : <Play size={14} />}{demo ? tr("看演示") : tr("开始")}</> : tr("保存")}</button>
+    </div>
   </div>
 }
 
@@ -1018,6 +1021,8 @@ function ModelCard({ forStart, onClose }: { forStart: boolean; onClose: () => vo
 /** Settings for general preferences, models, voice, shortcuts and the optional livliv.ai account. */
 function SettingsCard({ onClose, onAdd, initialTab }: { onClose: () => void; onAdd: () => void; initialTab: SettingsTab }) {
   const [tab, setTab] = useState<SettingsTab>(initialTab)
+  // LivLiv's lines come with the character's own voice: no speech service to choose while it is the model
+  const [pick, setPick] = useState<'demo' | 'livliv' | 'openai'>(() => { const k = loadBrainConfig().kind; return k === 'demo' || k === 'livliv' ? k : 'openai' })
   useEffect(() => { if (tab === 'account') void checkConnect() }, [tab])
   return (
     <div className="card popover settings" onPointerDown={(e) => e.stopPropagation()}>
@@ -1028,12 +1033,12 @@ function SettingsCard({ onClose, onAdd, initialTab }: { onClose: () => void; onA
       {tab === 'hotkeys' && <HotkeysPanel />}
       {tab === 'ai' && <><section>
         <h3>{tr("AI 模型")}</h3>
-        <ModelForm demoDone={onClose} />
+        <ModelForm demoDone={onClose} onPick={setPick} />
       </section>
-      <section>
+      {pick !== 'livliv' && <section>
         <h3>{tr("语音")}</h3>
         <SpeechForm />
-      </section>
+      </section>}
       </>}
       {tab === 'account' && <AccountPanel onAdd={onAdd} />}
       </div>
