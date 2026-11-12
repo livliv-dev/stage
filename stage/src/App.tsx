@@ -25,7 +25,7 @@ import { CollabPanel } from './CollabPanel'
 import { useRoom } from './collab/session'
 import { connectDesktop, desktop } from './desktop'
 import { ROOM, useCrowded } from './contexts'
-import { ageGate, checkConnect, connect, LINE_PRICE, refresh, setAge, useAccount } from './livliv'
+import { ageGate, checkConnect, connect, refresh, setAge, useAccount } from './livliv'
 import { rec, takeLimit, useRecording } from './recording'
 import { cancel as pttCancel, clearError as pttClear, holdKey, press as pttPress, release as pttRelease, usePtt } from './ptt'
 import { asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, useActiveSpeech, transcribeApi, useSpeech, voiceRoute, type SpeechApi } from './voiceApi'
@@ -916,7 +916,7 @@ function ModelForm({ forStart, done, demoDone, onPick }: { forStart?: boolean; d
       <button className={`demo${demo ? ' on' : ''}`} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(true); setSt({}) }}>{tr("演示")}</button>
     </div>
     {demo ? null : points ? <>
-      <p className="hint">{tr("无需密钥。消耗 livliv.ai 积分，每句台词约 {0}–{1} 积分，只能用于 LivLiv 的角色。", LINE_PRICE.from, LINE_PRICE.to)}</p>
+      <p className="hint">{tr("无需密钥。消耗 livliv.ai 积分，每句台词 {0} 积分，只能用于 LivLiv 的角色。", account.linePoints)}</p>
       {account.status === 'out' && <button onClick={() => void connect()}><ExternalLink size={14} />{tr("登录 livliv.ai")}</button>}
     </> : onSite && <p className="hint">{tr("网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。")}</p>}
     {!demo && !points && <>
@@ -1023,7 +1023,8 @@ function ModelCard({ forStart, onClose }: { forStart: boolean; onClose: () => vo
 /** Settings for general preferences, models, voice, shortcuts and the optional livliv.ai account. */
 function SettingsCard({ onClose, onAdd, initialTab }: { onClose: () => void; onAdd: () => void; initialTab: SettingsTab }) {
   const [tab, setTab] = useState<SettingsTab>(initialTab)
-  // LivLiv's lines come with the character's own voice: no speech service to choose while it is the model
+  // a speech service is chosen for a model of one's own only: LivLiv's lines come with the character's own voice, the
+  // demo plays its recordings
   const [pick, setPick] = useState<'demo' | 'livliv' | 'openai'>(() => { const k = loadBrainConfig().kind; return k === 'demo' || k === 'livliv' ? k : 'openai' })
   useEffect(() => { if (tab === 'account') void checkConnect() }, [tab])
   return (
@@ -1037,7 +1038,7 @@ function SettingsCard({ onClose, onAdd, initialTab }: { onClose: () => void; onA
         <h3>{tr("AI 模型")}</h3>
         <ModelForm demoDone={onClose} onPick={setPick} />
       </section>
-      {pick !== 'livliv' && <section>
+      {pick === 'openai' && <section>
         <h3>{tr("语音")}</h3>
         <SpeechForm />
       </section>}
