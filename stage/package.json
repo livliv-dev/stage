@@ -20,6 +20,7 @@
     "test:props": "node test/props.mjs",
     "test:gamepad": "node test/gamepad.mjs",
     "test:journey": "node test/journey.mjs",
+    "test:live": "node test/live.mjs",
     "build:site": "node scripts/build-site.mjs"
   },
   "dependencies": {
