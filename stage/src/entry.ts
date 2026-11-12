@@ -12,7 +12,8 @@ export const linkedId = () => new URLSearchParams(location.search).get('c')?.tri
 function forget() {
   const q = new URLSearchParams(location.search)
   q.delete('c')
-  history.replaceState(history.state, '', location.pathname + (q.size ? `?${q}` : '') + location.hash)
+  const rest = q.toString()
+  history.replaceState(history.state, '', location.pathname + (rest ? `?${rest}` : '') + location.hash)
 }
 
 let handled = false
