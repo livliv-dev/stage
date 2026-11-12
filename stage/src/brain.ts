@@ -77,7 +77,9 @@ function load(): ModelConfig | LivLivConfig {
     if (c?.kind === 'demo') c = JSON.parse(localStorage.getItem(LAST_MODEL) || 'null')
     if (c?.kind === 'openai' && typeof c.base === 'string') return { ...UNSET, ...c, provider: c.provider ?? (PROVIDERS.find((p) => p.base === c.base)?.id ?? 'custom') }
   } catch { /* none saved */ }
-  return UNSET
+  // nothing chosen yet: on livliv.ai, LivLiv (the site's own, by its sign-in; owner 11-12: from the sidebar a member
+  // goes straight to AI live); elsewhere a model of one's own still to be set up
+  return onSite ? { kind: 'livliv' } : UNSET
 }
 /** the model set up (saved), and what the AI characters think with now: it, or the demo */
 let saved = load()
@@ -181,7 +183,7 @@ export function makeBrain(c: BrainConfig): Brain {
 class LivLivBrain implements Brain {
   async reply(a: Ask, signal: AbortSignal): Promise<Reply> {
     const mid = modelId(a.me)
-    if (!mid) throw new Error(tr("LivLiv 积分只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型", a.me.name))
+    if (!mid) throw new Error(tr("LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型", a.me.name))
     const r = await stageLine(mid, {
       cast: a.layout.slice(0, 8).map((n) => n.slice(0, 40)), topic: a.topic.slice(0, 200),
       lines: a.lines.slice(-14).map((l) => ({ name: l.name.slice(0, 40), text: l.text.slice(0, 300), me: l.who === a.me.id })),

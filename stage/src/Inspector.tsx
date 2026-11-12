@@ -1,5 +1,6 @@
 import { imageBackground, pictureFile, usePicture } from './assets'
 import { getLocale, tr } from './i18n'
+import { onSite } from './host'
 // The right panel. With something selected, its settings: a character's look, who gives it its lines (and its voice),
 // what moves it, how it moves and looks; a subtitle's speaker and style; a text's words. With nothing selected, the
 // stage's: shape, background, and the talk rules (order, cutting in, language, length).
@@ -123,7 +124,7 @@ function VoiceSection({ c, patch }: { c: CharacterItem; patch: (p: Partial<Chara
   return (
     <Section title={tr("声音")}>
       <Seg value={route as 'livliv' | 'api' | 'system'} set={(source) => patch({ voice: { ...v, source } })} options={[
-        ...(mid ? [{ id: 'livliv' as const, label: tr("角色声音"), disabled: !can, title: can ? tr("角色在 livliv.ai 上的声音") : account.closed ? tr("帐号登录暂未开放") : tr("在设置里连上 livliv.ai 帐号后可用") }] : []),
+        ...(mid ? [{ id: 'livliv' as const, label: tr("角色声音"), disabled: !can, title: can ? tr("角色在 livliv.ai 上的声音") : account.closed ? tr("帐号登录暂未开放") : account.status === 'unknown' ? '' : onSite ? tr("登录 livliv.ai 后可用") : tr("在设置里连上 livliv.ai 帐号后可用") }] : []),
         { id: 'api' as const, label: tr("我的接口"), disabled: !api, title: api ? `${tr(speechProviderOf(speech).label)} · ${speech.model}` : tr("在设置里接上语音接口后可用") },
         { id: 'system' as const, label: tr("系统朗读") },
       ]} />

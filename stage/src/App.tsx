@@ -420,7 +420,7 @@ function AddCharacter({ left, onClose, onSignIn }: { left: number; onClose: () =
           {own.map((p) => <button key={p.id} className="pick" title={p.persona} onClick={() => take(p)}>{p.thumb && <img src={p.thumb} alt="" />}<span>{p.name}</span></button>)}
         </div>
       </>}
-      <p className="label split">{tr("从 livliv.ai 增加")}{!signed && (closed ? <span>{tr("帐号登录暂未开放")}</span> : <button className="link" onClick={onSignIn}>{tr("登录 livliv.ai")}</button>)}</p>
+      <p className="label split">{tr("从 livliv.ai 增加")}{account.status === 'out' && (closed ? <span>{tr("帐号登录暂未开放")}</span> : <button className="link" onClick={onSignIn}>{tr("登录 livliv.ai")}</button>)}</p>
       <div className="row">
         <input value={id} disabled={!signed} placeholder={tr("角色 ID，网址里 /c/ 后面那段")} onChange={(e) => setId(e.target.value)} />
         <button disabled={!signed || !id.trim()} onClick={async () => { try { take(await byId(id.trim())) } catch (e) { setErr((e as Error).message) } }}>{tr("放上来")}</button>
@@ -839,7 +839,7 @@ function AgeDialog({ onAnswer }: { onAnswer: (adult: boolean) => void }) {
 /** the model in the console: which one the AI characters think with; not set up yet, an invitation */
 function ModelButton({ on, onClick }: { on: boolean; onClick: () => void }) {
   const c = useBrainConfig(), ready = brainReady(c)
-  const label = c.kind === 'demo' ? tr("演示") : c.kind === 'livliv' ? tr("LivLiv 积分") : ready ? c.model : tr("接入模型")
+  const label = c.kind === 'demo' ? tr("演示") : c.kind === 'livliv' ? 'LivLiv' : ready ? c.model : tr("接入模型")
   return (
     <button className={`model-btn${on ? ' on' : ''}${ready ? '' : ' need'}`} aria-label={tr("AI 模型")} title={c.kind === 'openai' && ready ? `${tr(providerOf(c).label)} · ${c.model}` : tr("AI 角色用什么模型想台词")} onClick={onClick}>
       <Bot size={14} /><span>{tr(label)}</span><ChevronDown size={12} />
@@ -896,12 +896,12 @@ function ModelForm({ forStart, done, demoDone }: { forStart?: boolean; done?: ()
   return <div className="model-form">
     <div className="demo-launch"><div><b>{tr('三人对谈演示')}</b><span>{tr('无需密钥')}</span></div><button disabled={st.busy === 'demo'} onClick={() => void save(true)}>{st.busy === 'demo' ? <LoaderCircle size={14} className="spin" /> : <Play size={14} />}{tr(demoAvailable ? '看演示' : '打开演示舞台')}</button></div>
     <div className="providers">
-      {onSite && <button className={!demo && points ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(false); setPoints(true); setSt({}) }}>{tr("LivLiv 积分")}</button>}
+      {onSite && <button className={!demo && points ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(false); setPoints(true); setSt({}) }}>LivLiv</button>}
       {PROVIDERS_HERE.map((q) => <button key={q.id} className={!demo && !points && d.provider === q.id ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
     </div>
     {points && !demo ? <>
-      <p className="hint">{tr("不用密钥：用 livliv.ai 的积分让角色说话，每句约 0.8 积分，含角色自己的声音。只能用于 LivLiv 的角色。")}</p>
-      {account.status !== 'in' && <button onClick={() => void connect()}><ExternalLink size={14} />{tr("登录 livliv.ai")}</button>}
+      <p className="hint">{tr("不用密钥：用 livliv.ai 的积分让角色说话，含角色自己的声音，按实际用量扣，长台词和系统声音会多一些。只能用于 LivLiv 的角色。")}</p>
+      {account.status === 'out' && <button onClick={() => void connect()}><ExternalLink size={14} />{tr("登录 livliv.ai")}</button>}
     </> : onSite && <p className="hint">{tr("网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。")}</p>}
     {!demo && !points && <>
       {(p.id === 'custom' || p.id === 'ollama') && <label className="field"><span>{tr("接口地址")}</span>

@@ -29,7 +29,8 @@ export function AccountPanel({ onAdd }: { onAdd: () => void }) {
       <p className="hint">{tr("网页需要验证码时，输入这串代码")}</p>
       <strong className="account-code num">{account.connect.code}</strong>
       <div className="row"><button onClick={openConnect}><ExternalLink size={14} />{tr("再打开网页")}</button><button onClick={cancelConnect}>{tr("取消")}</button></div>
-    </div> : <div className="account-login">
+    </div> : account.status === 'unknown' ? <div className="account-login"><LoaderCircle className="spin" size={18} /></div>  // still asking the site
+    : <div className="account-login">
       <button className="account-cta" disabled={account.closed} onClick={() => void connect()}><ExternalLink size={15} />{tr("登录 livliv.ai")}</button>
       {account.closed && <p className="hint account-unavailable">{tr("帐号登录暂未开放")}</p>}
     </div>}

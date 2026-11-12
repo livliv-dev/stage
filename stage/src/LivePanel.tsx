@@ -31,7 +31,7 @@ export function LivePanel({ onClose, onSettings }: { onClose: () => void; onSett
     <section className="section live-readiness">
       <h3>{tr("开播准备")}</h3>
       <p className={ready ? 'ok' : 'hint'}><Check size={14} />{ready ? cast.length + tr(" 位 AI 角色已就绪") : tr("先添加并载入「AI 来演」的角色")}</p>
-      <p className={modelReady ? 'ok' : 'hint'}><Check size={14} />{modelReady && model.kind === 'openai' ? model.model : modelReady && model.kind === 'livliv' ? tr("LivLiv 积分") : tr("需要接上 AI 模型")}</p>
+      <p className={modelReady ? 'ok' : 'hint'}><Check size={14} />{modelReady && model.kind === 'openai' ? model.model : modelReady && model.kind === 'livliv' ? 'LivLiv' : tr("需要接上 AI 模型")}</p>
       <p className={textOnly || !missingVoice.length ? 'ok' : 'hint'}><Check size={14} />{textOnly ? tr("仅显示字幕") : missingVoice.length ? missingVoice.map((c) => c.name).join('、') + tr(" 还没有声音") : tr("角色声音已设置")}</p>
       <button className="link" onClick={onSettings}><Settings size={14} />{tr("设置模型与声音")}</button>
     </section>

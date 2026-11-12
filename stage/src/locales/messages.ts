@@ -4557,4 +4557,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "用 AI 让角色说话前，请确认你已年满 18 岁。": {"zh-Hans": "用 AI 让角色说话前，请确认你已年满 18 岁。", "zh-Hant": "用 AI 讓角色說話前，請確認你已年滿 18 歲。", "en": "Before AI speaks for characters, please confirm you are 18 or over.", "ja": "AI でキャラクターを話させる前に、18 歳以上であることを確認してください。"},
   "未满 18 岁": {"zh-Hans": "未满 18 岁", "zh-Hant": "未滿 18 歲", "en": "Under 18", "ja": "18 歳未満"},
   "已满 18 岁": {"zh-Hans": "已满 18 岁", "zh-Hant": "已滿 18 歲", "en": "18 or over", "ja": "18 歳以上"},
+  "LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型": {"zh-Hans": "LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型", "zh-Hant": "LivLiv 只能讓 LivLiv 的角色說話：給「{0}」接上你自己的模型", "en": "LivLiv works for LivLiv characters only: connect your own model for “{0}”", "ja": "LivLiv で話せるのは LivLiv のキャラクターだけです。「{0}」には自分のモデルをつないでください"},
+  "不用密钥：用 livliv.ai 的积分让角色说话，含角色自己的声音，按实际用量扣，长台词和系统声音会多一些。只能用于 LivLiv 的角色。": {"zh-Hans": "不用密钥：用 livliv.ai 的积分让角色说话，含角色自己的声音，按实际用量扣，长台词和系统声音会多一些。只能用于 LivLiv 的角色。", "zh-Hant": "不用金鑰：用 livliv.ai 的積分讓角色說話，含角色自己的聲音，按實際用量扣，長台詞和系統聲音會多一些。只能用於 LivLiv 的角色。", "en": "No key needed: characters speak with your livliv.ai points, their own voice included. Points follow what each line actually uses; long lines and system voices take a little more. LivLiv characters only.", "ja": "キー不要：livliv.ai のポイントでキャラクターが話します（キャラクター自身の声を含む）。実際の使用量に応じてポイントを使い、長いセリフやシステム音声は少し多めになります。LivLiv のキャラクターのみ。"},
+  "登录 livliv.ai 后可用": {"zh-Hans": "登录 livliv.ai 后可用", "zh-Hant": "登入 livliv.ai 後可用", "en": "Available after you sign in to livliv.ai", "ja": "livliv.ai にログインすると使えます"},
 }
