@@ -4,14 +4,16 @@ import { tr } from './i18n'
 // the editor's zoom or frame rate was while it played.
 //  - each character gets a player of its own, at its size on the stage, with nothing driving it: each frame it takes
 //    the pose taken down then (between two poses, part of the way), its hair and body swaying from there; the mark
-//    its package carries is drawn on it as on the stage (a recording never takes a mark off)
+//    its package carries is drawn on it as on the stage (a recording never takes a mark off). Each of those players
+//    takes a WebGL context: when they don't fit beside the stage's, the stage lends its own meanwhile (contexts.ts)
 //  - the background, text, pictures and subtitles are drawn as the stage draws them (paint.ts)
 //  - the sound: each LivLiv clip where it was heard (cut where it was cut), the microphone, mixed into one track
 //  - H.264 + AAC in an MP4 through WebCodecs and Mediabunny (Opus where AAC can't be encoded), written to the page's
 //    private files (OPFS) as it is made, so a long take never sits in memory whole
 import type { PlaybackPose } from '@livliv-dev/player'
 import { formatOf, makePlayer, setPixelated, sourceOf, type StagePlayer } from './bodies'
-import { released } from './contexts'
+import { lend, released, ROOM, settled } from './contexts'
+import { actors, onActors } from './actors'
 import { type CharacterItem, type Scene } from './scene'
 import { imageGeometry } from './attachments'
 import type { AnchorName } from '@livliv-dev/player'
@@ -123,6 +125,23 @@ class Double {
   }
 }
 
+/** the stage's characters give their WebGL contexts up while the video's `need` more are used, when both wouldn't fit
+ *  in the page's (contexts.ts): resolves once they are gone, with how to give them back (null: nothing lent) */
+async function makeRoom(need: number): Promise<(() => Promise<void>) | null> {
+  const held = () => [...actors.values()].filter((a) => a.format !== 'png' && !a.player.contextLost).length
+  const now = held()
+  if (!need || !now || now + need <= ROOM) return null
+  lend(true)
+  // each character gives its own up as the stage draws it again (CharacterView)
+  await new Promise<void>((resolve) => {
+    const done = () => { off(); clearTimeout(timer); resolve() }
+    const off = onActors(() => { if (!held()) done() }), timer = setTimeout(done, 5000)
+    if (!held()) done()
+  })
+  await settled()
+  return async () => { await settled(); lend(false) }
+}
+
 /** missing: the sounds and pictures that couldn't go in */
 export type Made = { file: File; seconds: number; missing: { sounds: number; pictures: number } }
 
@@ -134,12 +153,16 @@ export async function renderTake(take: Take, name: string, onProgress: (share: n
   const { images: pics, missing: pictureMissing } = await pictures(take.scenes.map((s) => s.scene))
   // a player for each character on the tape that shows at some point (each takes one of the browser's few WebGL
   // contexts), loaded as the scene had it when it first appeared
+  const cast: { id: string; track: Track; it: CharacterItem }[] = []
+  for (const [id, track] of take.tracks) {
+    const seen = take.scenes.map((s) => s.scene.items.find((i) => i.id === id)).filter((i): i is CharacterItem => i?.kind === 'character')
+    const it = seen[0]
+    if (it && seen.some((i) => !i.hidden) && track.poses.length) cast.push({ id, track, it })
+  }
+  const giveBack = await makeRoom(cast.filter((c) => formatOf(c.it.model) !== 'png').length)
   const doubles = new Map<string, Double>()
   try {
-    for (const [id, track] of take.tracks) {
-      const seen = take.scenes.map((s) => s.scene.items.find((i) => i.id === id)).filter((i): i is CharacterItem => i?.kind === 'character')
-      const it = seen[0]
-      if (!it || !seen.some((i) => !i.hidden) || !track.poses.length) continue
+    for (const { id, track, it } of cast) {
       const d = new Double(track)
       doubles.set(id, d)
       await d.load(it)
@@ -211,5 +234,6 @@ export async function renderTake(take: Take, name: string, onProgress: (share: n
     }
   } finally {
     doubles.forEach((d) => d.dispose())
+    await giveBack?.()
   }
 }

@@ -11,7 +11,7 @@ npm run stage:mac       # macOS DMG + ZIP
 npm run stage:win       # Windows NSIS 安装包
 ```
 
-`npm run test:stage`、`test:stage-api` 和 `test:stage-contexts`（在 Stage 的开发服务上放 20 个角色，看 WebGL 上下文够不够）启动真实的 Electron 窗口，需要先在 `stage/` 装好 Playwright；脚本目前使用 macOS 的 Electron 可执行文件路径。
+`npm run test:stage`、`test:stage-api` 和 `test:stage-contexts`（在 Stage 的开发服务上放 20 个角色，看 WebGL 上下文够不够，做完一段视频后是否都还在）启动真实的 Electron 窗口，需要先在 `stage/` 装好 Playwright；脚本目前使用 macOS 的 Electron 可执行文件路径。
 
 网站外壳：`npm run dev` 连本机网页开发服务（`LIVLIV_URL`，默认 `http://127.0.0.1:5173`），`npm start` 连 https://livliv.ai，`npm run pack` 写入 `release/`。
 

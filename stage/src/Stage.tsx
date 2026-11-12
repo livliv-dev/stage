@@ -11,7 +11,7 @@ import { ArrowDown, ArrowUp, Copy, FlipHorizontal2, Lock, LockOpen, Minus, Plus,
 import { AssetImage, imageBackground, usePicture } from './assets'
 import { formatOf } from './bodies'
 import { Actor, actors, crowdedOut, onActors, refused } from './actors'
-import { crowd, onRetry, useCrowded } from './contexts'
+import { crowd, onLend, onRetry, useCrowded, useLent } from './contexts'
 import { talk, useConversation } from './conversation'
 import { DRIVERS, KIND_LABEL, LINES, store, useScene, type CharacterItem, type Item, type SubtitleItem, type TextItem } from './scene'
 import { estimate } from './speech'
@@ -303,24 +303,54 @@ function TextView({ item, editing, done }: { item: TextItem; editing: boolean; d
   )
 }
 
+/** what a WebGL canvas shows, copied to a 2D one; `draw` draws it now, as its picture can be read only in the task
+ *  that drew it. Null when there is nothing to copy */
+function stillOf(from: HTMLCanvasElement, draw: () => void) {
+  if (!from.width || !from.height) return null
+  try {
+    draw()
+    const c = document.createElement('canvas')
+    c.width = from.width; c.height = from.height
+    c.getContext('2d')!.drawImage(from, 0, 0)
+    return c
+  } catch { return null }
+}
+function paintStill(to: HTMLCanvasElement, still: HTMLCanvasElement) {
+  to.width = still.width; to.height = still.height
+  to.getContext('2d')?.drawImage(still, 0, 0)
+}
+
 function CharacterView({ item }: { item: CharacterItem }) {
   const canvas = useRef<HTMLCanvasElement>(null)
   const actor = useRef<Actor | null>(null)
   const [, redraw] = useState(0)
   const [revision, setRevision] = useState(0), [error, setError] = useState('')
   const conv = useConversation()
-  // too many characters for the page's WebGL contexts (contexts.ts): this one says so, and starts again on a new
-  // canvas when there is room. Hidden while any is short of one, it gives its own up until shown again
-  const crowded = useCrowded(), [parked, setParked] = useState(false)
-  const park = !!item.hidden && (parked || crowded.size > 0)
-  useEffect(() => setParked(park), [park])
-  useEffect(() => onRetry(item.id, () => setRevision((n) => n + 1)), [item.id])
-  useEffect(() => () => crowd(item.id, false), [item.id])
   // one player for the item's life, later changes go through sync below; another kind of model (LivLiv, VRM, PNG)
   // needs a new canvas (its context kind) and a new player
   const format = formatOf(item.model)
+  // too many characters for the page's WebGL contexts (contexts.ts): this one says so, and starts again on a new
+  // canvas when there is room. Hidden while any is short of one, it gives its own up until shown again. While the
+  // stage lends its contexts to a video being made, it gives its own up too, and a still of it stands in meanwhile
+  const crowded = useCrowded(), lent = useLent(), [parked, setParked] = useState(false)
+  const hiddenPark = !!item.hidden && (parked || crowded.size > 0)
+  useEffect(() => setParked(hiddenPark), [hiddenPark])
+  const park = hiddenPark || (lent && format !== 'png')  // a PNGTuber draws in 2D
+  const still = useRef<HTMLCanvasElement | null>(null)
+  useEffect(() => onLend(() => {
+    const a = actor.current
+    if (a && a.format !== 'png' && a.status === 'ready' && !a.player.contextLost) still.current = stillOf(a.player.canvas, () => a.player.resize())
+  }), [])
+  useEffect(() => onRetry(item.id, () => setRevision((n) => n + 1)), [item.id])
+  useEffect(() => () => crowd(item.id, false), [item.id])
   useEffect(() => {
-    if (park) { setError(''); crowd(item.id, false); return }
+    const picture = still.current
+    still.current = null
+    if (park) {
+      setError(''); crowd(item.id, false)
+      if (picture) paintStill(canvas.current!, picture)
+      return
+    }
     let a: Actor
     try { a = new Actor(canvas.current!, item); setError(''); crowd(item.id, false) } catch (e) { setError(refused(e)); crowd(item.id, crowdedOut(e)); return }
     actor.current = a

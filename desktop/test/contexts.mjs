@@ -1,6 +1,7 @@
 // LivLiv Stage on the desktop holds more characters than Chromium's 16 WebGL contexts (main.ts): 20 on one stage,
-// none lost. Then a character that loses its context: it says so, the stage says it once, and both go when it is
-// removed, hidden, or another character leaves room. Runs the app on Stage's dev server, for its __stage hooks.
+// none lost, and all 20 still there after a video of them is made. Then a character that loses its context: it says
+// so, the stage says it once, and both go when it is removed, hidden, or another character leaves room. Runs the app
+// on Stage's dev server, for its __stage hooks.
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
@@ -54,6 +55,28 @@ try {
   await page.screenshot({ path: join(artifacts, 'twenty.png') })
   assert.deepEqual(report.characters, { on: COUNT, ready: COUNT, contextsLost: 0 })
   assert.equal(await page.locator('.badge.err, .crowd-notice').count(), 0)
+
+  // a short video of all of them: its players need as many contexts again, more than fit beside the stage's, so the
+  // stage lends its own while the video is made (a still of each meanwhile), and all draw again after it
+  await page.evaluate(() => window.__stage.rec.start({ mic: false, talk: false }))
+  await page.waitForTimeout(2000)
+  await page.evaluate(() => { void window.__stage.rec.stop() })
+  await page.waitForFunction(() => { const r = window.__stage.recording(); return r.phase !== 'recording' && (r.phase !== 'making' || window.__stage.actors.size === 0) }, null, { polling: 50 })
+  report.lent = await page.evaluate(() => window.__stage.recording().phase === 'making' && window.__stage.actors.size === 0)
+  await page.screenshot({ path: join(artifacts, 'making.png') })
+  await page.waitForFunction(() => ['done', 'error'].includes(window.__stage.recording().phase), null, { timeout: 180000 })
+  report.video = await page.evaluate(() => { const r = window.__stage.recording(); return { phase: r.phase, error: r.error, bytes: r.made?.file.size ?? 0, seconds: r.made?.seconds } })
+  assert.equal(report.video.phase, 'done', report.video.error)
+  assert.ok(report.video.bytes > 0)
+  assert.equal(report.lent, true)
+  await page.waitForFunction((count) => [...window.__stage.actors.values()].filter((a) => a.status === 'ready' && !a.player.contextLost).length === count, COUNT, { timeout: 60000 })
+  await page.waitForTimeout(2000)  // as above: a context taken would go a moment later
+  const back = await actors()
+  report.afterVideo = { on: back.length, ready: back.filter((a) => a.status === 'ready').length, contextsLost: back.filter((a) => a.lost).length }
+  assert.deepEqual(report.afterVideo, { on: COUNT, ready: COUNT, contextsLost: 0 })
+  assert.equal(await page.locator('.badge.err, .crowd-notice').count(), 0)
+  await page.screenshot({ path: join(artifacts, 'after-video.png') })
+  await page.evaluate(() => window.__stage.rec.reset())
 
   // a character loses its context while the others draw
   const notice = page.locator('.crowd-notice'), crowdedBadge = page.locator('.badge.err', { hasText: '角色太多' })
