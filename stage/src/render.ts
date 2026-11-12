@@ -109,9 +109,14 @@ class Double {
     const P = p.params as unknown as Record<string, number>
     this.track.keys.forEach((key, j) => { P[key] = a.params[j] + (b.params[j] - a.params[j]) * k })
     p.move = { x: a.move[0] + (b.move[0] - a.move[0]) * k, y: a.move[1] + (b.move[1] - a.move[1]) * k, s: a.move[2] + (b.move[2] - a.move[2]) * k }
+    // a full-body character's crouch and dip (its feet on the ground); a half-body one has none
+    if (a.move.length > 3) {
+      const ac = a.move[3] ?? 0, ad = a.move[4] ?? 0
+      p.crouch = ac + ((b.move[3] ?? 0) - ac) * k; p.dip = ad + ((b.move[4] ?? 0) - ad) * k
+    } else { delete p.crouch; delete p.dip }
     p.expr = { ...(k < 0.5 ? a : b).expr }
     const av = a.view ?? this.track.view, bv = b.view ?? this.track.view
-    p.view = { x: av.x + (bv.x - av.x) * k, y: av.y + (bv.y - av.y) * k, zoom: av.zoom + (bv.zoom - av.zoom) * k, head: (k < .5 ? av : bv).head }
+    p.view = { x: av.x + (bv.x - av.x) * k, y: av.y + (bv.y - av.y) * k, zoom: av.zoom + (bv.zoom - av.zoom) * k, head: (k < .5 ? av : bv).head, fit: (k < .5 ? av : bv).fit }
     this.player.renderPose(p, dt, [Math.round(w), Math.round(h)])
     return true
   }

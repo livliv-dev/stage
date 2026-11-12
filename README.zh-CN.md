@@ -56,7 +56,7 @@ npm --prefix desktop run stage:dev   # stage:mac、stage:win 打安装包
 
 用「导入」放上你自己的角色：
 
-- **LivLiv 模型**：在 [livliv.ai](https://livliv.ai) 用一张图做出角色，下载它的模型包（`.livliv`）。全身角色要等之后版本的 LivLiv Player。
+- **LivLiv 模型**：在 [livliv.ai](https://livliv.ai) 用一张图做出角色，下载它的模型包（`.livliv`）。全身角色也能用，双脚站在地面上，可以选取景（头和上身、到膝盖、整个人）；livliv.ai 暂时还不提供全身角色的模型包。
 - **VRM**：VRoid Studio 等能导出 VRM 0.x 或 1.0 的工具做的模型。
 - **PNGTuber**：两张图（闭嘴、张嘴），有闭眼的再加两张。
 

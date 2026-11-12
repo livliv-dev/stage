@@ -15,8 +15,9 @@ import { routeMicrophone } from './microphone'
 import { deviceError, inputs, microphoneConstraints, onInputs } from './devices'
 import { onRemoteSounds, remoteSounds } from './collab/streams'
 
-/** a pose at `t` seconds into the take: the params in the track's key order, the move (x, y, s), the expressions */
-export type Pose = { t: number; params: Float32Array; move: [number, number, number]; expr: Record<string, number>; view: View }
+/** a pose at `t` seconds into the take: the params in the track's key order, the move (x, y, s; a full-body
+ *  character's crouch and dip after them: its feet stay on the ground), the expressions */
+export type Pose = { t: number; params: Float32Array; move: [number, number, number] | [number, number, number, number, number]; expr: Record<string, number>; view: View }
 export type Track = { source: string | Map<string, Blob> | null; keys: (keyof Params)[]; view: View; poses: Pose[] }
 export type Conv = { t: number; lines: Line[]; speaking: Line | null }
 
@@ -117,7 +118,8 @@ export async function record(mic: boolean, inputStatus?: (error: Error | null) =
     tr.keys.forEach((k, i) => { params[i] = P[k] })
     const expr: Record<string, number> = {}
     for (const [k, v] of Object.entries(p.expr)) if (v > 0.002) expr[k] = v
-    tr.poses.push({ t: sec(), params, move: [p.move.x, p.move.y, p.move.s], expr, view: { ...p.view } })
+    const move: Pose['move'] = p.crouch !== undefined ? [p.move.x, p.move.y, p.move.s, p.crouch, p.dip ?? 0] : [p.move.x, p.move.y, p.move.s]
+    tr.poses.push({ t: sec(), params, move, expr, view: { ...p.view } })
   }
   const offs = [
     onFrame(pose),

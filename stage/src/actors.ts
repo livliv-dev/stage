@@ -458,7 +458,12 @@ export class Actor {
     if (live) released()
   }
 }
-export const faceOf = (c: CharacterItem) => ({ x: c.x + c.w / 2, y: c.y + c.h * 0.28 })
+/** where a character's face is on the stage, for the others' eyes: about a quarter down its box, or on a full-body
+ *  character, where its head was drawn last (its shot may show the whole figure) */
+export function faceOf(c: CharacterItem) {
+  const p = actors.get(c.id)?.player, m = p?.model, head = m && 'fullBody' in m && m.fullBody ? p!.getAnchor('head') : null
+  return head ? { x: c.x + head.x * c.w, y: c.y + head.y * c.h } : { x: c.x + c.w / 2, y: c.y + c.h * 0.28 }
+}
 function quiet(text: string, mouth = false): Utterance {
   let stop = () => {}
   const t0 = performance.now(), done = new Promise<void>((r) => { const timer = setTimeout(r, estimate(text) * 1000); stop = () => { clearTimeout(timer); r() } })

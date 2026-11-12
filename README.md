@@ -62,7 +62,8 @@ by the code licence: use them free for personal, non-commercial videos and strea
 Bring your own with **Import**:
 
 - **A LivLiv model**: make one from a single picture on [livliv.ai](https://livliv.ai) and download its model package
-  (`.livliv`). Full-body characters come with a later version of LivLiv Player.
+  (`.livliv`). Full-body characters play too, standing on the ground, with a choice of shot (head and chest, down
+  to the knees, the whole figure); livliv.ai does not offer their packages yet.
 - **A VRM**: from VRoid Studio or any tool that exports VRM 0.x or 1.0.
 - **A PNGTuber**: two pictures (mouth closed, mouth open), and two more with the eyes closed if you have them.
 

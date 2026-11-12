@@ -60,7 +60,7 @@ npm --prefix desktop run stage:dev   # stage:mac と stage:win でインスト�
 自分のキャラクターは「インポート」から：
 
 - **LivLiv モデル**：[livliv.ai](https://livliv.ai) で 1 枚の絵からキャラクターを作り、モデルパッケージ（`.livliv`）をダウンロード。
-  全身のキャラクターは今後の LivLiv Player で対応します。
+  全身のキャラクターも使えます。足は地面に着いたまま、表示範囲（頭と胸まで・膝まで・全身）を選べます。livliv.ai ではまだ全身キャラクターのパッケージを提供していません。
 - **VRM**：VRoid Studio など、VRM 0.x / 1.0 を書き出せるツールのモデル。
 - **PNGTuber**：2 枚の画像（口を閉じた絵と開いた絵）。目を閉じた絵があればさらに 2 枚。
 
