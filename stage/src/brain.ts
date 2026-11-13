@@ -6,14 +6,15 @@ import { tr } from './i18n'
 //    conversation asks for it (conversation.ts NeedModel)
 //  - demo: chosen on purpose, for this run of the app only (the model set up stays saved): prepared conversations of
 //    the sample characters with prerecorded voices (demo.ts)
-//  - livliv: on livliv.ai/stage, signed in, no key of one's own: the site writes each line from the character's card and
-//    voices it, paid with points (POST /api/chat/<id>/stage-line on the site); LivLiv characters only
+//  - livliv: on livliv.ai/stage, or in the desktop app signed in with a connect code, no key of one's own: the site
+//    writes each line from the character's card and voices it, paid with points (POST /api/chat/<id>/stage-line on the
+//    site); LivLiv characters only
 // In the desktop client a model's API is reached through the app (its /__ai pass-through, desktop stageApp.ts): no
 // CORS, so local servers (Ollama) and APIs without browser access work too
 import { useSyncExternalStore } from 'react'
 import { desktopFetch } from './request'
 import { onSite } from './host'
-import { modelId, signedIn, stageLine } from './livliv'
+import { hasSession, inApp, livlivHere, modelId, onAccount, signedIn, stageLine } from './livliv'
 import { demoReply } from './demo'
 import { LENGTHS, type CharacterItem, type Talk } from './scene'
 
@@ -64,7 +65,7 @@ export const PROVIDERS: Provider[] = [
 export const PROVIDERS_HERE = onSite ? PROVIDERS.filter((p) => !['zhipu', 'ollama', 'custom'].includes(p.id)) : PROVIDERS
 export const providerOf = (c: ModelConfig) => PROVIDERS.find((p) => p.id === c.provider) ?? PROVIDERS.at(-1)!
 /** a model to talk with is set: where, and which */
-export const brainReady = (c: BrainConfig) => c.kind === 'demo' || (c.kind === 'livliv' ? onSite && signedIn()
+export const brainReady = (c: BrainConfig) => c.kind === 'demo' || (c.kind === 'livliv' ? livlivHere() && signedIn()
   : !!c.base && !!c.model && (!!c.key || c.provider === 'custom' || !!providerOf(c).noKey))
 
 const KEY = 'livliv-stage:brain', LAST_MODEL = 'livliv-stage:brain-api'
@@ -73,15 +74,17 @@ const DEMO: BrainConfig = { kind: 'demo' }
 function load(): ModelConfig | LivLivConfig {
   try {
     let c = JSON.parse(localStorage.getItem(KEY) || 'null')
-    if (c?.kind === 'livliv' && onSite) return { kind: 'livliv' }
+    if (c?.kind === 'livliv' && livlivHere()) return { kind: 'livliv' }
     // earlier versions saved the demo in the model's place, and the model set up before it apart
     if (c?.kind === 'demo') c = JSON.parse(localStorage.getItem(LAST_MODEL) || 'null')
     if (c?.kind === 'openai' && typeof c.base === 'string') return { ...UNSET, ...c, provider: c.provider ?? (PROVIDERS.find((p) => p.base === c.base)?.id ?? 'custom') }
   } catch { /* none saved */ }
   // nothing chosen yet: on livliv.ai, LivLiv (the site's own, by its sign-in: someone signed in goes straight to AI
-  // live); elsewhere a model of one's own still to be set up
-  return onSite ? { kind: 'livliv' } : UNSET
+  // live); in the desktop app LivLiv too when it keeps a sign-in (else as below, until one: see the end of this file);
+  // elsewhere a model of one's own still to be set up
+  return onSite || (inApp() && hasSession()) ? { kind: 'livliv' } : UNSET
 }
+const chosen = () => { try { return !!localStorage.getItem(KEY) } catch { return false } }
 /** the model set up (saved), and what the AI characters think with now: it, or the demo */
 let saved = load()
 let config: BrainConfig = saved
@@ -95,6 +98,16 @@ export function saveBrainConfig(c: ModelConfig | LivLivConfig) {
   try { localStorage.setItem(KEY, JSON.stringify(c)) } catch { /* private mode */ }
   subs.forEach((f) => f())
 }
+// the desktop app: signing in (with a connect code) while nothing has been chosen yet makes LivLiv the AI's model, as
+// it is from the start for someone who comes back signed in
+onAccount(() => {
+  if (!inApp() || !signedIn() || chosen() || saved.kind !== 'openai' || saved.provider) return
+  const c: LivLivConfig = { kind: 'livliv' }
+  if (config === saved) config = c
+  saved = c
+  subs.forEach((f) => f())
+})
+
 /** the demo on or off, until the app is closed or a model is saved; the saved model is left as it is */
 export function playDemo(on: boolean) {
   const next = on ? DEMO : saved

@@ -25,7 +25,7 @@ import { CollabPanel } from './CollabPanel'
 import { useRoom } from './collab/session'
 import { connectDesktop, desktop } from './desktop'
 import { ROOM, useCrowded } from './contexts'
-import { ageGate, checkConnect, connect, refresh, setAge, useAccount } from './livliv'
+import { ageGate, cancelConnect, checkConnect, connect, livlivHere, openConnect, refresh, setAge, useAccount } from './livliv'
 import { rec, takeLimit, useRecording } from './recording'
 import { cancel as pttCancel, clearError as pttClear, holdKey, press as pttPress, release as pttRelease, usePtt } from './ptt'
 import { asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, useActiveSpeech, transcribeApi, useSpeech, voiceRoute, type SpeechApi } from './voiceApi'
@@ -867,7 +867,8 @@ function ModelForm({ forStart, done, demoDone, onPick }: { forStart?: boolean; d
   const cur = useBrainConfig()
   const [demo, setDemo] = useState(cur.kind === 'demo')
   // livliv.ai/stage: LivLiv's points instead of a key of one's own (the site writes and voices the lines)
-  const [points, setPoints] = useState(onSite && (cur.kind === 'livliv' || (cur.kind === 'demo' && savedBrain().kind === 'livliv')))
+  // LivLiv's points (the site writes and voices the lines): on livliv.ai/stage and in the desktop app
+  const [points, setPoints] = useState(livlivHere() && (cur.kind === 'livliv' || (cur.kind === 'demo' && savedBrain().kind === 'livliv')))
   const account = useAccount()
   useEffect(() => { onPick?.(demo ? 'demo' : points ? 'livliv' : 'openai') }, [demo, points])  // eslint-disable-line react-hooks/exhaustive-deps
   const [d, setD] = useState<ModelConfig>(() => (previousModelConfig().provider ? previousModelConfig() : { kind: 'openai', provider: PROVIDERS_HERE[0].id, base: PROVIDERS_HERE[0].base, key: '', model: '' }))
@@ -910,14 +911,19 @@ function ModelForm({ forStart, done, demoDone, onPick }: { forStart?: boolean; d
   }
   return <div className="model-form">
     <div className="providers">
-      {onSite && <button className={!demo && points ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(false); setPoints(true); setSt({}) }}>LivLiv</button>}
+      {livlivHere() && <button className={!demo && points ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(false); setPoints(true); setSt({}) }}>LivLiv</button>}
       {PROVIDERS_HERE.map((q) => <button key={q.id} className={!demo && !points && d.provider === q.id ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
       {/* the three's prepared conversation in their recorded voices: no key, no model */}
       <button className={`demo${demo ? ' on' : ''}`} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(true); setSt({}) }}>{tr("演示")}</button>
     </div>
     {demo ? null : points ? <>
       <p className="hint">{tr("无需密钥。消耗 livliv.ai 积分，每句台词 {0} 积分，只能用于 LivLiv 的角色。", account.linePoints)}</p>
-      {account.status === 'out' && <button onClick={() => void connect()}><ExternalLink size={14} />{tr("登录 livliv.ai")}</button>}
+      {/* signing in: the site's page on livliv.ai, a connect code in the desktop app (shown here while it waits) */}
+      {account.connect ? <div className="connect-wait">
+        <p className="hint"><LoaderCircle className="spin" size={12} /> {tr("在浏览器完成登录")} · <strong className="num">{account.connect.code}</strong></p>
+        <div className="row"><button onClick={openConnect}><ExternalLink size={14} />{tr("再打开网页")}</button><button onClick={cancelConnect}>{tr("取消")}</button></div>
+      </div> : account.status === 'out' && <button disabled={account.closed} onClick={() => void connect()}><ExternalLink size={14} />{tr("登录 livliv.ai")}</button>}
+      {account.status === 'out' && account.error && !account.closed && <p className="hint error" role="alert">{tr(account.error ?? '')}</p>}
     </> : onSite && <p className="hint">{tr("网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。")}</p>}
     {!demo && !points && <>
       {(p.id === 'custom' || p.id === 'ollama') && <label className="field"><span>{tr("接口地址")}</span>

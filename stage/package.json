@@ -26,6 +26,7 @@
     "test:live": "node test/live.mjs",
     "test:points": "node test/points.mjs",
     "test:guest": "node test/guest.mjs",
+    "test:app-livliv": "node test/app-livliv.mjs",
     "build:site": "node scripts/build-site.mjs"
   },
   "dependencies": {

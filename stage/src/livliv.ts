@@ -82,7 +82,13 @@ export async function checkConnect() {
     set({ closed: r.status === 404 || r.status === 405 })
   } catch { /* offline: pressing the button says so */ }
 }
-const inApp = () => location.protocol === 'livliv-stage:' || 'livlivDesktop' in window
+/** the desktop app (its own scheme, or its bridge): signed in to LivLiv with a connect code, its token kept here */
+export const inApp = () => location.protocol === 'livliv-stage:' || 'livlivDesktop' in window
+/** where LivLiv's points AI is offered: on livliv.ai/stage (the site's sign-in) and in the desktop app (a connect
+ *  code); never in a copy hosted elsewhere, which has no account of its own */
+export const livlivHere = () => onSite || inApp()
+/** a session kept from an earlier sign-in (the desktop app), before the site has said whether it still holds */
+export const hasSession = () => !!token()
 const device = () => (!inApp() ? tr("浏览器") : /Mac/i.test(navigator.platform) ? 'Mac' : /Win/i.test(navigator.platform) ? 'Windows' : /Linux/i.test(navigator.platform) ? 'Linux' : tr("浏览器"))
 const sleep = (ms: number, signal: AbortSignal) => new Promise<void>((ok, no) => {
   const t = setTimeout(ok, ms)
