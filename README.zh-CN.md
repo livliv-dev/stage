@@ -25,7 +25,8 @@
 ## 试一试
 
 - **在线**：[livliv.ai/stage](https://livliv.ai/stage)
-- **桌面版**：macOS 和 Windows，到 [Releases](https://github.com/livliv-dev/stage/releases/latest) 下载
+- **桌面版**：macOS 和 Windows，到 [Releases](https://github.com/livliv-dev/stage/releases/latest) 下载。
+  macOS 也可以在终端里一行装好，第一次打开不会被拦：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **从源码运行**：见[开发](#开发)
 
 <p align="center"><img src="media/crowd.jpg" alt="精选角色站在同一张舞台上" width="720"></p>
