@@ -4565,4 +4565,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "注册免费，还送积分。": {"zh-Hans": "注册免费，还送积分。", "zh-Hant": "註冊免費，還送積分。", "en": "Signing up is free, and comes with points.", "ja": "登録は無料で、ポイントももらえます。"},
   "注册": {"zh-Hans": "注册", "zh-Hant": "註冊", "en": "Sign up", "ja": "登録"},
   "登录": {"zh-Hans": "登录", "zh-Hant": "登入", "en": "Sign in", "ja": "ログイン"},
+  "创建角色": {"zh-Hans": "创建角色", "zh-Hant": "建立角色", "en": "Create an avatar", "ja": "キャラクターを作る"},
+  "在 livliv.ai 创建新角色": {"zh-Hans": "在 livliv.ai 创建新角色", "zh-Hant": "在 livliv.ai 建立新角色", "en": "Create a new avatar on livliv.ai", "ja": "livliv.ai で新しいキャラクターを作る"},
+  "livliv.ai 首页": {"zh-Hans": "livliv.ai 首页", "zh-Hant": "livliv.ai 首頁", "en": "livliv.ai home", "ja": "livliv.ai ホーム"},
 }

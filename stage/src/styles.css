@@ -112,6 +112,9 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent-soft); outli
 .topbar .left { flex: 1; display: flex; align-items: center; gap: 12px; min-width: 0; }
 .topbar .right { flex: none; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
 .mark { display: block; height: 26px; width: auto; flex: none; }
+.mark-link { display: block; flex: none; border-radius: 6px; }
+.topbar .create-button { gap: 6px; }
+.create-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; font-size: 12px; }
 .topbar .name { width: 200px; border-color: transparent; background: transparent; font-weight: 500; }
 .topbar .name:hover { border-color: var(--line); }
 .topbar .name:focus { background: #fff; border-color: var(--fg-3); }
@@ -542,6 +545,8 @@ button.link.get { padding: 0; font-size: 12px; }
 @media (max-width: 1199px) {
   .topbar .name { width: 125px; }
   .seg.mode .mode-label { display: none; }
+  .topbar .create-button .create-label { display: none; }
+  .topbar .create-button { padding: 5px 8px; }
   .seg.mode button { padding: 5px 8px; }
   .topbar .left { gap: 6px; }
   .solo-status { left: 232px; right: 316px; gap: 9px; }

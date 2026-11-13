@@ -3,7 +3,8 @@
 // says the site's price and offers 登录 livliv.ai, which starts the connect code (shown in the form, the site's page
 // opened), and once allowed LivLiv becomes the model. Signed in (a kept token): LivLiv is the model from the start and a
 // line is asked of the site with the app's token, voice true in its LivLiv voice, false on the system voice. A copy
-// hosted anywhere else offers no LivLiv. Nothing is spent.
+// hosted anywhere else offers no LivLiv. The app's 创建角色 opens livliv.ai's page in the browser; elsewhere there is none.
+// Nothing is spent.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { spawn } from 'node:child_process'
@@ -93,12 +94,18 @@ try {
   await page.evaluate(() => { for (const c of window.__stage.store.get().items.filter((i) => i.kind === 'character')) window.__stage.store.patch(c.id, { voice: { ...c.voice, source: 'system' } }) })
   const system = await first(() => window.__stage.talk.start())
   assert.deepEqual(system, { who: 'k01', voice: false, auth: `Bearer ${TOKEN}` }, 'on the system voice: no voice asked of the site')
+  // making a character: livliv.ai's page, opened in the browser (the app sends outside addresses there)
+  await page.locator('.topbar .create-button').click()
+  assert.deepEqual((await page.evaluate(() => window.opened)).at(-1), 'https://livliv.ai/discover?new=1')
+  assert.equal(await page.locator('.topbar a.mark-link').getAttribute('href'), 'https://livliv.ai/')
   await context.close()
 
   // a copy of Stage hosted anywhere else (neither the site nor the app): no LivLiv
   ;({ page, context } = await open({ app: false }, '/?c=k01&as=ai'))
   await page.locator('.model-btn').click()
   assert.ok(!(await row(page)).includes('LivLiv'), 'no LivLiv outside the site and the app')
+  assert.equal(await page.locator('.topbar .create-button').count(), 0, 'no way to livliv.ai either')
+  assert.equal(await page.locator('.topbar a.mark-link').count(), 0)
   await context.close()
 
   assert.deepEqual(errors, [])
