@@ -6,7 +6,6 @@ import { tr } from './i18n'
 import { useState } from 'react'
 import { Camera, Check, Copy, KeyRound, LoaderCircle, Pause, Play, Square, UserPlus, X } from 'lucide-react'
 import { talk, useConversation } from './conversation'
-import { openCreate } from './livliv'
 
 const CAST = ['d03ft', 'k01', 'v04']
 const avatar = (id: string) => `${import.meta.env.BASE_URL}characters/${id}/avatar.webp`
@@ -61,7 +60,5 @@ export function PhoneIntro({ onDemo }: { onDemo: () => Promise<void> }) {
     <DemoButton onDemo={onDemo} />
     <p className="hint">{tr('编辑、摄像头和接模型，请在电脑上打开这个页面。')}</p>
     <button onClick={() => void copy()}>{copied ? <Check size={14} /> : <Copy size={14} />}{tr(copied ? '已复制' : '复制链接')}</button>
-    {/* making a character works on a phone too: the site's own page */}
-    <button className="link" onClick={openCreate}>{tr('在 livliv.ai 创建新角色')}</button>
   </div>
 }

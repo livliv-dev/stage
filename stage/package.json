@@ -1,7 +1,7 @@
 {
   "name": "livliv-stage",
   "productName": "LivLiv Stage",
-  "version": "0.3.1",
+  "version": "0.3.0",
   "private": true,
   "license": "AGPL-3.0-only",
   "homepage": "https://github.com/livliv-dev/stage",
@@ -25,9 +25,7 @@
     "test:journey": "node test/journey.mjs",
     "test:live": "node test/live.mjs",
     "test:points": "node test/points.mjs",
-    "test:guest": "node test/guest.mjs",
     "test:app-livliv": "node test/app-livliv.mjs",
-    "test:create": "node test/create.mjs",
     "build:site": "node scripts/build-site.mjs"
   },
   "dependencies": {

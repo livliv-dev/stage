@@ -112,10 +112,6 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent-soft); outli
 .topbar .left { flex: 1; display: flex; align-items: center; gap: 12px; min-width: 0; }
 .topbar .right { flex: none; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
 .mark { display: block; height: 26px; width: auto; flex: none; }
-.mark-link { display: block; flex: none; border-radius: 6px; }
-.topbar .create-button { gap: 6px; color: #7350aa; background: linear-gradient(110deg, #fff0f5, #eeeaff); border-color: #e6dcf5; }
-.topbar .create-button:hover:not(:disabled) { background: linear-gradient(110deg, #ffe8f1, #e6e0ff); color: #5f3f99; }
-.create-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; font-size: 12px; }
 .topbar .name { width: 200px; border-color: transparent; background: transparent; font-weight: 500; }
 .topbar .name:hover { border-color: var(--line); }
 .topbar .name:focus { background: #fff; border-color: var(--fg-3); }
@@ -546,8 +542,6 @@ button.link.get { padding: 0; font-size: 12px; }
 @media (max-width: 1199px) {
   .topbar .name { width: 125px; }
   .seg.mode .mode-label { display: none; }
-  .topbar .create-button .create-label { display: none; }
-  .topbar .create-button { padding: 5px 8px; }
   .seg.mode button { padding: 5px 8px; }
   .topbar .left { gap: 6px; }
   .solo-status { left: 232px; right: 316px; gap: 9px; }
@@ -622,7 +616,7 @@ input,textarea { min-width:0 }
 
 /* Keep navigation and close available while long settings forms scroll. */
 .popover.settings { display:flex;flex-direction:column;padding:0;overflow:hidden }
-/* the small questions over everything (the age question, a guest's sign-in): a padded card of their own */
+/* the age question over everything: a padded card of its own */
 .popover.settings.age-check { width: 400px; padding: 20px 22px 18px; gap: 8px; overflow: visible; }
 .popover.settings.age-check header .title { font-size: 17px; line-height: 24px; font-weight: 650; }
 .popover.settings.age-check .hint { margin: 0; }
