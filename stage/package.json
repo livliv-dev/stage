@@ -28,6 +28,7 @@
     "test:guest": "node test/guest.mjs",
     "test:app-livliv": "node test/app-livliv.mjs",
     "test:create": "node test/create.mjs",
+    "test:desktop-notice": "node test/desktop-notice.mjs",
     "build:site": "node scripts/build-site.mjs"
   },
   "dependencies": {

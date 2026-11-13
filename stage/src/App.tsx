@@ -50,7 +50,8 @@ import { tr, getLocale, useLocale } from './i18n'
 import { onSite, small } from './host'
 import { linkedAs, linkedId, openLinked } from './entry'
 import { PhoneIntro, SiteWelcome } from './SiteIntro'
-import { GuestGate } from './GuestGate'
+import { GuestGate, useGuestGate } from './GuestGate'
+import { closeDesktopNotice, DesktopNotice, showDesktopNotice, unseen, useDesktopNotice } from './DesktopNotice'
 import { connectLiveKeys, liveCharacter } from './live'
 import { connectOutputFeed } from './outputFeed'
 import { GoLiveGuide } from './GoLive'
@@ -143,6 +144,15 @@ export default function App() {
   useEffect(connectOutputFeed, [])
   // an AI turn came with no model set up: the model card opens over the console, its button starts the conversation
   const conv = useConversation()
+  const gated = useGuestGate()
+  // livliv.ai/stage on a computer, the first time: what the desktop app adds, once the welcome is closed and nothing
+  // plays, never with the sign-in prompt, a panel or the age question (DesktopNotice.tsx)
+  const notice = useDesktopNotice()
+  const [noticeDue, setNoticeDue] = useState(() => onSite && !phone && !navigator.userAgent.includes('OBS/') && unseen())
+  useEffect(() => {
+    if (noticeDue && !welcome && !pop && !gated && !ageAsk && !conv.running && mode === 'edit') { setNoticeDue(false); showDesktopNotice() }
+  }, [noticeDue, welcome, pop, gated, ageAsk, conv.running, mode])
+  const noticeShown = notice && !welcome && !pop && !gated && !ageAsk
   const [forStart, setForStart] = useState(false)
   useEffect(() => {
     if (!conv.needModel) return
@@ -150,7 +160,7 @@ export default function App() {
   }, [conv.needModel])
   const say = (s: string) => { setNote(s); window.setTimeout(() => setNote((n) => (n === s ? '' : n)), 3200) }
   useShortcuts({
-    escape: () => { if (menu) setMenu(null); else if (pop) setPop(null); else if (welcome) setWelcome(false); else if (store.selected()) store.select(null); else if (store.mode() === 'show' && !phone) store.setMode('edit') },
+    escape: () => { if (menu) setMenu(null); else if (pop) setPop(null); else if (welcome) setWelcome(false); else if (noticeShown) closeDesktopNotice(); else if (store.selected()) store.select(null); else if (store.mode() === 'show' && !phone) store.setMode('edit') },
     help: () => toggle('help'),
     zoom: setZoom,
     bare: () => setBare((b) => !b),
@@ -182,6 +192,7 @@ export default function App() {
           onCamera={() => { setWelcome(false); void template('solo') }}
           onModel={() => { setWelcome(false); setForStart(false); setPop('model') }}
           onCharacter={() => { setWelcome(false); setPop('add') }} />}
+        {noticeShown && <DesktopNotice />}
         {!leftFolded && <Cast guide={goLive ? <GoLiveGuide id={goLive} onClose={() => setGoLive(null)} /> : coach && !welcome && !pop && scene.items.length > 0 ? <Checklist
           done={() => { setCoach(false); try { localStorage.setItem(COACHED, '1') } catch { /* private mode */ } }}
           onModel={() => { setForStart(false); setPop('model') }} onVoice={() => { setSettingsTab('ai'); setPop('settings') }}
@@ -196,7 +207,7 @@ export default function App() {
         {pop === 'model' && <ModelCard forStart={forStart} onClose={() => setPop(null)} />}
         {log && <Transcript onClose={() => setLog(false)} right={bare ? 80 : 324} />}
         {pop === 'add' && <AddCharacter left={228} onClose={() => setPop(null)} onSignIn={() => { setSettingsTab('account'); setPop('settings') }} />}
-        {pop === 'settings' && <><div className="scrim" onPointerDown={() => setPop(null)} /><SettingsCard initialTab={settingsTab} onAdd={() => setPop('add')} onClose={() => { setSettingsTab('general'); setPop(null) }} /></>}
+        {pop === 'settings' && <><div className="scrim" onPointerDown={() => setPop(null)} /><SettingsCard initialTab={settingsTab} onAdd={() => setPop('add')} onDesktop={() => { setSettingsTab('general'); setPop(null); setWelcome(false); showDesktopNotice() }} onClose={() => { setSettingsTab('general'); setPop(null) }} /></>}
         {pop === 'record' && <RecordCard onClose={() => setPop(null)} onVoices={() => { setSettingsTab('ai'); setPop('settings') }} />}
         <OutputPanel open={pop === 'output'} onClose={() => setPop(null)} />
         {pop === 'help' && <Help onClose={() => setPop(null)} />}
@@ -204,7 +215,7 @@ export default function App() {
 
       </>}
       {ageAsk && <AgeDialog onAnswer={(adult) => void answerAge(adult)} />}
-      <GuestGate />
+      <GuestGate shown={gated} />
       {note && <div className="toast">{note}</div>}
     </div>
   )
@@ -1033,7 +1044,7 @@ function ModelCard({ forStart, onClose }: { forStart: boolean; onClose: () => vo
 }
 
 /** Settings for general preferences, models, voice, shortcuts and the optional livliv.ai account. */
-function SettingsCard({ onClose, onAdd, initialTab }: { onClose: () => void; onAdd: () => void; initialTab: SettingsTab }) {
+function SettingsCard({ onClose, onAdd, onDesktop, initialTab }: { onClose: () => void; onAdd: () => void; onDesktop: () => void; initialTab: SettingsTab }) {
   const [tab, setTab] = useState<SettingsTab>(initialTab)
   // a speech service is chosen for a model of one's own only: LivLiv's lines come with the character's own voice, the
   // demo plays its recordings
@@ -1044,7 +1055,7 @@ function SettingsCard({ onClose, onAdd, initialTab }: { onClose: () => void; onA
       <div className="settings-head"><header><span className="title">{tr("设置")}</span><button className="icon" data-close="true" aria-label={tr("关闭")} onClick={onClose}><X size={16} /></button></header>
       <div className="settings-tabs seg">{([{ id: 'general', label: tr("通用") }, { id: 'ai', label: tr("模型与声音") }, { id: 'hotkeys', label: tr("全局热键") }, { id: 'account', label: tr("livliv.ai 帐号") }] as const).map((t) => <button className={`${tab === t.id ? 'on ' : ''}${t.id === 'account' ? 'account-tab' : ''}`} key={t.id} onClick={() => setTab(t.id)}>{t.id === 'account' && <Sparkles size={13} />}{t.label}</button>)}</div>
       </div><div className="settings-body">
-      {tab === 'general' && <GeneralPanel />}
+      {tab === 'general' && <GeneralPanel onDesktop={onSite ? onDesktop : undefined} />}
       {tab === 'hotkeys' && <HotkeysPanel />}
       {tab === 'ai' && <><section>
         <h3>{tr("AI 模型")}</h3>

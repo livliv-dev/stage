@@ -886,3 +886,13 @@ button.account-cta:hover:not(:disabled) { background:#68549e;border-color:#68549
 .tab-gate .hint { margin: 0; text-wrap: balance; }
 .tab-gate .warn { color: #a05a00; }
 @media (max-width: 700px) { .site-ways { grid-template-columns: 1fr; } }
+/* livliv.ai/stage (DesktopNotice.tsx): what the desktop app adds, where the welcome stood */
+.desktop-notice { position: absolute; left: 50%; bottom: 136px; transform: translateX(-50%); width: min(460px, calc(100vw - 32px)); padding: 18px 20px 16px; z-index: var(--z-pop); }
+.desktop-notice .big { font-size: 17px; line-height: 24px; font-weight: 600; margin: 0 0 4px; }
+.desktop-notice .hint { margin: 0 0 10px; }
+.desktop-notice ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; line-height: 19px; }
+.desktop-notice li { display: flex; gap: 8px; align-items: flex-start; }
+.desktop-notice li svg { flex: none; margin-top: 3px; color: var(--accent); }
+.desktop-notice .row.end { justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.desktop-notice .row.end button { display: inline-flex; align-items: center; gap: 6px; }
+.about-links button.link { padding: 0; font-size: 12px; height: auto; }

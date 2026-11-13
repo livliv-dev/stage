@@ -10,7 +10,8 @@ import { LANGUAGES, setLocale, tr, useLocale, type Locale } from './i18n'
 declare const __STAGE_VERSION__: string
 const REPO = 'https://github.com/livliv-dev/stage'
 
-export function GeneralPanel() {
+/** onDesktop: livliv.ai/stage's note on the desktop app (DesktopNotice.tsx), opened again from About */
+export function GeneralPanel({ onDesktop }: { onDesktop?: () => void } = {}) {
   const locale = useLocale(), quality = useQuality()
   return <div className="general-panel">
     <section className="general-preferences">
@@ -25,7 +26,7 @@ export function GeneralPanel() {
       <p>{tr("面捕出镜、AI 互动和朋友同台。")}</p>
       <span className="about-player">{tr("由 LivLiv Player 驱动")}</span>
       <p className="about-legal">© LivLiv (livliv.ai)<br />{tr("代码采用 AGPL-3.0 许可，精选角色另有自己的许可。")}</p>
-      <div className="about-links"><a href="https://livliv.ai" target="_blank" rel="noopener noreferrer">livliv.ai<ExternalLink size={12} /></a><a href={REPO} target="_blank" rel="noopener noreferrer">{tr("项目源码")}<ExternalLink size={12} /></a><a href={`${REPO}/blob/main/stage/public/characters/LICENSE.md`} target="_blank" rel="noopener noreferrer">{tr("角色许可")}<ExternalLink size={12} /></a><a href="https://github.com/livliv-dev/player" target="_blank" rel="noopener noreferrer">LivLiv Player<ExternalLink size={12} /></a></div>
+      <div className="about-links">{onDesktop && <button className="link" onClick={onDesktop}>{tr("桌面版")}</button>}<a href="https://livliv.ai" target="_blank" rel="noopener noreferrer">livliv.ai<ExternalLink size={12} /></a><a href={REPO} target="_blank" rel="noopener noreferrer">{tr("项目源码")}<ExternalLink size={12} /></a><a href={`${REPO}/blob/main/stage/public/characters/LICENSE.md`} target="_blank" rel="noopener noreferrer">{tr("角色许可")}<ExternalLink size={12} /></a><a href="https://github.com/livliv-dev/player" target="_blank" rel="noopener noreferrer">LivLiv Player<ExternalLink size={12} /></a></div>
     </section>
   </div>
 }

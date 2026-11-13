@@ -13,7 +13,8 @@ import { useAccount } from './livliv'
 /** how long a visitor may look around signed out */
 export const GUEST_SECONDS = 60
 
-export function GuestGate() {
+/** whether the prompt is up (App keeps its other cards out of the way meanwhile) */
+export function useGuestGate() {
   const account = useAccount()
   const out = onSite && account.status === 'out' && !navigator.userAgent.includes('OBS/')
   const [due, setDue] = useState(false)
@@ -24,6 +25,10 @@ export function GuestGate() {
   }, [out, due])
   const shown = out && due
   useEffect(() => { if (shown) talk.stop() }, [shown])
+  return shown
+}
+
+export function GuestGate({ shown }: { shown: boolean }) {
   if (!shown) return null
   return <>
     <div className="scrim" />
