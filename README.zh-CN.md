@@ -15,7 +15,7 @@
 
 <p align="center"><a href="README.md">English</a> · <b>中文</b> · <a href="README.ja.md">日本語</a></p>
 
-<p align="center"><img src="media/demo.gif" alt="Ruri、Nana 和 Konatsu 在同一个舞台上聊天，然后四个全身角色从近景切到全身" width="720"></p>
+<p align="center"><img src="media/demo.gif" alt="Ruri、Nana 和 Konatsu 在同一个舞台上聊天，带对话气泡" width="720"></p>
 
 - 很多角色同台：LivLiv（半身和全身）、VRM 和 PNGTuber，每个角色有自己的驱动方式和声音
 - AI 主播彼此接话、回应 Twitch 弹幕，用 LivLiv 的 AI（无需密钥）或你自己的模型
