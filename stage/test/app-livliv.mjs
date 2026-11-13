@@ -57,6 +57,8 @@ try {
     return { page, context }
   }
   const row = (page) => page.locator('.model-form .providers button').allInnerTexts()
+  /** livliv.ai/stage's own parts (the web branch): the way to make a character, the logo link */
+  const siteOnly = (page) => page.locator('.topbar .create-button, .topbar a.mark-link, .create-link').count()
   const chip = (page) => page.locator('.model-btn').innerText()
 
   // the desktop app, signed out, nothing chosen: LivLiv first, the price, sign in with a code; allowed, it is the model
@@ -93,12 +95,14 @@ try {
   await page.evaluate(() => { for (const c of window.__stage.store.get().items.filter((i) => i.kind === 'character')) window.__stage.store.patch(c.id, { voice: { ...c.voice, source: 'system' } }) })
   const system = await first(() => window.__stage.talk.start())
   assert.deepEqual(system, { who: 'k01', voice: false, auth: `Bearer ${TOKEN}` }, 'on the system voice: no voice asked of the site')
+  assert.equal(await siteOnly(page), 0, "main has none of livliv.ai/stage's own parts (they live on the web branch)")
   await context.close()
 
   // a copy of Stage hosted anywhere else (neither the site nor the app): no LivLiv
   ;({ page, context } = await open({ app: false }, '/?c=k01&as=ai'))
   await page.locator('.model-btn').click()
   assert.ok(!(await row(page)).includes('LivLiv'), 'no LivLiv outside the site and the app')
+  assert.equal(await siteOnly(page), 0, "nor the site's own parts")
   await context.close()
 
   assert.deepEqual(errors, [])
