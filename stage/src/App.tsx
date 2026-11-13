@@ -25,7 +25,7 @@ import { CollabPanel } from './CollabPanel'
 import { useRoom } from './collab/session'
 import { connectDesktop, desktop } from './desktop'
 import { ROOM, useCrowded } from './contexts'
-import { ageGate, cancelConnect, checkConnect, connect, livlivHere, openConnect, refresh, setAge, useAccount } from './livliv'
+import { ageGate, cancelConnect, checkConnect, connect, livlivHere, openConnect, openCreate, refresh, setAge, siteUrl, useAccount } from './livliv'
 import { rec, takeLimit, useRecording } from './recording'
 import { cancel as pttCancel, clearError as pttClear, holdKey, press as pttPress, release as pttRelease, usePtt } from './ptt'
 import { asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, useActiveSpeech, transcribeApi, useSpeech, voiceRoute, type SpeechApi } from './voiceApi'
@@ -50,6 +50,7 @@ import { tr, getLocale, useLocale } from './i18n'
 import { onSite, small } from './host'
 import { linkedAs, linkedId, openLinked } from './entry'
 import { PhoneIntro, SiteWelcome } from './SiteIntro'
+import { GuestGate } from './GuestGate'
 import { connectLiveKeys, liveCharacter } from './live'
 import { connectOutputFeed } from './outputFeed'
 import { GoLiveGuide } from './GoLive'
@@ -203,6 +204,7 @@ export default function App() {
 
       </>}
       {ageAsk && <AgeDialog onAnswer={(adult) => void answerAge(adult)} />}
+      <GuestGate />
       {note && <div className="toast">{note}</div>}
     </div>
   )
@@ -288,7 +290,10 @@ function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) =
   return (
     <header className="topbar" onPointerDown={(e) => e.stopPropagation()}>
       <div className="left">
-        <img className="mark" src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" />
+        {/* on the site and in the app the logo leads to livliv.ai's home (a new tab, or the browser); elsewhere it is only the logo */}
+        {livlivHere() ? <a className="mark-link" href={siteUrl('/')} target="_blank" rel="noopener" title={tr("livliv.ai 首页")}>
+          <img className="mark" src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" /></a>
+          : <img className="mark" src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" />}
         <div className="menu-anchor scene-switcher"><input className="name" value={scene.name} aria-label={tr("舞台名字")} onChange={(e) => store.set({ name: e.target.value })} /><button className={pop === "scenes" ? "icon on" : "icon"} title={tr("切换镜头")} aria-expanded={pop === "scenes"} onClick={() => toggle("scenes")}><ChevronDown size={15} /></button>{pop === "scenes" && <ScenesMenu close={() => toggle(null)} />}</div>
       </div>
       <div className="seg mode">
@@ -307,6 +312,8 @@ function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) =
             </div>
           )}
         </div>
+        {/* back to making a character on livliv.ai: in a new tab (the browser in the app), so the stage stays */}
+        {livlivHere() && <button className="create-button" title={tr("在 livliv.ai 创建新角色")} onClick={openCreate}><Sparkles size={15} /><span className="create-label">{tr("创建角色")}</span></button>}
         {!onSite && <button className={pop === 'collab' ? 'on collab-button' : 'collab-button'} onClick={() => toggle('collab')}><UserPlus size={15} />{tr("联播")}{collab.phase === 'on' && <i className="live-dot on" />}{collab.pending.length > 0 && <span className="room-count">{collab.pending.length}</span>}</button>}
         <button className={pop === 'audience' ? 'icon on' : 'icon'} title={tr('观众弹幕')} onClick={() => toggle('audience')}><MessagesSquare size={16} /></button>
         <button className={pop === 'mixer' ? 'icon on' : 'icon'} title={tr('调音台')} onClick={() => toggle('mixer')}><Volume2 size={16} /></button>
@@ -437,6 +444,7 @@ function AddCharacter({ left, onClose, onSignIn }: { left: number; onClose: () =
         <input value={id} disabled={!signed} placeholder={tr("角色 ID，网址里 /c/ 后面那段")} onChange={(e) => setId(e.target.value)} />
         <button disabled={!signed || !id.trim()} onClick={async () => { try { take(await byId(id.trim())) } catch (e) { setErr((e as Error).message) } }}>{tr("放上来")}</button>
       </div>
+      {livlivHere() && <button className="link create-link" onClick={openCreate}><Sparkles size={13} />{tr("在 livliv.ai 创建新角色")}<ExternalLink size={11} /></button>}
       {err && <p className="err">{tr(err)}</p>}
     </div>
   )

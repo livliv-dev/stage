@@ -87,6 +87,11 @@ export const inApp = () => location.protocol === 'livliv-stage:' || 'livlivDeskt
 /** where LivLiv's points AI is offered: on livliv.ai/stage (the site's sign-in) and in the desktop app (a connect
  *  code); never in a copy hosted elsewhere, which has no account of its own */
 export const livlivHere = () => onSite || inApp()
+/** where LivLiv's pages are: this site's own on livliv.ai/stage, livliv.ai's address in the desktop app (opened in the
+ *  browser); `page` a path of the site. Never used off the site and the app (livlivHere) */
+export const siteUrl = (page = '/') => (onSite ? page : `https://livliv.ai${page}`)
+/** the site's page for making a character (its create entry), in a new tab: the stage and its work stay as they are */
+export const openCreate = () => { window.open(siteUrl('/discover?new=1'), '_blank', 'noopener') }
 /** a session kept from an earlier sign-in (the desktop app), before the site has said whether it still holds */
 export const hasSession = () => !!token()
 const device = () => (!inApp() ? tr("浏览器") : /Mac/i.test(navigator.platform) ? 'Mac' : /Win/i.test(navigator.platform) ? 'Windows' : /Linux/i.test(navigator.platform) ? 'Linux' : tr("浏览器"))
