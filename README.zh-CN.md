@@ -9,18 +9,19 @@
 
 <p align="center">
   把很多角色放上同一个舞台。用摄像头扮演其中一个，其余的交给 AI，让它们彼此聊天、回应弹幕，再录成视频，或者通过 OBS 开播。
-  浏览器和桌面都能用。
+  浏览器和桌面都能用。<br>
+  自带 27 个风格各异的精选角色，即开即用。
 </p>
 
 <p align="center"><a href="README.md">English</a> · <b>中文</b> · <a href="README.ja.md">日本語</a></p>
 
-<p align="center"><img src="media/demo.gif" alt="Nana、Sena 和 Kai 在同一张舞台上对话，带对话气泡" width="720"></p>
+<p align="center"><img src="media/demo.gif" alt="Ruri、Nana 和 Konatsu 在同一个舞台上聊天，然后四个全身角色从近景切到全身" width="720"></p>
 
 - 很多角色同台：LivLiv（半身和全身）、VRM 和 PNGTuber，每个角色有自己的驱动方式和声音
 - AI 主播彼此接话、回应 Twitch 弹幕，用 LivLiv 的 AI（无需密钥）或你自己的模型
 - 摄像头面捕、麦克风口型；桌面版还支持手机面捕 App、VMC/OSC 和全局热键
 - 整张舞台录成 MP4，或者送进 OBS
-- 自带 27 个精选角色，开箱即用。基于 [LivLiv Player](https://github.com/livliv-dev/player)
+- 基于 [LivLiv Player](https://github.com/livliv-dev/player)
 
 ## 试一试
 
@@ -29,14 +30,12 @@
   macOS 也可以在终端里一行装好，第一次打开不会被拦：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **从源码运行**：见[开发](#开发)
 
-<p align="center"><img src="media/crowd.jpg" alt="精选角色站在同一张舞台上" width="720"></p>
+<p align="center"><img src="media/editor.jpg" alt="Stage 编辑器：六个角色同台，Ruri 正在说话" width="720"></p>
 
 ## 角色
 
-[`stage/public/characters/`](stage/public/characters/) 里有 27 个精选角色，其中 4 个是全身角色。个人非商业的视频和直播可以免费使用，
-需要署名，见[角色许可](stage/public/characters/LICENSE.md)。
-
-用「导入」放上你自己的角色：[livliv.ai](https://livliv.ai) 下载的模型包（`.livliv`）、VRM，或者 PNGTuber（两张或四张图）。
+精选角色有[单独的许可](stage/public/characters/LICENSE.md)。用「导入」放上你自己的角色：[livliv.ai](https://livliv.ai) 的模型包（`.livliv`）、
+VRM 或 PNGTuber。
 
 ## Project LivLiv
 

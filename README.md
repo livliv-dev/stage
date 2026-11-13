@@ -9,18 +9,19 @@
 
 <p align="center">
   Put many characters on one stage. Play one with your webcam and let AI play the rest: they talk to each other and to
-  your chat. Then record a video, or go live through OBS. In the browser or as a desktop app.
+  your chat. Then record a video, or go live through OBS. In the browser or as a desktop app.<br>
+  Comes with 27 featured characters in different styles, ready to use.
 </p>
 
 <p align="center"><b>English</b> · <a href="README.zh-CN.md">中文</a> · <a href="README.ja.md">日本語</a></p>
 
-<p align="center"><img src="media/demo.gif" alt="Nana, Sena and Kai talking on one stage, with speech bubbles" width="720"></p>
+<p align="center"><img src="media/demo.gif" alt="Ruri, Nana and Konatsu talking on one stage, then four full-body characters going from close-up to whole" width="720"></p>
 
 - Many characters on one stage: LivLiv (half-body and full-body), VRM and PNGTuber, each with its own driver and voice
 - AI VTubers that talk to each other and to your Twitch chat, with LivLiv's AI (no key needed) or your own model
 - Webcam face tracking and microphone lip sync; on desktop also phone tracking apps, VMC/OSC and global hotkeys
 - Record the whole stage to MP4, or send it to OBS
-- 27 featured characters, ready to use. Built on [LivLiv Player](https://github.com/livliv-dev/player)
+- Built on [LivLiv Player](https://github.com/livliv-dev/player)
 
 ## Try it
 
@@ -29,15 +30,12 @@
   On macOS, one line in Terminal installs it with no first-open prompt: `curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **From source**: see [Develop](#develop)
 
-<p align="center"><img src="media/crowd.jpg" alt="Featured characters on one stage" width="720"></p>
+<p align="center"><img src="media/editor.jpg" alt="The Stage editor: six characters on one stage, Ruri saying a line" width="720"></p>
 
 ## Characters
 
-[`stage/public/characters/`](stage/public/characters/) holds 27 featured characters, four of them full-body. They are
-free for personal, non-commercial videos and streams with credit; see [their licence](stage/public/characters/LICENSE.md).
-
-**Import** brings your own: a character package (`.livliv`) from [livliv.ai](https://livliv.ai), a VRM, or a PNGTuber
-(two or four pictures).
+The featured characters have [their own licence](stage/public/characters/LICENSE.md). **Import** brings your own: a
+`.livliv` package from [livliv.ai](https://livliv.ai), a VRM, or a PNGTuber.
 
 ## Project LivLiv
 
