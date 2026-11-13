@@ -4509,7 +4509,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "放自己的角色": {"zh-Hans": "放自己的角色", "zh-Hant": "放自己的角色", "en": "Bring your own character", "ja": "自分のキャラクターを置く"},
   "livliv.ai 的角色、VRM 或 PNG 立绘": {"zh-Hans": "livliv.ai 的角色、VRM 或 PNG 立绘", "zh-Hant": "livliv.ai 的角色、VRM 或 PNG 立繪", "en": "From livliv.ai, a VRM, or PNG art", "ja": "livliv.aiのキャラクター、VRM、PNG立ち絵"},
   "欢迎来到 LivLiv Stage": {"zh-Hans": "欢迎来到 LivLiv Stage", "zh-Hant": "歡迎來到 LivLiv Stage", "en": "Welcome to LivLiv Stage", "ja": "LivLiv Stageへようこそ"},
-  "多个角色，同一个舞台": {"zh-Hans": "多个角色，同一个舞台", "zh-Hant": "多個角色，同一個舞台", "en": "Many characters. One stage.", "ja": "たくさんのキャラクター、ひとつのステージ"},
+  "很多角色，同一个舞台": {"zh-Hans": "很多角色，同一个舞台", "zh-Hant": "很多角色，同一個舞台", "en": "Many characters. One stage.", "ja": "たくさんのキャラクター、ひとつのステージ"},
   "面捕、角色对谈、录制和 OBS 输出，在浏览器里就能用。": {"zh-Hans": "面捕、角色对谈、录制和 OBS 输出，在浏览器里就能用。", "zh-Hant": "面捕、角色對談、錄製和 OBS 輸出，在瀏覽器裡就能用。", "en": "Face tracking, conversations between characters, recording and OBS output, right in your browser.", "ja": "フェイストラッキング、キャラクター同士の会話、録画、OBS出力をブラウザで。"},
   "多个角色同台：面捕、角色对谈、录制和 OBS 输出。": {"zh-Hans": "多个角色同台：面捕、角色对谈、录制和 OBS 输出。", "zh-Hant": "多個角色同台：面捕、角色對談、錄製和 OBS 輸出。", "en": "Many characters on one stage: face tracking, conversations, recording and OBS output.", "ja": "複数のキャラクターが同じステージに：フェイストラッキング、会話、録画、OBS出力。"},
   "编辑、摄像头和接模型，请在电脑上打开这个页面。": {"zh-Hans": "编辑、摄像头和接模型，请在电脑上打开这个页面。", "zh-Hant": "編輯、攝影機和接模型，請在電腦上打開這個頁面。", "en": "To edit, use your camera or connect a model, open this page on a computer.", "ja": "編集、カメラ、モデル接続はパソコンでこのページを開いてください。"},

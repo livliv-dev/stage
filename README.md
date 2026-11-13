@@ -5,11 +5,11 @@
   </picture>
 </p>
 
-<h3 align="center">Your AI-Native VTuber Studio<br><sub>Many characters. One stage.</sub></h3>
+<h3 align="center">Your AI-Native Studio for Character Videos and Streams<br><sub>Many characters. One stage.</sub></h3>
 
 <p align="center">
-  Put many 2D characters on one stage. Play one with your webcam, let AI VTubers talk to each other and to your chat,
-  then record a video or go live through OBS. In the browser or as a desktop app.
+  Put many characters on one stage. Play one with your webcam and let AI play the rest: they talk to each other and to
+  your chat. Then record a video, or go live through OBS. In the browser or as a desktop app.
 </p>
 
 <p align="center"><b>English</b> · <a href="README.zh-CN.md">中文</a> · <a href="README.ja.md">日本語</a></p>

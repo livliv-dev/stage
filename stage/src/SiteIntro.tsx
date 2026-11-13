@@ -34,7 +34,7 @@ export function SiteWelcome({ onDemo, onCamera, onModel, onCharacter, onClose }:
   ]
   return <div className="site-welcome card" role="dialog" aria-label={tr('欢迎来到 LivLiv Stage')} onPointerDown={(e) => e.stopPropagation()}>
     <button className="icon close" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button>
-    <p className="big">{tr('多个角色，同一个舞台')}</p>
+    <p className="big">{tr('很多角色，同一个舞台')}</p>
     <p className="hint">{tr('面捕、角色对谈、录制和 OBS 输出，在浏览器里就能用。')}</p>
     <DemoButton onDemo={onDemo} />
     <div className="site-ways">
