@@ -5,22 +5,23 @@
   </picture>
 </p>
 
-<h3 align="center">あなたの AI ネイティブ VTuber スタジオ<br><sub>たくさんのキャラクター、ひとつのステージ。</sub></h3>
+<h3 align="center">キャラクターの動画と配信をつくる、AI ネイティブなスタジオ<br><sub>たくさんのキャラクター、ひとつのステージ。</sub></h3>
 
 <p align="center">
-  たくさんの 2D キャラクターをひとつのステージに。Web カメラで自分が演じ、AI VTuber どうしの掛け合いやコメントへの返事を任せて、
-  動画に書き出したり OBS で配信したりできます。ブラウザでもデスクトップアプリでも動きます。
+  たくさんのキャラクターをひとつのステージに。Web カメラでひとりを演じて、ほかは AI に任せれば、キャラクター同士で掛け合い、
+  コメントにも返事をします。動画に書き出すことも、OBS で配信することもできます。ブラウザでもデスクトップアプリでも動きます。<br>
+  さまざまなスタイルの厳選キャラクター 27 体を同梱。すぐに使えます。
 </p>
 
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-CN.md">中文</a> · <b>日本語</b></p>
 
-<p align="center"><img src="media/demo.gif" alt="Nana、Sena、Kai がひとつのステージで会話する様子（吹き出し付き）" width="720"></p>
+<p align="center"><img src="media/demo.gif" alt="Ruri、Nana、Konatsu がひとつのステージで会話し、続いて全身キャラクター 4 体がアップから全身に切り替わる様子" width="720"></p>
 
 - たくさんのキャラクターを同じステージに：LivLiv（半身・全身）、VRM、PNGTuber。キャラクターごとに動かし方と声を設定
 - AI VTuber どうしの会話と Twitch コメントへの返事。LivLiv の AI（キー不要）か、自分のモデルで
 - Web カメラのフェイストラッキングとマイクのリップシンク。デスクトップ版はスマホのトラッキングアプリ、VMC/OSC、グローバルホットキーにも対応
 - ステージ全体を MP4 に録画、または OBS へ
-- 厳選キャラクター 27 体を同梱。[LivLiv Player](https://github.com/livliv-dev/player) がベース
+- [LivLiv Player](https://github.com/livliv-dev/player) がベース
 
 ## 試してみる
 
@@ -29,14 +30,12 @@
   macOS はターミナルで 1 行入力してもインストールでき、初回の確認は出ません：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **ソースから**：[開発](#開発)を参照
 
-<p align="center"><img src="media/crowd.jpg" alt="厳選キャラクターがひとつのステージに並んだ様子" width="720"></p>
+<p align="center"><img src="media/editor.jpg" alt="Stage のエディター：6 体のキャラクターが同じステージに。Ruri が話しているところ" width="720"></p>
 
 ## キャラクター
 
-[`stage/public/characters/`](stage/public/characters/) に厳選キャラクター 27 体（うち 4 体は全身）が入っています。個人の非商用の
-動画や配信では、クレジットを入れれば無料で使えます。[キャラクターのライセンス](stage/public/characters/LICENSE.md)をご覧ください。
-
-自分のキャラクターは「インポート」から：[livliv.ai](https://livliv.ai) のモデルパッケージ（`.livliv`）、VRM、PNGTuber（2 枚か 4 枚の画像）。
+厳選キャラクターには[専用のライセンス](stage/public/characters/LICENSE.md)があります。自分のキャラクターは「インポート」から：
+[livliv.ai](https://livliv.ai) のモデルパッケージ（`.livliv`）、VRM、PNGTuber。
 
 ## Project LivLiv
 

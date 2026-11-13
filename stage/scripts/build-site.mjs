@@ -22,7 +22,7 @@ const walk = (dir) => readdirSync(dir).flatMap((n) => { const p = join(dir, n); 
 const sha = (p) => createHash('sha256').update(readFileSync(p)).digest('hex')
 for (const f of walk(join(out, 'mediapipe'))) mediapipe['/' + relative(out, f).split('\\').join('/')] = sha(f)
 rmSync(join(out, 'mediapipe'), { recursive: true })
-copyFileSync(resolve(root, '../media/crowd.jpg'), join(out, 'og.jpg'))
+copyFileSync(resolve(root, '../media/social.jpg'), join(out, 'og.jpg'))
 
 const files = Object.fromEntries(walk(out).map((f) => [relative(out, f).split('\\').join('/'), sha(f)]).sort())
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
