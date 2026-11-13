@@ -2,7 +2,7 @@ import { tr } from './i18n'
 // livliv.ai/stage: the top bar's way to the code on GitHub, at its far end (the desktop app has it under Settings ›
 // General › About). Opens in a new tab, so the stage stays.
 
-const REPO = 'https://github.com/livliv-dev/stage'
+export const REPO = 'https://github.com/livliv-dev/stage'
 
 /** GitHub's mark (Octicons mark-github, MIT) */
 const Mark = () => <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">

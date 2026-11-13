@@ -1,6 +1,6 @@
 // livliv.ai/stage's note on the desktop app (DesktopNotice.tsx), on the site's build with the site faked: on a computer's
-// first visit it waits for the welcome to close and for the demo to end, then says what the desktop app adds (macOS and
-// Windows) with 下载桌面版 (GitHub's latest release, a new tab) and 继续用网页版; once closed it stays closed in this
+// first visit it waits for the welcome to close and for the demo to end, then says what the web version can't do (the
+// browser's limits) and links the project on GitHub, with 下载桌面版 (GitHub's latest release, a new tab) and 继续用网页版; once closed it stays closed in this
 // browser, and Settings › General › About opens it again. Never with the sign-in prompt, nor on a phone, nor in OBS.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
@@ -55,9 +55,12 @@ try {
   await none(page, 'not while the demo plays')
   await page.evaluate(() => window.__stage.talk.stop())
   await notice(page).waitFor()
-  assert.equal(await notice(page).locator('.big').innerText(), '网页版和桌面版')
-  assert.match(await notice(page).innerText(), /macOS 和 Windows/)
-  assert.equal(await notice(page).locator('li').count(), 5)
+  assert.equal(await notice(page).locator('.big').innerText(), '网页版的限制')
+  assert.equal(await notice(page).locator('li').count(), 6, "the browser's six limits")
+  assert.match(await notice(page).innerText(), /没有好友联播/)
+  const project = notice(page).locator('.hint.after a')
+  assert.deepEqual([await project.innerText(), await project.getAttribute('href'), await project.getAttribute('target')], ['LivLiv Stage', 'https://github.com/livliv-dev/stage', '_blank'], 'the closing line links the project on GitHub')
+  assert.match(await notice(page).locator('.hint.after').innerText(), /^欢迎使用桌面端，以及关注我们的开源项目 LivLiv Stage$/)
   await notice(page).getByRole('button', { name: '下载桌面版' }).click()
   assert.deepEqual(await page.evaluate(() => window.opened), [[RELEASES, '_blank']], "GitHub's latest release, in a new tab")
   await notice(page).waitFor({ state: 'detached' })
@@ -78,8 +81,8 @@ try {
   page = await visit(c)
   await page.locator('.site-welcome .close').click()
   await notice(page).waitFor()
-  assert.equal(await notice(page).locator('.big').innerText(), 'Web and desktop')
-  assert.match(await notice(page).innerText(), /macOS and Windows/)
+  assert.equal(await notice(page).locator('.big').innerText(), 'Limits of the web version')
+  assert.equal(await notice(page).locator('.hint.after').innerText(), 'Try the desktop app, and follow our open-source project LivLiv Stage')
   await notice(page).getByRole('button', { name: 'Keep using the web version' }).click()
   await notice(page).waitFor({ state: 'detached' })
   assert.deepEqual(await page.evaluate(() => window.opened), [])
