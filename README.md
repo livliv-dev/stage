@@ -25,7 +25,8 @@
 ## Try it
 
 - **Online**: [livliv.ai/stage](https://livliv.ai/stage)
-- **Desktop app**: macOS and Windows from [Releases](https://github.com/livliv-dev/stage/releases/latest)
+- **Desktop app**: macOS and Windows from [Releases](https://github.com/livliv-dev/stage/releases/latest).
+  On macOS, one line in Terminal installs it with no first-open prompt: `curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **From source**: see [Develop](#develop)
 
 <p align="center"><img src="media/crowd.jpg" alt="Featured characters on one stage" width="720"></p>

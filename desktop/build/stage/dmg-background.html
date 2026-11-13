@@ -1,0 +1,30 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  /* the dmg window, 660x420 points: the app icon at (180, 205), Applications at (480, 205) (electron-builder contents) */
+  html, body { margin: 0; width: 660px; height: 420px; overflow: hidden; }
+  body { background: linear-gradient(180deg, #fbfbfd 0%, #f2f1f8 100%); font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; color: #23252b; position: relative; }
+  .top { position: absolute; top: 34px; left: 0; right: 0; text-align: center; }
+  .top b { display: block; font-size: 19px; font-weight: 650; letter-spacing: .01em; }
+  .top span { display: block; margin-top: 4px; font-size: 14px; color: #6b6f7c; }
+  .arrow { position: absolute; left: 262px; top: 186px; width: 136px; height: 36px; }
+  .note { position: absolute; left: 50px; right: 50px; bottom: 26px; padding: 12px 16px; border-radius: 12px; background: #ffffff; border: 1px solid #e4e1ef; display: grid; gap: 3px; }
+  .note b { font-size: 12.5px; font-weight: 650; color: #7350aa; }
+  .note p { margin: 0; font-size: 12px; line-height: 1.45; color: #4d5260; }
+  .note p .k { color: #23252b; font-weight: 600; }
+</style></head>
+<body>
+  <div class="top">
+    <b>Drag LivLiv Stage into Applications</b>
+    <span>把 LivLiv Stage 拖进 Applications</span>
+  </div>
+  <svg class="arrow" viewBox="0 0 136 36" fill="none" aria-hidden="true">
+    <path d="M6 18 H118" stroke="#b9a6dc" stroke-width="3" stroke-linecap="round" stroke-dasharray="2 9"/>
+    <path d="M112 8 L126 18 L112 28" stroke="#9a82c8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <div class="note">
+    <b>First time opening it · 第一次打开</b>
+    <p>Not signed yet: open it once, then <span class="k">System Settings → Privacy &amp; Security → Open Anyway</span>.</p>
+    <p>暂时没有签名：先打开一次，再到<span class="k">「系统设置 → 隐私与安全性 → 仍要打开」</span>。</p>
+  </div>
+</body></html>

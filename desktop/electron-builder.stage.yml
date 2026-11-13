@@ -10,7 +10,7 @@ productName: LivLiv Stage
 copyright: Copyright © 2026 LivLiv
 extraMetadata:
   name: livliv-stage-app
-  version: 0.3.0  # the same as stage/package.json, which the About section shows
+  version: 0.3.1  # the same as stage/package.json, which the About section shows
   productName: LivLiv Stage
   description: "LivLiv Stage: one stage, many characters, each with its own driver; characters talk to each other"
   livliv:
@@ -73,5 +73,13 @@ mac:
     NSMicrophoneUsageDescription: LivLiv Stage 用麦克风做口型和按住说话。
 dmg:
   title: LivLiv Stage
+  # the window shows where to drag the app and how to open it the first time while it is unsigned
+  # (build/stage/background.png and @2x, made from dmg-background.html)
+  background: build/stage/background.png
+  window: { width: 660, height: 420 }
+  iconSize: 80
+  contents:
+    - { x: 180, y: 205 }
+    - { x: 480, y: 205, type: link, path: /Applications }
 linux:
   target: [dir]
