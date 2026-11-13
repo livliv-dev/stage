@@ -4,6 +4,11 @@ Issues and pull requests are welcome. Please be kind.
 
 There is no CLA. Contributions are under the GNU AGPL version 3, like the rest of the code ([LICENSE](LICENSE)).
 
+## Branches
+
+- `main` is the open-source app (the desktop app and any copy you host). Send pull requests here.
+- `web` is the build that runs at [livliv.ai/stage](https://livliv.ai/stage): `main` plus a few commits only that site has (links to make a character on livliv.ai, a sign-in prompt for visitors). It follows `main` (main is merged into it), so changes for `main` don't need to touch it.
+
 ## Pull requests
 
 - Keep each one small and about one thing. For a new feature or a larger change, open an issue first.
