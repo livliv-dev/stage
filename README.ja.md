@@ -15,7 +15,7 @@
 
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-CN.md">中文</a> · <b>日本語</b></p>
 
-<p align="center"><img src="media/demo.gif" alt="Ruri、Nana、Konatsu がひとつのステージで会話し、続いて全身キャラクター 4 体がアップから全身に切り替わる様子" width="720"></p>
+<p align="center"><img src="media/demo.gif" alt="Ruri、Nana、Konatsu がひとつのステージで会話する様子（吹き出し付き）" width="720"></p>
 
 - たくさんのキャラクターを同じステージに：LivLiv（半身・全身）、VRM、PNGTuber。キャラクターごとに動かし方と声を設定
 - AI VTuber どうしの会話と Twitch コメントへの返事。LivLiv の AI（キー不要）か、自分のモデルで

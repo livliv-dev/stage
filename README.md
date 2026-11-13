@@ -15,7 +15,7 @@
 
 <p align="center"><b>English</b> · <a href="README.zh-CN.md">中文</a> · <a href="README.ja.md">日本語</a></p>
 
-<p align="center"><img src="media/demo.gif" alt="Ruri, Nana and Konatsu talking on one stage, then four full-body characters going from close-up to whole" width="720"></p>
+<p align="center"><img src="media/demo.gif" alt="Ruri, Nana and Konatsu talking on one stage, with a speech bubble" width="720"></p>
 
 - Many characters on one stage: LivLiv (half-body and full-body), VRM and PNGTuber, each with its own driver and voice
 - AI VTubers that talk to each other and to your Twitch chat, with LivLiv's AI (no key needed) or your own model
