@@ -52,6 +52,7 @@ import { linkedAs, linkedId, openLinked } from './entry'
 import { PhoneIntro, SiteWelcome } from './SiteIntro'
 import { GuestGate, useGuestGate } from './GuestGate'
 import { closeDesktopNotice, DesktopNotice, showDesktopNotice, unseen, useDesktopNotice } from './DesktopNotice'
+import { GitHubLink } from './GitHubLink'
 import { connectLiveKeys, liveCharacter } from './live'
 import { connectOutputFeed } from './outputFeed'
 import { GoLiveGuide } from './GoLive'
@@ -336,6 +337,7 @@ function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) =
         <input ref={file} type="file" accept=".livstage,.json,.zip" hidden onChange={(e) => { void open(e.target.files?.[0]); e.target.value = '' }} />
         <button className={`icon${pop === 'settings' ? ' on' : ''}`} title={tr("设置")} onClick={() => toggle('settings')}><Settings size={16} /></button>
         <button className={`icon${pop === 'help' ? ' on' : ''}`} title={tr("快捷键（?）")} onClick={() => toggle('help')}><CircleHelp size={16} /></button>
+        {onSite && <GitHubLink />}
       </div>
       {io && createPortal(<div className="project-progress" role="dialog" aria-modal="true" onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); task.current?.abort() } if (event.key === 'Tab') { event.preventDefault(); event.currentTarget.querySelector('button')?.focus() } }} aria-label={tr(io === 'open' ? '正在打开项目…' : '正在保存项目…')}>
         <div className="card"><LoaderCircle className="spin" size={22} /><b>{tr(io === 'open' ? '正在打开项目…' : '正在保存项目…')}</b>{io === 'save' && <progress value={progress} max={1} />}<button autoFocus onClick={() => task.current?.abort()}>{tr('取消')}</button></div>

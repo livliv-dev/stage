@@ -113,6 +113,9 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent-soft); outli
 .topbar .right { flex: none; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
 .mark { display: block; height: 26px; width: auto; flex: none; }
 .mark-link { display: block; flex: none; border-radius: 6px; }
+.topbar .github-link { display: inline-flex; align-items: center; justify-content: center; padding: 6px; border-radius: 9px; color: var(--fg-2); flex: none; }
+.topbar .github-link:hover { background: var(--hover); color: var(--fg); }
+.topbar .github-link:focus-visible { outline: 2px solid var(--accent-soft); outline-offset: 1px; }
 .topbar .create-button { gap: 6px; color: #7350aa; background: linear-gradient(110deg, #fff0f5, #eeeaff); border-color: #e6dcf5; }
 .topbar .create-button:hover:not(:disabled) { background: linear-gradient(110deg, #ffe8f1, #e6e0ff); color: #5f3f99; }
 .create-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; font-size: 12px; }

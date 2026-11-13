@@ -1,6 +1,6 @@
 // The ways back to making a character on livliv.ai (openCreate, siteUrl), on the site's build with the site faked: the
 // top bar's 创建角色 (its label, an icon alone when the bar is narrow), the add card's link, the logo to the home page,
-// and on a phone the intro's link; each opens the site's page in a new tab, so the stage stays.
+// the GitHub mark at the bar's far end, and on a phone the intro's link; each opens in a new tab, so the stage stays.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { spawn } from 'node:child_process'
@@ -44,6 +44,8 @@ try {
     assert.deepEqual(await opened(page), [['/discover?new=1', '_blank']], "the site's create page, in a new tab")
     const logo = page.locator('.topbar a.mark-link')
     assert.deepEqual([await logo.getAttribute('href'), await logo.getAttribute('target')], ['/', '_blank'], "the logo: the site's home, in a new tab")
+    const github = page.locator('.topbar a.github-link')
+    assert.deepEqual([await github.getAttribute('href'), await github.getAttribute('target')], ['https://github.com/livliv-dev/stage', '_blank'], 'the code on GitHub, in a new tab')
     // the add card: 从 livliv.ai 增加, and making one on the site
     await page.locator('.rail button.tool').first().click()  // the first of the rail's tools: add a character
     await page.locator('.popover.add .create-link').click()
@@ -56,6 +58,8 @@ try {
     const { page, context } = await open('zh-Hans', { width: 1024, height: 800 })
     assert.equal(await page.locator('.topbar .create-button').isVisible(), true)
     assert.equal(await page.locator('.topbar .create-button .create-label').isVisible(), false, 'icon only when the bar is narrow')
+    assert.equal(await page.locator('.topbar a.github-link').isVisible(), true, 'GitHub at the far end at 1024 px too')
+    assert.equal(await page.evaluate(() => document.querySelector('.topbar').scrollWidth <= document.querySelector('.topbar').clientWidth), true, 'the bar still fits')
     await context.close()
   }
 

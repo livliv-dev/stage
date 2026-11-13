@@ -4217,6 +4217,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "网页版": {"zh-Hans": "网页版", "zh-Hant": "網頁版", "en": "Web edition", "ja": "ウェブ版"},
   "面捕出镜、AI 互动和朋友同台。": {"zh-Hans": "面捕出镜、AI 互动和朋友同台。", "zh-Hant": "臉部追蹤、AI 互動和朋友同台。", "en": "Face tracking, AI conversations, and friends on one stage.", "ja": "フェイストラッキング、AIとの会話、友だちとの共演。"},
   "由 LivLiv Player 驱动": {"zh-Hans": "由 LivLiv Player 驱动", "zh-Hant": "由 LivLiv Player 驅動", "en": "Powered by LivLiv Player", "ja": "LivLiv Playerで動作"},
+  "GitHub 上的源码": {"zh-Hans": "GitHub 上的源码", "zh-Hant": "GitHub 上的原始碼", "en": "Source code on GitHub", "ja": "GitHub のソースコード"},
   "项目源码": {"zh-Hans": "项目源码", "zh-Hant": "原始碼", "en": "Source code", "ja": "ソースコード"},
   "代码采用 AGPL-3.0 许可，精选角色另有自己的许可。": {"zh-Hans": "代码采用 AGPL-3.0 许可，精选角色另有自己的许可。", "zh-Hant": "程式碼採用 AGPL-3.0 授權，精選角色另有自己的授權。", "en": "The code is under the AGPL-3.0 license. The featured avatars have their own license.", "ja": "コードは AGPL-3.0 ライセンスです。収録キャラクターには別のライセンスがあります。"},
   "角色许可": {"zh-Hans": "角色许可", "zh-Hant": "角色授權", "en": "Avatar license", "ja": "キャラクターのライセンス"},
