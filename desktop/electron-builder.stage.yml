@@ -10,7 +10,7 @@ productName: LivLiv Stage
 copyright: Copyright © 2026 LivLiv
 extraMetadata:
   name: livliv-stage-app
-  version: 0.3.0  # the same as stage/package.json, which the About section shows
+  version: 0.3.1  # the same as stage/package.json, which the About section shows
   productName: LivLiv Stage
   description: "LivLiv Stage: one stage, many characters, each with its own driver; characters talk to each other"
   livliv:
