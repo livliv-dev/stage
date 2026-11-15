@@ -53,7 +53,7 @@ import { tr, getLocale, useLocale } from './i18n'
 import { onSite, small } from './host'
 import { linkedAs, linkedId, openLinked } from './entry'
 import { PhoneIntro, SiteWelcome } from './SiteIntro'
-import { GuestGate, useGuestGate } from './GuestGate'
+import { closeGuestGate, GuestGate, useGuestGate } from './GuestGate'
 import { closeDesktopNotice, DesktopNotice, showDesktopNotice, unseen, useDesktopNotice } from './DesktopNotice'
 import { GitHubLink } from './GitHubLink'
 import { connectLiveKeys, liveCharacter } from './live'
@@ -194,7 +194,7 @@ export default function App() {
   }
   const say = (s: string) => { setNote(s); window.setTimeout(() => setNote((n) => (n === s ? '' : n)), 3200) }
   useShortcuts({
-    escape: () => { if (menu) setMenu(null); else if (pop) { setForStart(false); setPop(null) } else if (welcome) setWelcome(false); else if (noticeShown) closeDesktopNotice(); else if (store.selected()) store.select(null); else if (store.mode() === 'show' && !phone) store.setMode('edit') },
+    escape: () => { if (gated) closeGuestGate(); else if (menu) setMenu(null); else if (pop) { setForStart(false); setPop(null) } else if (welcome) setWelcome(false); else if (noticeShown) closeDesktopNotice(); else if (store.selected()) store.select(null); else if (store.mode() === 'show' && !phone) store.setMode('edit') },
     help: () => toggle('help'),
     zoom: setZoom,
     bare: () => setBare((b) => !b),

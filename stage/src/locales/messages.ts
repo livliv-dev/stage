@@ -4651,6 +4651,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "无需密钥。消耗 livliv.ai 积分，每句台词 {0} 积分，只能用于 LivLiv 的角色。": {"zh-Hans": "无需密钥。消耗 livliv.ai 积分，每句台词 {0} 积分，只能用于 LivLiv 的角色。", "zh-Hant": "無需金鑰。消耗 livliv.ai 積分，每句台詞 {0} 積分，只能用於 LivLiv 的角色。", "en": "No key needed. Uses your livliv.ai points, {0} points a line. LivLiv characters only.", "ja": "キー不要。livliv.ai のポイントを使います。1 行あたり {0} ポイント。LivLiv のキャラクターのみ。"},
   "登录 livliv.ai 继续使用": {"zh-Hans": "登录 livliv.ai 继续使用", "zh-Hant": "登入 livliv.ai 繼續使用", "en": "Sign in to livliv.ai to keep going", "ja": "続けるには livliv.ai にログイン"},
   "注册免费，还送积分。": {"zh-Hans": "注册免费，还送积分。", "zh-Hant": "註冊免費，還送積分。", "en": "Signing up is free, and comes with points.", "ja": "登録は無料で、ポイントももらえます。"},
+  "先逛逛": {"zh-Hans": "先逛逛", "zh-Hant": "先逛逛", "en": "Not now", "ja": "あとで"},
   "注册": {"zh-Hans": "注册", "zh-Hant": "註冊", "en": "Sign up", "ja": "登録"},
   "登录": {"zh-Hans": "登录", "zh-Hant": "登入", "en": "Sign in", "ja": "ログイン"},
   "创建角色": {"zh-Hans": "创建角色", "zh-Hant": "建立角色", "en": "Create an avatar", "ja": "キャラクターを作る"},

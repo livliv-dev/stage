@@ -96,7 +96,7 @@ try {
   page = await visit(c, { clock: true })
   await page.locator('.site-welcome .close').click()
   await notice(page).waitFor()
-  await page.clock.fastForward(61_000)
+  await page.clock.fastForward(181_000)
   await page.locator('.guest-gate').waitFor()
   assert.equal(await notice(page).count(), 0, 'never with the sign-in prompt')
   signedIn = true
