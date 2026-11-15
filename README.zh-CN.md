@@ -63,5 +63,5 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # 桌面版（sta
 
 ## 许可
 
-代码采用 [GNU AGPL 第 3 版](LICENSE)。精选角色有[自己的许可](stage/public/characters/LICENSE.md)。
+代码采用 [Apache License 2.0](LICENSE)。精选角色有[自己的许可](stage/public/characters/LICENSE.md)。
 你的版本可以继续用 LivLiv 的名字和标志，只要不自称官方版本，见 [TRADEMARKS.md](TRADEMARKS.md)。

@@ -63,5 +63,5 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # デスクトッ
 
 ## ライセンス
 
-コードは [GNU AGPL バージョン 3](LICENSE) で公開しています。厳選キャラクターには[独自のライセンス](stage/public/characters/LICENSE.md)があります。
+コードは [Apache License 2.0](LICENSE) で公開しています。厳選キャラクターには[独自のライセンス](stage/public/characters/LICENSE.md)があります。
 LivLiv の名前とロゴは、公式版を名乗らない限り、あなたのバージョンでもそのまま使えます：[TRADEMARKS.md](TRADEMARKS.md)。

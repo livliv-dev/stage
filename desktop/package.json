@@ -3,7 +3,7 @@
   "productName": "LivLiv",
   "version": "0.1.0",
   "private": true,
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "homepage": "https://github.com/livliv-dev/stage",
   "repository": { "type": "git", "url": "git+https://github.com/livliv-dev/stage.git", "directory": "desktop" },
   "bugs": "https://github.com/livliv-dev/stage/issues",
