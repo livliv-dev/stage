@@ -4589,7 +4589,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "最长 {0} 分钟": {"zh-Hans": "最长 {0} 分钟", "zh-Hant": "最長 {0} 分鐘", "en": "Up to {0} min", "ja": "最長{0}分"},
   "LivLiv 标记": {"zh-Hans": "LivLiv 标记", "zh-Hant": "LivLiv 標記", "en": "LivLiv mark", "ja": "LivLivマーク"},
   "会员录 5 分钟，没有标记": {"zh-Hans": "会员录 5 分钟，没有标记", "zh-Hant": "會員錄 5 分鐘，沒有標記", "en": "Members record 5 minutes, no mark", "ja": "メンバーは5分まで、マークなしで録画"},
-  "52 秒，角色自己的声音、动作和字幕": {"zh-Hans": "52 秒，角色自己的声音、动作和字幕", "zh-Hant": "52 秒，角色自己的聲音、動作和字幕", "en": "52 seconds, with their own voices, moves and subtitles", "ja": "52秒・キャラクター自身の声、動き、字幕"},
+  "约 20 秒，角色自己的声音、动作和字幕": {"zh-Hans": "约 20 秒，角色自己的声音、动作和字幕", "zh-Hant": "約 20 秒，角色自己的聲音、動作和字幕", "en": "About 20 seconds, with their own voices, moves and subtitles", "ja": "約20秒・キャラクター自身の声、動き、字幕"},
   "用摄像头试": {"zh-Hans": "用摄像头试", "zh-Hant": "用攝影機試", "en": "Try your camera", "ja": "カメラで試す"},
   "你的表情带动角色，不用账号": {"zh-Hans": "你的表情带动角色，不用账号", "zh-Hant": "你的表情帶動角色，不用帳號", "en": "Your face moves the character, no account needed", "ja": "表情でキャラクターが動きます。アカウント不要"},
   "接自己的模型": {"zh-Hans": "接自己的模型", "zh-Hant": "接自己的模型", "en": "Use your own model", "ja": "自分のモデルをつなぐ"},

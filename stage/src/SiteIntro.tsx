@@ -1,6 +1,6 @@
 import { tr } from './i18n'
 // livliv.ai/stage's first visit. On a computer: three featured characters already stand on the stage, one button plays
-// their 52-second conversation (recorded voices, subtitles), and three ways in that need no account and no key to try:
+// their 20-second conversation (recorded voices, subtitles), and three ways in that need no account and no key to try:
 // the camera, your own model's key, your own character. On a phone: the same conversation to watch, and the rest on
 // a computer (the editor needs room, a camera and keys).
 import { useState } from 'react'
@@ -17,7 +17,7 @@ function DemoButton({ onDemo }: { onDemo: () => Promise<void> }) {
   return <>
     <button className="welcome-demo" disabled={busy} onClick={() => void play()}>
       <span className="welcome-cast" aria-hidden="true">{CAST.map((id) => <img key={id} src={avatar(id)} alt="" />)}</span>
-      <span className="welcome-demo-copy"><b>{tr('Nana、Sena 与 Kai 的三人对谈')}</b><span>{tr('52 秒，角色自己的声音、动作和字幕')}</span></span>
+      <span className="welcome-demo-copy"><b>{tr('Nana、Sena 与 Kai 的三人对谈')}</b><span>{tr('约 20 秒，角色自己的声音、动作和字幕')}</span></span>
       <span className="welcome-play">{busy ? <LoaderCircle size={16} className="spin" /> : <Play size={16} />}{tr('看演示')}</span>
     </button>
     {error && <p className="hint error" role="alert">{error}</p>}
