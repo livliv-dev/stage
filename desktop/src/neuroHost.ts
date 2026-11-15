@@ -48,6 +48,8 @@ export class NeuroHost {
       try {
         server = (this.deps.server ?? createNeuroServer)({
           character: { id: `stage:${config.character.profileId ?? config.character.id}`, name: config.character.name },
+          // the spec retries a forced action the game turned down (success: false); three tries, each one decision
+          maxForceAttempts: 3,
           onEvent: (event, session) => { if (this.server === server) this.receive(event, session) },
           decideAction: (request, session, signal) => this.server === server ? this.decide(request, session, signal) : null,
           onError: (error) => { if (this.server === server) { this.error = error.message; this.publish() } },

@@ -1,9 +1,12 @@
 LivLiv Stage
 Copyright 2026 LivLiv (livliv.ai)
 
-This program is made by the LivLiv team. It is licensed under the GNU Affero
-General Public License version 3 only (LICENSE).
+This product includes software developed by LivLiv (https://livliv.ai). It is
+licensed under the Apache License, Version 2.0 (LICENSE).
 
-The featured characters in stage/public/characters/ are under their own
-licence (stage/public/characters/LICENSE.md). LivLiv Player, which Stage uses,
-is licensed under the Apache License 2.0.
+The featured characters in stage/public/characters/ are not licensed under the
+Apache License 2.0. Their own terms are in stage/public/characters/LICENSE.md and
+stage/public/characters/CREDITS.md. For the LivLiv name and logo, see TRADEMARKS.md.
+
+neuro/ follows the public Neuro API specification by Vedal AI (MIT License); that
+notice is in neuro/THIRD_PARTY_NOTICES.md.

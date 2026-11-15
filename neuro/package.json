@@ -2,7 +2,7 @@
   "name": "@livliv-dev/neuro-bridge",
   "version": "0.1.0",
   "private": true,
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "type": "module",
   "description": "Independent local Neuro game-protocol server with a host-supplied character and decision callback.",
   "exports": {

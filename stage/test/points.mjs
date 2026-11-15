@@ -1,7 +1,8 @@
 // LivLiv's points AI on the site's build (VITE_STAGE_HOST=livliv): what Stage asks the site for. A line is asked for
 // with its voice (voice: true) only when it will be heard in the character's LivLiv voice; 仅字幕, a character on the
 // system voice and a muted one ask for none, and no line is voiced a second time (no /say call). Space never starts
-// paid lines: with the demo's three on the stage it plays the free demo. The site is faked: nothing is spent.
+// paid lines: with the demo's three on the stage it plays the free demo. 对谈 answers a waiting viewer, and a clip that won't
+// play doesn't end it. In 持续聊天 with a model of one's own, a line in the LivLiv voice is one /say call, not one a sentence. The site is faked: nothing is spent.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { spawn } from 'node:child_process'
@@ -15,6 +16,7 @@ const FLAGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--auto
 const clip = await readFile(join(root, 'public/demo/trio/01.mp3'))
 let server, browser, page
 const asked = [], said = [], requests = []
+let badClips = 0, sayOk = false  // sayOk: /say answers (持续聊天 with a model of one's own and the LivLiv voice)  // the next n line clips come back as bytes no player can play
 try {
   const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
   server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, VITE_STAGE_HOST: 'livliv' } })
@@ -30,8 +32,17 @@ try {
       const body = req.postDataJSON(); requests.push(body); asked.push({ who: url.pathname.split('/')[3], voice: body.voice })
       return route.fulfill({ json: { text: '今天的风好舒服。', emotion: 'happy', action: 'none', to: null, look: null, audio: body.voice ? '/api/chat/say/line.mp3' : null, points: 10 } })
     }
-    if (url.pathname === '/api/chat/say/line.mp3') return route.fulfill({ body: clip, contentType: 'audio/mpeg' })
-    if (/^\/api\/chat\/[^/]+\/say$/.test(url.pathname)) { said.push(url.pathname); return route.fulfill({ status: 500, json: { detail: 'not expected' } }) }
+    if (url.pathname === '/api/chat/say/line.mp3') {
+      if (badClips > 0) { badClips--; return route.fulfill({ body: Buffer.from('not a sound'), contentType: 'audio/mpeg' }) }
+      return route.fulfill({ body: clip, contentType: 'audio/mpeg' })
+    }
+    if (/^\/api\/chat\/[^/]+\/say$/.test(url.pathname)) {
+      said.push(url.pathname)
+      return sayOk ? route.fulfill({ json: { lines: [{ audio: '/api/chat/say/line.mp3', expression: null }], points: 9 } }) : route.fulfill({ status: 500, json: { detail: 'not expected' } })
+    }
+    if (url.pathname === '/fixture-ai/chat/completions') {
+      return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: '你好呀。今天想聊点什么？我们慢慢说。', emotion: 'happy', action: 'none', to: null, look: null }) } }] } })
+    }
     if (/^\/api\/chat\/[^/]+\/voices$/.test(url.pathname)) return route.fulfill({ json: { voices: [{ id: 'Cherry', name: 'Cherry', desc: '' }], voice: 'Cherry', own: null } })
     if (url.pathname.startsWith('/api/')) return route.fulfill({ status: 404, json: { detail: 'none' } })
     if (url.hostname === '127.0.0.1' || ['blob:', 'data:'].includes(url.protocol)) return route.continue()
@@ -71,6 +82,28 @@ try {
   // 对谈, the LivLiv voice: the voice comes with the line
   const talkLine = await first(() => window.__stage.talk.start())
   assert.equal(talkLine.voice, true, '对谈 with the LivLiv voice asks for it')
+  // 对谈 with a viewer waiting (对谈时回应弹幕 on): the public session, and the line answers them
+  {
+    const from = requests.length
+    await page.evaluate(async () => {
+      window.__stage.store.setTalk({ danmaku: 2 }); window.__realRandom = Math.random; Math.random = () => 0  // 积极, and taken now
+      ;(await import('/src/danmaku.ts')).simulate('Viewer', '主播们好')
+    })
+    await first(() => window.__stage.talk.start())
+    await page.evaluate(() => { Math.random = window.__realRandom; window.__stage.store.setTalk({ danmaku: 1 }) })
+    assert.ok(requests.slice(from).some((r) => r.viewer?.text === '主播们好'), '对谈 answers a waiting viewer: ' + JSON.stringify(requests.slice(from).map((r) => r.viewer)))
+  }
+  // 对谈: a clip that won't play keeps its subtitle, and the talk goes on to the next line
+  {
+    badClips = 1; asked.length = 0
+    await page.evaluate(() => window.__stage.talk.start())
+    for (let i = 0; i < 300 && asked.length < 3; i++) await page.waitForTimeout(100)
+    const after = await conv()
+    await page.evaluate(() => window.__stage.talk.stop())
+    assert.equal(badClips, 0, 'a bad clip was served')
+    assert.ok(asked.length >= 3, 'the talk went on after a clip failed: ' + JSON.stringify(after))
+    assert.equal(after.error, '', 'and it did not stop with an error')
+  }
   // AI 直播, 仅字幕: no voice
   const textOnly = await first(async () => {
     window.__stage.talk.startLive({ minutes: 5, maxGenerations: 3, warmupSeconds: 0, textOnly: true })
@@ -88,6 +121,22 @@ try {
   assert.equal(muted.voice, false, 'a muted character asks for no voice')
   await page.waitForTimeout(500)
   assert.deepEqual(said, [], 'no line is voiced a second time through /say')
+  // 持续聊天 with a model of one's own and the LivLiv voice: a three-sentence reply is one /say, as each call is charged
+  {
+    sayOk = true
+    await patchAll({ ids, patch: { muted: false } }); await patchAll({ ids, patch: 'livliv' })
+    await page.evaluate(async () => (await import('/src/brain.ts')).saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' }))
+    await page.evaluate(() => { void window.__stage.talk.startChat('private') })
+    await page.waitForFunction(() => window.__stage.conversation().waitingInput, null, { timeout: 60000 })
+    const before = await page.evaluate(() => window.__stage.conversation().turns)
+    said.length = 0
+    await page.evaluate(() => window.__stage.talk.say('你好'))
+    await page.waitForFunction((t) => { const c = window.__stage.conversation(); return c.turns > t && c.waitingInput && !c.speaking }, before, { timeout: 60000 })
+    await page.evaluate(() => window.__stage.talk.stop())
+    assert.equal(said.length, 1, 'one /say for the three-sentence line: ' + JSON.stringify(said))
+    sayOk = false
+    await page.evaluate(async () => (await import('/src/brain.ts')).saveBrainConfig({ kind: 'livliv' }))
+  }
   assert.deepEqual(errors, [])
   await page.evaluate(async () => {
     const { makeBrain } = await import('/src/brain.ts'), me = [...window.__stage.actors.values()][0].item

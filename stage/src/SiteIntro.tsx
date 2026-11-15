@@ -1,6 +1,6 @@
 import { tr } from './i18n'
 // livliv.ai/stage's first visit. On a computer: three featured characters already stand on the stage, one button plays
-// their 52-second conversation (recorded voices, subtitles), and three ways in that need no account and no key to try:
+// their 20-second conversation (recorded voices, subtitles), and three ways in that need no account and no key to try:
 // the camera, your own model's key, your own character. On a phone: the same conversation to watch, and the rest on
 // a computer (the editor needs room, a camera and keys).
 import { useState } from 'react'
@@ -16,7 +16,7 @@ function DemoButton({ onDemo }: { onDemo: () => Promise<void> }) {
   return <>
     <button className="welcome-demo" disabled={busy} onClick={() => void play()}>
       <span className="welcome-cast" aria-hidden="true">{CAST.map((id) => <img key={id} src={avatar(id)} alt="" />)}</span>
-      <span className="welcome-demo-copy"><b>{tr('Nana、Sena 与 Kai 的三人对谈')}</b><span>{tr('52 秒，角色自己的声音、动作和字幕')}</span></span>
+      <span className="welcome-demo-copy"><b>{tr('Nana、Sena 与 Kai 的三人对谈')}</b><span>{tr('约 20 秒，角色自己的声音、动作和字幕')}</span></span>
       <span className="welcome-play">{busy ? <LoaderCircle size={16} className="spin" /> : <Play size={16} />}{tr('看演示')}</span>
     </button>
     {error && <p className="hint error" role="alert">{error}</p>}
@@ -34,8 +34,8 @@ export function SiteWelcome({ onDemo, onCamera, onModel, onCharacter, onClose }:
   ]
   return <div className="site-welcome card" role="dialog" aria-label={tr('欢迎来到 LivLiv Stage')} onPointerDown={(e) => e.stopPropagation()}>
     <button className="icon close" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button>
-    <p className="big">{tr('很多角色，同一个舞台')}</p>
-    <p className="hint">{tr('面捕、角色对谈、录制和 OBS 输出，在浏览器里就能用。')}</p>
+    <p className="big">{tr('你的 AI 虚拟主播工作室')}</p>
+    <p className="hint">{tr('给角色设定好性格，几分钟它就能和你聊天，或者直接开播。也可以自己来演。')}</p>
     <DemoButton onDemo={onDemo} />
     <div className="site-ways">
       {ways.map((w) => <button key={w.title} className="workflow-tile" onClick={w.act}><w.icon size={18} /><b>{tr(w.title)}</b><span>{tr(w.hint)}</span></button>)}
@@ -56,7 +56,7 @@ export function PhoneIntro({ onDemo }: { onDemo: () => Promise<void> }) {
   </div>
   return <div className="phone-intro card" onPointerDown={(e) => e.stopPropagation()}>
     <img className="phone-mark" src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" />
-    <p className="hint">{tr('多个角色同台：面捕、角色对谈、录制和 OBS 输出。')}</p>
+    <p className="hint">{tr('你的 AI 虚拟主播工作室：会聊天、会记住你，还能直接开播。')}</p>
     <DemoButton onDemo={onDemo} />
     <p className="hint">{tr('编辑、摄像头和接模型，请在电脑上打开这个页面。')}</p>
     <button onClick={() => void copy()}>{copied ? <Check size={14} /> : <Copy size={14} />}{tr(copied ? '已复制' : '复制链接')}</button>

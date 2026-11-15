@@ -17,7 +17,7 @@ import { brainReady, makeBrain, loadBrainConfig, decideExternalAction, type Line
 import { demoFor, demoPause, demoReactions, demoSpeaker } from './demo'
 import { participants as characters, store, uid, type CharacterItem } from './scene'
 import { estimate, hush } from './speech'
-import { isBlocked, onChat, type Chat } from './danmaku'
+import { chatState, isBlocked, onChat, type Chat } from './danmaku'
 import { AudienceInbox } from './audience'
 import { voiceRoute } from './voiceApi'
 import { isOutput, onMsg, outputOpen, post } from './link'
@@ -389,10 +389,13 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
   }
   // its voice is made while it still shows 在想 (a LivLiv voice takes about a second)
   const recorded = r.audio ?? (voiced && cfg.kind === 'livliv' ? null : undefined)
-  const take = state.mode === 'chat' && cfg.kind !== 'livliv' ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, recorded)
+  // 持续聊天 with a model of one's own speaks sentence by sentence, so the first is heard sooner; not in the LivLiv voice:
+  // livliv.ai charges every /say call (a point at least), so a line in it is voiced whole, one call, as everywhere else
+  const bySentence = state.mode === 'chat' && cfg.kind !== 'livliv' && voiceRoute(me) !== 'livliv'
+  const take = bySentence ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, recorded)
   signal.throwIfAborted()
   if (liveOptions && !liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音，请设置声音或选择仅字幕"))
-  return { r: { ...reply, memoryIds, memoryRevision: context.revision }, take, chat, memoryRevision: context.revision }
+  return { r: { ...reply, memoryIds, memoryRevision: context.revision }, take, chat, memoryRevision: context.revision, bySentence }
 }
 
 // The next line is made while this one is said, so it can follow at once: at most one line ahead. It is thrown away
@@ -441,7 +444,7 @@ async function aiTurn(me: CharacterItem, parent: AbortSignal, audience?: Chat | 
     else { ahead = null; signal.addEventListener('abort', cancelPrepared, { once: true }) }
     const made = prepared ? await prepared.made : null
     signal.throwIfAborted()
-    const { r, take, chat, memoryRevision } = made ?? await makeLine(me, signal, prepared?.chat ?? audience)
+    const { r, take, chat, memoryRevision, bySentence } = made ?? await makeLine(me, signal, prepared?.chat ?? audience)
     signal.throwIfAborted()
     const speech = {
       final: false, onStart: () => { spoke = true }, onEnd: (cancelled: boolean) => { hadCut ||= cancelled },
@@ -464,7 +467,7 @@ async function aiTurn(me: CharacterItem, parent: AbortSignal, audience?: Chat | 
       return true
     }
     if (chat && !state.lines.some((line) => line.id === chat.id)) set({ lines: [...state.lines, { id: chat.id, who: 'audience', name: tr("弹幕 · {0}", chat.user), text: chat.text, emotion: 'neutral', action: 'none', to: null, human: true, audience: true }] })
-    if (state.mode === 'chat' && loadBrainConfig().kind !== 'livliv') {
+    if (bySentence) {
       const segments = speechSegments(r.text), total = segments.reduce((sum, text) => sum + text.length, 0) || 1
       const actor = actors.get(me.id)
       let preparedVoice = actor?.prepare(segments[0], r.emotion, true, signal)
@@ -538,6 +541,12 @@ function waitFor(c: CharacterItem, signal: AbortSignal) {
   })
 }
 
+/** a 对谈 turn: a clip that won't play keeps its subtitle (the character shows the voice error) and the talk goes on,
+ *  as it always did; the turn was already counted, so a voice that keeps failing still ends at the turn limit */
+async function talkOn(who: CharacterItem, signal: AbortSignal) {
+  try { await aiTurn(who, signal) } catch (e) { if (!(e instanceof VoiceFailed) || signal.aborted) throw e }
+}
+
 async function run(once: boolean) {
   ctrl?.abort()
   dropAhead()
@@ -545,8 +554,12 @@ async function run(once: boolean) {
   single = once; liveOptions = null; boundProfiles = castKey()
   set({ running: true, mode: 'conversation', waitingAudience: false, until: 0, ended: '', paused: false, error: '' })
   try {
-    if (profiles().length) await openHistory('private', c.signal)
-    else { chatHistory.reset(); set({ sessionId: '' }) }
+    // 对谈时回应弹幕 with an audience there (Twitch, or a test message waiting): the public session, which answers viewers
+    // and never reads private memories; otherwise the private one
+    const audience = store.get().talk.danmaku > 0 && (chatState().status === 'on' || viewers.available(Date.now(), isBlocked))
+    const scope: MemoryScope = audience ? 'public' : 'private'
+    if (profiles().length) await openHistory(scope, c.signal)
+    else { chatHistory.reset(); set({ sessionId: '', scope }) }
     // characters still loading (a template just placed, its players not made yet) are waited for, a little
     const loading = () => characters(store.get()).some((x) => x.lines === 'ai' && !['ready', 'error'].includes(actors.get(x.id)?.status ?? ''))
     for (let i = 0; i < 60 && loading(); i++) await wait(250, c.signal)
@@ -562,7 +575,7 @@ async function run(once: boolean) {
           const me = inDemo ?? ai.find((x) => x.id === forced) ?? ai.find((x) => x.name === last?.to) ?? freePick(ai)
           forced = null
           if (!me) break
-          await aiTurn(me, c.signal)
+          await talkOn(me, c.signal)
           if (!queue.length) break
           while (queue.length) await consumeInput(c.signal)
         }
@@ -577,7 +590,7 @@ async function run(once: boolean) {
         const l = await waitFor(who, c.signal)
         if (l) await yours(l, c.signal)
         else { lastTurn = who.id; skipped = who.id }
-      } else await aiTurn(who, c.signal)
+      } else await talkOn(who, c.signal)
       c.signal.throwIfAborted()  // stopped during the line: it ends quietly, and the next one mustn't start
       await new Promise<void>((r, j) => {  // the pause between lines: 下一句 ends it now
         const scripted = loadBrainConfig().kind === 'demo' ? demoPause(voices(), state.lines) : null
