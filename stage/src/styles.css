@@ -601,7 +601,7 @@ select { appearance:none;min-width:0;padding-right:34px;background-image:url("da
 input,textarea { min-width:0 }
 
 /* Co-stream controls stay in the editor, outside the output canvas. */
-.popover.collab-panel { right:20px;top:64px;width:380px;max-height:calc(100vh - 84px);overflow-y:auto }
+.popover.collab-panel { right:20px;top:64px;width:min(380px, calc(100vw - 40px));max-height:calc(100vh - 84px);overflow-y:auto }
 .collab-panel .card-head { display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px }
 .collab-panel h2 { font-size:16px;margin:0 0 5px;font-weight:600 }
 .collab-panel h3 { font-size:13px;margin:0 0 8px;font-weight:600 }
@@ -617,6 +617,16 @@ input,textarea { min-width:0 }
 .collab-service { margin:16px 0;font-size:12px;color:var(--fg-2) }
 .collab-service summary { cursor:pointer;line-height:22px }
 .collab-service .hint { display:block;margin-top:8px }
+.collab-service-modes { margin-top:16px }
+.collab-host { margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:10px }
+.collab-host-status { display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px }
+.collab-host-status button { flex-shrink:0 }
+.collab-host .hint { margin:8px 0 0;line-height:1.6;text-wrap:pretty }
+.collab-host .field { margin-top:12px;min-width:0 }
+.collab-host select { width:100%;min-width:0 }
+.collab-host-options { margin-top:10px;font-size:12px }
+.collab-host-options summary { cursor:pointer }
+.collab-host-options .switch { margin-top:12px }
 .share-consent { font-size:12px;line-height:20px;margin:16px 0 12px }
 .collab-start { width:100%;justify-content:center;padding:9px 12px }
 .invite-code { padding:12px;background:var(--hover);border-radius:10px;margin-bottom:16px }

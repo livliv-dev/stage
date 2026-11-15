@@ -2,9 +2,11 @@ import type { CmdBody } from '../../desktop/src/commands'
 import type { StageApiState, StageControlRequest } from '../../desktop/src/stageCommands'
 import type { MotionEvent, MotionSettings, MotionState } from '../../desktop/src/trackingProtocol'
 import type { NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } from '../../desktop/src/neuroProtocol'
+import type { CollabConfig, CollabState } from '../../desktop/src/collabProtocol'
 
 export type Shortcut = { accelerator: string; do: string; ok: boolean; why?: string }
 type Desktop = {
+  collab?: { get(): Promise<CollabState>; start(config: CollabConfig): Promise<CollabState>; stop(): Promise<CollabState>; onState(callback: (state: CollabState) => void): () => void }
   neuro?: {
     get(): Promise<NeuroState>
     set(config: NeuroConfig): Promise<NeuroState>

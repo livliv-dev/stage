@@ -12,6 +12,7 @@
 import type { MotionEvent, MotionSettings, MotionState } from './trackingProtocol'
 import type { StageApiState, StageControlRequest } from './stageCommands'
 import type { NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } from './neuroProtocol'
+import type { CollabConfig, CollabState } from './collabProtocol'
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
 type Info = { api: 1; version: string; platform: string; role: 'main' | 'stage'; stageEditor: boolean }
@@ -23,6 +24,16 @@ if (info) {
   contextBridge.exposeInMainWorld('livlivDesktop', {
     ...info,
     ...(info.stageEditor ? {
+      collab: {
+        get: (): Promise<CollabState> => invoke('livliv:collab', 'get'),
+        start: (config: CollabConfig): Promise<CollabState> => invoke('livliv:collab', 'start', config),
+        stop: (): Promise<CollabState> => invoke('livliv:collab', 'stop'),
+        onState: (callback: (state: CollabState) => void) => {
+          const listener = (_event: IpcRendererEvent, state: CollabState) => callback(state)
+          ipcRenderer.on('livliv:collab-state', listener)
+          return () => { ipcRenderer.removeListener('livliv:collab-state', listener) }
+        },
+      },
       neuro: {
         get: (): Promise<NeuroState> => invoke('livliv:neuro', 'get'),
         set: (config: NeuroConfig): Promise<NeuroState> => invoke('livliv:neuro', 'set', config),

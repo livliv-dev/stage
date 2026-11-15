@@ -18,6 +18,8 @@ exports.default = async (ctx) => {
     : join(ctx.appOutDir, 'resources')
   if (ctx.electronPlatformName === 'darwin') execFileSync('xattr', ['-cr', join(res, '..', '..')])
   const stage = join(res, 'stage'), repo = join(__dirname, '..', '..', 'stage')
+  const asar = require('@electron/asar'), archive = join(res, 'app.asar')
+  for (const file of ['node_modules/livliv-stage-collab/server.mjs', 'node_modules/livliv-stage-collab/protocol.mjs', 'node_modules/ws/lib/websocket-server.js']) asar.extractFile(archive, file)
   const want = readdirSync(join(repo, 'public', 'characters')).sort().join()
   const got = readdirSync(join(stage, 'characters')).sort().join()
   if (want !== got) throw new Error(`characters in the app differ from stage/public/characters:\n${got}`)
