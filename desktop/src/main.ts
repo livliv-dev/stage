@@ -21,6 +21,7 @@ import { createTray, refreshTray } from './tray'
 import { stageControl } from './stageControl'
 import { MotionInput } from './motionInput'
 import { stageFromPath } from './urls'
+import { NeuroHost } from './neuroHost'
 
 // ---------------------------------------------------------------- global hotkeys
 
@@ -43,6 +44,7 @@ function enableHotkeys(on: boolean) {
 
 const motionInput = APP === 'stage' ? new MotionInput((event) => { const editor = mainContents(); if (editor && !editor.isDestroyed()) editor.send('livliv:motion', event) }) : null
 const control = APP === 'stage' ? stageControl(mainContents) : undefined
+const neuro = APP === 'stage' ? new NeuroHost({ editor: mainContents }) : null
 let api: LocalApi | null = null
 let apiError: string | null = null
 let apiQueue = Promise.resolve()
@@ -121,6 +123,7 @@ else {
     saveDownloads()
     appMenu()
     registerIpc({
+      ...(neuro ? { neuro } : {}),
       ...(motionInput ? { tracking: { get: () => motionInput.state(), set: async (value) => { update((s) => { s.trackingInput = value }); return motionInput.configure(value) } } } : {}),
       capabilities: () => (APP === 'stage' ? ['global-hotkeys', ...(api ? ['local-commands'] : [])] : capabilities()),
       ...(APP === 'stage' ? { stageApi: { get: stageApiState, set: async (enabled: boolean) => { update((s) => { s.stageApi.enabled = enabled }); await syncLocalApi(); return stageApiState() }, rotate: () => { update((s) => { s.token = randomBytes(16).toString('hex') }); return stageApiState() } } } : {}),
@@ -155,5 +158,5 @@ else {
   })
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) openMain() })
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
-  app.on('will-quit', () => { globalShortcut.unregisterAll(); void motionInput?.close().catch((error) => console.error('[tracking close]', error)); flush() })
+  app.on('will-quit', () => { globalShortcut.unregisterAll(); void neuro?.close().catch((error: unknown) => console.error('[Neuro close]', error)); void motionInput?.close().catch((error) => console.error('[tracking close]', error)); flush() })
 }

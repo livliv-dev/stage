@@ -13,16 +13,21 @@ export class PublishAudio {
   private micNode: ReturnType<typeof routeMicrophone> | null = null
   private voiceNode: MediaStreamAudioSourceNode | null = null
   private actor: Actor | null = null
+  private voiceStream: MediaStream | null = null
   private lip: LipSync | null = null
   private generation = 0
   private lipGeneration = 0
   private closed = false
   onError: (error: string) => void = () => {}
   connectActor(actor: Actor | null) {
-    if (this.actor === actor) return
+    actor?.unlock()
+    const stream = actor?.audio ?? null
+    if (this.actor === actor && this.voiceStream === stream) return
+    const actorChanged = this.actor !== actor
+    this.voiceStream = stream
     this.actor = actor; this.voiceNode?.disconnect(); this.voiceNode = null
-    if (actor) { actor.unlock(); const stream = actor.audio; if (stream) { this.voiceNode = this.context.createMediaStreamSource(stream); this.voiceNode.connect(this.output) } }
-    void this.connectLip()
+    if (stream) { this.voiceNode = this.context.createMediaStreamSource(stream); this.voiceNode.connect(this.output) }
+    if (actorChanged) void this.connectLip()
   }
   private async connectLip() {
     const run = ++this.lipGeneration

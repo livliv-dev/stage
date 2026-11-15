@@ -14,7 +14,7 @@ const root = fileURLToPath(new URL('..', import.meta.url)), errors = []
 const FLAGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required']
 const clip = await readFile(join(root, 'public/demo/trio/01.mp3'))
 let server, browser, page
-const asked = [], said = []
+const asked = [], said = [], requests = []
 try {
   const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
   server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, VITE_STAGE_HOST: 'livliv' } })
@@ -27,7 +27,7 @@ try {
     const req = route.request(), url = new URL(req.url())
     if (url.pathname === '/api/me') return route.fulfill({ json: { signed_in: true, email: 'member@example.test', points: 10, plan: 'plus', record_seconds: 300, record_mark: false, stage_line_points: 0.5, stage_silent_free: true } })
     if (/^\/api\/chat\/[^/]+\/stage-line$/.test(url.pathname)) {
-      const body = req.postDataJSON(); asked.push({ who: url.pathname.split('/')[3], voice: body.voice })
+      const body = req.postDataJSON(); requests.push(body); asked.push({ who: url.pathname.split('/')[3], voice: body.voice })
       return route.fulfill({ json: { text: '今天的风好舒服。', emotion: 'happy', action: 'none', to: null, look: null, audio: body.voice ? '/api/chat/say/line.mp3' : null, points: 10 } })
     }
     if (url.pathname === '/api/chat/say/line.mp3') return route.fulfill({ body: clip, contentType: 'audio/mpeg' })
@@ -89,6 +89,31 @@ try {
   await page.waitForTimeout(500)
   assert.deepEqual(said, [], 'no line is voiced a second time through /say')
   assert.deepEqual(errors, [])
+  await page.evaluate(async () => {
+    const { makeBrain } = await import('/src/brain.ts'), me = [...window.__stage.actors.values()][0].item
+    const { memory } = await import('/src/memory.ts')
+    for (let i = 1; i <= 4; i++) {
+      await memory.remember({ profileId: me.profileId ?? me.id, scope: 'public', text: '背景记忆' + i })
+      await new Promise((resolve) => setTimeout(resolve, 5))
+    }
+    const context = await memory.context([me.profileId ?? me.id], 'public')
+    const lines = Array.from({ length: 20 }, (_, i) => ({ id: String(i), who: i % 2 ? me.id : 'me', name: i % 2 ? me.name : '我', text: '最近的对话' + i, emotion: 'neutral', action: 'none', to: null }))
+    await makeBrain({ kind: 'livliv' }).reply({ me, others: [], humans: ['我'], topic: '继续聊', lines, layout: [me.name], role: null, cutIn: false, language: 'zh', viewer: null,
+      summary: { text: '先前聊过烘焙', sourceIds: ['0'] }, memories: context.memories, depth: 'discussion',
+      event: { source: 'Game', message: '刚完成任务' }, voiced: false }, new AbortController().signal)
+  })
+  const background = requests.at(-1)
+  assert.equal(background.length, 'long', 'discussion uses the existing long-answer option')
+  assert.equal(background.lines.length, 14)
+  assert.deepEqual(background.lines.slice(0, 5), [
+    { name: '会话摘要', text: '先前聊过烘焙', me: false },
+    { name: '背景资料 · 已保存记忆', text: '背景记忆4', me: false },
+    { name: '背景资料 · 已保存记忆', text: '背景记忆3', me: false },
+    { name: '背景资料 · 已保存记忆', text: '背景记忆2', me: false },
+    { name: '外部事件 · Game', text: '刚完成任务', me: false },
+  ])
+  assert.equal(background.lines.at(-1).text, '最近的对话19')
+  assert.equal(background.lines.at(-1).me, true, 'real character lines retain their attribution')
   console.log(JSON.stringify({ talk: talkLine, textOnly, system, muted, say: said.length }))
 } catch (e) {
   console.error(e); process.exitCode = 1

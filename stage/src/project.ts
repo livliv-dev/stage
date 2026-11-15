@@ -98,6 +98,7 @@ export async function projectFile(project: Project, signal?: AbortSignal, progre
           models.push({ id, name: item.name, format, files: entries }); modelKeys.set(signature, id)
         }
         const sampleId = item.model.type === 'files' ? item.model.sampleId : sampleAt(item.model.url)?.id
+        delete item.profileId
         item.model = { type: 'files', key: id, format: formatOf(item.model), ...(modelId(item) ? { livlivId: modelId(item)! } : {}), ...(sampleId ? { sampleId } : {}) }
       } else if (item.kind === 'image') {
         const id = await picture(item.asset, item.url, item.name)
@@ -171,6 +172,7 @@ export async function openProject(file: File, signal?: AbortSignal): Promise<{ p
     const legacy = loadable(raw.scene as Partial<Scene>, false)
     if (!legacy) throw bad()
     const scene = sceneFrom(legacy, false), here = new Set((await kept()).map((k) => k.key))
+    for (const item of scene.items) if (item.kind === 'character') item.profileId = uid()
     const items = scene.items.filter((i) => i.kind !== 'image' || pictureUrl(i.url)), bg = backgroundUrl(scene.background)
     const background = plainBackground(scene.background) || (bg && pictureUrl(bg) && scene.background === imageBackground(bg)) ? scene.background : emptyScene().background
     const left = [...scene.items.filter((i) => !items.includes(i)).map((i) => i.kind === 'image' && i.url), ...(background === scene.background ? [] : [scene.background])]
@@ -183,6 +185,12 @@ export async function openProject(file: File, signal?: AbortSignal): Promise<{ p
   const raw = await readJSON(manifest)
   if (!record(raw) || raw.format !== 'livliv-stage-project' || raw.version !== 1 || !text(raw.active) || !Array.isArray(raw.scenes) || !raw.scenes.length || !Array.isArray(raw.models) || !Array.isArray(raw.pictures)) throw bad()
   const scenes = raw.scenes.map((s) => sceneFrom(s, true)), ids = new Set(scenes.map((s) => s.id))
+  const importedProfiles = new Map<string, string>()
+  for (const scene of scenes) for (const item of scene.items) if (item.kind === 'character') {
+    const source = item.profileId ?? item.id
+    if (!importedProfiles.has(source)) importedProfiles.set(source, uid())
+    item.profileId = importedProfiles.get(source)!
+  }
   if (ids.size !== scenes.length || !ids.has(raw.active) || scenes.some((s) => s.width !== scenes[0].width || s.height !== scenes[0].height)) throw bad()
   const models: StoredModel[] = [], assets: StoredAsset[] = [], modelKeys = new Map<string, { key: string; format: Format }>(), pictureKeys = new Map<string, string>(), used = new Set(['project.json'])
   for (const model of raw.models) {

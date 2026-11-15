@@ -92,7 +92,7 @@ try {
     s.switchScene(window.demoScene)
   })
   await page.waitForFunction(() => [...window.__stage.actors.values()].length === 2 && [...window.__stage.actors.values()].every((a) => a.status === 'ready'))
-  await page.getByRole('button', { name: '对谈', exact: true }).click()
+  await page.locator('.start-modes > summary').click(); await page.getByRole('button', { name: '对谈', exact: true }).click()
   await page.waitForFunction(() => window.__stage.conversation().speaking !== null)
   const active = await page.evaluate(() => { const c = window.__stage.conversation(); window.speakingId = c.speaking.id; window.__stage.store.switchScene(window.emptyShot); return { running: c.running, id: c.speaking.id } })
   assert.equal(active.running, true)

@@ -55,7 +55,7 @@ try {
   report.backgroundCommand = 'mute reaches the Stage renderer without focusing the editor'
   await page.evaluate((origin) => localStorage.setItem('livliv-stage:brain', JSON.stringify({ kind: 'openai', provider: 'custom', base: origin + '/hold-ai', key: 'test-only', model: 'fixture-model' })), origin)
   await page.reload(); await page.waitForFunction(() => !document.querySelector('.badge'))
-  await page.getByRole('button', { name: 'AI 直播', exact: true }).click()
+  await page.locator('.start-modes > summary').click(); await page.getByRole('button', { name: 'AI 直播', exact: true }).click()
   await page.locator('.live-settings').getByText('仅字幕（不生成声音）', { exact: true }).click()
   await page.locator('.live-settings .test-chat summary').click()
   await page.getByRole('button', { name: '开始 AI 直播', exact: true }).click()

@@ -6,6 +6,7 @@ import { tr } from './i18n'
 import { shareCast, type Project } from './shots'
 import { readAttachment, type PropAttachment } from './attachments'
 import { readAudienceRules, type AudienceRule } from './triggers'
+import { readReactionSettings, type ReactionSettings } from './reactions'
 import { useSyncExternalStore } from 'react'
 import { defaultTuning, readTuning, type CharacterTuning } from './tuning'
 import { isOutput, onMsg, outputOpen, post } from './link'
@@ -60,6 +61,11 @@ export type Voice = { source: 'auto' | 'livliv' | 'api' | 'system'; livliv: stri
 type Box = { id: string; x: number; y: number; w: number; h: number; hidden?: boolean; locked?: boolean }
 export type CharacterItem = Box & {
   kind: 'character'; name: string; model: ModelRef; persona: string; voice: Voice
+  /** The character's local identity; framing and names do not own its memory. */
+  profileId?: string
+  reactions?: ReactionSettings
+  relationship?: string
+  stance?: string
   /** from a sample's card: how it talks, example lines (the prompt's, Chinese only), a line about it for the others'
    *  prompts, the name the card was written with (a rename shows through), its gender for picking a voice */
   style?: string; examples?: string[]; tagline?: string; cardName?: string; gender?: 'f' | 'm'
@@ -137,6 +143,10 @@ export const ORDERS: { id: Order; label: string; hint: string }[] = [
   { id: 'host', label: '主持', hint: '主持人和嘉宾一来一回，主持人决定问谁' },
 ]
 export type Talk = {
+  depth?: 'casual' | 'discussion'
+  proactiveSeconds?: number
+  chatMinutes?: number
+  chatGenerations?: number
   order: Order
   host: string | null
   /** AI characters cutting in: 0 never, 1 now and then, 2 often */
@@ -199,7 +209,11 @@ function normalize(i: Item): Item {
   const url = i.model.type === 'url' ? local(i.model.url) : '', sample = url ? sampleAt(url) : undefined
   const card = sample && !i.tagline && i.persona.startsWith(sample.tagline) ? cardOf(sample) : null
   return {
-    ...withoutLive(i), ...card, tuning: readTuning(i.tuning), driver, lines, readAloud: i.readAloud ?? driver !== 'mic', chatty: i.chatty ?? 1, length: i.length ?? 'normal',
+    ...withoutLive(i), ...card, profileId: typeof i.profileId === 'string' && i.profileId ? i.profileId : i.id,
+    reactions: readReactionSettings({ ...i.reactions, motion: i.reactions?.motion ?? ((i.model.type === 'url' ? /characters\/v04\/$/.test(i.model.url) : i.model.sampleId === 'v04') ? 0.7 : 0.85) }),
+    relationship: typeof i.relationship === 'string' ? i.relationship.slice(0, 2000) : undefined,
+    stance: typeof i.stance === 'string' ? i.stance.slice(0, 2000) : undefined,
+    tuning: readTuning(i.tuning), driver, lines, readAloud: i.readAloud ?? driver !== 'mic', chatty: i.chatty ?? 1, length: i.length ?? 'normal',
     motion: i.motion ?? 'natural', talk: i.talk ?? 0.6, gaze: i.gaze ?? 'people', mirror: i.mirror ?? false, shadow: i.shadow ?? true,
     smooth: i.smooth ?? 0.5, micGain: i.micGain ?? 1, muted: i.muted ?? false, ...liveFields(i), model: i.model.type === 'url' ? { type: 'url', url: local(i.model.url) } : i.model, voice: { ...i.voice, source: i.voice?.source ?? 'auto', livliv: i.voice?.livliv ?? '', api: i.voice?.api ?? '' },
   }
@@ -220,7 +234,7 @@ function withoutLive(i: CharacterItem): CharacterItem {
  *  from this browser's kept packages (vault.ts); one that isn't kept here says so on the stage */
 export function loadable(s: Partial<Scene> | null, keepRemote = true): Scene | null {
   if (!s || !Array.isArray(s.items)) return null
-  const value = { ...emptyScene(), ...s, id: typeof s.id === 'string' && s.id ? s.id : uid(), talk: { ...TALK, ...s.talk, triggersOn: s.talk?.triggersOn === true, triggers: readAudienceRules(s.talk?.triggers ?? []) ?? [] }, items: s.items.map(normalize) }
+  const value: Scene = { ...emptyScene(), ...s, id: typeof s.id === 'string' && s.id ? s.id : uid(), talk: { ...TALK, ...s.talk, depth: s.talk?.depth === 'discussion' ? 'discussion' : 'casual', proactiveSeconds: [30, 60, 120].includes(s.talk?.proactiveSeconds ?? 0) ? s.talk!.proactiveSeconds : 0, chatMinutes: [15, 30, 60, 120].includes(s.talk?.chatMinutes ?? 0) ? s.talk!.chatMinutes : 60, chatGenerations: Number.isInteger(s.talk?.chatGenerations) && s.talk!.chatGenerations! >= 1 && s.talk!.chatGenerations! <= 500 ? s.talk!.chatGenerations : 100, triggersOn: s.talk?.triggersOn === true, triggers: readAudienceRules(s.talk?.triggers ?? []) ?? [] }, items: s.items.map(normalize) }
   return keepRemote ? value : persistentScene(value)
 }
 
@@ -399,6 +413,7 @@ export const store = {
     const copy = { ...it, id: uid(), x: it.x + 40, y: it.y + 40 } as Item
     const extra: Item[] = []
     if (it.kind === 'character' && copy.kind === 'character') {
+      copy.profileId = uid()
       copy.name = `${it.name} 2`
       copy.color = COLORS[(COLORS.indexOf(it.color) + 1) % COLORS.length]
       const own = scene.items.find((i): i is SubtitleItem => i.kind === 'subtitle' && i.of === it.id)
@@ -461,7 +476,7 @@ export function newCharacter(s: Scene, name: string, model: ModelRef, persona = 
   const x = Math.round((at ?? freeSpot(s)) * s.width - w / 2)
   return {
     tuning: defaultTuning(),
-    id: uid(), kind: 'character', name, model, persona, ...card, x, y: s.height - h, w, h,
+    id: uid(), profileId: uid(), reactions: { enabled: true, intensity: 0.8, listen: true, motion: (model.type === 'url' ? /characters\/v04\/$/.test(model.url) : model.sampleId === 'v04') ? 0.7 : 0.85 }, kind: 'character', name, model, persona, ...card, x, y: s.height - h, w, h,
     driver: 'auto', lines: 'ai', readAloud: true, chatty: 1, length: 'short',  // short lines keep a conversation moving: 60 characters take 13 s to say
     voice: { source: 'auto', livliv: '', api: '', name: '', pitch: 1 + ((n % 3) - 1) * 0.15, rate: 1 }, color: COLORS[n % COLORS.length],
     motion: 'natural', talk: 0.6, gaze: 'people', mirror: false, shadow: true, smooth: 0.5, micGain: 1, muted: false,

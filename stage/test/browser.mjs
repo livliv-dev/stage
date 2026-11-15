@@ -13,7 +13,7 @@ const artifacts = await mkdtemp(join(tmpdir(), 'livliv-stage-browser-'))
 let server, browser, voiceServer
 let interruptedVoice = 0
 const errors = [], calls = [], report = { artifacts }
-let replyMode = 'ok', voiceMode = 'ok', asrSlow = false, asrCalls = 0
+let replyMode = 'ok', voiceMode = 'ok', asrSlow = false, asrCalls = 0, asrResponses = 0, releaseAsr
 function wav(seconds = .7) {
   const rate = 24000, samples = Math.round(rate * seconds), data = Buffer.alloc(44 + samples * 2)
   data.write('RIFF'); data.writeUInt32LE(data.length - 8, 4); data.write('WAVEfmt ', 8); data.writeUInt32LE(16, 16); data.writeUInt16LE(1, 20); data.writeUInt16LE(1, 22)
@@ -55,7 +55,7 @@ try {
         calls.push(body)
         if (replyMode === 'slow') await new Promise((r) => setTimeout(r, 1500))
         await route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: '收到你的弹幕了，一起聊聊吧。', emotion: 'happy', action: 'nod', to: null, look: '观众' }) } }] } }).catch(() => {})
-      } else if (url.pathname.endsWith('/audio/transcriptions')) { asrCalls++; if (asrSlow) await new Promise((r) => setTimeout(r, 1200)); await route.fulfill({ json: { text: 'fixture human voice' } }).catch(() => {})
+      } else if (url.pathname.endsWith('/audio/transcriptions')) { asrCalls++; if (asrSlow) await new Promise((resolve) => { releaseAsr = resolve }); await route.fulfill({ json: { text: 'fixture human voice' } }).catch(() => {}); asrResponses++
       } else if (url.pathname.endsWith('/audio/speech')) {
         if (voiceMode === 'error') await route.fulfill({ status: 503, json: { error: { message: 'fixture voice failure' } } })
         else await route.fulfill({ status: 200, contentType: 'audio/wav', body: wav() })
@@ -93,7 +93,7 @@ try {
   })
   await page.reload({ waitUntil: 'networkidle' })
   await page.waitForFunction(() => [...window.__stage.actors.values()].every((a) => a.status === 'ready'))
-  await page.getByRole('button', { name: 'AI 直播', exact: true }).click()
+  await page.locator('.start-modes > summary').click(); await page.getByRole('button', { name: 'AI 直播', exact: true }).click()
   const live = page.locator('.live-settings')
   await live.locator('.test-chat summary').click()
   await live.getByLabel('生成次数上限', { exact: true }).fill('0')
@@ -221,15 +221,19 @@ try {
   report.manualCaptions = 'speech input adds a human caption without requiring or calling an AI model'
   await page.clock.install()
   await page.evaluate(() => window.__stage.talk.startLive({ minutes: 1, maxGenerations: 100, warmupSeconds: 0, textOnly: true }))
+  await page.waitForFunction(() => { const state = window.__stage.conversation(); return state.scope === 'public' && !!state.sessionId })
   asrSlow = true
-  const deadlineLines = (await state()).lines.length, deadlineAsr = asrCalls
+  const deadlineLines = (await state()).lines.length, deadlineAsr = asrCalls, deadlineResponses = asrResponses
   await page.evaluate(async () => { const { command } = await import('/src/desktop.ts'); command({ do: 'ptt' }) })
   await page.waitForSelector('button.mic.listening'); await page.waitForTimeout(600)
   await page.evaluate(async () => { const { command } = await import('/src/desktop.ts'); command({ do: 'ptt' }) })
   for (let n = 0; asrCalls === deadlineAsr && n < 60; n++) await page.waitForTimeout(50)
   assert.equal(asrCalls, deadlineAsr + 1)
   await page.clock.fastForward(60_001)
-  await page.waitForTimeout(1400)
+  await page.waitForFunction(() => !window.__stage.conversation().running)
+  releaseAsr()
+  for (let n = 0; asrResponses === deadlineResponses && n < 60; n++) await page.waitForTimeout(50)
+  assert.equal(asrResponses, deadlineResponses + 1)
   assert.equal((await state()).running, false); assert.match((await state()).ended, /时长上限/)
   assert.equal((await state()).lines.length, deadlineLines, 'recognition cannot restart an automatically ended live session')
   report.deadline = 'duration limit also cancels pending speech recognition'
@@ -240,4 +244,4 @@ try {
   for (const context of browser?.contexts() ?? []) for (const page of context.pages()) await page.screenshot({ path: join(artifacts, 'failure.png') }).catch(() => {})
   await writeFile(join(artifacts, 'failure.json'), JSON.stringify({ error: String(error), errors, calls: calls.length, report }, null, 2))
   throw error
-} finally { await browser?.close(); server?.kill('SIGTERM'); voiceServer?.closeAllConnections(); voiceServer?.close() }
+} finally { releaseAsr?.(); await browser?.close(); server?.kill('SIGTERM'); voiceServer?.closeAllConnections(); voiceServer?.close() }

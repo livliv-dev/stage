@@ -66,7 +66,7 @@ try {
   const pending = await command({ do: 'mic', character: target.id }); assert.equal(pending.status, 202); assert.equal(pending.body.pending, 'microphone')
   await wait(state, (s) => s.characters[1].input === 'error', 'microphone failure not observable')
   await command({ do: 'mic', character: target.id }); await wait(state, (s) => s.characters[1].input === 'idle', 'microphone recovery not observable')
-  await page.getByRole('button', { name: '对谈', exact: true }).click(); await page.getByRole('button', { name: '打开演示舞台', exact: true }).click(); await wait(state, (s) => s.conversation.running, 'demo conversation did not start')
+  await page.getByRole('button', { name: 'AI 模型', exact: true }).click(); await page.locator('.popover.model').getByRole('button', { name: '看演示', exact: true }).click(); await wait(state, (s) => s.conversation.running, 'demo conversation did not start')
   assert.equal((await command({ do: 'ai-pause', on: true })).status, 200); assert.equal((await state()).conversation.paused, true)
   await command({ do: 'ai-pause', on: false }); assert.equal((await state()).conversation.paused, false)
   await command({ do: 'ai-stop' }); assert.equal((await state()).conversation.running, false)

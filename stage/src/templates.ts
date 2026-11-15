@@ -35,7 +35,7 @@ export async function buildTemplate(id: TemplateId): Promise<Scene> {
     const c: CharacterItem = newCharacter({ ...s, items }, p.name, p.model, p.persona, at, p.card)
     // you: your face moves it and your voice is your own; the console line shows as its subtitle
     if (id === 'cohost' && i === 0) Object.assign(c, { driver: 'face', lines: 'me', readAloud: false })
-    if (id === 'trio') { c.h = Math.round(s.height * 0.7); c.w = Math.round(c.h * 2 / 3); c.x = Math.round(at * s.width - c.w / 2); c.y = s.height - c.h }
+    if (id === 'trio') { c.h = Math.round(s.height * 0.7); c.w = Math.round(c.h * 2 / 3); c.x = Math.round(at * s.width - c.w / 2); c.y = s.height - c.h + Math.round(s.height * 0.022) }
     items.push(c)
     if (id !== 'cohost') items.push(bubbleFor(c))
   })

@@ -15,7 +15,7 @@ export function stageState() {
     apiVersion: 1, audio: mixer().settings,
     scene: { id: scene.id, name: scene.name, width: scene.width, height: scene.height },
     scenes: store.project().scenes.map((s) => ({ id: s.id, name: s.name })),
-    selected: store.selected(), voiceInput: { phase: pttState().phase, error: pttState().error ? 'Voice input failed; check Stage' : null }, conversation: { running: conv.running, paused: conv.paused, turns: conv.turns },
+    selected: store.selected(), voiceInput: { phase: pttState().phase, automatic: pttState().automatic, error: pttState().error ? 'Voice input failed; check Stage' : null }, conversation: { running: conv.running, paused: conv.paused, turns: conv.turns },
     characters: scene.items.filter((i): i is CharacterItem => i.kind === 'character').map((c) => {
       const actor = actors.get(c.id)
       return { id: c.id, name: c.name, format: formatOf(c.model), remote: !!c.remote, hidden: !!c.hidden, muted: c.muted, volume: c.tuning.volume, driver: c.driver,
@@ -66,7 +66,7 @@ export function performStageCommand(cmd: StageCommand): StageResult {
     if (cmd.duration !== undefined) actor.pulseExpression(id, cmd.duration, cmd.weight)
     else if (cmd.on !== false || actor.expression === id) actor.setExpression(cmd.on === false ? null : id, cmd.weight)
   } else if (cmd.do === 'act') {
-    if (cmd.id === 'away') actor.setAway(true); else actor.player.act(cmd.id)
+    if (cmd.id === 'away') actor.setAway(true); else actor.act(cmd.id)
   } else if (cmd.do === 'clear') { actor.setAway(false); actor.setExpression(null) }
   else if (cmd.do === 'calibrate') {
     if (!actor.canCalibrate) return { ok: false, status: 409, error: 'No tracking input is active' }

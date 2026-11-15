@@ -3,6 +3,9 @@ import { NetworkPanel } from './NetworkPanel'
 import { motionSupported } from './networkTracking'
 import { StageApiPanel } from './StageApiPanel'
 import { desktop } from './desktop'
+import { useScene, participants } from './scene'
+import { talk } from './conversation'
+import { NeuroPanel } from './NeuroPanel'
 import { QUALITIES, setQuality, useQuality, type Quality } from './quality'
 import { LANGUAGES, setLocale, tr, useLocale, type Locale } from './i18n'
 
@@ -11,7 +14,7 @@ declare const __STAGE_VERSION__: string
 const REPO = 'https://github.com/livliv-dev/stage'
 
 export function GeneralPanel() {
-  const locale = useLocale(), quality = useQuality()
+  const locale = useLocale(), quality = useQuality(), { scene } = useScene()
   return <div className="general-panel">
     <section className="general-preferences">
       <label className="general-language"><span>{tr("界面语言")}</span><select className="language-select" value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>{LANGUAGES.map((language) => <option key={language.id} value={language.id}>{language.label}</option>)}</select></label>
@@ -19,6 +22,7 @@ export function GeneralPanel() {
     </section>
     {motionSupported() && <NetworkPanel />}
     <StageApiPanel />
+    <NeuroPanel characters={participants(scene).filter((character) => character.lines === 'ai' && !character.remote)} onStart={(character) => talk.startChat('public', character)} />
     <section className="general-about">
       <h3>{tr("关于")}</h3>
       <div className="about-brand"><img src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" /><span className="about-version num">v{__STAGE_VERSION__}{!desktop && ` · ${tr("网页版")}`}</span></div>

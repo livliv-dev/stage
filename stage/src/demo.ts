@@ -4,10 +4,13 @@
 // when the stage has a script's cast (the samples by their folders), in the script's order, and ends with it.
 import type { CharacterItem } from './scene'
 import type { Line, Reply } from './brain'
+import { getLocale, type Locale } from './i18n'
+import { readReactionCues } from './reactions'
 import duo from './demo/duo.json'
 import trio from './demo/trio.json'
 
-type Script = { template: string; cast: string[]; topic: string; lines: { who: string; text: string; emotion: string; action: string; to: string | null; look: string | null; pauseAfter?: number }[] }
+type Script = { template: string; cast: string[]; topic: string; audio?: string; lines: { who: string; text: string; emotion: string; action: string; to: string | null; look: string | null; pauseAfter?: number; cues?: unknown; reactions?: { who: string; cues: unknown }[] }[]
+  translations?: Partial<Record<Locale, { topic: string; audio: string; lines: string[] }>> }
 /** the bigger cast first: a stage with all three plays the three of them */
 const SCRIPTS: Script[] = [trio, duo]
 
@@ -15,8 +18,10 @@ const SCRIPTS: Script[] = [trio, duo]
 const sampleOf = (c: CharacterItem) => c.model.type === 'files' ? c.model.sampleId ?? null : (c.model.type === 'url' ? /characters\/([^/]+)\/$/.exec(c.model.url)?.[1] ?? null : null)
 
 /** the script this cast can play, and who on the stage plays each of its parts */
-export function demoFor(cast: CharacterItem[]): { script: Script; who: Record<string, CharacterItem> } | null {
-  for (const script of SCRIPTS) {
+export function demoFor(cast: CharacterItem[], locale: Locale = getLocale()): { script: Script; who: Record<string, CharacterItem> } | null {
+  for (const original of SCRIPTS) {
+    const translation = original.translations?.[locale]
+    const script = translation ? { ...original, topic: translation.topic, audio: translation.audio, lines: original.lines.map((line, index) => ({ ...line, text: translation.lines[index] })) } : original
     const who: Record<string, CharacterItem> = {}
     for (const id of script.cast) {
       const c = cast.find((x) => sampleOf(x) === id && !Object.values(who).includes(x))
@@ -29,10 +34,12 @@ export function demoFor(cast: CharacterItem[]): { script: Script; who: Record<st
 
 /** how far the demo got: its lines said so far (lines carry their place in it) */
 const said = (lines: Line[]) => lines.filter((l) => l.demo !== undefined).length
+// A language change applies to the next replay, so one conversation keeps one voice track.
+const languageOf = (lines: Line[]) => lines.find((line) => line.demo !== undefined)?.demoLocale ?? getLocale()
 
 /** who says the demo's next line: a character; undefined when it has ended; null when no script fits the stage */
 export function demoSpeaker(cast: CharacterItem[], lines: Line[]): CharacterItem | null | undefined {
-  const d = demoFor(cast)
+  const d = demoFor(cast, languageOf(lines))
   if (!d) return null
   const next = d.script.lines[said(lines)]
   return next ? d.who[next.who] : undefined
@@ -40,14 +47,14 @@ export function demoSpeaker(cast: CharacterItem[], lines: Line[]): CharacterItem
 
 /** the demo's next line as the brain's reply, if it is `cast[0]`'s to say */
 export function demoReply(cast: CharacterItem[], lines: Line[]): Reply | null {
-  const d = demoFor(cast)
+  const locale = languageOf(lines), d = demoFor(cast, locale)
   const n = said(lines), l = d?.script.lines[n]
   if (!d || !l || d.who[l.who]?.id !== cast[0].id) return null
   const name = (id: string | null) => (id ? d.who[id]?.name ?? null : null)
   return {
     text: l.text, emotion: l.emotion as Reply['emotion'], action: l.action as Reply['action'], to: name(l.to),
     look: l.look === 'camera' || l.look === 'away' ? l.look : name(l.look),
-    audio: `${import.meta.env.BASE_URL}demo/${d.script.template}/${String(n + 1).padStart(2, '0')}.mp3`, demo: n,
+    audio: `${import.meta.env.BASE_URL}demo/${d.script.audio ?? d.script.template}/${String(n + 1).padStart(2, '0')}.mp3`, demo: n, demoLocale: locale, cues: readReactionCues(l.cues),
   }
 }
 
@@ -58,12 +65,22 @@ export function demoVoice(character: CharacterItem, cast: CharacterItem[]): { te
   const who = Object.keys(demo.who).find((key) => demo.who[key].id === character.id)
   const index = demo.script.lines.findIndex((line) => line.who === who)
   if (index < 0) return null
-  return { text: demo.script.lines[index].text, audio: `${import.meta.env.BASE_URL}demo/${demo.script.template}/${String(index + 1).padStart(2, '0')}.mp3` }
+  return { text: demo.script.lines[index].text, audio: `${import.meta.env.BASE_URL}demo/${demo.script.audio ?? demo.script.template}/${String(index + 1).padStart(2, '0')}.mp3` }
 }
 
 /** The prepared beat after the last spoken demo line; ordinary conversations keep their own pacing. */
 export function demoPause(cast: CharacterItem[], lines: Line[]): number | null {
   const last = lines.at(-1)
   if (last?.demo === undefined) return null
-  return demoFor(cast)?.script.lines[last.demo]?.pauseAfter ?? null
+  return demoFor(cast, languageOf(lines))?.script.lines[last.demo]?.pauseAfter ?? null
+}
+
+/** Listener directions belong to the prepared demo, separate from generated dialogue. */
+export function demoReactions(cast: CharacterItem[], line: Line) {
+  if (line.demo === undefined) return []
+  const demo = demoFor(cast, line.demoLocale)
+  if (!demo) return []
+  return (demo.script.lines[line.demo]?.reactions ?? []).map((reaction) => ({
+    character: demo.who[reaction.who], cues: readReactionCues(reaction.cues),
+  }))
 }

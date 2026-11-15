@@ -25,9 +25,13 @@ const FREE = { recordSeconds: 30, recordMark: true }
 const LINE_POINTS = 0.3  // when the site doesn't say
 let account: Account = { status: 'unknown', email: '', points: 0, error: '', closed: false, connect: null, ...FREE, linePoints: LINE_POINTS }
 const subs = new Set<() => void>()
-const set = (p: Partial<Account>) => { account = { ...account, ...p }; subs.forEach((f) => f()) }
+const lists = new Map<string, Promise<Voices>>()
+const set = (p: Partial<Account>) => {
+  if ((p.status !== undefined && p.status !== account.status) || (p.email !== undefined && p.email !== account.email)) lists.clear()
+  account = { ...account, ...p }; subs.forEach((f) => f())
+}
 export const onAccount = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
-export const useAccount = () => useSyncExternalStore(onAccount, () => account)
+export const useAccount = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => account)
 export const signedIn = () => account.status === 'in'
 export const accountNow = () => account
 
@@ -53,10 +57,13 @@ const post = (url: string, body: unknown, signal?: AbortSignal) =>
   api(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal })
 
 /** who is signed in (asked once at start, and after a voice was refused) */
+let refreshVersion = 0
 export async function refresh() {
+  const version = ++refreshVersion, session = token()
   if (inApp() && !token()) { set({ status: 'out', email: '', points: 0 }); return }  // no account here: LivLiv isn't asked
   try {
     const me = await answer(await api('/api/me'))
+    if (version !== refreshVersion || token() !== session) return
     // a kept session the site no longer takes: it ends with the sign-in that allowed it
     const lapsed = !me.signed_in && !!token()
     if (lapsed) keep('')
@@ -67,6 +74,7 @@ export async function refresh() {
     set(me.signed_in ? { status: 'in', email: me.email || me.name || '', points: me.points ?? 0, error: '', ...plan, linePoints }
       : { status: 'out', email: '', points: 0, ...FREE, linePoints, ...(lapsed ? { error: tr("登录过期了，重新登录一下") } : {}) })
   } catch {
+    if (version !== refreshVersion || token() !== session) return
     set({ status: 'out', email: '', points: 0, ...FREE, error: tr("连不上 LivLiv") })
   }
 }
@@ -129,14 +137,18 @@ export function cancelConnect() { waiting?.abort(); waiting = null; if (account.
 
 /** signs out on the site. If that fails the session is still alive there, so it stays here too, and says so */
 export async function logout() {
+  const session = token(), email = account.email
   try {
     const r = await api('/api/auth/logout', { method: 'POST' })
     if (!r.ok && r.status !== 401) throw new Error(String(r.status))
   } catch {
+    if (token() !== session || account.email !== email) return
     set({ error: tr("还没退出：连不上 LivLiv，稍后再试") })
     return
   }
+  if (token() !== session || account.email !== email) return
   keep('')
+  refreshVersion++
   set({ status: 'out', email: '', points: 0, error: '' })
 }
 
@@ -189,16 +201,15 @@ export function modelId(c: CharacterItem): string | null {
   return m[1] === 'characters' && SAMPLES.find((s) => s.id === m[2])?.onSite === false ? null : m[2]
 }
 
-export type VoiceOption = { id: string; name: string; desc: string }
+export type VoiceOption = { id: string; name: string; desc: string; group?: string }
 export type Voices = { voices: VoiceOption[]; voice: string; own: { id: string; name: string } | null }
-const lists = new Map<string, Promise<Voices>>()
 
 /** the voices a character can speak in, and the one it speaks in by default (its own, or its author's pick) */
 export function voicesOf(mid: string): Promise<Voices> {
   let p = lists.get(mid)
   if (!p) {
     p = api(`/api/chat/${encodeURIComponent(mid)}/voices`).then(answer)
-    p.catch(() => lists.delete(mid))
+    p.catch(() => { if (lists.get(mid) === p) lists.delete(mid) })
     lists.set(mid, p)
   }
   return p
