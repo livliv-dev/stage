@@ -47,7 +47,7 @@ npm --prefix collab start
 
 ## 数据边界
 
-可靠 DataChannel 传选中的角色文件；无序 DataChannel 最多 20 fps 传 Player 最终姿势。角色包最多 64 MiB / 512 文件，按 16 KiB 分片并等待背压。接收端检查路径、声明大小、总量、清单和分片完整性，再交给 Player 做格式检查。相机图像、其他舞台素材、密钥不会进入这个协议。
+可靠 DataChannel 传选中的角色文件与首次姿势；无序 DataChannel 最多 20 fps 传 Player 最终姿势。角色加载前收到的最新姿势会在加载完成后应用，暂停的角色也能正确加入。角色包最多 64 MiB / 512 文件，按 16 KiB 分片并等待背压。接收端检查路径、声明大小、总量、清单和分片完整性，再交给 Player 做格式检查。相机图像、其他舞台素材、密钥不会进入这个协议。
 
 每对成员独立 WebRTC 连接；所有人互听。发送声路只取本人麦克风和所选角色的 Player Speech 流，远程流不会回灌。静音朋友仅改变本机监听与录制增益。共享角色更换或删除时结束本次连接；临时角色不写入场景文件/角色库。参与者会收到可渲染资产，不承诺防复制。
 
@@ -56,8 +56,11 @@ npm --prefix collab start
 ```sh
 npm --prefix collab test
 node --disable-warning=ExperimentalWarning stage/test/collab.mjs
+node --disable-warning=ExperimentalWarning stage/test/collab-pose.mjs
 ```
 
 第二条在仓库根目录运行，需 Stage 依赖与 Playwright Chromium。它启动临时 relay 和 Vite，用三个隔离页面测试真实 WebRTC、三种格式、模型/姿势/音频、输出和离开后的录制，不访问外部服务。
+
+第三条验证角色暂停动画时，首次加入与退出后再加入都能同步当前姿势，不依赖后续动画帧。
 
 `npm --prefix desktop run test:stage-collab` 使用既有 Electron 运行时加载含生产依赖的临时测试归档，验证无需仓库源码的服务加载、双应用邀请与接纳、WebRTC 同台、停止与重载，以及四语言窄窗口。它不生成安装包；同机验收不能代替真实跨设备或公网验收。

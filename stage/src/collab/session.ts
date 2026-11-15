@@ -20,7 +20,7 @@ const set = (patch: Partial<RoomState>) => { state = { ...state, ...patch }; lis
 export const roomState = () => state
 export const useRoom = () => useSyncExternalStore((listener) => { listeners.add(listener); return () => { listeners.delete(listener) } }, () => state)
 export const onRoom = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } }
-type Peer = { member: Member; pc: RTCPeerConnection; stateChannel: RTCDataChannel | null; poseChannel: RTCDataChannel | null; receiver: PackageReceiver; pendingIce: RTCIceCandidateInit[]; asset: AbortController; status: PeerState }
+type Peer = { member: Member; pc: RTCPeerConnection; stateChannel: RTCDataChannel | null; poseChannel: RTCDataChannel | null; receiver: PackageReceiver; pendingIce: RTCIceCandidateInit[]; pose: ReturnType<typeof readPose>; asset: AbortController; status: PeerState }
 function membersFrom(raw: unknown, limit = MAX_MEMBERS): Member[] {
   if (!Array.isArray(raw) || raw.length > limit || raw.some((member) => !object(member) || typeof member.id !== 'string' || !/^[\w-]{1,64}$/.test(member.id) || !personName(member.name) || typeof member.host !== 'boolean')) throw new Error(tr("联播成员信息有问题"))
   const members = raw as Member[]
@@ -114,7 +114,7 @@ class Session {
   }
   private createPeer(member: Member) {
     const pc = new RTCPeerConnection(this.configuration)
-    const peer: Peer = { member, pc, stateChannel: null, poseChannel: null, receiver: new PackageReceiver(), pendingIce: [], asset: new AbortController(), status: { ...member, phase: 'connecting', progress: 0, error: '', muted: false } }
+    const peer: Peer = { member, pc, stateChannel: null, poseChannel: null, receiver: new PackageReceiver(), pendingIce: [], pose: null, asset: new AbortController(), status: { ...member, phase: 'connecting', progress: 0, error: '', muted: false } }
     this.peers.set(member.id, peer)
     pc.addTrack(this.audio.stream.getAudioTracks()[0], this.audio.stream)
     pc.onicecandidate = (event) => { if (event.candidate) this.send({ t: 'signal', to: member.id, signal: { candidate: event.candidate.toJSON() } }) }
@@ -132,7 +132,7 @@ class Session {
       peer.poseChannel = channel
       channel.onmessage = (event) => {
         if (this.stopped || peer.status.phase === 'error') return
-        try { if (typeof event.data !== 'string' || event.data.length > 16 * 1024) throw new Error(); const pose = readPose(JSON.parse(event.data)); if (!pose) throw new Error(); actorFor(peer.member.id)?.follow(pose) }
+        try { if (typeof event.data !== 'string' || event.data.length > 16 * 1024) throw new Error(); const pose = readPose(JSON.parse(event.data)); if (!pose) throw new Error(); peer.pose = pose; actorFor(peer.member.id)?.follow(pose) }
         catch { this.peerError(peer, tr("收到的角色动作有问题")) }
       }
       return
@@ -150,6 +150,12 @@ class Session {
           if (!object(message)) throw new Error(tr("联播消息无效"))
           if (message.t === 'model') { peer.receiver.begin(message.model); peer.status.phase = 'receiving'; this.publish() }
           else if (message.t === 'model-end') { const value = peer.receiver.end(message.id); peer.status.phase = 'loading'; peer.status.progress = 1; this.publish(); void this.load(peer, value) }
+          else if (message.t === 'pose') {
+            const pose = readPose(message.pose)
+            if (!pose) throw new Error(tr("收到的角色动作有问题"))
+            // A live pose on the other channel may already be newer than this initial snapshot.
+            if (!peer.pose) { peer.pose = pose; actorFor(peer.member.id)?.follow(pose) }
+          }
         }
       } catch (error) { this.peerError(peer, (error as Error).message) }
     }
@@ -165,6 +171,8 @@ class Session {
       const value = await this.asset
       if (this.stopped || peer.asset.signal.aborted) return
       await sendPackage(peer.stateChannel!, value, peer.asset.signal)
+      // A paused or backgrounded publisher may not draw another frame after joining.
+      if (!this.stopped && !peer.asset.signal.aborted && this.actor?.status === 'ready') peer.stateChannel!.send(JSON.stringify({ t: 'pose', pose: this.actor.lastPose }))
     } catch (error) { if (!this.stopped && !peer.asset.signal.aborted) this.peerError(peer, tr("角色没有分享成功：") + (error as Error).message) }
   }
   private frame(actor: Actor) {
@@ -179,7 +187,7 @@ class Session {
     let changed = false
     for (const peer of this.peers.values()) {
       const remote = actorFor(peer.member.id)
-      if (remote?.status === 'ready' && peer.status.phase === 'loading') { peer.status.phase = 'ready'; changed = true }
+      if (remote?.status === 'ready' && peer.status.phase === 'loading') { if (peer.pose) remote.follow(peer.pose); peer.status.phase = 'ready'; changed = true }
       else if (remote?.status === 'error' && peer.status.phase !== 'error') { peer.status.phase = 'error'; peer.status.error = remote.error; changed = true }
     }
     if (changed) this.publish()
