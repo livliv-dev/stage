@@ -27,6 +27,8 @@ npm --prefix collab start
 
 同机测试可用不同浏览器 profile，避免两个编辑页共用同一条输出 BroadcastChannel。普通浏览器和桌面客户端使用相同协议。系统朗读只在本机，角色接口语音和麦克风通过 WebRTC 同步；收到的声音只在编辑器播放一次，OBS 采集应用音频。本地录制会混入朋友声音。录自己的麦克风仍需在录制面板开启。
 
+普通局域网 HTTP 网页可同步角色和角色接口声音；网页麦克风需要 HTTPS 或本机 localhost。部署者还需将非 localhost 的网页来源加入下述 `ALLOWED_ORIGINS`；桌面内置托管默认接受桌面客户端和 localhost 网页。
+
 ## 信令配置
 
 | 环境变量 | 默认 | 用途 |

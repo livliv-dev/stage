@@ -37,7 +37,9 @@ export async function packageFor(character: CharacterItem, signal: AbortSignal):
       }
     }
   }
-  const manifest: ModelManifest = { id: crypto.randomUUID(), name: character.name, format: formatOf(character.model), mirror: character.mirror, color: character.color, files: [...files].map(([path, blob]) => ({ path, size: blob.size, type: blob.type })) }
+  // LAN HTTP pages expose getRandomValues, but not the secure-context-only randomUUID.
+  const id = [...crypto.getRandomValues(new Uint8Array(16))].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+  const manifest: ModelManifest = { id, name: character.name, format: formatOf(character.model), mirror: character.mirror, color: character.color, files: [...files].map(([path, blob]) => ({ path, size: blob.size, type: blob.type })) }
   if (!readManifest(manifest) || new TextEncoder().encode(JSON.stringify(manifest)).length > WIRE_TEXT) throw new Error(tr("这个角色超出联播限制（64 MB、512 个文件）"))
   return { manifest, files }
 }

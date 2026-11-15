@@ -35,6 +35,27 @@ try {
   const mic = join(artifacts, 'microphone.wav'); await writeFile(mic, wav(2, 220))
   relay = await startRelay({ port: 0 }); const service = `ws://127.0.0.1:${relay.address.port}/room`, origin = await serve()
   browser = await chromium.launch({ args: ['--allow-loopback-in-peer-connection', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-audio-capture=${mic}`] })
+  // A friend's LAN HTTP page has getRandomValues, but no secure-context randomUUID.
+  const lan = await browser.newContext()
+  await lan.route('http://stage-lan.test/**', async (route) => {
+    const url = new URL(route.request().url())
+    if (url.pathname === '/') return route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>LAN package test</title>' })
+    await route.fulfill({ response: await route.fetch({ url: origin + url.pathname + url.search }) })
+  })
+  const lanPage = await lan.newPage(); await lanPage.goto('http://stage-lan.test/')
+  report.lanPackages = await lanPage.evaluate(async () => {
+    const { emptyScene, localModels, newCharacter } = await import('/src/scene.ts'), { packageFor } = await import('/src/collab/assets.ts')
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 8
+    canvas.getContext('2d').fillRect(0, 0, 8, 8)
+    const picture = await new Promise((resolve) => canvas.toBlob(resolve)), key = 'lan-http-package'
+    localModels.set(key, new Map([['closed.png', picture]]))
+    const character = newCharacter(emptyScene(), 'LAN guest', { type: 'files', key, format: 'png' }, '')
+    const one = await packageFor(character, new AbortController().signal), two = await packageFor(character, new AbortController().signal)
+    return { secure: isSecureContext, randomUUID: typeof crypto.randomUUID, ids: [one.manifest.id, two.manifest.id] }
+  })
+  assert.equal(report.lanPackages.secure, false); assert.equal(report.lanPackages.randomUUID, 'undefined')
+  assert.notEqual(...report.lanPackages.ids)
+  await lan.close()
   for (const [index, format] of ['png', 'livliv', 'vrm'].entries()) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['microphone'] }); contexts.push(context)
     await context.addInitScript(() => {
