@@ -41,7 +41,8 @@ export function connectNeuro(host: Host) {
     ).finally(() => pending.delete(message.id))
   })
   const offSpeech = host.subscribeSpeech?.((event) => {
-    if (event.character === character) void neuro.speech({ character: event.character, isFinal: !event.speaking && event.final !== false, ...(event.cancelled ? { cancelled: true } : {}) }).catch((error: unknown) => console.error('[Neuro speech]', error))
+    // speech_finished is for a part said, never for a line starting
+    if (event.character === character && !event.speaking) void neuro.speech({ character: event.character, isFinal: event.final !== false, ...(event.cancelled ? { cancelled: true } : {}) }).catch((error: unknown) => console.error('[Neuro speech]', error))
   })
   return () => {
     disposed = true; offMessage(); offState(); offSpeech?.(); disconnect()

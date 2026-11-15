@@ -70,7 +70,7 @@ test('stopping the server releases dialogue holds and speech reports follow only
   speechListener?.({ character: 'actor-1', speaking: true })
   speechListener?.({ character: 'actor-1', speaking: false, final: false })
   speechListener?.({ character: 'actor-1', speaking: false, final: true, cancelled: true })
-  assert.deepEqual(speech.slice(before), [{ character: 'actor-1', isFinal: false }, { character: 'actor-1', isFinal: false }, { character: 'actor-1', isFinal: true, cancelled: true }])
+  assert.deepEqual(speech.slice(before), [{ character: 'actor-1', isFinal: false }, { character: 'actor-1', isFinal: true, cancelled: true }], 'nothing when a line starts')
   emit({ kind: 'dialogue', id: 'line-2', connection: 'connection-1', started: true })
   states.forEach((callback) => callback(OFF))
   assert.deepEqual(dialogue, [{ id: 'line-2', started: true }, { id: 'line-2', started: false }])

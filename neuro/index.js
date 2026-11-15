@@ -50,8 +50,10 @@ export function createNeuroServer(options) {
     const id = randomUUID(), actions = new Map(), pending = new Map()
     let game = '', force = null, closed = false, queuedEvents = 0, eventQueue = Promise.resolve()
     const publish = event => {
-      if (queuedEvents >= 128 && event.type !== 'disconnect') {
+      // a host that stopped taking events; a game's normal burst (registering, a run of context) stays well under this
+      if (queuedEvents >= 512 && event.type !== 'disconnect') {
         report(new Error('Host event queue is full'), id)
+        closed = true  // frames already read in the same burst are dropped, not answered on a closing socket
         socket.close(1008, 'Host event queue is full')
         return Promise.resolve()
       }
@@ -273,6 +275,7 @@ export function createNeuroServer(options) {
         for (const client of ws.clients) client.terminate()
         for (const state of games.values()) { clearTimeout(state.replyTimer); for (const line of state.active.values()) clearTimeout(line.timer) }
         await new Promise(resolve => ws.close(resolve))
+        http.closeAllConnections()  // a half-sent request would otherwise hold close() for up to a minute
         if (listening) await new Promise((resolve, reject) => http.close(error => error ? reject(error) : resolve()))
         listening = false
       })()

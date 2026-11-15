@@ -17,7 +17,7 @@ import { brainReady, makeBrain, loadBrainConfig, decideExternalAction, type Line
 import { demoFor, demoPause, demoReactions, demoSpeaker } from './demo'
 import { participants as characters, store, uid, type CharacterItem } from './scene'
 import { estimate, hush } from './speech'
-import { isBlocked, onChat, type Chat } from './danmaku'
+import { chatState, isBlocked, onChat, type Chat } from './danmaku'
 import { AudienceInbox } from './audience'
 import { voiceRoute } from './voiceApi'
 import { isOutput, onMsg, outputOpen, post } from './link'
@@ -538,6 +538,12 @@ function waitFor(c: CharacterItem, signal: AbortSignal) {
   })
 }
 
+/** a 对谈 turn: a clip that won't play keeps its subtitle (the character shows the voice error) and the talk goes on,
+ *  as it always did; the turn was already counted, so a voice that keeps failing still ends at the turn limit */
+async function talkOn(who: CharacterItem, signal: AbortSignal) {
+  try { await aiTurn(who, signal) } catch (e) { if (!(e instanceof VoiceFailed) || signal.aborted) throw e }
+}
+
 async function run(once: boolean) {
   ctrl?.abort()
   dropAhead()
@@ -545,8 +551,12 @@ async function run(once: boolean) {
   single = once; liveOptions = null; boundProfiles = castKey()
   set({ running: true, mode: 'conversation', waitingAudience: false, until: 0, ended: '', paused: false, error: '' })
   try {
-    if (profiles().length) await openHistory('private', c.signal)
-    else { chatHistory.reset(); set({ sessionId: '' }) }
+    // 对谈时回应弹幕 with an audience there (Twitch, or a test message waiting): the public session, which answers viewers
+    // and never reads private memories; otherwise the private one
+    const audience = store.get().talk.danmaku > 0 && (chatState().status === 'on' || viewers.available(Date.now(), isBlocked))
+    const scope: MemoryScope = audience ? 'public' : 'private'
+    if (profiles().length) await openHistory(scope, c.signal)
+    else { chatHistory.reset(); set({ sessionId: '', scope }) }
     // characters still loading (a template just placed, its players not made yet) are waited for, a little
     const loading = () => characters(store.get()).some((x) => x.lines === 'ai' && !['ready', 'error'].includes(actors.get(x.id)?.status ?? ''))
     for (let i = 0; i < 60 && loading(); i++) await wait(250, c.signal)
@@ -562,7 +572,7 @@ async function run(once: boolean) {
           const me = inDemo ?? ai.find((x) => x.id === forced) ?? ai.find((x) => x.name === last?.to) ?? freePick(ai)
           forced = null
           if (!me) break
-          await aiTurn(me, c.signal)
+          await talkOn(me, c.signal)
           if (!queue.length) break
           while (queue.length) await consumeInput(c.signal)
         }
@@ -577,7 +587,7 @@ async function run(once: boolean) {
         const l = await waitFor(who, c.signal)
         if (l) await yours(l, c.signal)
         else { lastTurn = who.id; skipped = who.id }
-      } else await aiTurn(who, c.signal)
+      } else await talkOn(who, c.signal)
       c.signal.throwIfAborted()  // stopped during the line: it ends quietly, and the next one mustn't start
       await new Promise<void>((r, j) => {  // the pause between lines: 下一句 ends it now
         const scripted = loadBrainConfig().kind === 'demo' ? demoPause(voices(), state.lines) : null

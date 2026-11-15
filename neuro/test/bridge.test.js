@@ -234,7 +234,7 @@ test('a stalled host cannot accumulate an unbounded event queue', async t => {
   let release
   const value = await setup(t, { onEvent(event) { if (event.type === 'context') return new Promise(resolve => { release ??= resolve }) } })
   value.client.on('error', () => {})
-  for (let i = 0; i < 140; i++) value.send('context', { message: `context ${i}`, silent: true })
+  for (let i = 0; i < 600; i++) value.send('context', { message: `context ${i}`, silent: true })  // past the 512 a host may hold
   const [code] = await once(value.client, 'close')
   release?.()
   assert.equal(code, 1008)
