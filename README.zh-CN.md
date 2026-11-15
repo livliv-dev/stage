@@ -23,14 +23,14 @@
 - 基础功能都有：摄像头面捕（手机面捕 App 和 VMC/OSC 用桌面版）、OBS 输出、录视频
 - 27 个精选角色，开箱即用。基于 [LivLiv Player](https://github.com/livliv-dev/player)
 
-AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等），也可以不填密钥，直接用 livliv.ai 的 AI。
+AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等），也可以使用 LivLiv.ai 帐号。
 实时语音需要你自己的 OpenAI 或阿里云百炼密钥。
 
 ## 试一试
 
 - **桌面版**：macOS 和 Windows，到 [Releases](https://github.com/livliv-dev/stage/releases/latest) 下载。
   macOS 也可以在终端里一行装好，第一次打开不会被拦：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
-- **在线**：[livliv.ai/stage](https://livliv.ai/stage)
+- **在线（网页版，功能受限）**：[livliv.ai/stage](https://livliv.ai/stage)
 - **从源码运行**：见[开发](#开发)
 
 <p align="center"><img src="media/editor.jpg" alt="Stage 编辑器：六个角色同台，Ruri 正在说话" width="720"></p>

@@ -23,14 +23,14 @@
 - 基本機能：Web カメラのフェイストラッキング（スマホアプリと VMC/OSC はデスクトップ版）、OBS 出力、動画の録画
 - 厳選キャラクター 27 体、すぐに使えます。[LivLiv Player](https://github.com/livliv-dev/player) がベース
 
-AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）でも、キー不要の livliv.ai の AI でも動きます。
+AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）、または LivLiv.ai アカウントで利用できます。
 リアルタイム音声には OpenAI か Alibaba Cloud Bailian のキーが必要です。
 
 ## 試してみる
 
 - **デスクトップ版**：macOS と Windows 版を [Releases](https://github.com/livliv-dev/stage/releases/latest) から。
   macOS はターミナルで 1 行入力してもインストールでき、初回の確認は出ません：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
-- **オンライン**：[livliv.ai/stage](https://livliv.ai/stage)
+- **オンライン（Web版・機能制限あり）**：[livliv.ai/stage](https://livliv.ai/stage)
 - **ソースから**：[開発](#開発)を参照
 
 <p align="center"><img src="media/editor.jpg" alt="Stage のエディター：6 体のキャラクターが同じステージに。Ruri が話しているところ" width="720"></p>

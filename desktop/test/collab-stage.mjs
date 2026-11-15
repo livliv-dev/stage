@@ -26,8 +26,8 @@ try {
   metadata.main = 'test-entry.cjs'
   await writeFile(join(source, 'package.json'), JSON.stringify(metadata))
   // Keep automated resizing and language changes out of the user's desktop. The production entry and renderer
-  // are unchanged; only this test archive suppresses its windows' show methods.
-  await writeFile(join(source, 'test-entry.cjs'), "const { BrowserWindow } = require('electron'); BrowserWindow.prototype.show = function () {}; BrowserWindow.prototype.showInactive = function () {}; require('./dist/main.js')")
+  // are unchanged; this test archive hides its windows and delays service startup to check pending controls.
+  await writeFile(join(source, 'test-entry.cjs'), "const { BrowserWindow } = require('electron'); BrowserWindow.prototype.show = function () {}; BrowserWindow.prototype.showInactive = function () {}; const Module = require('node:module'), load = Module._load; Module._load = function (name, ...args) { const value = load.call(this, name, ...args); return name === 'livliv-stage-collab' ? { ...value, async startRelay(options) { await new Promise((resolve) => setTimeout(resolve, 750)); return value.startRelay(options) } } : value }; require('./dist/main.js')")
   for (const name of ['@livliv-dev/neuro-bridge', 'livliv-stage-collab', 'ws']) {
     await mkdir(join(source, 'node_modules', name, '..'), { recursive: true })
     await cp(join(root, 'node_modules', name), join(source, 'node_modules', name), { recursive: true, dereference: true })
@@ -80,7 +80,11 @@ try {
   const hasNetwork = Object.values(networkInterfaces()).flatMap((items) => items ?? []).some((item) => item.family === 'IPv4' && !item.internal && /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(item.address))
   if (!hasNetwork) await host.locator('.collab-host-options .switch').click()
   await host.getByRole('button', { name: '分享并创建联播', exact: true }).click()
+  assert.equal(await host.getByLabel('分享麦克风', { exact: true }).isDisabled(), true, 'submitted microphone choice is locked while the native service starts')
+  await host.locator('.collab-microphone').click({ force: true })
+  assert.equal(await host.getByLabel('分享麦克风', { exact: true }).isChecked(), false, 'a click while starting cannot change the submitted microphone choice')
   await host.getByLabel('邀请码', { exact: true }).waitFor()
+  assert.equal(await host.getByRole('button', { name: '麦克风已关闭', exact: true }).count(), 1)
   let invite = await host.getByLabel('邀请码', { exact: true }).inputValue()
   const decoded = JSON.parse(Buffer.from(invite.slice(5), 'base64url').toString())
   let running = await host.evaluate(() => window.livlivDesktop.collab.get())
@@ -119,6 +123,7 @@ try {
   await host.locator('.collab-panel button[data-close]').click(); await host.locator('.collab-button').click()
   await host.locator('.collab-host-options summary').click()
   await until(() => host.getByLabel('允许同一网络的朋友加入').isChecked(), (value) => !value, 'reopening the panel changed local-only hosting back to LAN')
+  await host.getByLabel('本机端口（0 为自动）').fill('0')
   await host.getByRole('button', { name: '启动服务', exact: true }).click()
   const restarted = await until(() => host.evaluate(() => window.livlivDesktop.collab.get()), (value) => value.enabled, 'server did not restart')
   await host.reload()
