@@ -5,23 +5,26 @@
   </picture>
 </p>
 
-<h3 align="center">Your AI-Native Studio for Character Videos and Streams<br><sub>Many characters. One stage.</sub></h3>
+<h3 align="center">Your AI VTuber Studio</h3>
 
 <p align="center">
-  Put many characters on one stage. Play one with your webcam and let AI play the rest: they talk to each other and to
-  your chat. Then record a video, or go live through OBS. In the browser or as a desktop app.<br>
-  Comes with 27 featured characters in different styles, ready to use.
+  Give a character a personality, and in minutes it's chatting with you or streaming live. Or play it yourself.
 </p>
 
 <p align="center"><b>English</b> · <a href="README.zh-CN.md">中文</a> · <a href="README.ja.md">日本語</a></p>
 
 <p align="center"><img src="media/demo.gif" alt="Ruri, Nana and Konatsu talking on one stage, with a speech bubble" width="720"></p>
 
-- Many characters on one stage: LivLiv (half-body and full-body), VRM and PNGTuber, each with its own driver and voice
-- AI VTubers that talk to each other and to your Twitch chat, with LivLiv's AI (no key needed) or your own model
-- Webcam face tracking and microphone lip sync; on desktop also phone tracking apps, VMC/OSC and global hotkeys
-- Record the whole stage to MP4, or send it to OBS
-- Built on [LivLiv Player](https://github.com/livliv-dev/player)
+- Up to 30 characters on one stage (15 in a browser): LivLiv half-body and full-body, VRM and PNGTuber
+- Long-term memory and real-time voice chat
+- Characters that talk to each other and to your Twitch chat
+- Emotional reactions as they speak
+- Built-in Neuro SDK support (desktop app)
+- All the basics: webcam face tracking (phone apps and VMC/OSC in the desktop app), OBS output, video recording
+- 27 featured characters, ready to use. Built on [LivLiv Player](https://github.com/livliv-dev/player)
+
+The AI runs on your own model key (OpenAI, Qwen, DeepSeek and more), or on livliv.ai's AI with no key. Real-time voice
+needs your own OpenAI or Alibaba Cloud Bailian key.
 
 ## Try it
 
@@ -58,12 +61,14 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # the desktop app
 ```
 
 Tests: `npm --prefix stage run check && npm --prefix stage test`, `npm --prefix desktop test`, `npm --prefix collab test`.
-The local control API is in [docs/stage-api.md](docs/stage-api.md), co-streaming in [collab/README.md](collab/README.md).
+AI chat and memory: [docs/ai-conversations.md](docs/ai-conversations.md), real-time voice:
+[docs/realtime-voice.md](docs/realtime-voice.md), the Neuro SDK bridge: [neuro/README.md](neuro/README.md), the local control API:
+[docs/stage-api.md](docs/stage-api.md), co-streaming: [collab/README.md](collab/README.md).
 Model keys stay in the browser or the app and go straight to the provider. Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
 Security reports: [SECURITY.md](SECURITY.md).
 
 ## License
 
-The code is under the [GNU AGPL version 3](LICENSE). The featured characters have
+The code is under the [Apache License 2.0](LICENSE). The featured characters have
 [their own licence](stage/public/characters/LICENSE.md). You may keep the LivLiv name and logo in your own versions,
 as long as they don't claim to be the official one: [TRADEMARKS.md](TRADEMARKS.md).

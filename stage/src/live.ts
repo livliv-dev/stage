@@ -51,7 +51,7 @@ export function trigger(a: Actor, id: string, how: 'down' | 'up' | 'press') {
 
 /** a move; shy also shows the character's own shy face for as long, when it has one and no expression is showing */
 export function move(a: Actor, id: (typeof MOVE_KEYS)[keyof typeof MOVE_KEYS]) {
-  a.player.act(id)
+  a.act(id)
   const shy = id === 'shy' && !a.expression && a.format !== 'png' && a.player.expressions.find((x) => x.id === 'shy' || [x.label, ...Object.values(x.labels ?? {})].some((l) => /害羞|shy|照れ/i.test(l)))
   if (shy) a.pulseExpression(shy.id, 2.4)
 }

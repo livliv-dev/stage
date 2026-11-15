@@ -6,7 +6,7 @@ import { tr } from './i18n'
 //    subtitles are worked out from it, as the stage does)
 //  - the sound: each LivLiv clip with when it was heard and where it was cut off, and the microphone when asked for.
 //    The system's own voice gives no sound to take down: those lines are in the video without it
-import { actors, onFrame, onHeard, type Actor, type Heard } from './actors'
+import { actors, onActors, onFrame, onHeard, type Actor, type Heard } from './actors'
 import { conversation, onConv } from './conversation'
 import { store, type Scene } from './scene'
 import type { Line } from './brain'
@@ -100,11 +100,12 @@ export async function record(mic: boolean, inputStatus?: (error: Error | null) =
   const take: Take = { t0, cuts: [], seconds: 0, tracks: new Map(), scenes: [{ t: 0, scene: store.get() }], convs: [], clips: [], mic: null, remote: [] }
   const sec = () => onTape(take, performance.now())
   let waiting: Cut | null = null
-  let liveAudio = remoteSounds().length > 0
+  const soundsNow = () => [...remoteSounds(), ...[...actors.values()].flatMap((actor) => actor.liveAudio ? [{ id: 'realtime:' + actor.item.id, stream: actor.liveAudio, volume: 1 }] : [])]
+  let liveAudio = soundsNow().length > 0
   const endWait = () => { if (waiting) { waiting.to = Math.max(waiting.from, performance.now() - BLEND); waiting = null } }
   const conv = () => {
     const c = conversation()
-    if (stream || liveAudio || !c.running || c.speaking || c.mode === 'live') endWait()
+    if (stream || liveAudio || !c.running || c.speaking || c.mode === 'chat' || c.mode === 'live' || c.mode === 'realtime') endWait()
     else if (!waiting) { waiting = { from: performance.now(), to: Infinity }; take.cuts.push(waiting) }
     take.convs.push({ t: sec(), lines: c.lines, speaking: c.speaking })
   }
@@ -146,7 +147,7 @@ export async function record(mic: boolean, inputStatus?: (error: Error | null) =
     return value
   }
   const updateSounds = () => {
-    const sounds = remoteSounds()
+    const sounds = soundsNow()
     if (sounds.length) { liveAudio = true; conv() }
     for (const [id, value] of active) if (!sounds.some((sound) => sound.id === id && sound.stream === value.stream)) { value.stop(); active.delete(id) }
     for (const source of sounds) {
@@ -161,6 +162,7 @@ export async function record(mic: boolean, inputStatus?: (error: Error | null) =
     if (stream) { take.mic = { blob: new Blob(), at: 0 }; capture(microphone!.output.stream, take.mic) }
     updateSounds()
     offs.push(onRemoteSounds(() => { try { updateSounds() } catch (error) { failure = error as Error } }))
+    offs.push(onActors(() => { try { updateSounds() } catch (error) { failure = error as Error } }))
   } catch (error) { offs.forEach((off) => off()); captures.forEach((value) => value.stop()); closeMicrophone(); throw error }
   const end = () => { offs.forEach((off) => off()); endWait(); take.seconds = sec(); captures.forEach((value) => value.stop()); closeMicrophone() }
   return {

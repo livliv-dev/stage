@@ -2,7 +2,7 @@
 
 Issues and pull requests are welcome. Please be kind.
 
-There is no CLA. Contributions are under the GNU AGPL version 3, like the rest of the code ([LICENSE](LICENSE)).
+There is no CLA. Contributions are under the Apache License 2.0, like the rest of the code ([LICENSE](LICENSE)).
 
 ## Branches
 
@@ -28,4 +28,4 @@ For a change to the interface, also run `npm --prefix stage run test:browser` (s
 ## What we can't take
 
 - Changes to the featured characters in `stage/public/characters/`, or new ones. See their [licence](stage/public/characters/LICENSE.md) and [credits](stage/public/characters/CREDITS.md).
-- Code or assets that can't be released under the GNU AGPL version 3, including anything that needs a vendor's licence (for example the Live2D Cubism SDK).
+- Code or assets that can't be released under the Apache License 2.0, including anything that needs a vendor's licence (for example the Live2D Cubism SDK).

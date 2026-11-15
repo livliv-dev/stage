@@ -11,6 +11,7 @@ import { gamepadSource } from './gamepad'
 import { deviceError, inputs, microphoneConstraints, onInputs, refreshDevices } from './devices'
 import type { Emotion, Move } from './brain'
 import { AUTO_AWAY, participants as characters, store, type CharacterItem, type ModelRef } from './scene'
+import { ReactionDirector, type ReactionCue, type ReactionMove, type ReactionPhase } from './reactions'
 import { estimate, say, type Utterance } from './speech'
 import { isOutput, outputOpen, post } from './link'
 import { length, modelId, voiceLine, type Clip } from './livliv'
@@ -19,9 +20,6 @@ import { crowd, released } from './contexts'
 import { mediapipeBase } from './host'
 
 const FACE_MODEL = { wasmUrl: mediapipeBase + 'wasm', modelUrl: mediapipeBase + 'face_landmarker.task' }
-const FEELING: Record<Exclude<Emotion, 'neutral'>, string[]> = {
-  happy: ['笑', '开心', 'smile', 'happy'], shy: ['害羞', 'shy'], angry: ['生气', 'angry'], sad: ['难过', 'sad'], surprised: ['惊讶', 'surprised'],
-}
 export const actors = new Map<string, Actor>()
 const listeners = new Set<() => void>()
 export const onActors = (f: () => void) => { listeners.add(f); return () => { listeners.delete(f) } }
@@ -76,15 +74,15 @@ export class Actor {
   private mic: LipSync | null = null
   private micStream: MediaStream | null = null
   private voice: Speech
+  private liveVoice: { output: MediaStreamAudioDestinationNode; gain: GainNode; lip: LipSync | null; silent: boolean; close(): void } | null = null
   private speechOptions: LipSyncOptions = { motion: 0.6 }
   private utter: Utterance | null = null
   private heard: Heard | null = null
   private pace = 0
   private next: { at: number; look: Look | null | 'free' } | null = null
   private aim: Look | null | 'free' = null
-  private nodAt = 0
+  private nodAt: number | null = null
   private nodTime = -1
-  private calm = 0
   private disposed = false
   private offInputs: () => void
   private offQuality: () => void
@@ -102,6 +100,7 @@ export class Actor {
   private loopAt = performance.now()
   private stepAt = 0
   private stepping = false
+  private reactions: ReactionDirector
 
   constructor(canvas: HTMLCanvasElement, item: CharacterItem) {
     this.item = item
@@ -112,6 +111,22 @@ export class Actor {
     this.offQuality = onQuality(() => { this.player.maxPixelRatio = pixelRatio() })
     this.lastPose = this.player.getPose()
     this.voice = createSpeech(this.player, this.speechOptions)
+    this.reactions = new ReactionDirector({
+      settings: () => this.item.reactions ?? { enabled: true, intensity: 1 },
+      canReact: () => !this.disposed && !isOutput && !this.item.remote && !this.item.hidden && this.status === 'ready' && (this.item.driver === 'auto' || this.item.driver === 'mic'),
+      expressions: () => this.player.expressions,
+      expressionStrength: () => this.item.tuning.expressionStrength,
+      expression: (id, weight) => this.applyExpression(id, weight),
+      act: (action, strength) => this.player.act(action, strength),
+      look: (direction) => {
+        if (this.item.gaze !== 'people') return
+        if (direction === 'camera') this.look(null)
+        else {
+          const face = faceOf(this.item)
+          this.look({ x: face.x + this.item.w * 0.35, y: face.y + this.item.h * 0.25 })
+        }
+      },
+    })
     this.offMixer = isOutput || item.remote ? () => {} : onMixer(() => this.syncVolume())
     this.offInputs = isOutput || item.remote ? () => {} : onInputs(() => void this.drive())
     actors.set(item.id, this)
@@ -141,12 +156,13 @@ export class Actor {
       if (!item.remote) this.player.use({ order: 20, update: (f) => {
         if (this.utter) { f.params.mouthOpen = Math.max(f.params.mouthOpen, this.utter.level()); f.params.vowel = this.utter.vowel() }
         this.watchFace()
-        if (!f.tracked && this.listening && !this.utter) {
+        if (!f.tracked && this.listening && this.item.reactions?.listen !== false && !this.utter && this.reactions.available) {
+          this.nodAt ??= f.time + 2.4 + Math.random() * 3.6
           if (this.nodTime < 0 && f.time > this.nodAt) this.nodTime = 0
           if (this.nodTime >= 0) {
             this.nodTime += f.dt
-            if (this.nodTime > 0.7) { this.nodTime = -1; this.nodAt = f.time + 2.5 + Math.random() * 4 }
-            else f.add({ angleY: -3.5 * Math.sin(Math.PI * this.nodTime / 0.7) })
+            if (this.nodTime > 0.7) { this.nodTime = -1; this.nodAt = f.time + 7 + Math.random() * 6 }
+            else f.add({ angleY: -2.5 * (this.item.reactions?.intensity ?? 1) * (this.item.reactions?.motion ?? 0.85) * Math.sin(Math.PI * this.nodTime / 0.7) })
           }
         }
       } })
@@ -159,6 +175,11 @@ export class Actor {
   get trackingSample() { return !isOutput && !this.item.remote ? this.player.parameterSample : null }
   get expression() { return this.expressionId }
   setExpression(id: string | null, weight = this.item.tuning.expressionStrength) {
+    if (!this.applyExpression(id, weight)) return false
+    this.reactions.manual(id !== null)
+    return true
+  }
+  private applyExpression(id: string | null, weight = this.item.tuning.expressionStrength) {
     const applied = this.player.setExpression(id, weight)
     if (applied) { clearTimeout(this.expressionExpiry); this.expressionExpiry = 0; this.expressionId = id; this.expressionRevision++; changed() }
     return applied
@@ -171,6 +192,19 @@ export class Actor {
     }, seconds * 1000)
     return true
   }
+  /** Manual actions briefly take priority over automatic movement. */
+  act(move: ReactionMove | 'away') {
+    this.reactions.manualAction()
+    if (move === 'away') this.player.setAway(true)
+    else if (move !== 'none') this.player.act(move, this.item.reactions?.motion ?? 0.85)
+  }
+  setPhase(phase: ReactionPhase) {
+    this.listening = phase === 'listening'
+    if (!this.listening) { this.nodTime = -1; this.nodAt = null }
+    this.reactions.setPhase(phase)
+  }
+  react(cue: ReactionCue, planned = false) { return this.reactions.react(cue, planned) }
+  previewReaction(cue: ReactionCue) { return this.reactions.react(cue, true) }
   get tracking() { return this.face ? { face: this.face.face, fps: this.face.fps, dark: this.face.dark } : null }
   /** dozing: eyes closed, head down (B, act:away), or by itself after the camera saw no face for a while */
   get away() { return this.awayBy !== null }
@@ -204,14 +238,58 @@ export class Actor {
     } finally { this.stepping = false }
   }
   get inputLevel() { return this.mic?.level ?? this.voice.level }
-  get speaking() { return !!this.utter }
-  get audio() { return this.voice.stream }
+  get speaking() { return !!this.utter || (this.liveVoice?.lip?.level ?? 0) > .02 }
+  get audio() { return this.liveVoice?.output.stream ?? this.voice.stream }
+  /** Already mixed at the character's real volume; recording must not apply that gain a second time. */
+  get liveAudio() { return this.liveVoice?.output.stream ?? null }
   private get volume() { return this.item.muted ? 0 : this.item.tuning.volume * busGain('characters') }
   private syncVolume() {
     const volume = this.volume
     this.voice.volume = volume
+    if (this.liveVoice) this.liveVoice.gain.gain.value = this.liveVoice.silent ? 0 : volume
     if (this.heard && this.heard.start > 0 && this.heard.gain.at(-1)?.value !== volume) this.heard.gain.push({ at: performance.now(), value: volume })
     if (!volume && this.systemVoice) this.silence()
+  }
+  /** Open from a user gesture. The incoming WebRTC track uses the same character bus, lip sync and recording path. */
+  realtimeVoice() {
+    this.liveVoice?.close()
+    const context = new AudioContext(), output = context.createMediaStreamDestination(), gain = context.createGain()
+    gain.gain.value = this.volume; gain.connect(output); gain.connect(context.destination)
+    let source: MediaStreamAudioSourceNode | null = null, decoder: HTMLAudioElement | null = null, closed = false
+    const value = {
+      output, gain, lip: null as LipSync | null, silent: false,
+      close: () => {
+        if (closed) return
+        closed = true; value.lip?.stop(); source?.disconnect(); gain.disconnect()
+        if (decoder) { decoder.pause(); decoder.srcObject = null; decoder = null }
+        // Capture listeners detach before this stream is stopped.
+        if (this.liveVoice === value) { this.liveVoice = null; changed() }
+        output.stream.getTracks().forEach((track) => track.stop()); void context.close()
+      },
+    }
+    this.liveVoice = value; changed()
+    const actor = this, resumed = context.resume()
+    void resumed.catch(() => {})
+    return {
+      stream: output.stream, ready: resumed,
+      level: () => value.lip?.level ?? 0,
+      async connect(stream: MediaStream) {
+        await resumed
+        if (closed) return
+        if (decoder) { decoder.pause(); decoder.srcObject = null }
+        // Chromium can receive RTP without decoding samples until a media element starts the remote track.
+        // Keep that element muted: the only audible and recorded output is the gain-controlled WebAudio route.
+        decoder = new Audio(); decoder.srcObject = stream; decoder.muted = true
+        await decoder.play()
+        if (closed) return
+        source?.disconnect(); source = context.createMediaStreamSource(stream); source.connect(gain)
+        value.lip?.stop()
+        const lip = await startLipSync(actor.player, output.stream, { motion: actor.item.talk })
+        if (closed) lip.stop(); else value.lip = lip
+      },
+      silent: (silent: boolean) => { value.silent = silent; this.syncVolume() },
+      close: value.close,
+    }
   }
   get canCalibrate() { return !!this.face?.face || !!this.input?.canCalibrate }
   calibrate() {
@@ -233,6 +311,9 @@ export class Actor {
     const mutedChanged = item.muted !== this.item.muted
     const oldProfile = this.item.tuning.tracking, oldStrength = this.item.tuning.expressionStrength
     this.item = item
+    if (item.reactions?.enabled === false || item.reactions?.intensity === 0 || !['auto', 'mic'].includes(item.driver)) this.reactions.stop()
+    if (this.listening && item.reactions?.listen === false) this.reactions.stop()
+    this.player.bodyMotion = item.tuning.bodyMotion
     setPixelated(this.player, item.tuning.pixelated)
     if (!isOutput && !item.remote) Object.assign(this.player.view, item.tuning.view)
     if (!isOutput && !item.remote && oldProfile !== item.tuning.tracking) this.player.parameterProfile = item.tuning.tracking
@@ -299,7 +380,7 @@ export class Actor {
         this.input = tracking; this.stopDriver = () => tracking.stop()
       } else if (kind === 'gamepad') {
         const source = gamepadSource(() => this.item.tuning.gamepad, (effect) => {
-          if (effect.do === 'act') this.player.act(effect.id)
+          if (effect.do === 'act') this.act(effect.id)
           else this.pulseExpression(effect.id, effect.seconds)
         })
         const tracking = startInputTracking(this.player, source.poll, { calibrate: source.calibrate, profile: {}, smoothing: () => this.item.smooth,
@@ -389,53 +470,51 @@ export class Actor {
 
   async speak(text: string, emotion: Emotion, move: Move, aloud = true) { await this.perform(await this.prepare(text, emotion, aloud), emotion, move) }
 
-  async perform(take: Take, emotion: Emotion, move: Move, signal?: AbortSignal) {
+  async perform(take: Take, emotion: Emotion, move: Move, signal?: AbortSignal, cues: readonly ReactionCue[] = [], onStart?: () => void) {
     // Removing an actor cancels any speech that was still being prepared for it.
     if (this.disposed) return
     signal?.throwIfAborted()
-    clearTimeout(this.calm)
-    this.listening = false
+    this.setPhase('idle')
     const picked = take.clip?.expression
-    this.setExpression(picked && this.player.expressions.some((x) => x.id === picked) ? picked : this.expressionFor(emotion))
-    const expressionRevision = this.expressionRevision
-    if (move !== 'none') this.player.act(move)
+    const beginReactions = () => {
+      const opening: ReactionCue = { at: 0, duration: this.item.reactions?.holdSeconds ?? 1.8 }
+      if (!cues.some((cue) => cue.at === 0 && cue.feeling !== undefined)) { opening.feeling = emotion; opening.expression = picked ?? undefined }
+      if (!cues.some((cue) => cue.at === 0 && cue.action !== undefined)) opening.action = move
+      this.reactions.play([opening, ...cues], take.seconds)
+      onStart?.()
+    }
     this.systemVoice = !take.clip && take.aloud
-    const u = take.clip ? this.play(take.clip) : take.aloud && this.volume > 0 ? say(take.text, this.item.voice, this.volume) : quiet(take.text, take.mute)
+    const u = take.clip ? this.play(take.clip, beginReactions) : take.aloud && this.volume > 0 ? say(take.text, this.item.voice, this.volume) : quiet(take.text, take.mute)
+    if (!take.clip) beginReactions()
     this.utter = u; changed()
     const cancel = () => { if (this.utter === u) this.silence() }
     signal?.addEventListener('abort', cancel, { once: true })
     if (signal?.aborted) cancel()
     try { await u.done } finally {
       signal?.removeEventListener('abort', cancel)
-      if (this.utter === u) { this.utter = null; this.systemVoice = false }
+      if (this.utter === u) { this.utter = null; this.systemVoice = false; this.reactions.finish() }
       changed()
-      this.calm = window.setTimeout(() => { if (!this.disposed && this.expressionRevision === expressionRevision) this.setExpression(null) }, 1200)
     }
   }
 
-  private play(clip: Clip): Utterance {
+  private play(clip: Clip, onStart?: () => void): Utterance {
     const heard: Heard = { who: this.item.id, blob: clip.blob, start: 0, stop: null, gain: [] }
     this.heard = heard
     if (clip.live) { heard.ready = clip.live.whole.then((b) => { heard.blob = b }); void heard.ready.catch(() => {}) }
-    let resolve!: () => void
-    const done = new Promise<void>((r) => { resolve = r })
+    let resolve!: () => void, reject!: (error: Error) => void
+    const done = new Promise<void>((r, fail) => { resolve = r; reject = fail })
     const over = () => { if (this.heard === heard) this.heard = null; resolve() }
     this.voice.volume = this.volume
     this.voice.say(clip.live ? clip.live.open() : clip.blob, {
-      onStart: () => { heard.start = performance.now(); heard.gain.push({ at: heard.start, value: this.volume }); heardTaps.forEach((f) => f(heard)) },
+      onStart: () => { if (heard.stop !== null || this.disposed) return; heard.start = performance.now(); heard.gain.push({ at: heard.start, value: this.volume }); onStart?.(); heardTaps.forEach((f) => f(heard)) },
       onEnd: over,
-      onFail: () => { if (heard.stop === null) { this.voiceError = tr("声音播放失败，请检查声音设置"); changed() } over() },
+      onFail: () => { if (heard.stop === null) { this.voiceError = tr("声音播放失败，请检查声音设置"); changed(); reject(new Error(this.voiceError)) } over() },
     })
     return { level: () => this.voice.level, vowel: () => this.voice.vowel, done,
       stop: () => { heard.stop = performance.now(); this.voice.stop() } }
   }
 
-  silence() { this.utter?.stop(); this.utter = null; this.systemVoice = false }
-  private expressionFor(e: Emotion) {
-    if (e === 'neutral') return null
-    const std = e === 'happy' ? 'smile' : e
-    return this.player.expressions.find((x) => x.id === std)?.id ?? this.player.expressions.find((x) => FEELING[e].some((w) => [x.label, ...Object.values(x.labels ?? {})].some((label) => label.toLowerCase().includes(w))))?.id ?? null
-  }
+  silence() { this.utter?.stop(); this.utter = null; this.systemVoice = false; this.reactions.stop() }
   look(at: Look | null | 'free', delay = 0) {
     this.next = { at: performance.now() + delay * 1000, look: at && at !== 'free' ? {
       x: Math.max(-1, Math.min(1, (at.x - this.item.x) / this.item.w * 2 - 1)),
@@ -446,10 +525,11 @@ export class Actor {
     if (this.aim === 'free') this.player.lookAt(null)
     else this.player.lookAt(this.aim ? this.aim.x * (this.item.mirror ? -1 : 1) : 0, this.aim?.y ?? 0.5)
   }
-  rest(delay = 0) { this.listening = false; this.look(this.item.gaze === 'free' ? 'free' : null, delay) }
+  rest(delay = 0) { this.setPhase('idle'); this.look(this.item.gaze === 'free' ? 'free' : null, delay) }
   dispose() {
+    this.liveVoice?.close()
     this.disposed = true; this.driverRun++
-    clearTimeout(this.calm); clearTimeout(this.expressionExpiry); this.silence(); this.offInputs(); this.offQuality(); this.offMixer(); this.stopDriver?.()
+    clearTimeout(this.expressionExpiry); this.silence(); this.offInputs(); this.offQuality(); this.offMixer(); this.stopDriver?.()
     this.micStream?.getTracks().forEach((t) => t.stop())
     const live = this.format !== 'png' && !this.player.contextLost  // a PNGTuber draws in 2D
     this.voice.dispose(); this.player.dispose({ release: true })

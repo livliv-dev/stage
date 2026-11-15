@@ -172,7 +172,7 @@ class Session {
   }
   private actorsChanged() {
     const actor = actors.get(this.characterId) ?? null
-    if (this.actor !== actor) { this.actor = actor; this.audio.connectActor(actor) }
+    this.actor = actor; this.audio.connectActor(actor)
     let changed = false
     for (const peer of this.peers.values()) {
       const remote = actorFor(peer.member.id)

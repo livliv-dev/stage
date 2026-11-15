@@ -66,13 +66,14 @@ try {
   await page.screenshot({ path: join(artifacts, 'golive-face.png') })
 
   // the keys: by the expression's own number key, 0 clears, Q-T moves, B away and back
-  await page.evaluate((id) => { const a = window.__stage.actors.get(id), act = a.player.act.bind(a.player); window.acts = []; a.player.act = (m) => { window.acts.push(m); act(m) } }, sena.id)
+  await page.evaluate((id) => { const a = window.__stage.actors.get(id), act = a.player.act.bind(a.player); window.acts = []; window.strengths = []; a.player.act = (m, strength) => { window.acts.push(m); window.strengths.push(strength); act(m, strength) }; window.__stage.store.patch(id, { reactions: { ...a.item.reactions, motion: 0.35 } }) }, sena.id)
   await page.keyboard.press('1'); assert.equal((await actor(sena.id)).expression, 'smile')
   await page.keyboard.press('1'); assert.equal((await actor(sena.id)).expression, null, 'toggle: pressed again, off')
   await page.keyboard.press('3'); assert.equal((await actor(sena.id)).expression, 'angry')
   await page.keyboard.press('0'); assert.equal((await actor(sena.id)).expression, null)
   for (const k of 'qwert') await page.keyboard.press(k)
   assert.deepEqual(await page.evaluate(() => window.acts), ['nod', 'shake', 'tilt', 'hop', 'shy'])
+  assert.deepEqual(await page.evaluate(() => window.strengths), [0.35, 0.35, 0.35, 0.35, 0.35], 'keyboard actions respect gesture strength')
   await page.keyboard.press('b'); assert.equal((await actor(sena.id)).away, true)
   await page.locator('.solo-status', { hasText: '暂离中，按 B 回来' }).waitFor()
   await page.keyboard.press('b'); assert.equal((await actor(sena.id)).away, false)

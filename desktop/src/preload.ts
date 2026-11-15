@@ -11,6 +11,7 @@
 //   onCommand(cb) -> unsubscribe        a stage's commands (hotkeys, local endpoint), as CmdBody
 import type { MotionEvent, MotionSettings, MotionState } from './trackingProtocol'
 import type { StageApiState, StageControlRequest } from './stageCommands'
+import type { NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } from './neuroProtocol'
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
 type Info = { api: 1; version: string; platform: string; role: 'main' | 'stage'; stageEditor: boolean }
@@ -22,6 +23,22 @@ if (info) {
   contextBridge.exposeInMainWorld('livlivDesktop', {
     ...info,
     ...(info.stageEditor ? {
+      neuro: {
+        get: (): Promise<NeuroState> => invoke('livliv:neuro', 'get'),
+        set: (config: NeuroConfig): Promise<NeuroState> => invoke('livliv:neuro', 'set', config),
+        answer: (id: string, value: NeuroAnswer) => ipcRenderer.send('livliv:neuro-result', id, value),
+        speech: (status: NeuroSpeech): Promise<void> => invoke('livliv:neuro', 'speech', status),
+        onMessage: (callback: (message: NeuroMessage) => void) => {
+          const listener = (_event: IpcRendererEvent, message: NeuroMessage) => callback(message)
+          ipcRenderer.on('livliv:neuro-message', listener)
+          return () => { ipcRenderer.removeListener('livliv:neuro-message', listener) }
+        },
+        onState: (callback: (state: NeuroState) => void) => {
+          const listener = (_event: IpcRendererEvent, state: NeuroState) => callback(state)
+          ipcRenderer.on('livliv:neuro-state', listener)
+          return () => { ipcRenderer.removeListener('livliv:neuro-state', listener) }
+        },
+      },
       tracking: { get: (): Promise<MotionState> => invoke('livliv:tracking', 'get'), set: (settings: MotionSettings): Promise<MotionState> => invoke('livliv:tracking', 'set', settings) },
       onMotion: (callback: (event: MotionEvent) => void) => {
         const listener = (_event: IpcRendererEvent, value: MotionEvent) => callback(value)

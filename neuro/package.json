@@ -1,0 +1,23 @@
+{
+  "name": "@livliv-dev/neuro-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "Independent local Neuro game-protocol server with a host-supplied character and decision callback.",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    }
+  },
+  "types": "./index.d.ts",
+  "files": ["index.js", "index.d.ts", "schema.js", "demo.js", "examples", "README.md", "THIRD_PARTY_NOTICES.md"],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "node --check index.js && node --check schema.js && node --check demo.js && node --check examples/game.js",
+    "start": "node demo.js"
+  },
+  "engines": { "node": ">=22.18.0" },
+  "dependencies": { "ws": "8.22.2" }
+}

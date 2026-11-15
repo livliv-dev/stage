@@ -6,141 +6,300 @@
     "v04"
   ],
   "topic": "第一次同台",
+  "audio": "trio/zh",
   "lines": [
     {
       "who": "d03ft",
-      "text": "我写了三页开场白。\n然后……忘带了。",
+      "text": "第一次和你们同台，\n我有一点点紧张呀。",
       "emotion": "shy",
-      "action": "tilt",
+      "action": "none",
       "to": null,
       "look": "away",
-      "pauseAfter": 0.3
+      "pauseAfter": 0.3,
+      "cues": [
+        {
+          "at": 0,
+          "feeling": "shy",
+          "strength": 0.55,
+          "duration": 1.7
+        },
+        {
+          "at": 0.15,
+          "action": "shy"
+        },
+        {
+          "at": 0.72,
+          "feeling": "neutral"
+        }
+      ],
+      "reactions": [
+        {
+          "who": "k01",
+          "cues": [
+            {
+              "at": 0.6,
+              "action": "nod"
+            }
+          ]
+        }
+      ]
     },
     {
       "who": "k01",
-      "text": "没关系，交给我！\n开场先来个高音怎么样？",
-      "emotion": "happy",
-      "action": "hop",
-      "to": null,
-      "look": "d03ft",
-      "pauseAfter": 0.12
-    },
-    {
-      "who": "v04",
-      "text": "小声点。有人还没睡醒。",
+      "text": "别紧张，交给我！\n先来个高音怎么样？",
       "emotion": "neutral",
-      "action": "none",
-      "to": null,
-      "look": "k01",
-      "pauseAfter": 0.16
-    },
-    {
-      "who": "k01",
-      "text": "你说的有人……\n不会就是你吧？",
-      "emotion": "surprised",
-      "action": "tilt",
-      "to": "v04",
-      "look": "v04",
-      "pauseAfter": 0.18
-    },
-    {
-      "who": "v04",
-      "text": "刚醒。省电模式，还没关。",
-      "emotion": "neutral",
-      "action": "none",
-      "to": null,
-      "look": "k01",
-      "pauseAfter": 0.26
-    },
-    {
-      "who": "d03ft",
-      "text": "那吃块蛋糕？\n我烤了三次，这回终于成功啦。",
-      "emotion": "happy",
-      "action": "nod",
-      "to": "v04",
-      "look": "v04",
-      "pauseAfter": 0.14
-    },
-    {
-      "who": "k01",
-      "text": "终于？前两次呢？",
-      "emotion": "surprised",
       "action": "none",
       "to": "d03ft",
       "look": "d03ft",
-      "pauseAfter": 0.12
-    },
-    {
-      "who": "d03ft",
-      "text": "第一次像饼干。\n第二次……不太像食物。",
-      "emotion": "shy",
-      "action": "shy",
-      "to": null,
-      "look": "away",
-      "pauseAfter": 0.32
+      "pauseAfter": 0.16,
+      "cues": [
+        {
+          "at": 0,
+          "feeling": "neutral"
+        },
+        {
+          "at": 0.4,
+          "action": "hop",
+          "look": "camera"
+        }
+      ],
+      "reactions": [
+        {
+          "who": "d03ft",
+          "cues": [
+            {
+              "at": 0.56,
+              "feeling": "shy",
+              "strength": 0.5,
+              "duration": 1,
+              "action": "tilt"
+            }
+          ]
+        },
+        {
+          "who": "v04",
+          "cues": [
+            {
+              "at": 0.72,
+              "action": "shake"
+            }
+          ]
+        }
+      ]
     },
     {
       "who": "v04",
-      "text": "我作证。这次，真的挺好吃。",
-      "emotion": "happy",
-      "action": "nod",
-      "to": null,
-      "look": "d03ft",
-      "pauseAfter": 0.18
-    },
-    {
-      "who": "k01",
-      "text": "那我要草莓最多的那块！",
-      "emotion": "happy",
-      "action": "nod",
-      "to": null,
-      "look": "d03ft",
-      "pauseAfter": 0.16
-    },
-    {
-      "who": "d03ft",
-      "text": "有呀。你的草莓，\n他的巧克力，都记着呢。",
-      "emotion": "happy",
-      "action": "none",
-      "to": null,
-      "look": "k01",
-      "pauseAfter": 0.34
-    },
-    {
-      "who": "v04",
-      "text": "开场白忘了。这个倒记得。",
+      "text": "等等，观众都戴着耳机。\n温柔一点。",
       "emotion": "neutral",
-      "action": "tilt",
-      "to": null,
-      "look": "d03ft",
-      "pauseAfter": 0.26
-    },
-    {
-      "who": "d03ft",
-      "text": "当然呀。你们喜欢什么，\n我怎么会忘。",
-      "emotion": "happy",
-      "action": "nod",
-      "to": null,
-      "look": "v04",
-      "pauseAfter": 0.38
+      "action": "none",
+      "to": "k01",
+      "look": "k01",
+      "pauseAfter": 0.24,
+      "cues": [
+        {
+          "at": 0,
+          "feeling": "neutral",
+          "action": "shake"
+        },
+        {
+          "at": 0.58,
+          "action": "tilt"
+        }
+      ],
+      "reactions": [
+        {
+          "who": "k01",
+          "cues": [
+            {
+              "at": 0.3,
+              "feeling": "shy",
+              "strength": 0.6,
+              "duration": 1.3,
+              "action": "shy"
+            }
+          ]
+        },
+        {
+          "who": "d03ft",
+          "cues": [
+            {
+              "at": 0.72,
+              "action": "nod"
+            }
+          ]
+        }
+      ]
     },
     {
       "who": "k01",
-      "text": "开场就用这句！\n比念稿好听多了。",
-      "emotion": "happy",
+      "text": "好嘛，那我就\n小声一点点。",
+      "emotion": "shy",
       "action": "none",
-      "to": null,
-      "look": "d03ft",
-      "pauseAfter": 0.22
+      "to": "v04",
+      "look": "v04",
+      "pauseAfter": 0.18,
+      "cues": [
+        {
+          "at": 0,
+          "feeling": "shy",
+          "strength": 0.5,
+          "duration": 1.2
+        },
+        {
+          "at": 0.22,
+          "action": "tilt"
+        },
+        {
+          "at": 0.62,
+          "feeling": "neutral"
+        }
+      ],
+      "reactions": [
+        {
+          "who": "v04",
+          "cues": [
+            {
+              "at": 0.62,
+              "action": "nod"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "who": "v04",
+      "text": "很好。这下，\n耳机保住了。",
+      "emotion": "neutral",
+      "action": "none",
+      "to": "k01",
+      "look": "k01",
+      "pauseAfter": 0.3,
+      "cues": [
+        {
+          "at": 0,
+          "feeling": "neutral"
+        },
+        {
+          "at": 0.3,
+          "feeling": "happy",
+          "strength": 0.38,
+          "duration": 0.9,
+          "action": "nod"
+        },
+        {
+          "at": 0.85,
+          "feeling": "neutral"
+        }
+      ],
+      "reactions": [
+        {
+          "who": "d03ft",
+          "cues": [
+            {
+              "at": 0.35,
+              "feeling": "happy",
+              "strength": 0.55,
+              "duration": 0.8
+            }
+          ]
+        },
+        {
+          "who": "k01",
+          "cues": [
+            {
+              "at": 0.7,
+              "feeling": "happy",
+              "strength": 0.75,
+              "duration": 0.8
+            }
+          ]
+        }
+      ]
     },
     {
       "who": "d03ft",
-      "text": "那，欢迎来我们的小舞台。\n坐近一点，一起聊吧。",
+      "text": "那，坐近一点，\n和我们一起聊聊天吧。",
       "emotion": "happy",
       "action": "none",
       "to": null,
       "look": "camera",
-      "pauseAfter": 0.0
+      "pauseAfter": 0,
+      "cues": [
+        {
+          "at": 0,
+          "feeling": "neutral"
+        },
+        {
+          "at": 0.35,
+          "action": "nod"
+        },
+        {
+          "at": 0.55,
+          "feeling": "happy",
+          "strength": 0.5,
+          "duration": 1.4
+        }
+      ],
+      "reactions": [
+        {
+          "who": "k01",
+          "cues": [
+            {
+              "at": 0.48,
+              "action": "nod",
+              "look": "camera"
+            }
+          ]
+        },
+        {
+          "who": "v04",
+          "cues": [
+            {
+              "at": 0.75,
+              "action": "nod",
+              "look": "camera"
+            }
+          ]
+        }
+      ]
     }
-  ]
+  ],
+  "translations": {
+    "zh-Hant": {
+      "topic": "第一次同台",
+      "audio": "trio/zh",
+      "lines": [
+        "第一次和你們同台，\n我有一點點緊張呀。",
+        "別緊張，交給我！\n先來個高音怎麼樣？",
+        "等等，觀眾都戴著耳機。\n溫柔一點。",
+        "好嘛，那我就\n小聲一點點。",
+        "很好。這下，\n耳機保住了。",
+        "那，坐近一點，\n和我們一起聊聊天吧。"
+      ]
+    },
+    "en": {
+      "topic": "First show together",
+      "audio": "trio/en",
+      "lines": [
+        "Our first show together. I'm a little nervous.",
+        "I've got this! Let's start on a high note!",
+        "Wait. Everyone's wearing headphones.",
+        "Okay, okay. I'll keep it down.",
+        "Good. Headphones saved.",
+        "Come a little closer. Let's chat."
+      ]
+    },
+    "ja": {
+      "topic": "初めての共演",
+      "audio": "trio/ja",
+      "lines": [
+        "初めての共演、\nちょっとドキドキしちゃう。",
+        "任せて！\n元気いっぱいでごあいさつ！",
+        "待って。みんな、\nイヤホンしてる。",
+        "はーい。じゃあ、\n小さな声で。",
+        "よし、耳は守られた。",
+        "もう少し近くに来て。\n一緒にお話ししよ？"
+      ]
+    }
+  }
 }

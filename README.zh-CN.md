@@ -5,23 +5,26 @@
   </picture>
 </p>
 
-<h3 align="center">AI 原生的角色视频和直播工作室<br><sub>很多角色，同一个舞台。</sub></h3>
+<h3 align="center">你的 AI 虚拟主播工作室</h3>
 
 <p align="center">
-  把很多角色放上同一个舞台。用摄像头扮演其中一个，其余的交给 AI，让它们彼此聊天、回应弹幕，再录成视频，或者通过 OBS 开播。
-  浏览器和桌面都能用。<br>
-  自带 27 个风格各异的精选角色，即开即用。
+  给角色设定好性格，几分钟它就能和你聊天，或者直接开播。也可以自己来演。
 </p>
 
 <p align="center"><a href="README.md">English</a> · <b>中文</b> · <a href="README.ja.md">日本語</a></p>
 
 <p align="center"><img src="media/demo.gif" alt="Ruri、Nana 和 Konatsu 在同一个舞台上聊天，带对话气泡" width="720"></p>
 
-- 很多角色同台：LivLiv（半身和全身）、VRM 和 PNGTuber，每个角色有自己的驱动方式和声音
-- AI 主播彼此接话、回应 Twitch 弹幕，用 LivLiv 的 AI（无需密钥）或你自己的模型
-- 摄像头面捕、麦克风口型；桌面版还支持手机面捕 App、VMC/OSC 和全局热键
-- 整张舞台录成 MP4，或者送进 OBS
-- 基于 [LivLiv Player](https://github.com/livliv-dev/player)
+- 一张舞台最多 30 个角色（浏览器里 15 个）：LivLiv 半身和全身、VRM、PNGTuber
+- 长期记忆和实时语音对话
+- 角色之间互相对话，也回应 Twitch 弹幕
+- 说话时跟着情绪变的表情
+- 内置 Neuro SDK 支持（桌面版）
+- 基础功能都有：摄像头面捕（手机面捕 App 和 VMC/OSC 用桌面版）、OBS 输出、录视频
+- 27 个精选角色，开箱即用。基于 [LivLiv Player](https://github.com/livliv-dev/player)
+
+AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等），也可以不填密钥，直接用 livliv.ai 的 AI。
+实时语音需要你自己的 OpenAI 或阿里云百炼密钥。
 
 ## 试一试
 
@@ -57,11 +60,12 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # 桌面版（sta
 ```
 
 测试：`npm --prefix stage run check && npm --prefix stage test`、`npm --prefix desktop test`、`npm --prefix collab test`。
-本机控制接口见 [docs/stage-api.md](docs/stage-api.md)，联播见 [collab/README.md](collab/README.md)。
+AI 聊天和记忆见 [docs/ai-conversations.md](docs/ai-conversations.md)，实时语音见 [docs/realtime-voice.md](docs/realtime-voice.md)，
+Neuro SDK 桥接见 [neuro/README.md](neuro/README.md)，本机控制接口见 [docs/stage-api.md](docs/stage-api.md)，联播见 [collab/README.md](collab/README.md)。
 模型密钥只存在浏览器或应用里，请求直接发给服务商。欢迎贡献：[CONTRIBUTING.md](CONTRIBUTING.md)。
 安全问题：[SECURITY.md](SECURITY.md)。
 
 ## 许可
 
-代码采用 [GNU AGPL 第 3 版](LICENSE)。精选角色有[自己的许可](stage/public/characters/LICENSE.md)。
+代码采用 [Apache License 2.0](LICENSE)。精选角色有[自己的许可](stage/public/characters/LICENSE.md)。
 你的版本可以继续用 LivLiv 的名字和标志，只要不自称官方版本，见 [TRADEMARKS.md](TRADEMARKS.md)。

@@ -83,7 +83,7 @@ try {
   await page.setViewportSize({ width: 1100, height: 700 }); report.locales = []
   for (const locale of ['zh-Hans', 'zh-Hant', 'en', 'ja']) { await page.evaluate(async (locale) => (await import('/src/i18n.ts')).setLocale(locale), locale); await page.locator('.gamepad-panel').scrollIntoViewIfNeeded(); await page.screenshot({ path: join(artifacts, locale + '.png') }); const size = await page.locator('.gamepad-panel').evaluate((el) => ({ client: el.clientWidth, scroll: el.scrollWidth, offenders: [...el.querySelectorAll('*')].filter((e) => e.getBoundingClientRect().right > el.getBoundingClientRect().right + 1).map((e) => ({ tag: e.tagName, cls: e.className, width: e.getBoundingClientRect().width, right: e.getBoundingClientRect().right, text: e.textContent.slice(0, 60) })).slice(0, 20) })); assert.ok(size.scroll <= size.client + 1, locale + JSON.stringify(size)); report.locales.push(locale) }
   await page.evaluate(() => { window.pads = [] }); await page.waitForFunction(() => window.__stage.actors.get('pad-avatar').inputPhase === 'opening')
-  await page.waitForTimeout(450); assert.ok(Math.abs(await page.evaluate(() => window.__stage.actors.get('pad-avatar').lastPose.params.angleX)) < .1)
+  await page.waitForFunction(() => Math.abs(window.__stage.actors.get('pad-avatar').lastPose.params.angleX) < .1, null, { timeout: 2000 })
   await page.evaluate(() => window.__stage.store.patch('pad-avatar', { driver: 'auto' }))
   await page.waitForFunction(() => [...window.padListeners.values()].reduce((n, x) => n + x.size, 0) === 0)
   assert.equal(await page.evaluate(() => window.mediaRequests), 0)

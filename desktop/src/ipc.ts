@@ -11,8 +11,10 @@ import { mainContents } from './mainWindow'
 import type { StageApiState } from './stageCommands'
 import { readMotionSettings, type MotionSettings, type MotionState } from './trackingProtocol'
 import { stageFromPath } from './urls'
+import { readNeuroConfig, type NeuroConfig, type NeuroSpeech, type NeuroState } from './neuroProtocol'
 
 export type IpcDeps = {
+  neuro?: { state(): NeuroState; configure(config: NeuroConfig): Promise<NeuroState>; answer(owner: number, id: unknown, value: unknown): boolean; speech(status: NeuroSpeech): void }
   tracking?: { get(): MotionState; set(settings: MotionSettings): Promise<MotionState> }
   stageApi?: { get(): StageApiState; set(enabled: boolean): Promise<StageApiState>; rotate(): StageApiState }
   capabilities: () => string[]
@@ -58,6 +60,25 @@ export function registerIpc(deps: IpcDeps) {
     if (op === 'rotate') return deps.stageApi.rotate()
     if (op === 'set' && typeof value === 'boolean') return deps.stageApi.set(value)
     throw new Error('Unknown Stage API operation')
+  })
+  handle('livliv:neuro', (event, op, value) => {
+    if (APP !== 'stage' || !deps.neuro || event.sender !== mainContents()) throw new Error('Stage editor only')
+    if (op === 'get') return deps.neuro.state()
+    if (op === 'set') {
+      const config = readNeuroConfig(value)
+      if (!config) throw new Error('Invalid game integration settings')
+      return deps.neuro.configure(config)
+    }
+    if (op === 'speech' && value && typeof value === 'object' && !Array.isArray(value)) {
+      const status = value as Record<string, unknown>
+      if (typeof status.character !== 'string' || status.character.length > 200 || typeof status.isFinal !== 'boolean' || (status.cancelled !== undefined && typeof status.cancelled !== 'boolean')) throw new Error('Invalid speech state')
+      deps.neuro.speech({ character: status.character, isFinal: status.isFinal, ...(status.cancelled === true ? { cancelled: true } : {}) })
+      return undefined
+    }
+    throw new Error('Unknown game integration operation')
+  })
+  ipcMain.on('livliv:neuro-result', (event, id: unknown, value: unknown) => {
+    if (APP === 'stage' && deps.neuro && trusted(event) && event.sender === mainContents()) deps.neuro.answer(event.sender.id, id, value)
   })
   handle('livliv:hotkeys', (event, op, arg) => {
     if (APP === 'stage' && op !== 'list' && event.sender !== mainContents()) throw new Error('Stage editor only')
