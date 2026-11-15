@@ -39,7 +39,7 @@ export function GuestGate({ shown }: { shown: boolean }) {
   return <>
     <div className="scrim" onClick={closeGuestGate} />
     <div className="card popover settings age-check guest-gate" role="dialog" aria-modal="true" aria-labelledby="guest-title" onPointerDown={(e) => e.stopPropagation()}>
-      <header><span className="title" id="guest-title">{tr("登录 livliv.ai 继续使用")}</span></header>
+      <header><span className="title" id="guest-title">{tr("登录 livliv.ai，用你自己的角色和声音")}</span></header>
       <p className="hint">{tr("注册免费，还送积分。")}</p>
       <div className="row end">
         <button className="later" onClick={closeGuestGate}>{tr("先逛逛")}</button>
