@@ -5,23 +5,26 @@
   </picture>
 </p>
 
-<h3 align="center">キャラクターの動画と配信をつくる、AI ネイティブなスタジオ<br><sub>たくさんのキャラクター、ひとつのステージ。</sub></h3>
+<h3 align="center">あなたの AI VTuber スタジオ</h3>
 
 <p align="center">
-  たくさんのキャラクターをひとつのステージに。Web カメラでひとりを演じて、ほかは AI に任せれば、キャラクター同士で掛け合い、
-  コメントにも返事をします。動画に書き出すことも、OBS で配信することもできます。ブラウザでもデスクトップアプリでも動きます。<br>
-  さまざまなスタイルの厳選キャラクター 27 体を同梱。すぐに使えます。
+  キャラクターに性格を設定すれば、数分であなたとおしゃべりしたり、そのまま配信したり。自分で演じることもできます。
 </p>
 
 <p align="center"><a href="README.md">English</a> · <a href="README.zh-CN.md">中文</a> · <b>日本語</b></p>
 
 <p align="center"><img src="media/demo.gif" alt="Ruri、Nana、Konatsu がひとつのステージで会話する様子（吹き出し付き）" width="720"></p>
 
-- たくさんのキャラクターを同じステージに：LivLiv（半身・全身）、VRM、PNGTuber。キャラクターごとに動かし方と声を設定
-- AI VTuber どうしの会話と Twitch コメントへの返事。LivLiv の AI（キー不要）か、自分のモデルで
-- Web カメラのフェイストラッキングとマイクのリップシンク。デスクトップ版はスマホのトラッキングアプリ、VMC/OSC、グローバルホットキーにも対応
-- ステージ全体を MP4 に録画、または OBS へ
-- [LivLiv Player](https://github.com/livliv-dev/player) がベース
+- ひとつのステージに最大 30 体（ブラウザでは 15 体）：LivLiv の半身・全身、VRM、PNGTuber
+- 長期記憶とリアルタイム音声会話
+- キャラクター同士の掛け合いと、Twitch コメントへの返事
+- 話しながら感情に合わせて変わる表情
+- Neuro SDK に標準対応（デスクトップ版）
+- 基本機能：Web カメラのフェイストラッキング（スマホアプリと VMC/OSC はデスクトップ版）、OBS 出力、動画の録画
+- 厳選キャラクター 27 体、すぐに使えます。[LivLiv Player](https://github.com/livliv-dev/player) がベース
+
+AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）でも、キー不要の livliv.ai の AI でも動きます。
+リアルタイム音声には OpenAI か Alibaba Cloud Bailian のキーが必要です。
 
 ## 試してみる
 
@@ -57,7 +60,8 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # デスクトッ
 ```
 
 テスト：`npm --prefix stage run check && npm --prefix stage test`、`npm --prefix desktop test`、`npm --prefix collab test`。
-ローカル制御 API は [docs/stage-api.md](docs/stage-api.md)、共同配信は [collab/README.md](collab/README.md) にあります。
+AI チャットと記憶は [docs/ai-conversations.md](docs/ai-conversations.md)、リアルタイム音声は [docs/realtime-voice.md](docs/realtime-voice.md)、
+Neuro SDK ブリッジは [neuro/README.md](neuro/README.md)、ローカル制御 API は [docs/stage-api.md](docs/stage-api.md)、共同配信は [collab/README.md](collab/README.md) にあります。
 モデルの API キーはブラウザかアプリの中にだけ保存され、サービスへ直接送られます。コントリビュートは [CONTRIBUTING.md](CONTRIBUTING.md)、
 セキュリティの報告は [SECURITY.md](SECURITY.md) へ。
 
