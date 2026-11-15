@@ -389,10 +389,13 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
   }
   // its voice is made while it still shows 在想 (a LivLiv voice takes about a second)
   const recorded = r.audio ?? (voiced && cfg.kind === 'livliv' ? null : undefined)
-  const take = state.mode === 'chat' && cfg.kind !== 'livliv' ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, recorded)
+  // 持续聊天 with a model of one's own speaks sentence by sentence, so the first is heard sooner; not in the LivLiv voice:
+  // livliv.ai charges every /say call (a point at least), so a line in it is voiced whole, one call, as everywhere else
+  const bySentence = state.mode === 'chat' && cfg.kind !== 'livliv' && voiceRoute(me) !== 'livliv'
+  const take = bySentence ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, recorded)
   signal.throwIfAborted()
   if (liveOptions && !liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音，请设置声音或选择仅字幕"))
-  return { r: { ...reply, memoryIds, memoryRevision: context.revision }, take, chat, memoryRevision: context.revision }
+  return { r: { ...reply, memoryIds, memoryRevision: context.revision }, take, chat, memoryRevision: context.revision, bySentence }
 }
 
 // The next line is made while this one is said, so it can follow at once: at most one line ahead. It is thrown away
@@ -441,7 +444,7 @@ async function aiTurn(me: CharacterItem, parent: AbortSignal, audience?: Chat | 
     else { ahead = null; signal.addEventListener('abort', cancelPrepared, { once: true }) }
     const made = prepared ? await prepared.made : null
     signal.throwIfAborted()
-    const { r, take, chat, memoryRevision } = made ?? await makeLine(me, signal, prepared?.chat ?? audience)
+    const { r, take, chat, memoryRevision, bySentence } = made ?? await makeLine(me, signal, prepared?.chat ?? audience)
     signal.throwIfAborted()
     const speech = {
       final: false, onStart: () => { spoke = true }, onEnd: (cancelled: boolean) => { hadCut ||= cancelled },
@@ -464,7 +467,7 @@ async function aiTurn(me: CharacterItem, parent: AbortSignal, audience?: Chat | 
       return true
     }
     if (chat && !state.lines.some((line) => line.id === chat.id)) set({ lines: [...state.lines, { id: chat.id, who: 'audience', name: tr("弹幕 · {0}", chat.user), text: chat.text, emotion: 'neutral', action: 'none', to: null, human: true, audience: true }] })
-    if (state.mode === 'chat' && loadBrainConfig().kind !== 'livliv') {
+    if (bySentence) {
       const segments = speechSegments(r.text), total = segments.reduce((sum, text) => sum + text.length, 0) || 1
       const actor = actors.get(me.id)
       let preparedVoice = actor?.prepare(segments[0], r.emotion, true, signal)
