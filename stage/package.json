@@ -25,6 +25,7 @@
     "test:memory": "node test/memory.mjs",
     "test:demo-history": "node test/demo-history.mjs",
     "test:voice-setup": "node test/voice-setup.mjs",
+    "test:settings": "node test/settings.mjs",
     "test:ux": "node test/ux.mjs",
     "test:profiles": "node test/profiles.mjs",
     "test:shots": "node test/shots.mjs",

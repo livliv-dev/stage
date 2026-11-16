@@ -1,5 +1,14 @@
 // UI messages. Values such as model names and user dialogue are not translated.
 export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja', string>> = {
+  "恢复应用偏好": {"zh-Hans":"恢复应用偏好","zh-Hant":"恢復應用程式偏好","en":"Reset app preferences","ja":"アプリ設定をリセット"},
+  "保留模型配置、密钥、登录状态、场景、聊天记录和记忆。": {"zh-Hans":"保留模型配置、密钥、登录状态、场景、聊天记录和记忆。","zh-Hant":"保留模型設定、金鑰、登入狀態、場景、聊天記錄和記憶。","en":"Keeps model settings, API keys, sign-in, scenes, chat history and memories.","ja":"モデル設定、API キー、ログイン状態、シーン、会話履歴、記憶は保持されます。"},
+  "已恢复默认偏好": {"zh-Hans":"已恢复默认偏好","zh-Hant":"已恢復預設偏好","en":"Default preferences restored","ja":"設定を初期値に戻しました"},
+  "恢复默认偏好？": {"zh-Hans":"恢复默认偏好？","zh-Hant":"恢復預設偏好？","en":"Reset app preferences?","ja":"設定を初期値に戻しますか？"},
+  "将重置界面语言、画面质量、设备选择、音量和面板布局。": {"zh-Hans":"将重置界面语言、画面质量、设备选择、音量和面板布局。","zh-Hant":"將重設介面語言、畫面品質、裝置選擇、音量和面板配置。","en":"Resets language, graphics quality, device selection, audio levels and panel layout.","ja":"表示言語、画質、使用デバイス、音量、パネル配置を初期値に戻します。"},
+  "全局热键将恢复默认并关闭。": {"zh-Hans":"全局热键将恢复默认并关闭。","zh-Hant":"全域快捷鍵將恢復預設並關閉。","en":"Global hotkeys return to their defaults and are turned off.","ja":"グローバルホットキーも初期値に戻り、無効になります。"},
+  "部分偏好未恢复，请重试：{0}": {"zh-Hans":"部分偏好未恢复，请重试：{0}","zh-Hant":"部分偏好未恢復，請重試：{0}","en":"Some preferences could not be reset. Try again: {0}","ja":"一部の設定をリセットできませんでした。再試行してください：{0}"},
+  "正在恢复…": {"zh-Hans":"正在恢复…","zh-Hant":"正在恢復…","en":"Resetting…","ja":"リセット中…"},
+  "确认恢复": {"zh-Hans":"确认恢复","zh-Hant":"確認恢復","en":"Reset preferences","ja":"リセットする"},
   "连接联播服务超时，请确认服务地址、网络和防火墙设置。": {"zh-Hans":"连接联播服务超时，请确认服务地址、网络和防火墙设置。","zh-Hant":"連線至聯播服務逾時，請確認服務位址、網路和防火牆設定。","en":"The connection timed out. Check the server address, network and firewall settings.","ja":"接続がタイムアウトしました。サーバーのアドレス、ネットワーク、ファイアウォールを確認してください。"},
   "联播连接方式": {"zh-Hans":"联播连接方式","zh-Hant":"聯播連線方式","en":"Co-stream connection","ja":"コラボ配信の接続方法"},
   "本机托管": {"zh-Hans":"本机托管","zh-Hant":"本機託管","en":"Host on this computer","ja":"このパソコンでホスト"},

@@ -30,3 +30,8 @@ export function setBus(bus: AudioBus, change: Partial<BusSetting>) {
   try { localStorage.setItem(KEY, JSON.stringify(settings)) } catch { state.error = tr('音量已调整，但无法保存设置') }
   listeners.forEach((listener) => listener())
 }
+export function resetMixer() {
+  localStorage.removeItem(KEY)
+  state = { settings: defaultMixer(), error: '' }
+  listeners.forEach((listener) => listener())
+}

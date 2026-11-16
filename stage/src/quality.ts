@@ -15,4 +15,8 @@ export function setQuality(value: Quality) {
   try { localStorage.setItem(KEY, value) } catch { /* Session-only preference when persistence is unavailable. */ }
   quality = value; listeners.forEach((listener) => listener())
 }
-if (typeof window !== 'undefined') addEventListener('storage', (event) => { if (event.key === KEY && valid(event.newValue)) { quality = event.newValue; listeners.forEach((listener) => listener()) } })
+export function resetQuality() {
+  localStorage.removeItem(KEY)
+  quality = 'standard'; listeners.forEach((listener) => listener())
+}
+if (typeof window !== 'undefined') addEventListener('storage', (event) => { if (event.key === KEY && (event.newValue === null || valid(event.newValue))) { quality = event.newValue ?? 'standard'; listeners.forEach((listener) => listener()) } })

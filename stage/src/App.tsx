@@ -117,6 +117,10 @@ export default function App() {
     return v
   })
   const [zoom, setZoom] = useState<Zoom>('fit')
+  const resetLayout = () => {
+    for (const key of [FOLDED, 'livliv-stage:left-folded', 'livliv-stage:tools-folded', 'livliv-stage:cast-folded']) localStorage.removeItem(key)
+    setBareNow(false); setLeftFolded(false); setZoom('fit')
+  }
   const [log, setLog] = useState(false)
   const [logView, setLogView] = useState<'history' | 'memory'>('history')
   const [menu, setMenu] = useState<MenuAt | null>(null)
@@ -132,7 +136,6 @@ export default function App() {
   const openSettings = () => { setVoiceSetup(undefined); setForStart(false); setSettingsTab('general'); setPop('settings') }
   const openModels = (model: ModelTab, start = false) => { setVoiceSetup(undefined); setForStart(start); setSettingsModel(model); setSettingsTab('ai'); setPop('settings') }
   const openAccount = () => { setVoiceSetup(undefined); setSettingsTab('account'); setPop('settings') }
-  const account = useAccount()
   useEffect(() => { void refresh() }, [])  // the LivLiv account, if one is connected
   // LivLiv's points AI asks the site's age question once (livliv.ts stageLine): answered here
   // (one question at a time: a second line asking while it is open waits for the same answer)
@@ -167,15 +170,13 @@ export default function App() {
   useEffect(() => holdKey(), [])  // push to talk: hold `
   useEffect(connectLiveKeys, [])  // 1-9 0 Q W E R T B (live.ts)
   useEffect(connectOutputFeed, [])
-  // an AI turn came with no model set up: the model card opens over the console, its button starts the conversation
+  // Choose the model before asking for a particular provider's account.
   const conv = useConversation()
   const [forStart, setForStart] = useState(false)
   useEffect(() => {
     if (!conv.needModel) return
-    talk.modelAsked(); store.setMode('edit'); setForStart(true); setSettingsModel('chat')
-    if (livlivHere() && (loadBrainConfig().kind === 'livliv' || !previousModelConfig().provider) && account.status !== 'in') openAccount()
-    else setPop('model')
-  }, [conv.needModel, account.status])
+    talk.modelAsked(); store.setMode('edit'); openModels('chat', true)
+  }, [conv.needModel])
   const closeSettings = () => { setForStart(false); setSettingsTab('general'); setPop(null) }
   const continueAfterModel = () => {
     if (conv.modelIntent === 'chat') void talk.startChat().catch(() => {})
@@ -231,7 +232,7 @@ export default function App() {
         {pop === 'model' && <ModelCard forStart={forStart} onClose={() => { setForStart(false); setPop(null) }} onAccount={openAccount} onContinue={continueAfterModel} onSettings={() => openModels('chat', forStart)} />}
         {log && <Transcript view={logView} setView={setLogView} onClose={() => setLog(false)} right={bare ? 80 : 324} />}
         {pop === 'add' && <AddCharacter left={228} onClose={() => setPop(null)} onSignIn={() => { setSettingsTab('account'); setPop('settings') }} />}
-        {pop === 'settings' && <><div className="scrim" onPointerDown={closeSettings} /><SettingsCard key={voiceSetup ?? 'settings'} forVoice={voiceSetup} initialTab={settingsTab} initialModel={settingsModel} forStart={forStart} onContinue={continueAfterModel} onAdd={() => { setForStart(false); setPop('add') }} onClose={closeSettings} /></>}
+        {pop === 'settings' && <><div className="scrim" onPointerDown={closeSettings} /><SettingsCard key={voiceSetup ?? 'settings'} forVoice={voiceSetup} initialTab={settingsTab} initialModel={settingsModel} forStart={forStart} onContinue={continueAfterModel} onResetLayout={resetLayout} onAdd={() => { setForStart(false); setPop('add') }} onClose={closeSettings} /></>}
         {pop === 'record' && <RecordCard onClose={() => setPop(null)} onVoices={() => openModels('speech')} />}
         <OutputPanel open={pop === 'output'} onClose={() => setPop(null)} />
         {pop === 'help' && <Help onClose={() => setPop(null)} />}
@@ -1125,7 +1126,7 @@ function ModelCard({ forStart, onClose, onAccount, onContinue, onSettings }: { f
 }
 
 /** Settings for general preferences, models, voice, shortcuts and the optional livliv.ai account. */
-function SettingsCard({ onClose, onAdd, initialTab, initialModel, forStart, forVoice, onContinue }: { onClose: () => void; onAdd: () => void; initialTab: SettingsTab; initialModel: ModelTab; forStart: boolean; forVoice?: string; onContinue: () => void }) {
+function SettingsCard({ onClose, onAdd, initialTab, initialModel, forStart, forVoice, onContinue, onResetLayout }: { onClose: () => void; onAdd: () => void; initialTab: SettingsTab; initialModel: ModelTab; forStart: boolean; forVoice?: string; onContinue: () => void; onResetLayout: () => void }) {
   const [tab, setTab] = useState<SettingsTab>(initialTab)
   const [modelTab, setModelTab] = useState<ModelTab>(initialModel)
   useEffect(() => { if (tab === 'account') void checkConnect() }, [tab])
@@ -1134,7 +1135,7 @@ function SettingsCard({ onClose, onAdd, initialTab, initialModel, forStart, forV
       <div className="settings-head"><header><span className="title">{tr("设置")}</span><button className="icon" data-close="true" aria-label={tr("关闭")} onClick={onClose}><X size={16} /></button></header>
       <div className="settings-tabs seg">{([{ id: 'general', label: tr("通用") }, { id: 'ai', label: tr("模型与声音") }, { id: 'hotkeys', label: tr("全局热键") }, { id: 'account', label: tr("livliv.ai 帐号") }] as const).map((t) => <button className={`${tab === t.id ? 'on ' : ''}${t.id === 'account' ? 'account-tab' : ''}`} key={t.id} onClick={() => setTab(t.id)}>{t.id === 'account' && <Sparkles size={13} />}{t.label}</button>)}</div>
       </div><div className="settings-body">
-      {tab === 'general' && <GeneralPanel />}
+      {tab === 'general' && <GeneralPanel onResetLayout={onResetLayout} />}
       {tab === 'hotkeys' && <HotkeysPanel />}
       {tab === 'ai' && <div className="model-settings">
         <div className="seg model-tabs" aria-label={tr('模型用途')}>{([{ id: 'chat', label: '文字对话' }, { id: 'speech', label: '配音与识别' }, { id: 'realtime', label: '实时语音' }] as const).map((entry) => <button key={entry.id} className={modelTab === entry.id ? 'on' : ''} aria-pressed={modelTab === entry.id} onClick={() => setModelTab(entry.id)}>{tr(entry.label)}</button>)}</div>

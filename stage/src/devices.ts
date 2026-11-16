@@ -22,6 +22,11 @@ export function setInput(change: Partial<InputSettings>) {
   catch { state = { ...state, error: tr("设备已切换，但无法保存；下次打开需要重新选择") } }
   emit()
 }
+export function resetInputs() {
+  localStorage.removeItem(KEY)
+  state = { ...state, settings: { ...defaults }, error: '' }
+  emit()
+}
 
 export async function refreshDevices() {
   try { state = { ...state, devices: await navigator.mediaDevices.enumerateDevices(), error: '' } }
