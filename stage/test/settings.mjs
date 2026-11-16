@@ -47,6 +47,13 @@ try {
   })
   const routeFixture = async route => {
     const request = route.request(), url = new URL(request.url())
+    if (url.pathname === '/fixture-silence.wav') {
+      const wav = Buffer.alloc(44 + 48000)
+      wav.write('RIFF'); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8); wav.writeUInt32LE(16, 16)
+      wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22); wav.writeUInt32LE(24000, 24); wav.writeUInt32LE(48000, 28)
+      wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write('data', 36); wav.writeUInt32LE(48000, 40)
+      return route.fulfill({ contentType: 'audio/wav', body: wav })
+    }
     if (url.pathname === '/fixture-ai/models') return route.fulfill({ json: { data: [{ id: 'fixture-model' }] } })
     if (url.pathname === '/fixture-ai/chat/completions') {
       calls.push(request.postDataJSON())
@@ -100,6 +107,24 @@ try {
   await page.getByRole('button', { name: '持续聊天', exact: true }).click()
   await page.waitForFunction(() => window.__stage.conversation().running && window.__stage.conversation().waitingInput)
   assert.equal(await settings.count(), 0, 'A configured model starts chat directly')
+  await page.evaluate(async () => {
+    const { saveSpeech } = await import('/src/voiceApi.ts'), { setHandsFree } = await import('/src/ptt.ts')
+    saveSpeech({ provider: 'custom', base: location.origin + '/fixture-ai', key: 'fixture-asr-key', model: 'fixture-tts', voice: 'sweet', asr: 'fixture-asr' })
+    localStorage.setItem('livliv-stage:fake-mic', location.origin + '/fixture-silence.wav')
+    await setHandsFree(true)
+  })
+  await page.waitForFunction(async () => (await import('/src/ptt.ts')).pttState().phase === 'armed')
+  await page.getByRole('button', { name: '设置', exact: true }).click()
+  await settings.getByRole('button', { name: '恢复默认', exact: true }).click()
+  await page.keyboard.press('Escape')
+  await page.locator('dialog.reset-confirm').waitFor({ state: 'detached' })
+  assert.equal(await page.evaluate(async () => (await import('/src/ptt.ts')).pttState().automatic), true, 'Escape in the reset confirmation must leave hands-free listening on')
+  assert.equal(await settings.isVisible(), true)
+  await page.keyboard.press('Escape')
+  assert.equal(await page.evaluate(async () => (await import('/src/ptt.ts')).pttState().automatic), false, 'Escape outside confirmation still cancels listening')
+  await page.keyboard.press('Escape')
+  await settings.waitFor({ state: 'detached' })
+  await page.evaluate(() => localStorage.removeItem('livliv-stage:fake-mic'))
   await page.evaluate(() => window.__stage.talk.stop())
 
   await page.evaluate(async () => {
