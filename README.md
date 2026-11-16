@@ -29,6 +29,7 @@ needs your own OpenAI or Alibaba Cloud Bailian key.
 ## Try it
 
 - **Desktop app**: macOS and Windows from [Releases](https://github.com/livliv-dev/stage/releases/latest).
+  If GitHub is slow, use the [backup download](https://downloads.livliv.ai/stage/index.html).
   On macOS, one line in Terminal installs it with no first-open prompt: `curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **Online (Web, limited features)**: [livliv.ai/stage](https://livliv.ai/stage)
 - **From source**: see [Develop](#develop)

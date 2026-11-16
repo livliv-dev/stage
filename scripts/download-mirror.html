@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>LivLiv Stage · Backup downloads</title>
+<style>
+  :root { color-scheme: light dark; font-family: system-ui, sans-serif; color: #222631; background: #f7f8fb; }
+  * { box-sizing: border-box; }
+  body { max-width: 920px; margin: auto; padding: 32px 24px 64px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 64px; }
+  a { color: #4c55bd; text-underline-offset: 4px; }
+  header a { color: inherit; font-weight: 650; text-decoration: none; }
+  select { font: inherit; padding: 8px; border: 1px solid #d8dce5; border-radius: 8px; background: transparent; color: inherit; }
+  h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.25; margin: 12px 0; text-wrap: balance; }
+  p { line-height: 1.65; color: #626875; text-wrap: pretty; }
+  .version { font-size: 14px; }
+  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 32px 0; }
+  article { padding: 24px; border: 1px solid #e0e3eb; border-radius: 16px; background: #fff; }
+  h2 { font-size: 18px; margin: 0 0 8px; }
+  article p { font-size: 14px; margin: 0 0 20px; }
+  .download { display: block; border-radius: 9px; padding: 12px; text-align: center; background: #565fc8; color: #fff; text-decoration: none; font-weight: 600; }
+  .zip { display: block; font-size: 13px; margin-top: 16px; }
+  footer { border-top: 1px solid #e0e3eb; padding-top: 16px; font-size: 14px; }
+  footer p { margin: 8px 0; }
+  a:focus-visible, select:focus-visible { outline: 3px solid #949cf3; outline-offset: 4px; }
+  @media (max-width: 650px) { header { margin-bottom: 40px; } .cards { grid-template-columns: 1fr; } article { padding: 20px; } }
+  @media (prefers-color-scheme: dark) {
+    :root { color: #edf0f9; background: #15171e; }
+    p { color: #aab1c2; } article { background: #1d202a; } article, footer, select { border-color: #343a4b; }
+    a { color: #b1b8ff; }
+  }
+</style>
+<body>
+<header><a href="https://livliv.ai/stage">LivLiv Stage</a><select aria-label="Language" id="language"><option value="en">English</option><option value="zh">中文</option><option value="ja">日本語</option></select></header>
+<main>
+  <h1 data-text="title">Backup downloads</h1>
+  <p data-text="intro">Use this mirror if GitHub downloads are slow. These are the same official installers.</p>
+  <p class="version" id="version"></p>
+  <div class="cards" id="cards"></div>
+</main>
+<footer>
+  <p><a href="https://github.com/livliv-dev/stage/releases/latest" data-text="github">Download from GitHub</a> · <a id="notes" data-text="notes">Release notes</a> · <a id="checksums">SHA256</a></p>
+  <p data-text="verified">Files are verified against the SHA256 digests on GitHub before publishing.</p>
+</footer>
+<noscript><p><a href="https://github.com/livliv-dev/stage/releases/latest">Download from GitHub / 从 GitHub 下载 / GitHub からダウンロード</a></p></noscript>
+<script>
+  const release = __RELEASE_JSON__;
+  const text = {
+    en: { title: 'Backup downloads', intro: 'Use this mirror if GitHub downloads are slow. These are the same official installers.', version: 'Mirror version', apple: 'Apple silicon · M series', intel: 'Intel processor', windows: '64-bit · x64', download: 'Download', zip: 'ZIP archive', github: 'Download from GitHub', notes: 'Release notes', verified: 'Files are verified against the SHA256 digests on GitHub before publishing.' },
+    zh: { title: '备用下载', intro: 'GitHub 下载较慢时，可以使用这个入口。安装包与 GitHub 官方发布完全一致。', version: '镜像版本', apple: 'Apple 芯片 · M 系列', intel: 'Intel 芯片', windows: '64 位 · x64', download: '下载安装包', zip: 'ZIP 压缩包', github: 'GitHub 主下载', notes: '更新说明', verified: '所有文件均在发布前核对 GitHub 上的 SHA256 校验值。' },
+    ja: { title: '予備のダウンロード', intro: 'GitHub からのダウンロードが遅い場合はこちらをご利用ください。公式リリースと同じインストーラーです。', version: 'ミラーのバージョン', apple: 'Apple シリコン · M シリーズ', intel: 'Intel プロセッサ', windows: '64 ビット · x64', download: 'ダウンロード', zip: 'ZIP ファイル', github: 'GitHub からダウンロード', notes: 'リリースノート', verified: '公開前に GitHub の SHA256 ハッシュと照合しています。' },
+  };
+  const language = document.querySelector('#language');
+  language.value = navigator.language.startsWith('zh') ? 'zh' : navigator.language.startsWith('ja') ? 'ja' : 'en';
+  function render() {
+    const t = text[language.value];
+    document.documentElement.lang = language.value === 'zh' ? 'zh-CN' : language.value;
+    document.title = 'LivLiv Stage · ' + t.title;
+    document.querySelectorAll('[data-text]').forEach(el => { el.textContent = t[el.dataset.text]; });
+    document.querySelector('#version').textContent = t.version + ' ' + release.tag;
+    document.querySelector('#notes').href = release.source;
+    document.querySelector('#checksums').href = './' + release.tag + '/SHA256SUMS.txt';
+    const version = release.tag.slice(1);
+    const cards = document.querySelector('#cards');
+    cards.replaceChildren();
+    for (const [label, detail, suffix] of [['macOS', t.apple, version + '-arm64.dmg'], ['macOS', t.intel, version + '-x64.dmg'], ['Windows', t.windows, 'Setup-' + version + '.exe']]) {
+      const asset = release.assets.find(a => a.name === 'LivLiv-Stage-' + suffix);
+      const card = document.createElement('article');
+      const heading = document.createElement('h2'); heading.textContent = label;
+      const description = document.createElement('p'); description.textContent = detail;
+      const link = document.createElement('a'); link.className = 'download'; link.href = asset.url; link.textContent = t.download + ' · ' + Math.round(asset.size / 1e6) + ' MB';
+      card.append(heading, description, link);
+      const zip = release.assets.find(a => a.name === asset.name.replace(/\.dmg$/, '.zip'));
+      if (asset.name.endsWith('.dmg') && zip) {
+        const alternate = document.createElement('a'); alternate.className = 'zip'; alternate.href = zip.url; alternate.textContent = t.zip;
+        card.append(alternate);
+      }
+      cards.append(card);
+    }
+  }
+  language.addEventListener('change', render);
+  render();
+</script>
+</body>
+</html>

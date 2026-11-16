@@ -29,6 +29,7 @@ AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等）�
 ## 试一试
 
 - **桌面版**：macOS 和 Windows，到 [Releases](https://github.com/livliv-dev/stage/releases/latest) 下载。
+  GitHub 下载较慢时，可使用[备用下载](https://downloads.livliv.ai/stage/index.html)。
   macOS 也可以在终端里一行装好，第一次打开不会被拦：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **在线（网页版，功能受限）**：[livliv.ai/stage](https://livliv.ai/stage)
 - **从源码运行**：见[开发](#开发)

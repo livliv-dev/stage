@@ -1,0 +1,61 @@
+name: Stage backup downloads
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Published stable release tag, or latest
+        default: latest
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# A manual backfill must not race another upload of the download page.
+concurrency:
+  group: stage-download-mirror
+  queue: max
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    if: vars.STAGE_R2_BUCKET != '' && (github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
+      MIRROR_OUTPUT: dist-download-mirror
+      STAGE_R2_ACCOUNT_ID: ${{ vars.STAGE_R2_ACCOUNT_ID }}
+      STAGE_R2_BUCKET: ${{ vars.STAGE_R2_BUCKET }}
+      STAGE_DOWNLOAD_BASE_URL: ${{ vars.STAGE_DOWNLOAD_BASE_URL }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.STAGE_R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.STAGE_R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_EC2_METADATA_DISABLED: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify installers and prepare backup downloads
+        run: |
+          set -euo pipefail
+          : "${AWS_ACCESS_KEY_ID:?Missing R2 access key}"
+          : "${AWS_SECRET_ACCESS_KEY:?Missing R2 secret key}"
+          [[ "$STAGE_R2_ACCOUNT_ID" =~ ^[a-f0-9]{32}$ ]]
+          node --test scripts/download-mirror.test.mjs
+          node scripts/prepare-download-mirror.mjs --tag "$RELEASE_TAG" --output "$MIRROR_OUTPUT" --base-url "$STAGE_DOWNLOAD_BASE_URL"
+      - name: Upload verified version before updating download links
+        run: |
+          set -euo pipefail
+          mirror_tag=$(node -p "JSON.parse(require('fs').readFileSync(process.env.MIRROR_OUTPUT + '/stage/latest.json')).tag")
+          endpoint="https://${STAGE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          aws s3 cp "$MIRROR_OUTPUT/stage/$mirror_tag/" "s3://$STAGE_R2_BUCKET/stage/$mirror_tag/" --recursive --endpoint-url "$endpoint" --cache-control 'public,max-age=31536000,immutable' --only-show-errors
+          latest_tag=$(gh api repos/livliv-dev/stage/releases/latest --jq .tag_name)
+          if [[ "$mirror_tag" == "$latest_tag" ]]; then
+            aws s3 cp "$MIRROR_OUTPUT/stage/latest.json" "s3://$STAGE_R2_BUCKET/stage/latest.json" --endpoint-url "$endpoint" --cache-control 'public,max-age=60,must-revalidate' --content-type application/json --only-show-errors
+            aws s3 cp "$MIRROR_OUTPUT/stage/index.html" "s3://$STAGE_R2_BUCKET/stage/index.html" --endpoint-url "$endpoint" --cache-control 'public,max-age=60,must-revalidate' --content-type 'text/html; charset=utf-8' --only-show-errors
+          fi
