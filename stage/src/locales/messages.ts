@@ -1586,6 +1586,12 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Connect a voice API",
     "ja": "音声APIを接続"
   },
+  "保存后，此角色会使用你的语音接口。": {
+    "zh-Hans": "保存后，此角色会使用你的语音接口。",
+    "zh-Hant": "儲存後，此角色會使用你的語音介面。",
+    "en": "Save to use this voice API for this character.",
+    "ja": "保存すると、このキャラクターで設定した音声APIを使用します。"
+  },
   "分享麦克风": {
     "zh-Hans": "分享麦克风",
     "zh-Hant": "分享麥克風",

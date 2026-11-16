@@ -32,7 +32,7 @@ import { readReactionSettings, type ReactionFeeling } from './reactions'
 
 const settingsLabel = (item?: Item) => tr(item ? ({ character: '角色设置', subtitle: '字幕设置', text: '文字设置', image: '图片设置' })[item.kind] : '舞台设置')
 
-export function Panel({ onFold, onAccount }: { onFold: () => void; onAccount: () => void }) {
+export function Panel({ onFold, onAccount, onVoice }: { onFold: () => void; onAccount: () => void; onVoice: (character: string) => void }) {
   const { scene, selected } = useScene()
   const item = scene.items.find((i) => i.id === selected)
   const patch = (p: Partial<Item>) => { if (item) store.patch(item.id, p) }
@@ -49,7 +49,7 @@ export function Panel({ onFold, onAccount }: { onFold: () => void; onAccount: ()
             <button className="icon danger" title={item.kind === 'character' && item.remote ? tr("隐藏朋友角色") : tr("删除（Delete）")} onClick={() => store.remove(item.id)}>{item.kind === 'character' && item.remote ? <EyeOff size={15} /> : <Trash size={15} />}</button>
           </span>
         </header>
-        {item.kind === 'character' && <CharacterPanel c={item} patch={patch} onAccount={onAccount} />}
+        {item.kind === 'character' && <CharacterPanel c={item} patch={patch} onAccount={onAccount} onVoice={onVoice} />}
         {item.kind === 'subtitle' && <SubtitlePanel s={item} patch={patch} />}
         {item.kind === 'text' && <TextPanel t={item} patch={patch} />}
         {item.kind === 'image' && <PropPanel item={item} />}
@@ -89,8 +89,8 @@ function Slider({ label, value, min, max, step, show, set, commit = false }: { l
 }
 
 
-/** its voice: its LivLiv one (a LivLiv character, signed in), or the system's */
-function VoiceSection({ c, patch, onAccount }: { c: CharacterItem; patch: (p: Partial<CharacterItem>) => void; onAccount: () => void }) {
+/** The character's LivLiv voice, voice API or system speech. */
+function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patch: (p: Partial<CharacterItem>) => void; onAccount: () => void; onVoice: (character: string) => void }) {
   const brain = useBrainConfig(), conversation = useConversation()
   const demo = brain.kind === 'demo' ? demoVoice(c, participants(store.get())) : null
   const [testing, setTesting] = useState(false), preview = useRef<AbortController | null>(null)
@@ -105,8 +105,6 @@ function VoiceSection({ c, patch, onAccount }: { c: CharacterItem; patch: (p: Pa
     if (mid) void voicesOf(mid).then((value) => { if (active) { setList(value); setLoadingVoices(false) } }, (error: unknown) => { if (active) { setVoicesError(error instanceof Error ? error.message : String(error)); setLoadingVoices(false) } })
     return () => { active = false }
   }, [mid, voiceAttempt, account.status, account.email])
-  // what it speaks in now (voiceRoute); a source that can't be had is there, greyed: LivLiv's needs the account, yours
-  // the speech API (settings)
   const speech = useActiveSpeech(), can = !!mid && account.status === 'in', api = speechReady(speech), v = c.voice
   const route = voiceRoute(c, speech), livliv = route === 'livliv'
   const [apiVoices, setApiVoices] = useState<string[]>([])
@@ -133,9 +131,9 @@ function VoiceSection({ c, patch, onAccount }: { c: CharacterItem; patch: (p: Pa
   if (demo) return <Section title={tr('声音')}><p className="voice-demo"><Volume2 size={14} />{tr('演示声音')}</p>{audition}{a?.voiceError && <p className="hint error" role="alert">{tr(a.voiceError)}</p>}</Section>
   return (
     <Section title={tr("声音")}>
-      <Seg value={route as 'livliv' | 'api' | 'system'} set={(source) => { if (source === 'livliv' && !can) onAccount(); else patch({ voice: { ...v, source } }) }} options={[
+      <Seg value={route as 'livliv' | 'api' | 'system'} set={(source) => { if (source === 'livliv' && !can) onAccount(); else if (source === 'api' && !api) onVoice(c.id); else patch({ voice: { ...v, source } }) }} options={[
         ...(mid ? [{ id: 'livliv' as const, label: tr("角色声音"), title: can ? tr("角色在 livliv.ai 上的声音") : tr("在设置里连上 livliv.ai 帐号后可用") }] : []),
-        { id: 'api' as const, label: tr("我的接口"), disabled: !api, title: api ? `${tr(speechProviderOf(speech).label)} · ${speech.model}` : tr("在设置里接上语音接口后可用") },
+        { id: 'api' as const, label: tr("我的接口"), title: api ? `${tr(speechProviderOf(speech).label)} · ${speech.model}` : tr("接入语音接口") },
         { id: 'system' as const, label: tr("系统朗读") },
       ]} />
       {livliv ? <>
@@ -193,7 +191,7 @@ function ReactionSection({ c, patch }: { c: CharacterItem; patch: (value: Partia
   </Section>
 }
 
-function CharacterPanel({ c, patch, onAccount }: { c: CharacterItem; patch: (p: Partial<CharacterItem>) => void; onAccount: () => void }) {
+function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; patch: (p: Partial<CharacterItem>) => void; onAccount: () => void; onVoice: (character: string) => void }) {
   const { scene } = useScene()
   const [, redraw] = useState(0)
   useEffect(() => onActors(() => redraw((n) => n + 1)), [])
@@ -219,7 +217,7 @@ function CharacterPanel({ c, patch, onAccount }: { c: CharacterItem; patch: (p: 
       <Switch label={tr("静音角色声音")} on={c.muted} set={(muted) => patch({ muted })} />
     </Section>
     {c.lines === 'me' && <DevicePanel character={c} />}
-    {voiced && <VoiceSection c={c} patch={patch} onAccount={onAccount} />}
+    {voiced && <VoiceSection c={c} patch={patch} onAccount={onAccount} onVoice={onVoice} />}
     <details className="advanced"><summary>{tr("外观")}</summary>
     <Section title={tr("外观")}>
       <label className="field"><span>{tr("名字")}</span><input value={c.name} onChange={(e) => patch({ name: e.target.value })} /></label>
