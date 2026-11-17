@@ -1,7 +1,7 @@
 {
   "name": "livliv-stage",
   "productName": "LivLiv Stage",
-  "version": "0.4.0",
+  "version": "0.4.2",
   "private": true,
   "license": "Apache-2.0",
   "homepage": "https://github.com/livliv-dev/stage",
@@ -23,6 +23,9 @@
     "test:lifecycle": "node test/lifecycle.mjs",
     "test:handsfree": "node test/handsfree.mjs",
     "test:memory": "node test/memory.mjs",
+    "test:demo-history": "node test/demo-history.mjs",
+    "test:voice-setup": "node test/voice-setup.mjs",
+    "test:settings": "node test/settings.mjs",
     "test:ux": "node test/ux.mjs",
     "test:profiles": "node test/profiles.mjs",
     "test:shots": "node test/shots.mjs",

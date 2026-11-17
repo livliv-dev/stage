@@ -8,13 +8,14 @@ import { talk } from './conversation'
 import { NeuroPanel } from './NeuroPanel'
 import { QUALITIES, setQuality, useQuality, type Quality } from './quality'
 import { LANGUAGES, setLocale, tr, useLocale, type Locale } from './i18n'
+import { ResetPreferences } from './ResetPreferences'
 
 /** stage/package.json's version, set by vite.config.ts */
 declare const __STAGE_VERSION__: string
 const REPO = 'https://github.com/livliv-dev/stage'
 
 /** onDesktop: livliv.ai/stage's note on the desktop app (DesktopNotice.tsx), opened again from About */
-export function GeneralPanel({ onDesktop }: { onDesktop?: () => void } = {}) {
+export function GeneralPanel({ onDesktop, onResetLayout }: { onDesktop?: () => void; onResetLayout: () => void }) {
   const locale = useLocale(), quality = useQuality(), { scene } = useScene()
   return <div className="general-panel">
     <section className="general-preferences">
@@ -24,6 +25,7 @@ export function GeneralPanel({ onDesktop }: { onDesktop?: () => void } = {}) {
     {motionSupported() && <NetworkPanel />}
     <StageApiPanel />
     <NeuroPanel characters={participants(scene).filter((character) => character.lines === 'ai' && !character.remote)} onStart={(character) => talk.startChat('public', character)} />
+    <ResetPreferences onResetLayout={onResetLayout} />
     <section className="general-about">
       <h3>{tr("关于")}</h3>
       <div className="about-brand"><img src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" /><span className="about-version num">v{__STAGE_VERSION__}{!desktop && ` · ${tr("网页版")}`}</span></div>

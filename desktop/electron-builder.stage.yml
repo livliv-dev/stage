@@ -10,7 +10,7 @@ productName: LivLiv Stage
 copyright: Copyright © 2026 LivLiv
 extraMetadata:
   name: livliv-stage-app
-  version: 0.4.0  # the same as stage/package.json, which the About section shows
+  version: 0.4.2  # the same as stage/package.json, which the About section shows
   productName: LivLiv Stage
   description: "LivLiv Stage: one stage, many characters, each with its own driver; characters talk to each other"
   livliv:
@@ -69,7 +69,7 @@ mac:
   artifactName: LivLiv-Stage-${version}-${arch}.${ext}
   extendInfo:
     NSCameraUsageDescription: LivLiv Stage 用摄像头做面捕，画面只在这台电脑上处理。
-    NSLocalNetworkUsageDescription: LivLiv Stage 连接同一网络的手机与追踪应用，接收角色动作。
+    NSLocalNetworkUsageDescription: LivLiv Stage 与同一网络的朋友联播，并接收手机和追踪应用的角色动作。
     NSMicrophoneUsageDescription: LivLiv Stage 用麦克风做口型和按住说话。
 dmg:
   title: LivLiv Stage

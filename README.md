@@ -23,14 +23,15 @@
 - All the basics: webcam face tracking (phone apps and VMC/OSC in the desktop app), OBS output, video recording
 - 27 featured characters, ready to use. Built on [LivLiv Player](https://github.com/livliv-dev/player)
 
-The AI runs on your own model key (OpenAI, Qwen, DeepSeek and more), or on livliv.ai's AI with no key. Real-time voice
+The AI runs on your own model key (OpenAI, Qwen, DeepSeek and more), or your LivLiv.ai account. Real-time voice
 needs your own OpenAI or Alibaba Cloud Bailian key.
 
 ## Try it
 
 - **Desktop app**: macOS and Windows from [Releases](https://github.com/livliv-dev/stage/releases/latest).
+  If GitHub is slow, use the [backup download](https://downloads.livliv.ai/stage/index.html).
   On macOS, one line in Terminal installs it with no first-open prompt: `curl -fsSL https://livliv.ai/stage/install.sh | bash`
-- **Online**: [livliv.ai/stage](https://livliv.ai/stage)
+- **Online (Web, limited features)**: [livliv.ai/stage](https://livliv.ai/stage)
 - **From source**: see [Develop](#develop)
 
 <p align="center"><img src="media/editor.jpg" alt="The Stage editor: six characters on one stage, Ruri saying a line" width="720"></p>
@@ -44,8 +45,8 @@ The featured characters have [their own licence](stage/public/characters/LICENSE
 
 We want the art of creating characters to belong to everyone.
 
-We're open-sourcing our AI tools for character creation, the player and its playback protocol, and a stage
-where your characters can meet an audience.
+We're open-sourcing our AI tools for character creation, [the player and its playback protocol](https://github.com/livliv-dev/player),
+and [a stage where your characters can meet an audience](https://github.com/livliv-dev/stage).
 
 Come say hello on [Discord](https://discord.gg/ac5qF36T2H) and follow us on [X (Twitter)](https://x.com/livliv_ai).
 

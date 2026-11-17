@@ -23,14 +23,15 @@
 - 基本機能：Web カメラのフェイストラッキング（スマホアプリと VMC/OSC はデスクトップ版）、OBS 出力、動画の録画
 - 厳選キャラクター 27 体、すぐに使えます。[LivLiv Player](https://github.com/livliv-dev/player) がベース
 
-AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）でも、キー不要の livliv.ai の AI でも動きます。
+AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）、または LivLiv.ai アカウントで利用できます。
 リアルタイム音声には OpenAI か Alibaba Cloud Bailian のキーが必要です。
 
 ## 試してみる
 
 - **デスクトップ版**：macOS と Windows 版を [Releases](https://github.com/livliv-dev/stage/releases/latest) から。
+  GitHub からのダウンロードが遅い場合は[予備のダウンロード](https://downloads.livliv.ai/stage/index.html)をご利用ください。
   macOS はターミナルで 1 行入力してもインストールでき、初回の確認は出ません：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
-- **オンライン**：[livliv.ai/stage](https://livliv.ai/stage)
+- **オンライン（Web版・機能制限あり）**：[livliv.ai/stage](https://livliv.ai/stage)
 - **ソースから**：[開発](#開発)を参照
 
 <p align="center"><img src="media/editor.jpg" alt="Stage のエディター：6 体のキャラクターが同じステージに。Ruri が話しているところ" width="720"></p>
@@ -44,7 +45,7 @@ AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）で�
 
 誰もが、思い描いたキャラクターをかたちにできるように。それが私たちの願いです。
 
-AI を使ったキャラクター制作のツール群、プレイヤーとその再生プロトコル、そしてキャラクターをお披露目できる舞台をオープンソース化しています。
+AI を使ったキャラクター制作のツール群、[プレイヤーとその再生プロトコル](https://github.com/livliv-dev/player)、そして[キャラクターをお披露目できる舞台](https://github.com/livliv-dev/stage)をオープンソース化しています。
 
 ぜひ [Discord](https://discord.gg/ac5qF36T2H) に遊びに来てください。[X（Twitter）](https://x.com/livliv_ai) でも LivLiv をフォローしてもらえたらうれしいです。
 

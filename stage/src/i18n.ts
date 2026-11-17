@@ -33,6 +33,10 @@ export function setLocale(next: Locale) {
   try { localStorage.setItem(KEY, next) } catch { /* The language still applies to this window. */ }
   changed(next)
 }
+export function resetLocale() {
+  localStorage.removeItem(KEY)
+  changed(savedLocale())
+}
 /** Source messages are keys; model names, user text and provider errors pass through unchanged. */
 export function tr(message: string, ...values: (string | number)[]) {
   const translated = messages[message]?.[locale] ?? message
@@ -40,5 +44,8 @@ export function tr(message: string, ...values: (string | number)[]) {
 }
 if (typeof window !== 'undefined') {
   document.documentElement.lang = locale
-  addEventListener('storage', (event) => { if (event.key === KEY && LANGUAGES.some((language) => language.id === event.newValue)) changed(event.newValue as Locale) })
+  addEventListener('storage', (event) => {
+    if (event.key === KEY && event.newValue === null) changed(savedLocale())
+    else if (event.key === KEY && LANGUAGES.some((language) => language.id === event.newValue)) changed(event.newValue as Locale)
+  })
 }

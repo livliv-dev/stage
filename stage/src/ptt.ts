@@ -236,7 +236,11 @@ export function holdKey() {
     event.preventDefault(); if (!event.repeat) void press()
   }
   const up = (event: KeyboardEvent) => { if (event.code === 'Backquote') { event.preventDefault(); void release() } }
-  const esc = (event: KeyboardEvent) => { if (event.key === 'Escape' && (state.automatic || state.phase !== 'idle')) { event.stopImmediatePropagation(); cancel() } }
+  const esc = (event: KeyboardEvent) => {
+    // A native modal owns Escape; dismissing it must not also stop the microphone.
+    if (event.key !== 'Escape' || document.querySelector('dialog:modal')) return
+    if (state.automatic || state.phase !== 'idle') { event.stopImmediatePropagation(); cancel() }
+  }
   const blur = () => { if (session && !session.toggle && (state.phase === 'opening' || state.phase === 'listening')) cancel() }
   addEventListener('keydown', esc, true); addEventListener('keydown', down); addEventListener('keyup', up); addEventListener('blur', blur)
   return () => { removeEventListener('keydown', esc, true); removeEventListener('keydown', down); removeEventListener('keyup', up); removeEventListener('blur', blur) }

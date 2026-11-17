@@ -25,15 +25,18 @@
     "stage:dev": "npm run build && npm run stage:web && electron . --app=stage",
     "test:stage": "npm run build && npm run stage:web && node test/stage.mjs",
     "test:stage-api": "npm run build && npm run stage:web && node test/stage-api.mjs",
-    "test:stage-contexts": "npm run build && node test/contexts.mjs"
+    "test:stage-contexts": "npm run build && node test/contexts.mjs",
+    "test:stage-collab": "npm run build && npm run stage:web && node test/collab-stage.mjs"
   },
   "devDependencies": {
+    "@electron/asar": "3.4.1",
     "@types/node": "24.10.15",
     "electron": "45.2.1",
     "electron-builder": "26.18.0",
     "typescript": "6.0.3"
   },
   "dependencies": {
-    "@livliv-dev/neuro-bridge": "file:../neuro"
+    "@livliv-dev/neuro-bridge": "file:../neuro",
+    "livliv-stage-collab": "file:../collab"
   }
 }

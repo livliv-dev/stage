@@ -70,6 +70,8 @@ class VoiceFailed extends Error {}
 class GenerationLimit extends Error {}
 const subs = new Set<() => void>()
 let restoring = false
+let restoreRequest: { controller: AbortController; signal: AbortSignal } | null = null
+function cancelRestore() { restoreRequest?.controller.abort(); restoreRequest = null }
 let saveRevision = 0
 let inputPending = false, inputEpoch = 0
 const set = (p: Partial<ConvState>, persist = true) => {
@@ -116,6 +118,7 @@ const castKey = () => JSON.stringify([...new Set(profiles())].sort())
 let boundProfiles = ''
 
 async function openHistory(scope: MemoryScope, signal: AbortSignal, fresh = false) {
+  if (restoreRequest && restoreRequest.signal !== signal) cancelRestore()
   if (loadBrainConfig().kind === 'demo' && state.mode !== 'realtime') return
   const session = await chatHistory.open(profiles(), scope, signal, fresh)
   signal.throwIfAborted()
@@ -833,9 +836,13 @@ export const talk = {
   async restore(signal = new AbortController().signal) {
     if (isOutput || (loadBrainConfig().kind === 'demo' && state.mode !== 'realtime')) return
     if (state.running) { if (boundProfiles === castKey()) return; talk.stop() }
+    cancelRestore()
     if (!profiles().length) { chatHistory.reset(); set({ sessionId: '' }); return }
-    try { await openHistory(state.scope, signal) }
-    catch (error) { if (!signal.aborted) set({ storageError: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }) }
+    const controller = new AbortController(), active = AbortSignal.any([signal, controller.signal])
+    restoreRequest = { controller, signal: active }
+    try { await openHistory(state.scope, active) }
+    catch (error) { if (!active.aborted) set({ storageError: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }) }
+    finally { if (restoreRequest?.controller === controller) restoreRequest = null }
   },
   async setScope(scope: MemoryScope) {
     if (state.running) return
@@ -849,6 +856,7 @@ export const talk = {
   },
   async openSession(id: string) {
     if (state.running) return
+    cancelRestore()
     try {
       const session = await chatHistory.select(id, profiles(), state.scope)
       restoring = true
@@ -918,6 +926,7 @@ export const talk = {
   pause() { if (state.running) { set({ paused: true }); realtimeControls?.pause(true); wakeLive?.() } },
   resume() { set({ paused: false }); realtimeControls?.pause(dialogue.size > 0); wakeLive?.() },
   stop() {
+    cancelRestore()
     inputPending = false; activeEvent = null
     offRealtimeHistory(); offRealtimeHistory = () => {}
     realtimeControls?.interrupt()

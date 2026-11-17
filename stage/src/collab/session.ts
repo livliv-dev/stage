@@ -20,7 +20,7 @@ const set = (patch: Partial<RoomState>) => { state = { ...state, ...patch }; lis
 export const roomState = () => state
 export const useRoom = () => useSyncExternalStore((listener) => { listeners.add(listener); return () => { listeners.delete(listener) } }, () => state)
 export const onRoom = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } }
-type Peer = { member: Member; pc: RTCPeerConnection; stateChannel: RTCDataChannel | null; poseChannel: RTCDataChannel | null; receiver: PackageReceiver; pendingIce: RTCIceCandidateInit[]; asset: AbortController; status: PeerState }
+type Peer = { member: Member; pc: RTCPeerConnection; stateChannel: RTCDataChannel | null; poseChannel: RTCDataChannel | null; receiver: PackageReceiver; pendingIce: RTCIceCandidateInit[]; pose: ReturnType<typeof readPose>; asset: AbortController; status: PeerState }
 function membersFrom(raw: unknown, limit = MAX_MEMBERS): Member[] {
   if (!Array.isArray(raw) || raw.length > limit || raw.some((member) => !object(member) || typeof member.id !== 'string' || !/^[\w-]{1,64}$/.test(member.id) || !personName(member.name) || typeof member.host !== 'boolean')) throw new Error(tr("联播成员信息有问题"))
   const members = raw as Member[]
@@ -43,18 +43,20 @@ class Session {
   private lastProgress = 0
   private model: string
   private stopped = false
+  private connecting: ReturnType<typeof setTimeout>
   private offs: (() => void)[] = []
   private url: string
   private characterId: string
   private microphone: boolean
-  constructor(url: string, characterId: string, microphone: boolean, message: Record<string, unknown>) {
-    this.url = url; this.characterId = characterId; this.microphone = microphone
+  constructor(url: string, characterId: string, microphone: boolean, message: Record<string, unknown>, invitationUrl = url) {
+    this.url = invitationUrl; this.characterId = characterId; this.microphone = microphone
     const character = this.character()
     this.model = JSON.stringify(character.model)
     this.actor = actors.get(characterId) ?? null
     this.audio.connectActor(this.actor)
     this.audio.onError = (error) => { if (!this.stopped) set({ microphoneError: error }) }
     this.socket = new WebSocket(url)
+    this.connecting = setTimeout(() => this.fail(tr('连接联播服务超时，请确认服务地址、网络和防火墙设置。')), 10000)
     this.socket.onopen = () => this.send(message)
     this.socket.onmessage = (event) => { void this.signal(event.data).catch((error: Error) => this.fail(error.message)) }
     this.socket.onerror = () => this.fail(tr("联播服务未连接，请检查服务地址"))
@@ -74,7 +76,7 @@ class Session {
     const value: unknown = JSON.parse(text)
     if (!object(value)) throw new Error(tr("联播服务消息有问题"))
     if (value.t === 'error' || value.t === 'ended') { this.fail(typeof value.reason === 'string' ? value.reason : tr("联播已结束")); return }
-    if (value.t === 'waiting') { set({ phase: 'waiting' }); return }
+    if (value.t === 'waiting') { clearTimeout(this.connecting); set({ phase: 'waiting' }); return }
     if (value.t === 'pending') { set({ pending: membersFrom(value.people, 8) }); return }
     if (value.t === 'joined') {
       if (value.version !== ROOM_VERSION || typeof value.id !== 'string' || typeof value.room !== 'string' || typeof value.token !== 'string' || !Array.isArray(value.iceServers) || value.iceServers.length > 16) throw new Error(tr("联播服务版本不兼容"))
@@ -82,6 +84,7 @@ class Session {
       this.configuration = { iceServers: value.iceServers as RTCIceServer[], iceTransportPolicy: value.relayOnly === true ? 'relay' : 'all' }
       const members = membersFrom(value.members)
       if (!members.some((member) => member.id === this.me)) throw new Error(tr("联播身份有问题"))
+      clearTimeout(this.connecting)
       set({ phase: 'on', id: this.me, room: this.room, invite: encodeInvite({ server: this.url, room: value.room, token: value.token }), microphone: this.microphone })
       if (this.microphone) void this.audio.microphoneOn(true)
       this.syncPeers(members); return
@@ -111,7 +114,7 @@ class Session {
   }
   private createPeer(member: Member) {
     const pc = new RTCPeerConnection(this.configuration)
-    const peer: Peer = { member, pc, stateChannel: null, poseChannel: null, receiver: new PackageReceiver(), pendingIce: [], asset: new AbortController(), status: { ...member, phase: 'connecting', progress: 0, error: '', muted: false } }
+    const peer: Peer = { member, pc, stateChannel: null, poseChannel: null, receiver: new PackageReceiver(), pendingIce: [], pose: null, asset: new AbortController(), status: { ...member, phase: 'connecting', progress: 0, error: '', muted: false } }
     this.peers.set(member.id, peer)
     pc.addTrack(this.audio.stream.getAudioTracks()[0], this.audio.stream)
     pc.onicecandidate = (event) => { if (event.candidate) this.send({ t: 'signal', to: member.id, signal: { candidate: event.candidate.toJSON() } }) }
@@ -129,7 +132,7 @@ class Session {
       peer.poseChannel = channel
       channel.onmessage = (event) => {
         if (this.stopped || peer.status.phase === 'error') return
-        try { if (typeof event.data !== 'string' || event.data.length > 16 * 1024) throw new Error(); const pose = readPose(JSON.parse(event.data)); if (!pose) throw new Error(); actorFor(peer.member.id)?.follow(pose) }
+        try { if (typeof event.data !== 'string' || event.data.length > 16 * 1024) throw new Error(); const pose = readPose(JSON.parse(event.data)); if (!pose) throw new Error(); peer.pose = pose; actorFor(peer.member.id)?.follow(pose) }
         catch { this.peerError(peer, tr("收到的角色动作有问题")) }
       }
       return
@@ -147,6 +150,12 @@ class Session {
           if (!object(message)) throw new Error(tr("联播消息无效"))
           if (message.t === 'model') { peer.receiver.begin(message.model); peer.status.phase = 'receiving'; this.publish() }
           else if (message.t === 'model-end') { const value = peer.receiver.end(message.id); peer.status.phase = 'loading'; peer.status.progress = 1; this.publish(); void this.load(peer, value) }
+          else if (message.t === 'pose') {
+            const pose = readPose(message.pose)
+            if (!pose) throw new Error(tr("收到的角色动作有问题"))
+            // A live pose on the other channel may already be newer than this initial snapshot.
+            if (!peer.pose) { peer.pose = pose; actorFor(peer.member.id)?.follow(pose) }
+          }
         }
       } catch (error) { this.peerError(peer, (error as Error).message) }
     }
@@ -162,6 +171,8 @@ class Session {
       const value = await this.asset
       if (this.stopped || peer.asset.signal.aborted) return
       await sendPackage(peer.stateChannel!, value, peer.asset.signal)
+      // A paused or backgrounded publisher may not draw another frame after joining.
+      if (!this.stopped && !peer.asset.signal.aborted && this.actor?.status === 'ready') peer.stateChannel!.send(JSON.stringify({ t: 'pose', pose: this.actor.lastPose }))
     } catch (error) { if (!this.stopped && !peer.asset.signal.aborted) this.peerError(peer, tr("角色没有分享成功：") + (error as Error).message) }
   }
   private frame(actor: Actor) {
@@ -176,7 +187,7 @@ class Session {
     let changed = false
     for (const peer of this.peers.values()) {
       const remote = actorFor(peer.member.id)
-      if (remote?.status === 'ready' && peer.status.phase === 'loading') { peer.status.phase = 'ready'; changed = true }
+      if (remote?.status === 'ready' && peer.status.phase === 'loading') { if (peer.pose) remote.follow(peer.pose); peer.status.phase = 'ready'; changed = true }
       else if (remote?.status === 'error' && peer.status.phase !== 'error') { peer.status.phase = 'error'; peer.status.error = remote.error; changed = true }
     }
     if (changed) this.publish()
@@ -193,19 +204,19 @@ class Session {
   private peerError(peer: Peer, message: string) { if (this.stopped || peer.status.phase === 'error') return; peer.status.phase = 'error'; peer.status.error = message; peer.asset.abort(); peer.pc.close(); removeSound(peer.member.id); removeCharacter(peer.member.id); this.publish() }
   private closePeer(peer: Peer) { peer.asset.abort(); peer.pc.onconnectionstatechange = null; if (peer.stateChannel) peer.stateChannel.onclose = null; peer.pc.close(); removeSound(peer.member.id); removeCharacter(peer.member.id) }
   fail(error: string) { if (this.stopped) return; this.close(); set({ phase: 'error', error, pending: [], members: [] }) }
-  close() { if (this.stopped) return; this.stopped = true; this.controller.abort(); this.offs.forEach((off) => off()); this.audio.close(); for (const peer of this.peers.values()) this.closePeer(peer); this.peers.clear(); this.socket.close() }
+  close() { if (this.stopped) return; this.stopped = true; clearTimeout(this.connecting); this.controller.abort(); this.offs.forEach((off) => off()); this.audio.close(); for (const peer of this.peers.values()) this.closePeer(peer); this.peers.clear(); this.socket.close() }
 }
-function start(server: string, name: string, character: string, microphone: boolean, invite?: Invite) {
+function start(server: string, name: string, character: string, microphone: boolean, invite?: Invite, invitationUrl?: string) {
   room.leave()
   const person = personName(name)
   if (!person) { set({ phase: 'error', error: tr("请输入你的名字") }); return }
   const target = store.get().items.find((item) => item.id === character && item.kind === 'character' && !item.remote)
   if (!target || actors.get(character)?.status !== 'ready') { set({ phase: 'error', error: tr("请先载入自己的角色") }); return }
-  try { const url = serviceUrl(server); set({ ...empty(), phase: 'connecting', role: invite ? 'guest' : 'host', microphone }); session = new Session(url, character, microphone, invite ? { t: 'join', name: person, room: invite.room, token: invite.token } : { t: 'create', name: person }) }
+  try { const url = serviceUrl(server), share = invitationUrl ? serviceUrl(invitationUrl) : url; set({ ...empty(), phase: 'connecting', role: invite ? 'guest' : 'host', microphone }); session = new Session(url, character, microphone, invite ? { t: 'join', name: person, room: invite.room, token: invite.token } : { t: 'create', name: person }, share) }
   catch (error) { set({ phase: 'error', error: (error as Error).message }) }
 }
 export const room = {
-  create(server: string, name: string, character: string, microphone: boolean) { start(server, name, character, microphone) },
+  create(server: string, name: string, character: string, microphone: boolean, invitationUrl?: string) { start(server, name, character, microphone, undefined, invitationUrl) },
   join(code: string, name: string, character: string, microphone: boolean) { try { const invite = decodeInvite(code); start(invite.server, name, character, microphone, invite) } catch (error) { set({ phase: 'error', error: (error as Error).message }) } },
   admit(id: string) { session?.send({ t: 'admit', id }) }, remove(id: string) { session?.send({ t: 'remove', id }) },
   mute(id: string) { session?.mutePeer(id) }, mic(on: boolean) { session?.mic(on) },

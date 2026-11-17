@@ -31,7 +31,7 @@ import { ROOM, useCrowded } from './contexts'
 import { ageGate, cancelConnect, checkConnect, livlivHere, openConnect, openCreate, refresh, setAge, siteUrl, useAccount } from './livliv'
 import { rec, takeLimit, useRecording } from './recording'
 import { cancel as pttCancel, clearError as pttClear, holdKey, press as pttPress, release as pttRelease, setHandsFree, usePtt } from './ptt'
-import { asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, useActiveSpeech, transcribeApi, useSpeech, voiceRoute, type SpeechApi } from './voiceApi'
+import { activeSpeech, asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, useActiveSpeech, transcribeApi, useSpeech, voiceRoute, type SpeechApi } from './voiceApi'
 import { wav16k } from './audio'
 import { buildTemplate, TEMPLATES, type TemplateId } from './templates'
 import { demoFor } from './demo'
@@ -106,6 +106,8 @@ export default function App() {
   const { mode, scene } = useScene()
   const hasAI = participants(scene).some((c) => c.lines === 'ai')
   const [pop, setPop] = useState<Pop>(null)
+  const [voiceSetup, setVoiceSetup] = useState<string>()
+  useEffect(() => { if (pop !== 'settings') setVoiceSetup(undefined) }, [pop])
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('general')
   const [settingsModel, setSettingsModel] = useState<ModelTab>('chat')
   const [leftFolded, setLeftFolded] = useState(() => { try { const saved = localStorage.getItem('livliv-stage:left-folded'); return saved !== null ? saved === '1' : localStorage.getItem('livliv-stage:tools-folded') === '1' && localStorage.getItem('livliv-stage:cast-folded') === '1' } catch { return false } })
@@ -118,6 +120,10 @@ export default function App() {
     return v
   })
   const [zoom, setZoom] = useState<Zoom>('fit')
+  const resetLayout = () => {
+    for (const key of [FOLDED, 'livliv-stage:left-folded', 'livliv-stage:tools-folded', 'livliv-stage:cast-folded']) localStorage.removeItem(key)
+    setBareNow(false); setLeftFolded(false); setZoom('fit')
+  }
   const [log, setLog] = useState(false)
   const [logView, setLogView] = useState<'history' | 'memory'>('history')
   const [menu, setMenu] = useState<MenuAt | null>(null)
@@ -130,10 +136,9 @@ export default function App() {
   // the site's 开播 (?c=<id>&as=face): its card, where the first-visit checklist goes
   const [goLive, setGoLive] = useState<string | null>(null)
   const toggle = (p: Pop) => { if (p === 'settings') { setForStart(false); setSettingsTab('general') } setPop((x) => (x === p ? null : p)) }
-  const openSettings = () => { setForStart(false); setSettingsTab('general'); setPop('settings') }
-  const openModels = (model: ModelTab, start = false) => { setForStart(start); setSettingsModel(model); setSettingsTab('ai'); setPop('settings') }
-  const openAccount = () => { setSettingsTab('account'); setPop('settings') }
-  const account = useAccount()
+  const openSettings = () => { setVoiceSetup(undefined); setForStart(false); setSettingsTab('general'); setPop('settings') }
+  const openModels = (model: ModelTab, start = false) => { setVoiceSetup(undefined); setForStart(start); setSettingsModel(model); setSettingsTab('ai'); setPop('settings') }
+  const openAccount = () => { setVoiceSetup(undefined); setSettingsTab('account'); setPop('settings') }
   useEffect(() => { void refresh() }, [])  // the LivLiv account, if one is connected
   // LivLiv's points AI asks the site's age question once (livliv.ts stageLine): answered here
   // (one question at a time: a second line asking while it is open waits for the same answer)
@@ -168,7 +173,7 @@ export default function App() {
   useEffect(() => holdKey(), [])  // push to talk: hold `
   useEffect(connectLiveKeys, [])  // 1-9 0 Q W E R T B (live.ts)
   useEffect(connectOutputFeed, [])
-  // an AI turn came with no model set up: the model card opens over the console, its button starts the conversation
+  // Choose the model before asking for a particular provider's account.
   const conv = useConversation()
   const gated = useGuestGate()
   // livliv.ai/stage on a computer, the first time: what the desktop app adds, once the welcome is closed and nothing
@@ -182,10 +187,8 @@ export default function App() {
   const [forStart, setForStart] = useState(false)
   useEffect(() => {
     if (!conv.needModel) return
-    talk.modelAsked(); store.setMode('edit'); setForStart(true); setSettingsModel('chat')
-    if (livlivHere() && (loadBrainConfig().kind === 'livliv' || !previousModelConfig().provider) && account.status !== 'in') openAccount()
-    else setPop('model')
-  }, [conv.needModel, account.status])
+    talk.modelAsked(); store.setMode('edit'); openModels('chat', true)
+  }, [conv.needModel])
   const closeSettings = () => { setForStart(false); setSettingsTab('general'); setPop(null) }
   const continueAfterModel = () => {
     if (conv.modelIntent === 'chat') void talk.startChat().catch(() => {})
@@ -220,7 +223,7 @@ export default function App() {
         <TopBar pop={pop} toggle={toggle} onTemplate={template} say={say} />
         <CrowdNotice insets={insets} />
         <Rail pop={pop} toggle={toggle} folded={leftFolded} onFold={foldLeft} />
-        {bare ? <PanelTab onOpen={() => setBare(false)} /> : <Panel onFold={() => setBare(true)} onAccount={openAccount} />}
+        {bare ? <PanelTab onOpen={() => setBare(false)} /> : <Panel onFold={() => setBare(true)} onAccount={openAccount} onVoice={(id) => { openModels('speech'); setVoiceSetup(id) }} />}
         {welcome && !pop && <SiteWelcome onClose={() => setWelcome(false)}
           onDemo={async () => { await beginDemo(); setWelcome(false) }}
           onCamera={() => { setWelcome(false); void template('solo') }}
@@ -242,7 +245,7 @@ export default function App() {
         {pop === 'model' && <ModelCard forStart={forStart} onClose={() => { setForStart(false); setPop(null) }} onAccount={openAccount} onContinue={continueAfterModel} onSettings={() => openModels('chat', forStart)} />}
         {log && <Transcript view={logView} setView={setLogView} onClose={() => setLog(false)} right={bare ? 80 : 324} />}
         {pop === 'add' && <AddCharacter left={228} onClose={() => setPop(null)} onSignIn={() => { setSettingsTab('account'); setPop('settings') }} />}
-        {pop === 'settings' && <><div className="scrim" onPointerDown={closeSettings} /><SettingsCard initialTab={settingsTab} initialModel={settingsModel} forStart={forStart} onContinue={continueAfterModel} onAdd={() => { setForStart(false); setPop('add') }} onDesktop={() => { closeSettings(); setWelcome(false); showDesktopNotice() }} onClose={closeSettings} /></>}
+        {pop === 'settings' && <><div className="scrim" onPointerDown={closeSettings} /><SettingsCard key={voiceSetup ?? 'settings'} forVoice={voiceSetup} initialTab={settingsTab} initialModel={settingsModel} forStart={forStart} onContinue={continueAfterModel} onResetLayout={resetLayout} onAdd={() => { setForStart(false); setPop('add') }} onDesktop={() => { closeSettings(); setWelcome(false); showDesktopNotice() }} onClose={closeSettings} /></>}
         {pop === 'record' && <RecordCard onClose={() => setPop(null)} onVoices={() => openModels('speech')} />}
         <OutputPanel open={pop === 'output'} onClose={() => setPop(null)} />
         {pop === 'help' && <Help onClose={() => setPop(null)} />}
@@ -1059,13 +1062,13 @@ function ModelForm({ forStart, done, demoDone, onPick, onAccount, onContinue }: 
 
 /** your speech API: the characters' voices (OpenAI-compatible /audio/speech) and push to talk (/audio/transcriptions);
  *  测试 says a line and, with a recognition model, hears it back */
-function SpeechForm() {
+function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; onDone: () => void }) {
   const cur = useSpeech(), chat = useBrainConfig()
   const first = (id: string): SpeechApi => { const q = SPEECH_PROVIDERS.find((x) => x.id === id)!; return { ...SPEECH_UNSET, provider: id, base: q.base, model: q.model, asr: q.asr, voice: '' } }
   // none chosen: it follows the model's key where that speaks too
   const ofModel = speechOfModel(chat)
-  const [mode, setMode] = useState<'follow' | 'off' | 'own'>(!cur.provider ? (ofModel ? 'follow' : 'off') : cur.provider === 'off' ? 'off' : 'own')
-  const modeEdited = useRef(false)
+  const [mode, setMode] = useState<'follow' | 'off' | 'own'>(forCharacter ? 'own' : !cur.provider ? (ofModel ? 'follow' : 'off') : cur.provider === 'off' ? 'off' : 'own')
+  const modeEdited = useRef(!!forCharacter)
   useEffect(() => { if (!modeEdited.current && !cur.provider) setMode(ofModel ? 'follow' : 'off'); else if (mode === 'follow' && !ofModel) setMode('off') }, [cur.provider, ofModel?.provider, ofModel?.base, ofModel?.key, mode])
   const off = mode !== 'own'
   const [d, setD] = useState<SpeechApi>(() => (cur.provider && cur.provider !== 'off' ? cur : first('qwen')))
@@ -1081,6 +1084,14 @@ function SpeechForm() {
   const choose = (id: string) => { modeEdited.current = true; setMode('own'); setSt({}); setD((x) => ({ ...first(id), key: x.provider === id ? x.key : '', base: id === 'custom' && x.provider === 'custom' ? x.base : first(id).base })) }
   // the AI model's key, where it is the same service
   const sameKey = !!ofModel && ofModel.provider === d.provider && ofModel.base.replace(/\/+$/, '') === d.base.replace(/\/+$/, '') && d.key !== ofModel.key
+  const save = () => {
+    saveSpeech(mode === 'follow' ? SPEECH_UNSET : mode === 'off' ? SPEECH_OFF : d)
+    if (forCharacter) {
+      const character = store.get().items.find((item) => item.id === forCharacter)
+      if (character?.kind === 'character' && !character.remote && speechReady(activeSpeech())) store.patch(character.id, { voice: { ...character.voice, source: 'api' } })
+      onDone()
+    }
+  }
   const test = async () => {
     setSt({ busy: true })
     try {
@@ -1098,6 +1109,7 @@ function SpeechForm() {
       {SPEECH_HERE.map((q) => <button key={q.id} className={!off && d.provider === q.id ? 'on' : ''} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
       <button className={`demo${mode === 'off' ? ' on' : ''}`} title={tr("没有语音接口：角色用 LivLiv 的声音，没有就只出字幕")} onClick={() => { modeEdited.current = true; setMode('off'); setSt({}) }}>{tr("不用")}</button>
     </div>
+    {forCharacter && mode !== 'off' && <p className="hint">{tr('保存后，此角色会使用你的语音接口。')}</p>}
     {!off && <>
       {(p.id === 'custom' || p.id === 'kokoro') && <label className="field"><span>{tr("接口地址")}</span>
         <input value={d.base} placeholder="https://…/v1" onChange={(e) => setD({ ...d, base: e.target.value })} /></label>}
@@ -1118,7 +1130,7 @@ function SpeechForm() {
         {st.busy ? <LoaderCircle size={14} className="spin" /> : st.ok ? <Check size={14} /> : null}
         <span className="ellipsis">{st.ok ?? tr("测试")}</span>
       </button>}
-      <button className="primary" disabled={!off && !speechReady(d)} onClick={() => saveSpeech(mode === 'follow' ? SPEECH_UNSET : mode === 'off' ? SPEECH_OFF : d)}>{tr("保存")}</button>
+      <button className="primary" disabled={!off && !speechReady(d)} onClick={save}>{tr("保存")}</button>
     </div>
   </div>
 }
@@ -1135,7 +1147,7 @@ function ModelCard({ forStart, onClose, onAccount, onContinue, onSettings }: { f
 }
 
 /** Settings for general preferences, models, voice, shortcuts and the optional livliv.ai account. */
-function SettingsCard({ onClose, onAdd, onDesktop, initialTab, initialModel, forStart, onContinue }: { onClose: () => void; onAdd: () => void; onDesktop: () => void; initialTab: SettingsTab; initialModel: ModelTab; forStart: boolean; onContinue: () => void }) {
+function SettingsCard({ onClose, onAdd, onDesktop, initialTab, initialModel, forStart, forVoice, onContinue, onResetLayout }: { onClose: () => void; onAdd: () => void; onDesktop: () => void; initialTab: SettingsTab; initialModel: ModelTab; forStart: boolean; forVoice?: string; onContinue: () => void; onResetLayout: () => void }) {
   const [tab, setTab] = useState<SettingsTab>(initialTab)
   const [modelTab, setModelTab] = useState<ModelTab>(initialModel)
   useEffect(() => { if (tab === 'account') void checkConnect() }, [tab])
@@ -1144,7 +1156,7 @@ function SettingsCard({ onClose, onAdd, onDesktop, initialTab, initialModel, for
       <div className="settings-head"><header><span className="title">{tr("设置")}</span><button className="icon" data-close="true" aria-label={tr("关闭")} onClick={onClose}><X size={16} /></button></header>
       <div className="settings-tabs seg">{([{ id: 'general', label: tr("通用") }, { id: 'ai', label: tr("模型与声音") }, { id: 'hotkeys', label: tr("全局热键") }, { id: 'account', label: tr("livliv.ai 帐号") }] as const).map((t) => <button className={`${tab === t.id ? 'on ' : ''}${t.id === 'account' ? 'account-tab' : ''}`} key={t.id} onClick={() => setTab(t.id)}>{t.id === 'account' && <Sparkles size={13} />}{t.label}</button>)}</div>
       </div><div className="settings-body">
-      {tab === 'general' && <GeneralPanel onDesktop={onSite ? onDesktop : undefined} />}
+      {tab === 'general' && <GeneralPanel onDesktop={onSite ? onDesktop : undefined} onResetLayout={onResetLayout} />}
       {tab === 'hotkeys' && <HotkeysPanel />}
       {tab === 'ai' && <div className="model-settings">
         <div className="seg model-tabs" aria-label={tr('模型用途')}>{([{ id: 'chat', label: '文字对话' }, { id: 'speech', label: '配音与识别' }, { id: 'realtime', label: '实时语音' }] as const).map((entry) => <button key={entry.id} className={modelTab === entry.id ? 'on' : ''} aria-pressed={modelTab === entry.id} onClick={() => setModelTab(entry.id)}>{tr(entry.label)}</button>)}</div>
@@ -1154,7 +1166,7 @@ function SettingsCard({ onClose, onAdd, onDesktop, initialTab, initialModel, for
       </section>}
       {modelTab === 'speech' && <section>
         <h3>{tr('配音与识别')}</h3><p className="hint model-purpose">{tr('用于角色朗读、按住说话和免按键聊天。')}</p>
-        <SpeechForm />
+        <SpeechForm forCharacter={forVoice} onDone={onClose} />
       </section>}
       {modelTab === 'realtime' && <section>
         <h3>{tr('实时语音')}</h3><p className="hint model-purpose">{tr('用于直接听说、自然接话和插话。')}</p>

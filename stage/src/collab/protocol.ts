@@ -1,14 +1,11 @@
-// Shared wire limits. This module also runs in the standalone signaling server.
-export const ROOM_VERSION = 1
-export const MAX_MEMBERS = 4
+import { object, personName } from '../../../collab/protocol.mjs'
+export { ROOM_VERSION, MAX_MEMBERS, object, personName, validSignal } from '../../../collab/protocol.mjs'
 export const MAX_MODEL_BYTES = 64 * 1024 * 1024
 export const MAX_FILES = 512
 export const CHUNK_BYTES = 16 * 1024
 export type Member = { id: string; name: string; host: boolean }
 export type Invite = { server: string; room: string; token: string }
 export type ModelManifest = { id: string; name: string; format: 'livliv' | 'vrm' | 'png'; mirror: boolean; color: string; files: { path: string; size: number; type: string }[] }
-export const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
-export const personName = (value: unknown) => typeof value === 'string' ? [...value.replace(/[\p{Cc}\p{Cf}]/gu, '').trim()].slice(0, 24).join('') : ''
 // Plain ws: is for this machine or a private network (RFC 1918, IPv6 ULA); anything else has to use wss:.
 const privateHost = (host: string) => host === 'localhost' || host === '[::1]' || /^\[f[cd][\da-f]{2}:/.test(host) || /^(127|10|192\.168|172\.(1[6-9]|2\d|3[01]))\.[\d.]+$/.test(host)
 export function serviceUrl(raw: string) {
@@ -41,10 +38,4 @@ export function readManifest(raw: unknown): ModelManifest | null {
   }
   if (size > MAX_MODEL_BYTES) return null
   return { id: raw.id, name: personName(raw.name), format: raw.format as ModelManifest['format'], mirror: raw.mirror, color: raw.color, files: raw.files.map((file) => ({ path: file.path, size: file.size, type: file.type })) }
-}
-export function validSignal(raw: unknown) {
-  if (!object(raw)) return false
-  if (object(raw.description)) return ['offer', 'answer'].includes(String(raw.description.type)) && typeof raw.description.sdp === 'string' && raw.description.sdp.length <= 60_000
-  if (object(raw.candidate)) return typeof raw.candidate.candidate === 'string' && raw.candidate.candidate.length <= 8192 && (raw.candidate.sdpMid == null || typeof raw.candidate.sdpMid === 'string') && (raw.candidate.sdpMLineIndex == null || (Number.isInteger(raw.candidate.sdpMLineIndex) && Number(raw.candidate.sdpMLineIndex) >= 0 && Number(raw.candidate.sdpMLineIndex) < 32))
-  return false
 }

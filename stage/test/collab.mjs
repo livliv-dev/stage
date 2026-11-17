@@ -8,7 +8,8 @@ import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { startRelay } from '../../collab/server.mjs'
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'livliv-stage-collab-'))
-let server, browser, relay, output
+let server, browser, relay, output, stalled
+const stalledSockets = new Set()
 const pages = [], contexts = [], errors = [], report = { artifacts }
 function wav(seconds, hz) {
   const rate = 48000, n = rate * seconds, data = Buffer.alloc(44 + n * 2)
@@ -34,6 +35,27 @@ try {
   const mic = join(artifacts, 'microphone.wav'); await writeFile(mic, wav(2, 220))
   relay = await startRelay({ port: 0 }); const service = `ws://127.0.0.1:${relay.address.port}/room`, origin = await serve()
   browser = await chromium.launch({ args: ['--allow-loopback-in-peer-connection', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-audio-capture=${mic}`] })
+  // A friend's LAN HTTP page has getRandomValues, but no secure-context randomUUID.
+  const lan = await browser.newContext()
+  await lan.route('http://stage-lan.test/**', async (route) => {
+    const url = new URL(route.request().url())
+    if (url.pathname === '/') return route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>LAN package test</title>' })
+    await route.fulfill({ response: await route.fetch({ url: origin + url.pathname + url.search }) })
+  })
+  const lanPage = await lan.newPage(); await lanPage.goto('http://stage-lan.test/')
+  report.lanPackages = await lanPage.evaluate(async () => {
+    const { emptyScene, localModels, newCharacter } = await import('/src/scene.ts'), { packageFor } = await import('/src/collab/assets.ts')
+    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 8
+    canvas.getContext('2d').fillRect(0, 0, 8, 8)
+    const picture = await new Promise((resolve) => canvas.toBlob(resolve)), key = 'lan-http-package'
+    localModels.set(key, new Map([['closed.png', picture]]))
+    const character = newCharacter(emptyScene(), 'LAN guest', { type: 'files', key, format: 'png' }, '')
+    const one = await packageFor(character, new AbortController().signal), two = await packageFor(character, new AbortController().signal)
+    return { secure: isSecureContext, randomUUID: typeof crypto.randomUUID, ids: [one.manifest.id, two.manifest.id] }
+  })
+  assert.equal(report.lanPackages.secure, false); assert.equal(report.lanPackages.randomUUID, 'undefined')
+  assert.notEqual(...report.lanPackages.ids)
+  await lan.close()
   for (const [index, format] of ['png', 'livliv', 'vrm'].entries()) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['microphone'] }); contexts.push(context)
     await context.addInitScript(() => {
@@ -103,6 +125,17 @@ try {
   assert.ok(report.export.size > 10000); assert.equal(report.export.width, 640); assert.equal(report.export.height, 360)
   await host.getByRole('button', { name: '结束联播', exact: true }).click()
   await host.getByRole('button', { name: '分享并创建联播' }).waitFor()
+  const advertised = 'ws://192.168.100.55:5234/room'
+  await host.evaluate(async ({ service, advertised }) => (await import('/src/collab/session.ts')).room.create(service, 'Host', 'own-0', false, advertised), { service, advertised })
+  await host.getByLabel('邀请码', { exact: true }).waitFor()
+  assert.equal(await host.evaluate(async () => { const { decodeInvite } = await import('/src/collab/protocol.ts'); return decodeInvite((await import('/src/collab/session.ts')).roomState().invite).server }), advertised, 'the owner connects locally while sharing the network address')
+  await host.evaluate(async () => (await import('/src/collab/session.ts')).room.leave())
+  stalled = createServer((socket) => { stalledSockets.add(socket); socket.on('data', () => {}); socket.on('close', () => stalledSockets.delete(socket)) })
+  await new Promise((resolve) => stalled.listen(0, '127.0.0.1', resolve))
+  await host.evaluate(async (url) => (await import('/src/collab/session.ts')).room.create(url, 'Host', 'own-0', false), `ws://127.0.0.1:${stalled.address().port}/room`)
+  await host.waitForFunction(async () => { const state = (await import('/src/collab/session.ts')).roomState(); return state.phase === 'error' && state.error.includes('超时') }, null, { timeout: 12000 })
+  await host.evaluate(async () => (await import('/src/collab/session.ts')).room.leave())
+  report.connection = 'separate local connection and invitation address; stalled handshake times out explicitly'
   report.history = await host.evaluate(async () => {
     const { store, emptyScene } = await import('/src/scene.ts'), own = store.get().items.find((item) => item.kind === 'character')
     store.setRemote({ ...own, id: 'history-remote', remote: { peer: 'history-peer', person: 'History' } })
@@ -116,4 +149,4 @@ try {
   if (output) { report.output = await output.evaluate(async () => ({ actors: [...window.__stage.actors.values()].map((a) => ({ id: a.item.id, status: a.status, error: a.error })), models: [...(await import('/src/scene.ts')).localModels.keys()], scene: window.__stage.store.get().items })).catch(() => null); await output.screenshot({ path: join(artifacts, 'failure-output.png'), omitBackground: true }).catch(() => {}) }
   for (const [index, page] of pages.entries()) { await page.screenshot({ path: join(artifacts, 'failure-' + index + '.png') }).catch(() => {}); report['state' + index] = await page.evaluate(async () => ({ actors: [...window.__stage.actors.values()].map((a) => ({ id: a.item.id, status: a.status, error: a.error })), room: (await import('/src/collab/session.ts')).roomState(), rtc: window.rtcLog, peers: window.testPeers?.map((p) => ({ ice: p.iceConnectionState, state: p.connectionState, local: p.localDescription?.sdp, remote: p.remoteDescription?.sdp })) })).catch(() => null) }
   await writeFile(join(artifacts, 'failure.json'), JSON.stringify({ ...report, errors, error: error.stack }, null, 2)); console.error(error); console.error(artifacts); process.exitCode = 1
-} finally { await browser?.close(); await relay?.close(); server?.kill('SIGTERM') }
+} finally { for (const socket of stalledSockets) socket.destroy(); stalled?.close(); await browser?.close(); await relay?.close(); server?.kill('SIGTERM') }

@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { isIP } from 'node:net'
 import { pathToFileURL } from 'node:url'
 import { WebSocketServer, WebSocket } from 'ws'
-import { MAX_MEMBERS, ROOM_VERSION, object, personName, validSignal } from '../stage/src/collab/protocol.ts'
+import { MAX_MEMBERS, ROOM_VERSION, object, personName, validSignal } from './protocol.mjs'
 
 // IPv6 clients usually hold a whole /64, so the per-address caps count it as one address.
 function addressKey(address = '') {
@@ -107,7 +107,7 @@ export async function startRelay({ host = '127.0.0.1', port = 5234, origins = []
   return { server, address: server.address(), async close() { for (const ws of wss.clients) ws.terminate(); await new Promise((resolve) => wss.close(resolve)); await new Promise((resolve) => server.close(resolve)) } }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+async function main() {
   const relay = await startRelay({
     host: process.env.HOST || '127.0.0.1', port: Number(process.env.PORT) || 5234, origins: (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean), iceServers: JSON.parse(process.env.ICE_SERVERS || '[]'), relayOnly: process.env.RELAY_ONLY === '1',
     maxConnections: Number(process.env.MAX_CONNECTIONS) || 256, socketsPerAddress: Number(process.env.MAX_SOCKETS_PER_IP) || 4, roomsPerAddress: Number(process.env.MAX_ROOMS_PER_IP) || 2, trustProxy: process.env.TRUST_PROXY === '1',
@@ -116,3 +116,4 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const stop = () => { void relay.close().then(() => process.exit()) }
   process.once('SIGINT', stop); process.once('SIGTERM', stop)
 }
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) void main().catch((error) => { console.error(error); process.exitCode = 1 })

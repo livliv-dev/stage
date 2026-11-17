@@ -12,8 +12,10 @@ import type { StageApiState } from './stageCommands'
 import { readMotionSettings, type MotionSettings, type MotionState } from './trackingProtocol'
 import { stageFromPath } from './urls'
 import { readNeuroConfig, type NeuroConfig, type NeuroSpeech, type NeuroState } from './neuroProtocol'
+import { readCollabConfig, type CollabConfig, type CollabState } from './collabProtocol'
 
 export type IpcDeps = {
+  collab?: { state(): CollabState; start(config: CollabConfig): Promise<CollabState>; close(): Promise<CollabState> }
   neuro?: { state(): NeuroState; configure(config: NeuroConfig): Promise<NeuroState>; answer(owner: number, id: unknown, value: unknown): boolean; speech(status: NeuroSpeech): void }
   tracking?: { get(): MotionState; set(settings: MotionSettings): Promise<MotionState> }
   stageApi?: { get(): StageApiState; set(enabled: boolean): Promise<StageApiState>; rotate(): StageApiState }
@@ -43,6 +45,17 @@ export function registerIpc(deps: IpcDeps) {
     throw new Error('unknown request operation')
   })
   handle('livliv:capabilities', () => deps.capabilities())
+  handle('livliv:collab', (event, op, value) => {
+    if (APP !== 'stage' || !deps.collab || event.sender !== mainContents()) throw new Error('Stage editor only')
+    if (op === 'get') return deps.collab.state()
+    if (op === 'stop') return deps.collab.close()
+    if (op === 'start') {
+      const config = readCollabConfig(value)
+      if (!config) throw new Error('Invalid co-stream service settings')
+      return deps.collab.start(config)
+    }
+    throw new Error('Unknown co-stream service operation')
+  })
   handle('livliv:local', (event) => APP === 'stage' && event.sender !== mainContents() ? null : deps.local())
   handle('livliv:tracking', (event, op, value) => {
     if (!deps.tracking || event.sender !== mainContents()) throw new Error('Stage editor only')
