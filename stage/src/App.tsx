@@ -7,10 +7,11 @@ import { createPortal } from 'react-dom'
 import {
   Bot, Captions, Check, ChevronDown, CircleHelp, CircleAlert, ExternalLink, FolderOpen, Image as ImageIcon, LayoutTemplate, LoaderCircle, Lock, MessagesSquare, Mic,
   FileBox, Plus, RefreshCw, SlidersHorizontal, Volume2, VolumeX,
-  MonitorPlay, Pencil, Pause, Play, Redo2, RotateCcw, Save, Send, SkipForward, Square, StepForward, Settings, Sparkles, Type, Undo2, UserPlus, X,
+  MonitorPlay, Pencil, Pause, Play, Radio, Redo2, RotateCcw, Save, Send, SkipForward, Square, StepForward, Settings, Sparkles, Type, Undo2, UserPlus, X,
 } from 'lucide-react'
 import { brainReady, listModels, loadBrainConfig, playDemo, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveBrainConfig, savedBrain, testModel, useBrainConfig, type ModelConfig } from './brain'
 import { conversation, talk, useConversation } from './conversation'
+import { airiModelForCast, testAiriModel } from './airiEngine'
 import { Panel, PanelTab, TalkSettings } from './Inspector'
 import { byId, fromFiles, fromKept, fromPngs, mine as accountCharacters, samples, type Pick } from './library'
 import { PNG_SLOTS, type PngSlot } from './bodies/png'
@@ -175,13 +176,13 @@ export default function App() {
   const [forStart, setForStart] = useState(false)
   useEffect(() => {
     if (!conv.needModel) return
-    talk.modelAsked(); store.setMode('edit'); openModels('chat', true)
+    talk.modelAsked(); store.setMode('edit'); openModels('chat', conv.modelIntent !== 'input')
   }, [conv.needModel])
   const closeSettings = () => { setForStart(false); setSettingsTab('general'); setPop(null) }
   const continueAfterModel = () => {
     if (conv.modelIntent === 'chat') void talk.startChat().catch(() => {})
     else if (conv.modelIntent === 'live') setPop('live')
-    else talk.start()
+    else if (conv.modelIntent === 'conversation') talk.start()
   }
   const say = (s: string) => { setNote(s); window.setTimeout(() => setNote((n) => (n === s ? '' : n)), 3200) }
   useShortcuts({
@@ -226,7 +227,7 @@ export default function App() {
         {pop === 'audience' && <AudiencePopover onClose={() => setPop(null)} />}
         {pop === 'mixer' && <MixerPanel onClose={() => setPop(null)} onSettings={() => openModels('speech')} />}
         {pop === 'collab' && <CollabPanel onClose={() => setPop(null)} onSettings={openSettings} />}
-        {pop === 'live' && <LivePanel onClose={() => setPop(null)} onSettings={openSettings} />}
+        {pop === 'live' && <LivePanel onClose={() => setPop(null)} onSettings={() => openModels('chat')} />}
         {pop === 'realtime' && <RealtimePanel onClose={() => setPop(null)} onSettings={() => openModels('realtime')} />}
         {pop === 'talk' && <TalkSettings onClose={() => setPop(null)} />}
         {pop === 'model' && <ModelCard forStart={forStart} onClose={() => { setForStart(false); setPop(null) }} onAccount={openAccount} onContinue={continueAfterModel} onSettings={() => openModels('chat', forStart)} />}
@@ -300,6 +301,7 @@ function useShortcuts(keys: Keys) {
 function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) => void; onTemplate: (id: TemplateId) => void; say: (s: string) => void }) {
   const { scene, canUndo, canRedo } = useScene()
   const collab = useRoom()
+  const conv = useConversation()
   const file = useRef<HTMLInputElement>(null)
   const [io, setIO] = useState<'save' | 'open' | null>(null), [progress, setProgress] = useState(0)
   const task = useRef<AbortController | null>(null)
@@ -333,6 +335,8 @@ function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) =
         <button onClick={() => store.setMode('show')} title={tr("只留画面（Esc 回来）")} aria-label={tr("预览")}><Play size={13} /><span className="mode-label">{tr("预览")}</span></button>
       </div>
       <div className="right">
+        {desktop?.vision && <button className={'stream-entry' + (pop === 'live' ? ' on' : '')} aria-expanded={pop === 'live'}
+          title={tr('游戏直播与观众弹幕')} onClick={() => toggle('live')}><Radio size={16} />{tr('直播')}{conv.running && conv.mode === 'live' && <i className="live-dot on" />}</button>}
         <button className="icon" title={tr("撤销（⌘Z）")} disabled={!canUndo} onClick={store.undo}><Undo2 size={16} /></button>
         <button className="icon" title={tr("重做（⇧⌘Z）")} disabled={!canRedo} onClick={store.redo}><Redo2 size={16} /></button>
         <span className="sep" />
@@ -345,7 +349,7 @@ function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) =
           )}
         </div>
         {!onSite && <button className={pop === 'collab' ? 'on collab-button' : 'collab-button'} onClick={() => toggle('collab')}><UserPlus size={15} />{tr("联播")}{collab.phase === 'on' && <i className="live-dot on" />}{collab.pending.length > 0 && <span className="room-count">{collab.pending.length}</span>}</button>}
-        <button className={pop === 'audience' ? 'icon on' : 'icon'} title={tr('观众弹幕')} onClick={() => toggle('audience')}><MessagesSquare size={16} /></button>
+        {!desktop?.vision && <button className={pop === 'audience' ? 'icon on' : 'icon'} title={tr('观众弹幕')} onClick={() => toggle('audience')}><MessagesSquare size={16} /></button>}
         <button className={pop === 'mixer' ? 'icon on' : 'icon'} title={tr('调音台')} onClick={() => toggle('mixer')}><Volume2 size={16} /></button>
         <RecordButton on={pop === 'record'} toggle={() => toggle('record')} />
         <button className="primary output-button" onClick={() => toggle('output')}><MonitorPlay size={15} />{tr("输出到 OBS")}</button>
@@ -594,7 +598,10 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
     const close = (event: PointerEvent) => { if (moreModes.current && !moreModes.current.contains(event.target as Node)) moreModes.current.open = false }
     document.addEventListener('pointerdown', close, true); return () => document.removeEventListener('pointerdown', close, true)
   }, [])
-  const send = () => { talk.say(mine); setMine('') }
+  const send = async () => {
+    const text = mine
+    if (await talk.say(text) !== false) setMine((current) => current === text ? '' : current)
+  }
   // who you speak as: on your character's turn, that one; else the chosen one, the first you play, or the narrator
   const yours = participants(scene).filter((c) => c.lines === 'me')
   const as = conv.waiting ?? (yours.some((c) => c.id === conv.as) || conv.as === 'narrator' ? conv.as : yours[0]?.id ?? 'narrator')
@@ -608,7 +615,12 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
   }
   const hint = ptt.phase === 'opening' ? tr("打开麦克风…") : ptt.phase === 'listening' ? ptt.automatic ? tr('正在听，停顿后自动发送') : ptt.toggle ? tr("正在听，再按一次热键结束") : tr("正在听，松开就说出去") : ptt.phase === 'recognizing' ? tr("正在识别…") : ptt.automatic ? tr('免按键已开启，直接说话')
     : conv.waiting ? tr("轮到你了：以 {0} 说…", name ?? tr("旁白")) : name ? tr("以 {0} 说一句…", name) : tr("以旁白说一句…")
-  if (!participants(scene).some((c) => c.lines === 'ai')) return <SoloStatus />
+  const cast = participants(scene).filter((c) => c.lines === 'ai')
+  if (!cast.length) return <SoloStatus />
+  const partner = desktop?.vision && !demo && cast.length === 1 ? cast[0].name : ''
+  const startLabel = partner ? tr('和 {0} 聊天', partner) : tr('持续聊天')
+  const scope = tr((conv.running || !desktop?.vision ? conv.scope : conv.chatScope) === 'public' ? '公开互动' : '私聊')
+  const liveStatus = tr(!conv.running ? '会话已结束' : conv.paused ? '已暂停' : conv.waitingAudience ? '等待弹幕' : '回应中') + ` · ${conv.generations}/${conv.generationLimit}`
   return (
     <div className="console" onPointerDown={(e) => e.stopPropagation()}>
      <div className="talkbar run-bar">
@@ -616,12 +628,14 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
         <input className="topic" value={scene.topic} placeholder={tr("话题，比如：周末去哪儿玩")} aria-label={tr("话题")} onChange={(e) => store.set({ topic: e.target.value })} />
       </div>
       <div className="zone run">
-        {!conv.running && (demo ? <button className="primary" onClick={talk.start}><Play size={14} />{tr('再看一次')}</button> : <button className="primary" onClick={() => void talk.startChat().catch(() => {})}><MessagesSquare size={14} />{tr('持续聊天')}</button>)}
-        <button className="realtime-toggle" aria-label={tr('实时语音')} title={tr('实时语音')} onClick={onRealtime} disabled={conv.running && !inRealtime}><Mic size={14} /><span>{tr('实时语音')}</span></button>
+        {!conv.running && (demo ? <button className="primary" onClick={talk.start}><Play size={14} />{tr('再看一次')}</button> : <button className="primary start-chat" title={startLabel} onClick={() => void talk.startChat().catch(() => {})}><MessagesSquare size={14} /><span>{startLabel}</span></button>)}
+        {!desktop?.vision && <button className="realtime-toggle" aria-label={tr('实时语音')} title={tr('实时语音')} onClick={onRealtime} disabled={conv.running && !inRealtime}><Mic size={14} /><span>{tr('实时语音')}</span></button>}
         {!conv.running && <details ref={moreModes} className="start-modes" onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); moreModes.current!.open = false; moreModes.current?.querySelector('summary')?.focus() } }}>
           <summary>{tr('更多方式')}<ChevronDown size={13} /></summary>
           <div className="card start-mode-options">
-            <button aria-label={tr('AI 直播')} onClick={() => { moreModes.current!.open = false; onLive() }}><Bot size={16} /><span><b>{tr('AI 直播')}</b><small>{tr('回应直播间的观众弹幕')}</small></span></button>
+            {desktop?.vision
+              ? <button onClick={() => { moreModes.current!.open = false; onRealtime() }}><Mic size={16} /><span><b>{tr('实时语音通话')}</b></span></button>
+              : <button aria-label={tr('AI 直播')} onClick={() => { moreModes.current!.open = false; onLive() }}><Bot size={16} /><span><b>{tr('AI 直播')}</b><small>{tr('回应直播间的观众弹幕')}</small></span></button>}
             <button aria-label={tr('对谈')} onClick={() => { moreModes.current!.open = false; talk.start() }}><Play size={16} /><span><b>{tr('对谈')}</b><small>{tr('让多位角色轮流聊起来')}</small></span></button>
           </div>
         </details>}
@@ -630,7 +644,10 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
         <ModelButton on={model} onClick={toggleModel} />
         <button className="icon" title={tr("下一句：跳过等待，或者让正在说的停下")} disabled={!conv.running} onClick={talk.next}><StepForward size={15} /></button>
         <button className="icon" title={tr("停止")} disabled={!conv.running} onClick={() => { pttCancel(); talk.stop() }}><Square size={14} /></button>
-        {conv.mode === 'chat' ? null : conv.mode === 'realtime' ? <span className="live-state">{inRealtime ? tr('语音通话中') : tr('通话已结束')}</span> : conv.mode === 'live' ? <button className="live-state" onClick={onLive}>{conv.running ? conv.paused ? tr("已暂停") : conv.waitingAudience ? tr("等待弹幕") : tr("回应中") : tr("会话已结束")} · {conv.generations}/{conv.generationLimit}</button> : <TurnCount turns={conv.turns} limit={conv.limit} />}
+        {conv.mode === 'chat' ? conv.running && partner && <span className="chat-partner" title={tr('由 {0} 回应', partner)}>{tr('由 {0} 回应', partner)}</span>
+          : conv.mode === 'realtime' ? inRealtime ? <button className="live-state" onClick={onRealtime}>{tr('语音通话中')}</button> : <span className="live-state">{tr('通话已结束')}</span>
+          : conv.mode === 'live' ? desktop?.vision ? <span className="live-state">{liveStatus}</span> : <button className="live-state" onClick={onLive}>{liveStatus}</button>
+          : <TurnCount turns={conv.turns} limit={conv.limit} />}
         <button className={`icon${rules ? ' on' : ''}`} title={tr("对话设置：谁先说、抢话、语言、节奏、弹幕")} onClick={toggleRules}><SlidersHorizontal size={15} /></button>
         <button className={`icon${log ? ' on' : ''}`} title={tr("对话记录")} aria-label={tr("对话记录")} onClick={() => setLog(!log)}>
           <MessagesSquare size={16} />{conv.lines.length > 0 && <em>{conv.lines.length}</em>}
@@ -644,8 +661,10 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
           <option value="narrator">{tr("旁白")}</option>
         </select>
         <input ref={input} value={mine} disabled={inRealtime && (realtime.phase === 'connecting' || conv.paused)} aria-label={tr("你说的话")} onChange={(e) => { setMine(e.target.value); pttClear() }} placeholder={tr(hint)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) send() }} />
-        {conv.mode === 'chat' && <span className="chat-status" role="status" title={tr('已生成 {0} / {1} 次', conv.generations, conv.generationLimit)}>{tr(conv.scope === 'public' ? '公开互动' : '私聊')} · {tr(!conv.running ? '未开始' : conv.paused ? '已暂停' : conv.waitingInput ? '等你说话' : conv.thinking ? '正在思考' : '回应中')}</span>}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) void send() }} />
+        {conv.mode === 'chat' && conv.running
+          ? <span className="chat-status" role="status" title={tr('已生成 {0} / {1} 次', conv.generations, conv.generationLimit)}>{scope} · {tr(conv.paused ? '已暂停' : conv.waitingInput ? '等你说话' : conv.thinking ? '正在思考' : '回应中')}</span>
+          : !conv.running && partner && <button className="chat-status chat-scope-link" title={tr('对话范围')} onClick={async () => { if (conv.scope === conv.chatScope || await talk.setScope(conv.chatScope)) setLog(true) }}>{scope}</button>}
         <button className="console-memory" onClick={onMemory}>{tr('记忆')}</button>
         <button className={`handsfree${ptt.automatic ? ' on' : ''}`} aria-label={tr('免按键语音')} aria-pressed={ptt.automatic} disabled={!ptt.automatic && (!hear || inRealtime || (conv.running && conv.mode === 'conversation'))} title={tr('自动判断说完；外放时建议戴耳机。')} onClick={() => void handsFree()}>{tr(ptt.automatic ? '关闭免按键' : '免按键')}</button>
         <button className={`icon mic ${ptt.phase}`} title={ptt.phase === 'recognizing' && !ptt.automatic ? tr("正在识别，Esc 取消") : hear ? tr("按住说话，松开说出去（也可以按住 ` 键）") : tr("按住说话：在设置里接上语音识别后可用")}
@@ -655,7 +674,7 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
           {ptt.phase === 'recognizing' ? <LoaderCircle size={16} className="spin" /> : <Mic size={16} />}
         </button>
         {conv.waiting && <button className="icon" title={tr("这次不说，跳过")} onClick={talk.skip}><SkipForward size={15} /></button>}
-        <button className="icon" title={tr("说")} disabled={!mine.trim() || (inRealtime && (realtime.phase === 'connecting' || conv.paused))} onClick={send}><Send size={15} /></button>
+        <button className="icon" title={tr("说")} disabled={!mine.trim() || (inRealtime && (realtime.phase === 'connecting' || conv.paused))} onClick={() => void send()}><Send size={15} /></button>
       </div>
      </div>
       {ptt.automatic && <p className="handsfree-status" role="status">{tr(conv.paused ? '已暂停收音，继续后恢复' : '免按键已开启 · 停顿后自动发送 · Esc 关闭')}</p>}
@@ -691,6 +710,7 @@ function Transcript({ view, setView, onClose, right }: { view: 'history' | 'memo
   const profileIds = cast.map((character) => character.profileId ?? character.id)
   const names = Object.fromEntries(cast.map((character) => [character.profileId ?? character.id, character.name]))
   const profilesKey = JSON.stringify([...profileIds].sort())
+  const panelScope = desktop?.vision && !conv.running && view === 'memory' && !source ? conv.chatScope : conv.scope
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }) }, [conv.lines.length, view])
   useEffect(() => { if (view === 'history') setSource(undefined) }, [view])
   useEffect(() => setSource(undefined), [conv.sessionId, conv.scope, profilesKey])
@@ -707,9 +727,9 @@ function Transcript({ view, setView, onClose, right }: { view: 'history' | 'memo
         event.preventDefault(); event.stopPropagation()
         const next = event.key === 'Home' ? 'history' : event.key === 'End' ? 'memory' : view === 'history' ? 'memory' : 'history'
         setView(next); document.getElementById(`${tabs}-${next}`)?.focus()
-      }}>{(['history', 'memory'] as const).map((tab) => <button key={tab} id={`${tabs}-${tab}`} role="tab" aria-selected={view === tab} aria-controls={`${tabs}-content`} tabIndex={view === tab ? 0 : -1} onClick={() => setView(tab)}>{tr(tab === 'history' ? '对话记录' : '记忆')}</button>)}</div><span className="chat-scope">{tr(conv.scope === 'public' ? '公开互动' : '仅私聊')}</span><button className="icon" data-close="true" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button></header>
+      }}>{(['history', 'memory'] as const).map((tab) => <button key={tab} id={`${tabs}-${tab}`} role="tab" aria-selected={view === tab} aria-controls={`${tabs}-content`} tabIndex={view === tab ? 0 : -1} onClick={() => setView(tab)}>{tr(tab === 'history' ? '对话记录' : '记忆')}</button>)}</div><span className="chat-scope">{tr(panelScope === 'public' ? '公开互动' : '仅私聊')}</span><button className="icon" data-close="true" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button></header>
       <div id={`${tabs}-content`} role="tabpanel" aria-labelledby={`${tabs}-${view}`}>
-      {view === 'memory' ? <MemoryPanel embedded profileIds={profileIds} profileNames={names} scope={conv.scope} source={source} /> : <>
+      {view === 'memory' ? <MemoryPanel embedded profileIds={profileIds} profileNames={names} scope={panelScope} source={source} /> : <>
       <div className="chat-history-controls">
         <select aria-label={tr('对话范围')} disabled={conv.running} value={conv.scope} onChange={(event) => void talk.setScope(event.target.value as 'private' | 'public')}><option value="private">{tr('私聊')}</option><option value="public">{tr('公开互动')}</option></select>
         <select aria-label={tr('已保存的对话')} disabled={conv.running} value={sessions.some((session) => session.id === conv.sessionId) ? conv.sessionId : ''} onChange={(event) => void talk.openSession(event.target.value)}>
@@ -961,7 +981,7 @@ function ModelForm({ forStart, done, demoDone, onPick, onAccount, onContinue }: 
   useEffect(() => { onPick?.(demo ? 'demo' : points ? 'livliv' : 'openai') }, [demo, points])  // eslint-disable-line react-hooks/exhaustive-deps
   const [d, setD] = useState<ModelConfig>(() => (previousModelConfig().provider ? previousModelConfig() : { kind: 'openai', provider: PROVIDERS_HERE[0].id, base: PROVIDERS_HERE[0].base, key: '', model: '' }))
   const [models, setModels] = useState<string[]>([])
-  const [st, setSt] = useState<{ busy?: 'list' | 'test' | 'demo'; ok?: number; err?: string }>({})
+  const [st, setSt] = useState<{ busy?: 'list' | 'test' | 'demo'; ok?: number; batch?: boolean; err?: string }>({})
   const request = useRef<AbortController | null>(null)
   useEffect(() => () => { request.current?.abort() }, [])
   const change = (patch: Partial<ModelConfig>) => { request.current?.abort(); request.current = null; setSt({}); setModels([]); setD((value) => ({ ...value, ...patch })) }
@@ -986,7 +1006,11 @@ function ModelForm({ forStart, done, demoDone, onPick, onAccount, onContinue }: 
   const test = async () => {
     request.current?.abort(); const controller = new AbortController(); request.current = controller
     setSt({ busy: 'test' })
-    try { const seconds = await testModel(d, controller.signal); if (!controller.signal.aborted && request.current === controller) setSt({ ok: seconds }) }
+    try {
+      const airi = d.airi !== false && airiModelForCast(d, participants(scene).filter((character) => character.lines === 'ai'))
+      const result = airi ? await testAiriModel(d, controller.signal) : { seconds: await testModel(d, controller.signal), batch: false }
+      if (!controller.signal.aborted && request.current === controller) setSt({ ok: result.seconds, batch: result.batch })
+    }
     catch (error) { if (!controller.signal.aborted && request.current === controller) setSt({ err: (error as Error).message }) }
   }
   const save = async (playDemo = demo) => {
@@ -1026,8 +1050,10 @@ function ModelForm({ forStart, done, demoDone, onPick, onAccount, onContinue }: 
         </div>
         <datalist id="model-list">{models.map((m) => <option key={m} value={m} />)}</datalist>
       </label>
+      {desktop?.vision && <label className="switch"><span>{tr('单角色会话优先使用 AIRI')}</span><input type="checkbox" checked={d.airi !== false} onChange={(e) => change({ airi: e.target.checked })} /><i /></label>}
     </>}
     {st.err && <p className="hint error" role="alert">{st.err}</p>}
+    {st.batch && <p className="hint" role="status">{tr('可以聊天，连接游戏或发送画面需要流式输出。')}</p>}
     <div className="row end">
       {!demo && !points && <button disabled={!brainReady(d) || st.busy === 'test'} onClick={() => void test()}>
         {st.busy === 'test' ? <LoaderCircle size={14} className="spin" /> : st.ok !== undefined ? <Check size={14} /> : null}

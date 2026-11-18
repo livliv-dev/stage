@@ -93,7 +93,7 @@ export class NeuroHost {
     const context = (message: string, reply: 'never' | 'maybe' | 'always', id: string = randomUUID()) => this.send({ kind: 'context', id: `${connection}:${id}`, connection, character, source, message, reply })
     if (event.type === 'context') context(event.message, event.silent ? 'never' : 'maybe')
     else if (event.type === 'dialogue') {
-      this.send({ kind: 'dialogue', id: `${connection}:${event.line.id}`, connection, started: event.speaking })
+      this.send({ kind: 'dialogue', id: `${connection}:${event.line.id}`, connection, character, started: event.speaking })
       if (event.speaking && event.line.text) context(`${event.line.speaker}: ${event.line.text}`, 'never', event.line.id)
     } else if (event.type === 'reply') context(`${event.line.speaker}: ${event.line.text ?? '(finished speaking)'}`, event.reply, `${event.line.id}:reply`)
     else if (event.type === 'action-result') context(`${event.name}: ${event.success ? 'succeeded' : 'failed'}${event.message ? ` — ${event.message}` : ''}`, 'never', event.id)

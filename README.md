@@ -63,13 +63,14 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # the desktop app
 
 Tests: `npm --prefix stage run check && npm --prefix stage test`, `npm --prefix desktop test`, `npm --prefix collab test`.
 AI chat and memory: [docs/ai-conversations.md](docs/ai-conversations.md), real-time voice:
-[docs/realtime-voice.md](docs/realtime-voice.md), the Neuro SDK bridge: [neuro/README.md](neuro/README.md), the local control API:
+[docs/realtime-voice.md](docs/realtime-voice.md), built-in AIRI ([docs/airi.md](docs/airi.md)), the Neuro SDK bridge: [neuro/README.md](neuro/README.md), the local control API:
 [docs/stage-api.md](docs/stage-api.md), co-streaming: [collab/README.md](collab/README.md).
 Model keys stay in the browser or the app and go straight to the provider. Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
 Security reports: [SECURITY.md](SECURITY.md).
 
 ## License
 
-The code is under the [Apache License 2.0](LICENSE). The featured characters have
+Stage's code is under the [Apache License 2.0](LICENSE). The bundled [AIRI core](vendor/airi-core/LICENSE) and its
+[dependencies](vendor/airi-core/DEPENDENCY-NOTICES.txt) carry their own licenses. The featured characters have
 [their own licence](stage/public/characters/LICENSE.md). You may keep the LivLiv name and logo in your own versions,
 as long as they don't claim to be the official one: [TRADEMARKS.md](TRADEMARKS.md).

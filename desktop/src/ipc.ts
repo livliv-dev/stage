@@ -1,6 +1,6 @@
 // The main process's side of window.livlivDesktop (preload.ts). Every call is checked again here: it must come from
 // the top frame of a page of our origin (security.ts trusted), and window calls act on the caller's own window.
-import { BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { BrowserWindow, desktopCapturer, dialog, ipcMain, type IpcMainInvokeEvent, type WebContents } from 'electron'
 import { APP, APP_ORIGIN, VERSION } from './config'
 import { cleanBindings, type HotkeyState } from './hotkeys'
 import { trusted } from './security'
@@ -11,14 +11,17 @@ import { mainContents } from './mainWindow'
 import type { StageApiState } from './stageCommands'
 import { readMotionSettings, type MotionSettings, type MotionState } from './trackingProtocol'
 import { stageFromPath } from './urls'
-import { readNeuroConfig, type NeuroConfig, type NeuroSpeech, type NeuroState } from './neuroProtocol'
+import { readNeuroAnswer, readNeuroConfig, type NeuroConfig, type NeuroSpeech, type NeuroState } from './neuroProtocol'
 import { readCollabConfig, type CollabConfig, type CollabState } from './collabProtocol'
+import type { AiriGameHost } from './airiGameHost'
+import { readAiriGameConfig } from './airiGameProtocol'
 
 export type IpcDeps = {
   collab?: { state(): CollabState; start(config: CollabConfig): Promise<CollabState>; close(): Promise<CollabState> }
   neuro?: { state(): NeuroState; configure(config: NeuroConfig): Promise<NeuroState>; answer(owner: number, id: unknown, value: unknown): boolean; speech(status: NeuroSpeech): void }
   tracking?: { get(): MotionState; set(settings: MotionSettings): Promise<MotionState> }
   stageApi?: { get(): StageApiState; set(enabled: boolean): Promise<StageApiState>; rotate(): StageApiState }
+  airiGames?: AiriGameHost
   capabilities: () => string[]
   local: () => { port: number; commandUrl: string } | null
   hotkeys: { list: () => HotkeyState[]; set: (b: Binding[] | null) => HotkeyState[]; enabled: () => boolean; enable: (on: boolean) => HotkeyState[] }
@@ -45,6 +48,53 @@ export function registerIpc(deps: IpcDeps) {
     throw new Error('unknown request operation')
   })
   handle('livliv:capabilities', () => deps.capabilities())
+  const watchedGameEditors = new WeakSet<WebContents>()
+  handle('livliv:airi-game', async (event, op, value, input) => {
+    const games = deps.airiGames, editor = event.sender
+    if (!games || APP !== 'stage' || editor !== mainContents()) throw new Error('Stage editor only')
+    if (op === 'select-bridge') {
+      const window = BrowserWindow.fromWebContents(editor)
+      if (!window) return null
+      const { filePaths } = await dialog.showOpenDialog(window, {
+        properties: ['openFile'], filters: [{ name: 'Airicraft bridge state', extensions: ['json'] }],
+      })
+      return filePaths[0] ? games.selectBridge(filePaths[0]) : null
+    }
+    if (op === 'connect') {
+      const config = readAiriGameConfig(input)
+      if (!config || typeof value !== 'string' || !/^[0-9a-f-]{36}$/.test(value)) throw new Error('Invalid AIRI game settings')
+      if (!watchedGameEditors.has(editor)) {
+        watchedGameEditors.add(editor)
+        const close = () => { void games.stop().catch((error: unknown) => console.error('[AIRI game close]', error)) }
+        editor.on('destroyed', close)
+        editor.on('did-start-loading', close)
+      }
+      return games.connect(config, (message) => {
+        if (!editor.isDestroyed() && editor === mainContents()) editor.send('livliv:airi-game-event', message)
+      }, value)
+    }
+    if (typeof value !== 'string' || value.length > 100) throw new Error('Invalid AIRI game session')
+    if (op === 'stop') return games.stop(value)
+    if (op === 'cancel') return games.cancel(value)
+    if (op === 'snapshot') return games.snapshot(value, input === true)
+    if (op === 'execute') {
+      const answer = readNeuroAnswer({ ok: true, action: input })
+      if (answer?.ok && answer.action) return games.execute(value, answer.action)
+    }
+    throw new Error('Invalid AIRI game operation')
+  })
+  handle('livliv:vision', async (event, op, sourceId) => {
+    if (APP !== 'stage' || event.sender !== mainContents()) throw new Error('Stage editor only')
+    const ownWindows = new Set(BrowserWindow.getAllWindows().map((win) => win.getMediaSourceId()))
+    if (op === 'list') {
+      const windows = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width: 0, height: 0 } })
+      return windows.filter((source) => !ownWindows.has(source.id)).map(({ id, name }) => ({ id, name }))
+    }
+    if (op !== 'frame' || typeof sourceId !== 'string' || !/^window:[-\d]+:[-\d]+$/.test(sourceId) || sourceId.length > 100 || ownWindows.has(sourceId)) throw new Error('Invalid capture window')
+    const windows = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width: 960, height: 540 } })
+    const image = windows.find((source) => source.id === sourceId)?.thumbnail
+    return image?.isEmpty() === false ? { mimeType: 'image/jpeg', data: image.toJPEG(78).toString('base64') } : null
+  })
   handle('livliv:collab', (event, op, value) => {
     if (APP !== 'stage' || !deps.collab || event.sender !== mainContents()) throw new Error('Stage editor only')
     if (op === 'get') return deps.collab.state()
