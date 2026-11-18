@@ -144,7 +144,7 @@ try {
     await talk.setScope('private')
     talk.say('private-airicraft-marker', { respond: false })
     window.playback = []
-    onHeard((sound) => window.playback.push({ at: Date.now(), sound, gameStatus: window.__stage.conversation().game?.status }))
+    onHeard((sound) => window.playback.push({ at: Date.now(), sound }))
   })
   await page.getByRole('button', { name: 'AIRI', exact: true }).click()
   const panel = page.locator('.airi-settings')
@@ -155,9 +155,6 @@ try {
   await page.getByText('游戏已连接', { exact: true }).waitFor()
   await page.screenshot({ path: join(out, 'airi-connected.png') })
   await panel.getByLabel('游戏指令').fill('Use Airicraft to bring the inventory up to ' + count + ' wood logs.')
-  await panel.getByRole('button', { name: '执行', exact: true }).click()
-  await page.getByText(/Airicraft accepted/).first().waitFor()
-  assert.ok(actionSelected)
   if (twitch) {
     await panel.getByLabel('Twitch 频道名').fill(twitch)
     await panel.getByRole('button', { name: '连接', exact: true }).click()
@@ -170,6 +167,11 @@ try {
   await page.waitForFunction(() => window.playback.length > 0, null, { timeout: 45_000 })
   const firstPlayback = await page.evaluate(() => window.playback[0].at)
   assert.ok(requests.some((request) => request.viewer && request.image))
+  await panel.getByRole('button', { name: '执行', exact: true }).click()
+  await page.getByText(/Airicraft accepted/).first().waitFor()
+  assert.ok(actionSelected)
+  const gameDuringSpeech = await page.evaluate(() => window.playback[0].sound.stop === null && window.__stage.conversation().game?.status === 'playing')
+  assert.equal(gameDuringSpeech, true, 'A live game task was admitted while the role was still speaking')
   const mic = page.getByRole('button', { name: '按住说话', exact: true })
   await mic.hover()
   const interruptAt = Date.now()
@@ -186,13 +188,12 @@ try {
   assert.ok(requests.some((request) => request.owner && request.image))
   const viewerRequest = requests.find((request) => request.viewer && request.image)
   if (!await panel.count()) await page.getByRole('button', { name: 'AIRI', exact: true }).click()
-  const evidence = await page.evaluate(() => ({ gameAtFirstSpeech: window.playback[0].gameStatus,
-    gameResult: window.__stage.conversation().game?.text,
+  const evidence = await page.evaluate(() => ({ gameResult: window.__stage.conversation().game?.text,
     spoken: window.__stage.conversation().lines.filter((line) => !line.human).map((line) => line.text).slice(-4) }))
   const report = { out, game: native ? 'Airicraft' : 'protocol fixture', replies: vision ? 'visual model' : 'stream fixture',
     viewer: twitch || 'simulated', gameDecision: 'tool-call fixture', firstPlaybackMs: firstPlayback - viewerRequest.started,
     interruptMs: viewerRequest.closed >= interruptAt ? viewerRequest.closed - interruptAt : null, microphoneInput: 'recorded voice with transcript fixture',
-    audioCutMs, gameAccepted: true, images: requests.filter((request) => request.image).length, ...evidence }
+    audioCutMs, gameDuringSpeech, images: requests.filter((request) => request.image).length, ...evidence }
   await page.screenshot({ path: join(out, 'airi-live.png') })
   await writeFile(join(out, 'results.json'), JSON.stringify(report, null, 2))
   assert.match(evidence.gameResult, /Airicraft completed/)
