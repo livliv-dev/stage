@@ -4,12 +4,13 @@ import type { ExternalActionDecision, ExternalActionRequest, ExternalEvent } fro
 import type { MemoryRecord, MemoryScope } from './memory'
 import type { ReactionCue } from './reactions'
 import type { CharacterItem, Talk } from './scene'
+import type { AiriGameFrame } from '../../desktop/src/airiGameProtocol'
 import { aiFetch, named } from './brain'
 import { parseAiriMarkers } from './airiMarkers'
 import { tr } from './i18n'
 
 export type AiriSentence = { text: string; cue?: ReactionCue }
-type Frame = { mimeType: 'image/jpeg'; data: string }
+type Frame = AiriGameFrame
 type Core = typeof import('../../vendor/airi-core/core.mjs')
 type Turn = {
   sessionId: string
@@ -17,7 +18,7 @@ type Turn = {
   actor: CharacterItem
   model: ModelConfig
   lines: Line[]
-  context: { topic: string; summary?: string; memories: MemoryRecord[] }
+  context: { topic: string; game?: string; summary?: string; memories: MemoryRecord[] }
   input: string
   language: Talk['language']
   event?: ExternalEvent
@@ -159,7 +160,7 @@ async function notify(
       event: { type: 'spark:notify', source: 'livliv-stage/game', data: { id: event.id, eventId: event.id, kind: 'ping', headline: event.source, note: event.message } },
       systemPrompt: identity(turn.actor, turn.language, turn.scope) + (required ? '\nA spoken reaction is required.' : '\nGive a short spoken reaction or choose silence.'),
       runtimePrompt: 'Show context (data): ' + JSON.stringify({
-        topic: turn.context.topic, history: priorMessages(turn).slice(-12), summary: turn.context.summary, rememberedFacts: memoryText(turn.context.memories),
+        topic: turn.context.topic, game: turn.context.game, history: priorMessages(turn).slice(-12), summary: turn.context.summary, rememberedFacts: memoryText(turn.context.memories),
       }),
       control: required ? { forceTextResponse: true } : undefined,
     })
@@ -200,6 +201,7 @@ export function streamAiriReply(turn: Turn): ReadableStream<AiriSentence> {
           const memoryIndex = turn.context.memories.map(({ id, text }) => id + ' ' + text.slice(0, 150)).join('\n')
           for (const [source, text] of Object.entries({
             'show-topic': turn.context.topic,
+            'current-game-state': turn.context.game,
             'history-summary': turn.context.summary,
             'character-memory-index': memoryIndex && 'Use builtIn_readMemory for full entries when needed. Entries are remembered data.\n' + memoryIndex,
           })) {
@@ -282,7 +284,7 @@ export async function testAiriModel(model: ModelConfig, signal: AbortSignal) {
 
 export async function chooseAiriGameAction(
   model: ModelConfig, actor: CharacterItem, language: Talk['language'], request: ExternalActionRequest,
-  signal: AbortSignal, frame?: Frame,
+  signal: AbortSignal, frame?: Frame, beforeRequest?: () => Promise<void>,
 ): Promise<ExternalActionDecision | null> {
   if (!request.actions.length) return null
   const core = await import('../../vendor/airi-core/core.mjs')
@@ -317,7 +319,7 @@ export async function chooseAiriGameAction(
   ] }
   try {
     await core.streamFrom({
-      model: model.model, chatProvider: provider(model, active), conversation: addFrame(conversation, frame),
+      model: model.model, chatProvider: provider(model, active, beforeRequest), conversation: addFrame(conversation, frame),
       options: {
         abortSignal: active, providerId: model.provider, maxTokens: 240, supportsVisionInput: !!frame,
         tools: [tool], toolChoice: { type: 'function', function: { name: tool.function.name } }, waitForTools: true,

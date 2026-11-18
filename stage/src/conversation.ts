@@ -25,6 +25,7 @@ import { chatHistory } from './chatHistory'
 import { conversationContext, speechSegments } from './chatContext'
 import { memory, type MemoryScope } from './memory'
 import type { ExternalActionRequest, ExternalEvent } from './externalEvents'
+import type { AiriGameConfig, AiriGameConnection } from '../../desktop/src/airiGameProtocol'
 import { chooseAiriGameAction, streamAiriReply } from './airiEngine'
 import { desktop } from './desktopBridge'
 import { recording } from './recording'
@@ -60,6 +61,8 @@ export type ConvState = {
   /** seconds between lines */
   gap: number
   error: string
+  engine?: 'airi'
+  game?: { name: AiriGameConfig['game']; status: 'connecting' | 'ready' | 'submitting' | 'playing' | 'offline'; text: string }
   /** an AI turn needed a model and none is set up: the app shows where to set one */
   needModel: boolean
   modelIntent: 'chat' | 'conversation' | 'live'
@@ -174,12 +177,13 @@ onChat((message) => { if (viewers.push(message)) wakeLive?.() })
 /** a viewer's message, now and then (as often as the stage's talk settings say) */
 const someViewer = () => (Math.random() < [0, 0.35, 0.8][store.get().talk.danmaku] ? viewers.take(Date.now(), isBlocked) : null)
 
-export type LiveOptions = { minutes: number; maxGenerations: number; warmupSeconds: number; textOnly: boolean; airi?: { windowId: string } }
+export type LiveOptions = { minutes: number; maxGenerations: number; warmupSeconds: number; textOnly: boolean; airi?: { windowId: string; game?: AiriGameConfig } }
 let liveOptions: LiveOptions | null = null
-let airi: { model: ModelConfig; actorId: string; windowId: string } | null = null
+let airi: { model: ModelConfig; actorId: string; windowId: string; game?: AiriGameConnection } | null = null
 export const privateAiri = () => !!airi && state.mode === 'chat' && state.scope === 'private'
 const liveRoom = () => ['connecting', 'waiting', 'on'].includes(roomState().phase)
 const privateOutputError = () => tr('请先关闭直播输出、录制或联播，再开始 AIRI 私聊')
+const gameName = (game: AiriGameConfig['game']) => game === 'minecraft' ? 'Minecraft' : 'Factorio'
 
 function stopPrivateAiriForOutput() {
   talk.stop()
@@ -481,7 +485,9 @@ async function playAiriTurn(me: CharacterItem, model: ModelConfig, chat: Chat | 
     signal.throwIfAborted()
   }
   signal.throwIfAborted()
-  const frame = windowId ? await desktop?.vision?.frame(windowId) : undefined
+  const snapshot = airi.game ? await desktop?.airiGame?.snapshot(airi.game.id, true) : undefined
+  signal.throwIfAborted()
+  const frame = snapshot?.frame ?? (windowId ? await desktop?.vision?.frame(windowId) : undefined)
   signal.throwIfAborted()
   if (windowId && !frame) throw new Error(tr('游戏窗口已关闭或屏幕录制权限不可用'))
   const latest = replyToOwner ? context.lines.findLast((line) => line.human && !line.audience) : undefined
@@ -497,7 +503,7 @@ async function playAiriTurn(me: CharacterItem, model: ModelConfig, chat: Chat | 
     sessionId, scope, actor: me, model, input, signal, verifyMemory, ...(frame ? { frame } : {}), ...(event ? { event } : {}),
     lines: context.lines.filter((line) => line.id !== latest?.id && line.id !== chat?.id),
     language: store.get().talk.language,
-    context: { topic: store.get().topic, summary: used.earlier, memories },
+    context: { topic: store.get().topic, game: snapshot?.state, summary: used.earlier, memories },
   }).getReader()
   const speech = {
     final: false, onStart, onEnd,
@@ -739,6 +745,8 @@ async function runLive(options: LiveOptions) {
   if (options.airi && (!desktop?.vision || config.kind !== 'openai' || cast.length !== 1 || cast[0].remote)) {
     set({ error: tr('内置 AIRI 需要一个本地 AI 角色和流式模型接口') }); return
   }
+  const gameHost = desktop?.airiGame, gameConfig = options.airi?.game
+  if (gameConfig && !gameHost) { set({ error: tr('当前桌面版本不支持 AIRI 游戏') }); return }
   if (options.airi && !options.textOnly && !cast[0].muted && voiceRoute(cast[0]) === 'livliv') {
     set({ error: tr('内置 AIRI 支持自配语音接口、系统朗读或仅字幕') }); return
   }
@@ -748,8 +756,10 @@ async function runLive(options: LiveOptions) {
   liveOptions = options
   single = false; boundProfiles = castKey()
   const offAiriCast = options.airi && config.kind === 'openai' ? bindAiri(c, config, cast[0], options.airi.windowId) : undefined
+  const engine = airi
   const until = Date.now() + options.minutes * 60_000
   set({ running: true, mode: 'live', paused: false, waitingAudience: true, turns: 0, generations: 0, generationLimit: options.maxGenerations, until, retryAt: 0, ended: '', error: '',
+    engine: engine ? 'airi' : undefined, game: gameConfig ? { name: gameConfig.game, status: 'connecting', text: '' } : undefined,
     ...(options.airi ? { scope: 'public' as const, sessionId: '', lines: [], speaking: null } : {}),
   }, false)
   const deadline = setTimeout(() => {
@@ -757,18 +767,54 @@ async function runLive(options: LiveOptions) {
   }, until - Date.now())
   let lastReply = Date.now() - 6000, failures = 0, replyToOwner = false
   let retryChat: Chat | null = null
+  let attached: AiriGameConnection | undefined
+  let offGame: (() => void) | undefined
+  const gameId = gameConfig ? crypto.randomUUID() : undefined
+  let closingGame: Promise<void> | undefined
+  const closeGame = () => {
+    if (!gameId || !gameHost) return
+    closingGame ??= gameHost.stop(gameId).catch((error: unknown) => {
+      console.warn('[AIRI game close]', error)
+      if (ctrl === c || !ctrl) set({ error: (error as Error).message })
+    })
+  }
+  c.signal.addEventListener('abort', closeGame, { once: true })
   try {
     await openHistory('public', c.signal)
     // The template may have just mounted; use the same loading window as conversation mode.
     for (let i = 0; i < 60 && cast.some((x) => !actors.get(x.id) || actors.get(x.id)?.status === 'loading'); i++) await wait(250, c.signal)
     if (cast.some((x) => actors.get(x.id)?.status !== 'ready')) throw new Error(tr("有 AI 角色尚未载入，请检查角色列表"))
-    while (state.generations < options.maxGenerations) {
+    if (engine && gameHost && gameConfig && gameId) {
+      c.signal.throwIfAborted()
+      attached = await gameHost.connect(gameId, gameConfig)
+      c.signal.throwIfAborted()
+      engine.game = attached
+      offGame = gameHost.onEvent((event) => {
+        if (airi !== engine || c.signal.aborted || event.connection !== engine.game?.id) return
+        if (event.status === 'disconnected') {
+          engine.game = undefined
+          set({ game: { name: gameConfig.game, status: 'offline', text: event.text } })
+        } else if (event.status === 'done' || event.status === 'failed') {
+          set({ game: { name: gameConfig.game, status: 'ready', text: event.text } })
+        } else if (event.status === 'unknown') {
+          set({ game: { name: gameConfig.game, status: 'playing', text: event.text } })
+        }
+        talk.externalEvent({ id: uid(), source: gameName(gameConfig.game), message: event.text, character: engine.actorId,
+          reply: event.status === 'chat' || event.status === 'done' || event.status === 'failed' ? 'maybe' : 'never' })
+      })
+      set({ game: { name: gameConfig.game, status: 'ready', text: '' } })
+    }
+    for (;;) {
+      if (state.generations >= options.maxGenerations) {
+        if (state.game?.status === 'playing' || state.game?.status === 'submitting') { await liveEvent(c.signal); continue }
+        break
+      }
       while (state.paused || dialogue.size || inputPending || externalDecisions) await liveEvent(c.signal)
       while (queue.length) { await consumeInput(c.signal); replyToOwner = true }
       c.signal.throwIfAborted()
       if (state.paused || dialogue.size || inputPending || externalDecisions) continue
       const now = Date.now(), cooldown = lastReply + 6000 - now
-      if (cooldown > 0) { await liveEvent(c.signal, cooldown); continue }
+      if (cooldown > 0 && !replyToOwner) { await liveEvent(c.signal, cooldown); continue }
       const warmupAt = options.warmupSeconds ? lastReply + options.warmupSeconds * 1000 : Infinity
       if (retryChat && isBlocked(retryChat.user)) retryChat = null
       if (!replyToOwner && !retryChat && !activeEvent && !externalQueue.length && !viewers.available(now, isBlocked) && now < warmupAt) {
@@ -813,16 +859,20 @@ async function runLive(options: LiveOptions) {
     else if (e instanceof NeedModel) set({ needModel: true, modelIntent: 'live' })
     else if (!c.signal.aborted) set({ error: (e as Error).message, ended: failures >= LIVE_FAILURES ? tr("连续出错 {0} 次，已停止", LIVE_FAILURES) : tr("会话因错误停止") })
   } finally {
+    offGame?.()
+    c.signal.removeEventListener('abort', closeGame)
+    closeGame()
+    await closingGame
     offAiriCast?.()
     clearTimeout(deadline)
     if (ctrl === c) {
       ctrl = null; liveOptions = null; airi = null; activeEvent = null; hush(); actors.forEach((a) => a.silence())
-      set({ running: false, paused: false, thinking: null, speaking: null, waiting: null, waitingAudience: false, retryAt: 0 }); looks(null, null)
+      set({ running: false, paused: false, thinking: null, speaking: null, waiting: null, waitingAudience: false, retryAt: 0, engine: undefined, game: undefined }); looks(null, null)
     }
   }
 }
 
-async function startChatSession(scope: MemoryScope = state.scope, target?: string) {
+async function startChatSession(scope: MemoryScope = state.scope, target?: string, useAiri = false) {
   if (state.running) {
     if ((state.mode === 'chat' || (state.mode === 'live' && airi)) && state.scope === scope
       && (!airi || (state.sessionId && (!target || airi.actorId === target)))) return
@@ -831,7 +881,8 @@ async function startChatSession(scope: MemoryScope = state.scope, target?: strin
   const config = loadBrainConfig()
   if (!brainReady(config) || config.kind === 'demo') { set({ needModel: true, modelIntent: 'chat' }); throw new Error(tr('持续聊天需要接上 AI 模型')) }
   if (!profiles().length) throw new Error(tr('先添加一个「AI 来演」的角色'))
-  const model = desktop?.vision && config.kind === 'openai' && config.airi ? config : null
+  const model = desktop?.vision && config.kind === 'openai' && (config.airi || useAiri) ? config : null
+  if (useAiri && !model) throw new Error(tr('内置 AIRI 需要一个本地 AI 角色和流式模型接口'))
   const cast = characters(store.get()).filter((character) => character.lines === 'ai')
   if (model && (cast.length !== 1 || cast[0].remote || (target && target !== cast[0].id))) {
     const error = tr('内置 AIRI 需要一个本地 AI 角色和流式模型接口')
@@ -856,6 +907,7 @@ async function startChatSession(scope: MemoryScope = state.scope, target?: strin
   const settings = store.get().talk
   const minutes = Math.max(1, Math.min(240, settings.chatMinutes ?? 60))
   set({ running: true, mode: 'chat', scope, waitingInput: false, paused: false, thinking: null, waitingAudience: false,
+    engine: model ? 'airi' : undefined, game: undefined,
     generations: 0, generationLimit: Math.max(1, Math.min(500, settings.chatGenerations ?? 100)), turns: 0,
     until: Date.now() + minutes * 60000, ended: '', error: '',
     ...(model ? { sessionId: '', lines: [] } : {}) }, !model)
@@ -869,7 +921,7 @@ async function startChatSession(scope: MemoryScope = state.scope, target?: strin
     unbind()
     if (ctrl === controller) {
       ctrl = null; airi = null
-      set({ running: false, error: controller.signal.aborted ? '' : error instanceof Error ? error.message : String(error) })
+      set({ running: false, engine: undefined, error: controller.signal.aborted ? '' : error instanceof Error ? error.message : String(error) })
     }
     throw error
   }
@@ -922,7 +974,7 @@ async function runChat(controller: AbortController, unbind: () => void) {
     clearTimeout(deadline)
     if (ctrl === controller) {
       ctrl = null; airi = null; activeEvent = null; actors.forEach((actor) => actor.silence())
-      set({ running: false, paused: false, thinking: null, speaking: null, waitingInput: false }); looks(null, null)
+      set({ running: false, paused: false, thinking: null, speaking: null, waitingInput: false, engine: undefined }); looks(null, null)
     }
   }
 }
@@ -1079,6 +1131,51 @@ export const talk = {
     } finally { externalDecisions--; wakeLive?.() }
 
   },
+  async playGame(instruction: string) {
+    const engine = airi, game = engine?.game, host = desktop?.airiGame, parent = ctrl, sessionId = state.sessionId
+    if (!engine || !game || !host || !parent || !sessionId || state.scope !== 'public' || state.paused || state.game?.status !== 'ready') {
+      throw new Error(tr('请先在 AIRI 开启游戏直播'))
+    }
+    const actor = characters(store.get()).find((character) => character.id === engine.actorId)
+    const query = instruction.trim().slice(0, 500)
+    if (!actor || !query) return
+    if (state.generations >= state.generationLimit) throw new Error(tr('会话已暂停或达到生成上限'))
+    const signal = AbortSignal.any([parent.signal, AbortSignal.timeout(45_000)])
+    const profile = actor.profileId ?? actor.id
+    set({ generations: state.generations + 1, game: { name: game.game, status: 'submitting', text: '' } })
+    try {
+      const [context, snapshot] = await Promise.all([chatHistory.context(profile, state.lines, 'public'), host.snapshot(game.id, true)])
+      const stillCurrent = async () => {
+        signal.throwIfAborted()
+        if (airi !== engine || engine.game !== game || sessionId !== state.sessionId || state.scope !== 'public' || state.paused) {
+          throw new Error(tr('游戏连接已关闭或会话已暂停'))
+        }
+        if ((await memory.context([profile], 'public')).revision !== context.revision) throw new Error(tr('记忆已更新，请重新发送这一句'))
+        signal.throwIfAborted()
+      }
+      const facts = context.memories.slice(0, 12).map((entry) => entry.text.slice(0, 300))
+      const frame = snapshot.frame ?? (engine.windowId ? await desktop?.vision?.frame(engine.windowId) : null)
+      if (engine.windowId && !frame) throw new Error(tr('游戏窗口已关闭或屏幕录制权限不可用'))
+      await stillCurrent()
+      const decision = await chooseAiriGameAction(engine.model, actor, store.get().talk.language, {
+        character: actor.id, source: gameName(game.game), query, priority: 'medium', silent: true, actions: game.actions,
+        state: JSON.stringify({ observation: snapshot.state, rememberedFacts: facts }),
+      }, signal, frame ?? undefined, stillCurrent)
+      if (!decision) throw new Error(tr('AIRI 没有选出适合的游戏动作'))
+      await stillCurrent()
+      const text = await host.execute(game.id, decision)
+      if (airi !== engine || engine.game !== game || parent.signal.aborted) return
+      if (conversation().game?.status === 'submitting') set({ game: { name: game.game, status: game.game === 'minecraft' ? 'playing' : 'ready', text } })
+      talk.externalEvent({ id: uid(), source: gameName(game.game), message: text, character: actor.id, reply: 'never' })
+    } catch (error) {
+      if (airi === engine && engine.game === game && !parent.signal.aborted) {
+        set({ game: { name: game.game, status: 'ready', text: error instanceof Error ? error.message : String(error) } })
+      }
+    } finally { wakeLive?.() }
+  },
+  async cancelGame() {
+    if (airi?.game?.game === 'minecraft') await desktop?.airiGame?.cancel(airi.game.id)
+  },
   /** they talk until the limit (a new limit's worth of AI lines, from where they are). Gives what stops this run only,
    *  not one started after it */
   start(): (() => void) | null {
@@ -1104,7 +1201,7 @@ export const talk = {
     interruptTurn(); ctrl?.abort(); ctrl = null; liveOptions = null; airi = null; queue.length = 0; externalQueue.length = 0; dialogue.clear(); cutting = false; clearTimeout(cutTimer)
     dropAhead()
     hush(); actors.forEach((a) => a.silence())
-    set({ running: false, paused: false, thinking: null, speaking: null, waitingInput: false, waiting: null, waitingAudience: false, retryAt: 0, ended: state.mode === 'live' ? tr("已手动停止") : '' })
+    set({ running: false, paused: false, thinking: null, speaking: null, waitingInput: false, waiting: null, waitingAudience: false, retryAt: 0, ended: state.mode === 'live' ? tr("已手动停止") : '', engine: undefined, game: undefined })
     looks(null, null)
   },
   clear() { talk.stop(); viewers.clear(); lastTurn = null; chatHistory.invalidate(); set({ lines: [], turns: 0, error: '' }) },

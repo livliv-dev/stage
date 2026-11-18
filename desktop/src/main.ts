@@ -4,6 +4,7 @@
 // of them is copied here. Built as LivLiv Stage (config.ts APP), it is the Stage editor in a window instead
 // (stageApp.ts). Global commands go to the editor; the site shell keeps its separate live windows, endpoint and tray.
 import { randomBytes } from 'node:crypto'
+import { join } from 'node:path'
 import { app, BrowserWindow, globalShortcut, Menu, type MenuItemConstructorOptions } from 'electron'
 import { parseDo } from './commands'
 import { APP, APP_ORIGIN, DEV, flag, LIVLIV_API, ORIGINS, STAGE_BUILT, STAGE_DIR, VERSION, WEBGL_CONTEXTS } from './config'
@@ -23,6 +24,7 @@ import { MotionInput } from './motionInput'
 import { stageFromPath } from './urls'
 import { NeuroHost } from './neuroHost'
 import { CollabHost } from './collabHost'
+import { AiriGameHost } from './airiGameHost'
 
 // ---------------------------------------------------------------- global hotkeys
 
@@ -47,6 +49,7 @@ const motionInput = APP === 'stage' ? new MotionInput((event) => { const editor 
 const control = APP === 'stage' ? stageControl(mainContents) : undefined
 const neuro = APP === 'stage' ? new NeuroHost({ editor: mainContents }) : null
 const collab = APP === 'stage' ? new CollabHost({ editor: mainContents }) : null
+const airiGames = APP === 'stage' ? new AiriGameHost(process.env.AIRICRAFT_BRIDGE_STATE_FILE || join(app.getPath('home'), '.airicraft', 'bridge-state.json')) : null
 let api: LocalApi | null = null
 let apiError: string | null = null
 let apiQueue = Promise.resolve()
@@ -127,6 +130,7 @@ else {
     registerIpc({
       ...(collab ? { collab } : {}),
       ...(neuro ? { neuro } : {}),
+      ...(airiGames ? { airiGames } : {}),
       ...(motionInput ? { tracking: { get: () => motionInput.state(), set: async (value) => { update((s) => { s.trackingInput = value }); return motionInput.configure(value) } } } : {}),
       capabilities: () => (APP === 'stage' ? ['global-hotkeys', ...(api ? ['local-commands'] : [])] : capabilities()),
       ...(APP === 'stage' ? { stageApi: { get: stageApiState, set: async (enabled: boolean) => { update((s) => { s.stageApi.enabled = enabled }); await syncLocalApi(); return stageApiState() }, rotate: () => { update((s) => { s.token = randomBytes(16).toString('hex') }); return stageApiState() } } } : {}),
@@ -161,5 +165,13 @@ else {
   })
   app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) openMain() })
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
+  let closingGame = false, gameClosed = false
+  app.on('before-quit', (event) => {
+    if (gameClosed || !airiGames?.needsClose()) return
+    event.preventDefault()
+    if (closingGame) return
+    closingGame = true
+    void airiGames.stop().catch((error: unknown) => console.error('[AIRI game close]', error)).finally(() => { gameClosed = true; app.quit() })
+  })
   app.on('will-quit', () => { globalShortcut.unregisterAll(); void collab?.close().catch((error: unknown) => console.error('[collab close]', error)); void neuro?.close().catch((error: unknown) => console.error('[Neuro close]', error)); void motionInput?.close().catch((error) => console.error('[tracking close]', error)); flush() })
 }

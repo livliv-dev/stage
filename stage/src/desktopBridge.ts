@@ -3,12 +3,23 @@ import type { StageApiState, StageControlRequest } from '../../desktop/src/stage
 import type { MotionEvent, MotionSettings, MotionState } from '../../desktop/src/trackingProtocol'
 import type { NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } from '../../desktop/src/neuroProtocol'
 import type { CollabConfig, CollabState } from '../../desktop/src/collabProtocol'
+import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameSnapshot } from '../../desktop/src/airiGameProtocol'
+import type { ExternalSelection } from '../../desktop/src/neuroProtocol'
 
 export type Shortcut = { accelerator: string; do: string; ok: boolean; why?: string }
 type Desktop = {
   vision?: {
     list(): Promise<{ id: string; name: string }[]>
     frame(sourceId: string): Promise<{ mimeType: 'image/jpeg'; data: string } | null>
+  }
+  airiGame?: {
+    selectBridge(): Promise<string | null>
+    connect(id: string, config: AiriGameConfig): Promise<AiriGameConnection>
+    stop(id: string): Promise<void>
+    cancel(id: string): Promise<void>
+    snapshot(id: string, image: boolean): Promise<AiriGameSnapshot>
+    execute(id: string, action: ExternalSelection): Promise<string>
+    onEvent(callback: (event: AiriGameEvent) => void): () => void
   }
   collab?: { get(): Promise<CollabState>; start(config: CollabConfig): Promise<CollabState>; stop(): Promise<CollabState>; onState(callback: (state: CollabState) => void): () => void }
   neuro?: {

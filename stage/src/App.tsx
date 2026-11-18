@@ -65,7 +65,7 @@ import './chat.css'
 type SettingsTab = 'general' | 'ai' | 'hotkeys' | 'account'
 type ModelTab = 'chat' | 'speech' | 'realtime'
 
-type Pop = null | 'add' | 'settings' | 'templates' | 'help' | 'record' | 'model' | 'talk' | 'output' | 'live' | 'realtime' | 'collab' | 'scenes' | 'mixer' | 'audience'
+type Pop = null | 'add' | 'settings' | 'templates' | 'help' | 'record' | 'model' | 'talk' | 'output' | 'live' | 'airi' | 'realtime' | 'collab' | 'scenes' | 'mixer' | 'audience'
 
 const COACHED = 'livliv-stage:coached', FOLDED = 'livliv-stage:panel-folded'
 /** the source (the public repository's address: set when it is published) */
@@ -228,6 +228,7 @@ export default function App() {
         {pop === 'mixer' && <MixerPanel onClose={() => setPop(null)} onSettings={() => openModels('speech')} />}
         {pop === 'collab' && <CollabPanel onClose={() => setPop(null)} onSettings={openSettings} />}
         {pop === 'live' && <LivePanel onClose={() => setPop(null)} onSettings={openSettings} />}
+        {pop === 'airi' && <LivePanel airiEntry onClose={() => setPop(null)} onSettings={() => openModels('chat')} />}
         {pop === 'realtime' && <RealtimePanel onClose={() => setPop(null)} onSettings={() => openModels('realtime')} />}
         {pop === 'talk' && <TalkSettings onClose={() => setPop(null)} />}
         {pop === 'model' && <ModelCard forStart={forStart} onClose={() => { setForStart(false); setPop(null) }} onAccount={openAccount} onContinue={continueAfterModel} onSettings={() => openModels('chat', forStart)} />}
@@ -301,6 +302,7 @@ function useShortcuts(keys: Keys) {
 function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) => void; onTemplate: (id: TemplateId) => void; say: (s: string) => void }) {
   const { scene, canUndo, canRedo } = useScene()
   const collab = useRoom()
+  const conv = useConversation()
   const file = useRef<HTMLInputElement>(null)
   const [io, setIO] = useState<'save' | 'open' | null>(null), [progress, setProgress] = useState(0)
   const task = useRef<AbortController | null>(null)
@@ -334,6 +336,8 @@ function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) =
         <button onClick={() => store.setMode('show')} title={tr("只留画面（Esc 回来）")} aria-label={tr("预览")}><Play size={13} /><span className="mode-label">{tr("预览")}</span></button>
       </div>
       <div className="right">
+        {desktop?.vision && <button className={'airi-entry' + (pop === 'airi' ? ' on' : '')} aria-expanded={pop === 'airi'}
+          title={tr('AIRI 游戏直播和私聊')} onClick={() => toggle('airi')}><Sparkles size={16} />AIRI{conv.engine === 'airi' && <i className="live-dot on" />}</button>}
         <button className="icon" title={tr("撤销（⌘Z）")} disabled={!canUndo} onClick={store.undo}><Undo2 size={16} /></button>
         <button className="icon" title={tr("重做（⇧⌘Z）")} disabled={!canRedo} onClick={store.redo}><Redo2 size={16} /></button>
         <span className="sep" />
