@@ -170,7 +170,7 @@ try {
   const firstPlayback = await page.evaluate(() => window.playback[0].at)
   assert.ok(requests.some((request) => request.viewer && request.image))
   await panel.getByRole('button', { name: '执行', exact: true }).click()
-  await page.getByText(/Airicraft accepted/).first().waitFor()
+  await page.getByText(/Airicraft 已接受任务/).first().waitFor()
   assert.ok(actionSelected)
   const gameDuringSpeech = await page.evaluate(() => window.playback[0].sound.stop === null && window.__stage.conversation().game?.status === 'playing')
   assert.equal(gameDuringSpeech, true, 'A live game task was admitted while the role was still speaking')
@@ -198,7 +198,7 @@ try {
     audioCutMs, gameDuringSpeech, images: requests.filter((request) => request.image).length, ...evidence }
   await page.screenshot({ path: join(out, 'airi-live.png') })
   await writeFile(join(out, 'results.json'), JSON.stringify(report, null, 2))
-  assert.match(evidence.gameResult, /Airicraft completed/)
+  assert.match(evidence.gameResult, /Airicraft 已完成任务/)
   assert.deepEqual(errors, [])
   console.log(JSON.stringify(report, null, 2))
 } catch (error) {

@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react'
 import { wav16k } from './audio'
 import { inputs, microphoneConstraints, onInputs, refreshDevices } from './devices'
 import { conversation, onConv, talk } from './conversation'
+import { desktop } from './desktopBridge'
 import { recognize, signedIn } from './livliv'
 import { busGain, onMixer } from './mixer'
 import { routeMicrophone } from './microphone'
@@ -212,11 +213,16 @@ export function cancel() {
   if (automatic) close(); else later()
 }
 
-let liveActive = false
+const inputScope = (conv: ReturnType<typeof conversation>) => conv.running || !desktop?.vision ? conv.scope : conv.chatScope
+let previous = conversation()
 onConv(() => {
-  const conv = conversation(), active = conv.running && conv.mode !== 'conversation', ended = liveActive && !active
-  liveActive = active
-  if (ended || (state.automatic && conv.mode === 'realtime')) { cancel(); return }
+  const conv = conversation(), active = conv.running && conv.mode !== 'conversation'
+  const ended = previous.running && previous.mode !== 'conversation' && !active
+  const openedLive = conv.running && conv.mode === 'live' && (!previous.running || previous.mode !== 'live')
+  const changedScope = inputScope(conv) !== inputScope(previous)
+  previous = conv
+  // A pending capture must not be published into a new live session or a different scope.
+  if (ended || (session && (openedLive || changedScope)) || (state.automatic && conv.mode === 'realtime')) { cancel(); return }
   if (state.automatic && conv.paused) { abortSession(); close() }
   else if (state.automatic && !session) void arm()
 })

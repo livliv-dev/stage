@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { Check, Pause, Play, Settings, Square, X } from 'lucide-react'
 import { actors, onActors } from './actors'
 import { brainReady, useBrainConfig } from './brain'
-import { airiModelForCast } from './airiEngine'
+import { airiGameError, airiModelForCast } from './airiEngine'
 import { liveModelName, talk, useConversation } from './conversation'
 import { participants as characters, useScene } from './scene'
 import { voiceRoute, useActiveSpeech } from './voiceApi'
@@ -45,18 +45,18 @@ export function LivePanel({ onClose, onSettings }: { onClose: () => void; onSett
   const chooseBridge = async () => {
     setActionError('')
     try { const name = await desktop?.airiGame?.selectBridge(); if (name) setBridgeName(name) }
-    catch (error) { setActionError((error as Error).message) }
+    catch (error) { setActionError(airiGameError(error)) }
   }
   const sendTask = async () => {
     if (!instruction.trim()) return
     setActionError('')
     try { await talk.playGame(instruction); setInstruction('') }
-    catch (error) { setActionError((error as Error).message) }
+    catch (error) { setActionError(airiGameError(error)) }
   }
   const cancelTask = async () => {
     setActionError('')
     try { await talk.cancelGame() }
-    catch (error) { setActionError((error as Error).message) }
+    catch (error) { setActionError(airiGameError(error)) }
   }
   const loadWindows = async () => {
     const vision = desktop?.vision

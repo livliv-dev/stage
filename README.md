@@ -70,6 +70,7 @@ Security reports: [SECURITY.md](SECURITY.md).
 
 ## License
 
-The code is under the [Apache License 2.0](LICENSE). The featured characters have
+Stage's code is under the [Apache License 2.0](LICENSE). The bundled [AIRI core](vendor/airi-core/LICENSE) and its
+[dependencies](vendor/airi-core/DEPENDENCY-NOTICES.txt) carry their own licenses. The featured characters have
 [their own licence](stage/public/characters/LICENSE.md). You may keep the LivLiv name and logo in your own versions,
 as long as they don't claim to be the official one: [TRADEMARKS.md](TRADEMARKS.md).

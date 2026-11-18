@@ -16,6 +16,7 @@ const artifacts = await mkdtemp(join(tmpdir(), 'livliv-airi-live-'))
 const turns = [], synthesis = [], errors = []
 const memoryCalls = [], gameCalls = [], sparkCalls = [], gameMessages = []
 const batchCalls = []
+let deferredAsr = false, asrStarted = false, asrCancelled = false, retryCalls = 0
 const fact = 'Private setting for Rally Nana. The owner has made this note just long enough to check that the complete text comes from the memory tool after reopening the session. Secret marker: APRICOT771.'
 let app, gameSocket
 
@@ -60,7 +61,14 @@ const server = createServer(async (req, res) => {
     if (req.url.startsWith('/api/')) return res.setHeader('content-type', 'application/json').end('{"signed_in":false}')
     const chunks = []
     for await (const chunk of req) chunks.push(chunk)
-    if (req.url.endsWith('/audio/transcriptions')) return res.setHeader('content-type', 'application/json').end('{"text":"Hold on, what is the score now?"}')
+    if (req.url.endsWith('/audio/transcriptions')) {
+      if (deferredAsr) {
+        asrStarted = true
+        res.once('close', () => { asrCancelled = true })
+        return
+      }
+      return res.setHeader('content-type', 'application/json').end('{"text":"Hold on, what is the score now?"}')
+    }
     const body = JSON.parse(Buffer.concat(chunks).toString() || '{}')
     if (req.url.endsWith('/audio/speech')) {
       synthesis.push({ text: body.input, at: Date.now() })
@@ -76,6 +84,13 @@ const server = createServer(async (req, res) => {
     if (!req.url.endsWith('/chat/completions')) return res.writeHead(404).end()
     const prompt = JSON.stringify(body.messages)
     const tools = body.tools?.map(({ function: tool }) => tool.name) ?? []
+    if (JSON.stringify(body.messages.findLast(({ role }) => role === 'user'))?.includes('Retry the temporary fault')) {
+      // Exhaust the embedded provider's own retries before exercising the live session's backoff.
+      if (++retryCalls <= 4) return res.writeHead(503, { 'content-type': 'application/json', 'retry-after': '0' }).end('{"error":{"message":"Temporary model outage"}}')
+      res.writeHead(200, { 'content-type': 'text/event-stream' })
+      event(res, 'Still here after the brief outage.')
+      return finish(res)
+    }
     if (JSON.stringify(body.messages.findLast(({ role }) => role === 'user'))?.includes('Check the batch completion')) {
       batchCalls.push(body.stream)
       res.writeHead(body.stream ? 400 : 200, { 'content-type': 'application/json' })
@@ -242,7 +257,33 @@ try {
   await page.getByRole('button', { name: '选择游戏窗口' }).click()
   await page.getByLabel('游戏画面').selectOption({ label: 'AIRI Rally' })
   await page.locator('.test-chat summary').click()
+  const mic = page.getByRole('button', { name: '按住说话', exact: true })
+  const holdPrivateCapture = async () => {
+    deferredAsr = true; asrStarted = false; asrCancelled = false
+    await mic.hover()
+    await page.mouse.down()
+    await page.waitForFunction(() => document.querySelector('button.mic.listening'))
+    await page.waitForTimeout(650)
+    await page.mouse.up()
+    await until(() => asrStarted, 'The private capture did not reach transcription')
+  }
+  await holdPrivateCapture()
+  await live.getByLabel('模拟一条弹幕').fill('Public scope transition probe')
+  await live.locator('.test-chat').getByRole('button', { name: '发送', exact: true }).click()
+  const publicStart = await page.evaluate(() => {
+    const { talk, conversation } = window.__stage
+    talk.start()
+    const { scope, sessionId, lines } = conversation()
+    talk.stop()
+    return { scope, sessionId, lines }
+  })
+  assert.deepEqual(publicStart, { scope: 'public', sessionId: '', lines: [] })
+  await until(() => asrCancelled, 'Starting a public conversation did not cancel the pending private transcript')
+  await page.evaluate(() => window.__stage.talk.setScope('private'))
+  await holdPrivateCapture()
   await page.getByRole('button', { name: '开始 AI 直播', exact: true }).click()
+  await until(() => asrCancelled, 'Starting the live session did not cancel the pending private transcript')
+  deferredAsr = false
   await page.waitForFunction(() => window.__stage.conversation().scope === 'public' && !!window.__stage.conversation().sessionId)
   await page.evaluate(() => {
     window.airiPlayback = []
@@ -265,7 +306,6 @@ try {
   await page.waitForFunction(() => window.airiPlayback.length > 1)
   await app.evaluate(async () => { await globalThis.airiRally.webContents.executeJavaScript('window.score()') })
   const scoreChange = Date.now() - recAt
-  const mic = page.getByRole('button', { name: '按住说话', exact: true })
   await mic.hover()
   const interruptAt = Date.now()
   await page.mouse.down()
@@ -341,6 +381,9 @@ try {
   await page.waitForFunction(() => !window.__stage.conversation().running)
   await until(() => !!turns[2].closed, 'The old actor request was not cancelled')
   assert.equal(await page.evaluate(() => window.__stage.conversation().speaking), null)
+  await page.evaluate(() => window.__stage.talk.say('Manual microphone caption.', { transcribed: true }))
+  await page.waitForFunction(() => window.__stage.conversation().lines.some((line) => line.text === 'Manual microphone caption.') && !window.__stage.conversation().running)
+  assert.equal(turns.length, 3)
   await page.evaluate((id) => window.__stage.store.patch(id, { lines: 'ai' }), actorId)
   await page.locator('.chat-scope-link').filter({ hasText: '私聊' }).waitFor()
   await page.getByRole('button', { name: '记忆', exact: true }).click()
@@ -357,11 +400,22 @@ try {
   await ownerSays('Check the batch completion.', 'I can answer without a stream.')
   await ownerSays('Check the batch completion again.', 'I can answer that again.')
   assert.deepEqual(batchCalls, [true, false, false])
+  await page.evaluate(() => window.__stage.talk.stop())
+  const liveToggle = page.getByRole('button', { name: '直播', exact: true })
+  if (await liveToggle.getAttribute('aria-expanded') === 'true') await liveToggle.click()
+  await liveToggle.click()
+  await page.getByRole('button', { name: '开始 AI 直播', exact: true }).click()
+  await page.locator('.test-chat summary').click()
+  await send('Retry the temporary fault')
+  await page.waitForFunction(() => window.__stage.conversation().retryAt > 0)
+  await page.waitForFunction(() => window.__stage.conversation().lines.some((line) => line.text === 'Still here after the brief outage.'))
+  assert.equal(retryCalls, 5)
   assert.deepEqual(errors, [])
   const result = {
     artifacts, firstSoundMs, interruptMs: turns[0].closed - interruptAt, imageFrames: 2, liveTurns: turns.length,
     voice: process.env.STAGE_TEST_VOICES === '1' ? 'macOS Samantha' : 'fixture PCM',
-    memoryRead: true, publicScope: true, privateOutputBlocked: true, privateAfterLive: true, gameAction: action.name, sparkQuiet: true,
+    memoryRead: true, publicScope: true, privateOutputBlocked: true, privateAfterLive: true, privateCaptureCancelled: true,
+    manualCaption: true, retryCalls, gameAction: action.name, sparkQuiet: true,
     scoreChangeMs: Math.round(scoreChange), gameActionMs: Math.round(gameActionAt),
   }
   await writeFile(join(artifacts, 'results.json'), JSON.stringify(result, null, 2))

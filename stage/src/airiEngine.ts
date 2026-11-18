@@ -4,7 +4,7 @@ import type { ExternalActionDecision, ExternalActionRequest, ExternalEvent } fro
 import type { MemoryRecord, MemoryScope } from './memory'
 import type { ReactionCue } from './reactions'
 import type { CharacterItem, Talk } from './scene'
-import type { AiriGameFrame } from '../../desktop/src/airiGameProtocol'
+import type { AiriGameFrame, AiriGameMessage } from '../../desktop/src/airiGameProtocol'
 import { aiFetch, named } from './brain'
 import { desktop } from './desktopBridge'
 import { parseAiriMarkers } from './airiMarkers'
@@ -14,6 +14,16 @@ export type AiriSentence = { text: string; cue?: ReactionCue }
 
 export function airiModelForCast(config: BrainConfig, cast: readonly CharacterItem[]): ModelConfig | null {
   return desktop?.vision && config.kind === 'openai' && cast.length === 1 && !cast[0].remote ? config : null
+}
+
+export function airiGameText(message: AiriGameMessage) {
+  const text = message.args ? tr(message.text, ...message.args) : message.text
+  return message.detail ? text + ' · ' + tr(message.detail) : text
+}
+
+export function airiGameError(error: unknown) {
+  const text = error instanceof Error ? error.message : String(error)
+  return tr(text.replace(/^Error invoking remote method 'livliv:airi-game': (?:Error: )?/, ''))
 }
 
 type Frame = AiriGameFrame

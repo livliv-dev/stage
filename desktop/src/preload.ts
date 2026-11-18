@@ -13,7 +13,7 @@ import type { MotionEvent, MotionSettings, MotionState } from './trackingProtoco
 import type { StageApiState, StageControlRequest } from './stageCommands'
 import type { NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } from './neuroProtocol'
 import type { CollabConfig, CollabState } from './collabProtocol'
-import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameSnapshot } from './airiGameProtocol'
+import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameMessage, AiriGameSnapshot } from './airiGameProtocol'
 import type { ExternalSelection } from './neuroProtocol'
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
@@ -36,7 +36,7 @@ if (info) {
         stop: (id: string): Promise<void> => invoke('livliv:airi-game', 'stop', id),
         cancel: (id: string): Promise<void> => invoke('livliv:airi-game', 'cancel', id),
         snapshot: (id: string, image: boolean): Promise<AiriGameSnapshot> => invoke('livliv:airi-game', 'snapshot', id, image),
-        execute: (id: string, action: ExternalSelection): Promise<string> => invoke('livliv:airi-game', 'execute', id, action),
+        execute: (id: string, action: ExternalSelection): Promise<AiriGameMessage> => invoke('livliv:airi-game', 'execute', id, action),
         onEvent: (callback: (event: AiriGameEvent) => void) => {
           const listener = (_event: IpcRendererEvent, event: AiriGameEvent) => callback(event)
           ipcRenderer.on('livliv:airi-game-event', listener)

@@ -7,11 +7,12 @@ export type AiriGameConfig =
 export type AiriGameFrame = { mimeType: 'image/png' | 'image/jpeg'; data: string }
 export type AiriGameConnection = { id: string; game: AiriGameConfig['game']; actions: ExternalAction[] }
 export type AiriGameSnapshot = { state: string; frame?: AiriGameFrame }
+// args applies to Stage's UI message keys. Upstream chat and logs are literal text.
+export type AiriGameMessage = { text: string; args?: (string | number)[]; detail?: string }
 export type AiriGameEvent = {
   connection: string
   status: 'context' | 'chat' | 'done' | 'failed' | 'unknown' | 'disconnected'
-  text: string
-}
+} & AiriGameMessage
 
 export function validGamePort(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value > 0 && value <= 65535

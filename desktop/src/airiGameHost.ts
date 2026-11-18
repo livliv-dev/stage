@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { open } from 'node:fs/promises'
 import { basename } from 'node:path'
 import type { ExternalAction, ExternalSelection } from './neuroProtocol'
-import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameFrame, AiriGameSnapshot } from './airiGameProtocol'
+import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameFrame, AiriGameMessage, AiriGameSnapshot } from './airiGameProtocol'
 import { validGamePort } from './airiGameProtocol'
 
 const minecraftResources = ['WOOD_LOGS', 'DIRT', 'COBBLESTONE', 'COAL', 'RAW_IRON', 'RAW_COPPER', 'RAW_GOLD', 'DIAMOND', 'EMERALD', 'REDSTONE', 'LAPIS_LAZULI', 'QUARTZ']
@@ -20,7 +20,8 @@ const actions = {
   ],
 } satisfies Record<AiriGameConfig['game'], ExternalAction[]>
 
-type MinecraftCredentials = { port: number; token: string }
+type MinecraftCredentials = { port: number; token: string; processId?: number }
+type OwnedMinecraftGoal = { bridge: MinecraftCredentials; execution: string; connection: string }
 type Loopback = '127.0.0.1' | '[::1]'
 type Session = {
   connection: AiriGameConnection
@@ -41,6 +42,8 @@ const countOk = (value: unknown): value is number => typeof value === 'number' &
 const factorioName = (value: unknown): value is string => typeof value === 'string' && /^[a-z0-9_-]{1,80}$/.test(value)
 const goalPath = '/v1/agent/action-goals'
 const goalUrl = (id: string) => goalPath + '?execution-id=' + encodeURIComponent(id)
+const terminalGoalStates = ['SUCCEEDED', 'FAILED', 'CANCELLED', 'IDLE']
+const notice = (text: string, ...args: (string | number)[]): AiriGameMessage => ({ text, args })
 
 async function discovery(path: string): Promise<MinecraftCredentials> {
   let file
@@ -55,11 +58,12 @@ async function discovery(path: string): Promise<MinecraftCredentials> {
     const buffer = Buffer.alloc(4097)
     const { bytesRead } = await file.read(buffer)
     if (bytesRead > 4096) throw new Error('Airicraft 连接文件格式无效')
-    const { port, token } = object(JSON.parse(buffer.toString('utf8', 0, bytesRead)))
+    const { port, token, processId } = object(JSON.parse(buffer.toString('utf8', 0, bytesRead)))
     if (!validGamePort(port) || typeof token !== 'string' || !/^[A-Za-z0-9_=.-]{16,256}$/.test(token)) {
       throw new Error('Airicraft 连接文件格式无效')
     }
-    return { port, token }
+    const pid = typeof processId === 'number' && Number.isInteger(processId) && processId > 0 && processId <= 0x7fffffff ? processId : undefined
+    return { port, token, processId: pid }
   } finally { await file.close() }
 }
 
@@ -88,7 +92,9 @@ async function json(port: number, path: string, signal: AbortSignal, options: { 
     reader.releaseLock()
   }
   const data = object(JSON.parse(Buffer.concat(chunks).toString('utf8')))
-  if (!response.ok || data.error === true || typeof data.error === 'string') throw new Error(field(data.message) || field(data.error) || '游戏接口响应错误 ' + response.status)
+  if (!response.ok || data.error === true || typeof data.error === 'string') {
+    throw new Error(field(data.message) || field(data.error) || '游戏接口响应错误', { cause: response.status })
+  }
   return data
 }
 
@@ -122,14 +128,20 @@ function minecraft(bridge: MinecraftCredentials, path: string, signal: AbortSign
   return json(bridge.port, path, AbortSignal.any([signal, AbortSignal.timeout(8000)]), { token: bridge.token, method, body })
 }
 
+function minecraftExited(bridge: MinecraftCredentials) {
+  if (!bridge.processId) return false
+  try { process.kill(bridge.processId, 0); return false }
+  catch (error) { return (error as NodeJS.ErrnoException).code === 'ESRCH' }
+}
+
 async function minecraftFrame(bridge: MinecraftCredentials, signal: AbortSignal): Promise<AiriGameFrame> {
   const frame = await minecraft(bridge, '/v1/camera/screenshot', signal, 'POST')
   if (frame.format !== 'png' || typeof frame.imageBase64 !== 'string' || frame.imageBase64.length === 0) throw new Error('Airicraft 未返回有效画面')
   return { mimeType: 'image/png', data: frame.imageBase64 }
 }
 
-function send(session: Session, status: AiriGameEvent['status'], text: string) {
-  session.publish({ connection: session.connection.id, status, text })
+function send(session: Session, status: AiriGameEvent['status'], message: AiriGameMessage) {
+  session.publish({ connection: session.connection.id, status, ...message })
 }
 
 function factorioLog(session: Extract<Session, { game: 'factorio' }>, data: unknown) {
@@ -137,22 +149,23 @@ function factorioLog(session: Extract<Session, { game: 'factorio' }>, data: unkn
   // Factorio Wrapper broadcasts the vanilla stdout lines consumed by upstream's agent parser.
   const chat = data.match(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} \[CHAT\] (.+?): (.+)$/)
   if (chat) {
-    if (chat[1] !== '<server>') send(session, 'chat', field(chat[1], 32) + ': ' + field(chat[2], 250))
+    if (chat[1] !== '<server>') send(session, 'chat', { text: field(chat[1], 32) + ': ' + field(chat[2], 250) })
     return
   }
   const log = data.match(/^\s*\d+(?:\.\d{3})? Script @__autorio__\/control\.lua:\d+: \[AUTORIO\] (.+)$/)?.[1]
   if (!log) return
   session.recent = [...session.recent, field(log, 220)].slice(-6)
-  if (log === 'All operations completed') send(session, 'context', 'Autorio task queue is empty. The log does not identify individual task outcomes.')
-  else if (/\[ERROR\]|^Failed |^Cannot |^No .+ found/i.test(log)) send(session, 'context', field(log, 240))
+  if (log === 'All operations completed') send(session, 'context', notice('Autorio 队列已清空，日志未提供单项结果'))
+  else if (/\[ERROR\]|^Failed |^Cannot |^No .+ found/i.test(log)) send(session, 'context', { text: field(log, 240) })
 }
 
 export class AiriGameHost {
   private path: string
   private session: Session | null = null
   private opening: { id: string; controller: AbortController } | null = null
-  private action: Promise<string> | null = null
+  private action: Promise<AiriGameMessage> | null = null
   private closing: Promise<void> | null = null
+  private pendingGoal: OwnedMinecraftGoal | null = null
 
   constructor(path: string) { this.path = path }
   selectBridge(path: string) {
@@ -160,7 +173,7 @@ export class AiriGameHost {
     return basename(path)
   }
 
-  needsClose() { return !!(this.session || this.opening || this.action || this.closing) }
+  needsClose() { return !!(this.session || this.opening || this.action || this.closing || this.pendingGoal) }
 
   async connect(config: AiriGameConfig, publish: Session['publish'], id: string = randomUUID()): Promise<AiriGameConnection> {
     if (this.session || this.opening || this.closing) throw new Error('请先断开当前游戏')
@@ -169,6 +182,8 @@ export class AiriGameHost {
     const opening = { id, controller }
     this.opening = opening
     try {
+      if (config.game === 'minecraft' && this.pendingGoal) await this.stop(this.pendingGoal.connection)
+      controller.signal.throwIfAborted()
       if (config.game === 'minecraft') {
         const bridge = await discovery(this.path)
         controller.signal.throwIfAborted()
@@ -190,7 +205,7 @@ export class AiriGameHost {
           if (this.session !== session) return
           this.session = null
           controller.abort()
-          send(session, 'disconnected', 'Factorio Wrapper disconnected.')
+          send(session, 'disconnected', notice('Factorio Wrapper 已断开'))
         })
         this.session = session
       }
@@ -216,7 +231,7 @@ export class AiriGameHost {
     finally { if (session.capture === capture) session.capture = undefined }
   }
 
-  execute(id: string, choice: ExternalSelection): Promise<string> {
+  execute(id: string, choice: ExternalSelection): Promise<AiriGameMessage> {
     const session = this.current(id)
     if (session.game === 'minecraft' && session.uncertain) throw new Error('Minecraft 任务状态未知，请先在游戏内确认')
     if (this.action || (session.game === 'minecraft' && session.execution)) throw new Error('游戏正在执行一项任务')
@@ -254,12 +269,13 @@ export class AiriGameHost {
       if (result.admission !== 'started' || !id) throw new Error(field(result.message) || 'Airicraft 未接受该任务')
       const label = (typeof resource === 'string' ? resource : item) + ' × ' + count
       if (this.session !== session) {
-        await this.cancelGoal(session, id)
+        this.pendingGoal = { bridge: session.bridge, connection: session.connection.id, execution: id }
+        await this.finishPendingGoal()
         throw new Error('游戏连接已关闭')
       }
       session.execution = id
       void this.watchGoal(session, id, label)
-      return 'Airicraft accepted: ' + label
+      return notice('Airicraft 已接受任务 {0}', label)
     }
 
     const { entity, item, count } = data
@@ -269,44 +285,64 @@ export class AiriGameHost {
     else if (choice.name === 'craft_item' && factorioName(item) && countOk(count)) args = [item, count]
     else throw new Error('Factorio 动作或参数不受支持')
     const call = [choice.name, ...args].map((arg) => JSON.stringify(arg)).join(',')
-    const input = '/c if #game.connected_players ~= 1 then rcon.print("Autorio requires one connected player"); return end; '
+    const input = '/c if #game.connected_players ~= 1 then rcon.print("livliv_autorio_single_player"); return end; '
       + 'local r = remote.call("autorio_operations",' + call + '); '
-      + 'local t = type(r) == "table"; rcon.print((r == true or (t and r[1] == true)) and "livliv_autorio_accepted" or tostring(t and r[2] or "Autorio rejected the task"))'
+      + 'local t = type(r) == "table"; rcon.print((r == true or (t and r[1] == true)) and "livliv_autorio_accepted" or tostring(t and r[2] or "livliv_autorio_rejected"))'
     const result = await json(session.rconPort, '/api/v2/factorio/console/command/raw', AbortSignal.any([session.controller.signal, AbortSignal.timeout(6000)]), { method: 'POST', body: { input }, host: session.rconHost })
-    if (field(result.output) !== 'livliv_autorio_accepted') throw new Error(field(result.output) || 'Autorio 未确认任务')
-    return 'Autorio accepted: ' + choice.name + ' ' + args.join(' ')
+    const output = field(result.output)
+    if (output === 'livliv_autorio_single_player') throw new Error('Autorio 需要恰好一名在线玩家')
+    if (output !== 'livliv_autorio_accepted') throw new Error(!output || output === 'livliv_autorio_rejected' ? 'Autorio 未确认任务' : output)
+    return notice('Autorio 已接收任务 {0}', choice.name + ' ' + args.join(' '))
   }
 
-  private cancelGoal(session: Extract<Session, { game: 'minecraft' }>, id: string) {
-    return minecraft(session.bridge, goalUrl(id), AbortSignal.timeout(3500), 'DELETE')
+  private async cancelGoal(bridge: MinecraftCredentials, id: string) {
+    const result = await minecraft(bridge, goalUrl(id), AbortSignal.timeout(3500), 'DELETE')
+    const state = field(result.state)
+    if (!terminalGoalStates.includes(state)) throw new Error('Airicraft 未确认任务已结束')
+    return state
+  }
+
+  private async finishPendingGoal() {
+    const goal = this.pendingGoal
+    if (!goal) return
+    try { await this.cancelGoal(goal.bridge, goal.execution) }
+    catch (error) { if (!minecraftExited(goal.bridge)) throw error }
+    if (this.pendingGoal === goal) this.pendingGoal = null
   }
 
   private async watchGoal(session: Extract<Session, { game: 'minecraft' }>, id: string, label: string) {
     let status: AiriGameEvent['status'] = 'failed'
-    let text = 'Airicraft result unavailable: ' + label
+    let message = notice('无法确认 Airicraft 任务结果 {0}', label)
     try {
       const signal = AbortSignal.any([session.controller.signal, AbortSignal.timeout(120_000)])
       for (;;) {
         const result = await minecraft(session.bridge, goalUrl(id), signal)
         const state = field(result.state)
-        if (state === 'SUCCEEDED') { status = 'done'; text = 'Airicraft completed: ' + label; break }
-        if (['FAILED', 'CANCELLED', 'IDLE'].includes(state)) { text = field(result.message) || 'Airicraft ' + state.toLowerCase() + ': ' + label; break }
+        if (state === 'SUCCEEDED') { status = 'done'; message = notice('Airicraft 已完成任务 {0}', label); break }
+        if (terminalGoalStates.includes(state)) {
+          message = { ...notice('Airicraft 任务结束 {0}', label), detail: field(result.message) || state }
+          break
+        }
         await new Promise((resolve) => setTimeout(resolve, 1200))
         signal.throwIfAborted()
       }
     } catch (error) {
       if (session.execution === id && this.session === session) {
-        try { await this.cancelGoal(session, id) }
+        try {
+          if (await this.cancelGoal(session.bridge, id) === 'SUCCEEDED') {
+            status = 'done'; message = notice('Airicraft 已完成任务 {0}', label)
+          }
+        }
         catch (cancelError) {
           status = 'unknown'
-          text += ' · ' + field((cancelError as Error).message)
+          message.detail = field((cancelError as Error).message)
         }
       }
-      if (!(error instanceof Error && error.name === 'TimeoutError')) text += ' · ' + field((error as Error).message)
+      if (status === 'failed' && !(error instanceof Error && error.name === 'TimeoutError')) message.detail = field((error as Error).message)
     } finally {
       if (session.execution === id) {
         if (status !== 'unknown') session.execution = undefined
-        if (this.session === session) send(session, status, text)
+        if (this.session === session) send(session, status, message)
       }
     }
   }
@@ -315,10 +351,11 @@ export class AiriGameHost {
     const session = this.current(id)
     if (session.game !== 'minecraft' || !session.execution) return
     const execution = session.execution
-    await this.cancelGoal(session, execution)
+    const state = await this.cancelGoal(session.bridge, execution)
     if (this.session === session && session.execution === execution) {
       session.execution = undefined
-      send(session, 'failed', 'Airicraft stopped the current task.')
+      if (state === 'SUCCEEDED') send(session, 'done', notice('Airicraft 已完成当前任务'))
+      else send(session, 'failed', state === 'CANCELLED' ? notice('Airicraft 已停止当前任务') : { ...notice('Airicraft 当前任务已结束'), detail: state })
     }
   }
 
@@ -328,22 +365,22 @@ export class AiriGameHost {
       this.opening = null
       opening.controller.abort()
     }
-    if (this.closing && !id) return this.closing
-    if (id && this.session?.connection.id !== id) return
+    if (this.closing) { if (!id || this.pendingGoal?.connection === id) return this.closing; return }
     const session = this.session
-    if (!session) return
+    if (id && session?.connection.id !== id && (session || this.pendingGoal?.connection !== id)) return
+    if (!session && !this.pendingGoal) return
     this.session = null
-    session.controller.abort()
+    session?.controller.abort()
     const action = this.action
     const closing = (async () => {
-      if (session.game === 'factorio') session.socket.close()
-      else if (session.execution) {
-        const execution = session.execution
+      if (session?.game === 'factorio') session.socket.close()
+      else if (session?.execution) {
+        this.pendingGoal = { bridge: session.bridge, connection: session.connection.id, execution: session.execution }
         session.execution = undefined
-        await this.cancelGoal(session, execution)
       }
+      if (!id || this.pendingGoal?.connection === id) await this.finishPendingGoal()
       // An in-flight Minecraft POST still returns its own ID and cancels before settling.
-      await action?.catch((error: unknown) => { if ((error as Error).message !== '游戏连接已关闭' && session.game === 'minecraft') throw error })
+      await action?.catch((error: unknown) => { if ((error as Error).message !== '游戏连接已关闭' && session?.game === 'minecraft') throw error })
     })()
     this.closing = closing
     try { await closing } finally { if (this.closing === closing) this.closing = null }
