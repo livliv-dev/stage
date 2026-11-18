@@ -1,6 +1,6 @@
 // The main process's side of window.livlivDesktop (preload.ts). Every call is checked again here: it must come from
 // the top frame of a page of our origin (security.ts trusted), and window calls act on the caller's own window.
-import { BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { BrowserWindow, desktopCapturer, ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { APP, APP_ORIGIN, VERSION } from './config'
 import { cleanBindings, type HotkeyState } from './hotkeys'
 import { trusted } from './security'
@@ -45,6 +45,18 @@ export function registerIpc(deps: IpcDeps) {
     throw new Error('unknown request operation')
   })
   handle('livliv:capabilities', () => deps.capabilities())
+  handle('livliv:vision', async (event, op, sourceId) => {
+    if (APP !== 'stage' || event.sender !== mainContents()) throw new Error('Stage editor only')
+    const ownWindows = new Set(BrowserWindow.getAllWindows().map((win) => win.getMediaSourceId()))
+    if (op === 'list') {
+      const windows = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width: 0, height: 0 } })
+      return windows.filter((source) => !ownWindows.has(source.id)).map(({ id, name }) => ({ id, name }))
+    }
+    if (op !== 'frame' || typeof sourceId !== 'string' || !/^window:[-\d]+:[-\d]+$/.test(sourceId) || sourceId.length > 100 || ownWindows.has(sourceId)) throw new Error('Invalid capture window')
+    const windows = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width: 960, height: 540 } })
+    const image = windows.find((source) => source.id === sourceId)?.thumbnail
+    return image?.isEmpty() === false ? { mimeType: 'image/jpeg', data: image.toJPEG(78).toString('base64') } : null
+  })
   handle('livliv:collab', (event, op, value) => {
     if (APP !== 'stage' || !deps.collab || event.sender !== mainContents()) throw new Error('Stage editor only')
     if (op === 'get') return deps.collab.state()

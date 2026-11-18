@@ -1,46 +1,34 @@
-# 用 AIRI 做对话，用 Stage 做角色
+# 桌面单角色使用 AIRI
 
-[Project AIRI](https://github.com/moeru-ai/airi)（MIT）负责对话。LivLiv Stage 负责角色、出声、口型和表情。Stage 不实现 AIRI 的模型或人设。
+准备一个本地「AI 来演」角色，在「AI 模型」选择支持流式输出的 OpenAI 兼容接口，勾选「内置 AIRI」并保存。直播面板也可以修改同一个开关。它适用于单角色持续聊天、AI 直播和公开游戏互动。
 
-这项连接默认关闭。打开方式：桌面版 Stage → 设置 → 通用 → **AIRI 角色主持**。
+AIRI 使用当前角色的姓名、人设、口吻、关系和立场。Stage 负责弹幕、语音、字幕、口型、录制和输出。首个完整句段可边生成边播放。按住说话、发送新输入或点「下一句」会打断当前回应。下一轮会记得已经说完的内容。使用自配语音接口可保留声音到录制和输出。系统朗读在本机播放，也可以选择仅字幕。
 
-核对过的 AIRI 版本是源码提交 `473112a3051fd599dba744b5257b890f5ea05b14`，包 `@proj-airi/server-sdk` / `@proj-airi/server-runtime` **0.15.4**（2026-11-18 仍是 `main` 的头）。Stage 没有把 SDK 打进应用，而是按这份源码里的握手来连接：
+## 游戏
 
-1. 有令牌时先 `module:authenticate`，等 `module:authenticated`。没有令牌时不发认证。真实 runtime 仍可能随后发来 `module:authenticated`；Stage 只宣布自己一次，不再因此重复 `extension:module:announce`。
-2. 发送一次 `extension:module:announce`，等 `extension:module:announced`。`possibleEvents` 只列 Stage **发出**的事件：`input:text`、`context:update`、`spark:emit`。
-3. 听 `output:gen-ai:chat:complete`。要对观众说的正文在 `data.message.content`。带 `<|ACT …|>` 的原文在真实完成事件的 `data.message.categorization.speech`（没有则再看 `generationTranscript`）。当前 Stage 的解析器还不读这两个字段，只看 `outputText` / `rawText` / `raw`，所以真实回复上的表情标记现在不会生效。不需要等 AIRI 再加一个 raw 字段。
-4. 听 `spark:command`。能认出的表情、点头一类动作、暂停和继续会做到角色上，并用 `spark:emit` 回答。计划和提议不执行。
-5. 需要时发送 `input:text`。这个事件在 AIRI 里是 `chat-ingestion` 消费者组。接收它的是 AIRI 自己的对话模块，所以 Stage **不会**把自己注册成这个消费者，否则会把输入从 AIRI 手里抢走。
+在「AI 直播」选择一个游戏窗口。每轮回应和游戏动作决策会将所选窗口的一帧发给本次配置的模型。模型需要支持图片输入，Stage 需要系统屏幕录制权限。可以从直播面板关闭画面输入。
 
-同一个角色的会话绑定是 `livliv-stage:<角色 ID>`，整段对话复用这一条，AIRI 才能记住上下文。轮次放在 `livlivTurn`，不放进绑定；否则每一句都会被 AIRI 当成新会话。连接时和更换角色时，Stage 用 `context:update`（`replace-self`，lane 为 `livliv-stage:character`）送上名字、人设、已载入的表情和舞台动作。
+在「设置 → 游戏互动」连接支持 [Neuro SDK](../neuro/README.md) 的游戏，直播期间也可以连接同一角色。游戏上报的事件由 AIRI Spark 处理。游戏可以要求角色回应，也可以让 AIRI 判断要不要开口。支持工具调用的模型可以选择游戏注册的动作。游戏执行后把结果发回同一会话，角色在后续回应中可以引用它。Minecraft 和 Factorio 使用各自的上游连接器。
 
-长回复按 Stage 聊天已经使用的分句（`。！？!?` 和换行）拆开，先说第一句，并在这一句播放时准备下一句。英文句号不另作分句，以免和角色自己的聊天切得不一样。新的一句仍会打断正在说的整段，没轮到的句子不再说。
+## 记忆
 
-服务端地址默认 `ws://127.0.0.1:6121/ws`，只接受 `ws://` 或 `wss://`。令牌只在这条连接上发送。
+对角色说「记住……」可保存长期记忆，也可以在 Stage 的「记忆」面板编辑或删除。AIRI 使用同一角色档案下的记忆工具和记录。公开直播与游戏互动只读取公开记录。AIRI 私聊需要先停掉 Stage 的直播输出、录制和联播。
 
-## 在本机试一次
+## 构建和桌面验证
 
-1. 按 AIRI 自己的说明启动 server-runtime，并让它的对话模块处于运行中（Stage 不代它跑模型）。在 AIRI 里关掉它自己的语音，避免两个声音一起说。网页版 AIRI 是否能藏起自己的形象没有验证过；若采集画面，只采集 Stage 窗口是一条建议，不是已验证的隐藏开关。AIRI 冷启动后可能还没注册 `input:text` 的消费者，Stage 发话会没有回应。临时办法和其余边界见 [airi-handoff.md](airi-handoff.md)。
-2. 打开 Stage 的外部控制 API（设置 → 通用 → 外部控制 API），如果还要用本机 HTTP 喂台词。AIRI 面板本身用的是上面的 WebSocket，不依赖这个 HTTP。
-3. 在 AIRI 角色主持里填写地址，需要的话填写令牌，选择角色，点连接。
-4. 在 AIRI 里说一句。Stage 收到完成回复后，用所选角色说出来。
-5. 若要让 Stage 控制台的文字也进入 AIRI，打开「把控制台输入发给 AIRI」。这时 Stage 自己的模型不再回答这句。请先停止 Stage 里已经在进行的聊天，避免两个说话流程抢同一个角色。
+`vendor/airi-core/core.mjs` 由 [Project AIRI 473112a](https://github.com/moeru-ai/airi/tree/473112a3051fd599dba744b5257b890f5ea05b14) 的对话运行时、流式模型适配、Spark、记忆工具和语音分段源码生成。正常的 Stage 构建会直接打包它。应用资源 `licenses/` 内附 AIRI 和第三方依赖许可。
 
-完成回复不含 viseme。`<|ACT …|>` 已经在 `data.message.categorization.speech` 里，当前解析器没读这个字段，所以真实 AIRI 回复仍按中性表情说。解析器只在 `outputText`、`rawText` 或 `raw` 里见到标记时才安排表情和 nod / shake / tilt / hop / shy。AIRI 自己的 TTS 和口型没有接到 Stage 上。
+从相应的 AIRI 源码更新模块和许可时，使用 Node.js 22 或 24 运行以下命令。
 
-这次成果交给开发团队接着审、补完并合并。已知问题和验收建议写在 [airi-handoff.md](airi-handoff.md)。标成可审阅表示可以开始评审，不表示可以直接上线。
+```sh
+npm --prefix vendor/airi-core ci
+npm --prefix vendor/airi-core run build -- /path/to/airi
+```
 
-## 声音从哪来
+在安装 Stage 和桌面的 npm 依赖之后，可运行本地 Electron 验收。脚本使用独立用户目录、本地流式模型测试服务和模拟弹幕。macOS 上可用 `STAGE_TEST_VOICES=1` 将测试音频换成系统语音。
 
-| 情况 | 行为 |
-| --- | --- |
-| 台词带有内联音频 | Player 按这段音频做口型 |
-| 只有文字 | 用角色已经配置的声音：系统语音、已保存的语音接口，或 LivLiv 声音 |
-
-系统语音没有音频采样，口型是按音节估算的。已经配置的语音接口能返回音频时，口型跟音频。这里不新增 VOICEVOX，也不调用需要付费密钥的新服务。
-
-外部程序也可以把一句台词 POST 到本机的 `/api/stage/speech`。格式、鉴权和「不能变成任意 URL 代理」写在 [stage-api.md](stage-api.md)。AIRI 完成回复走的是同一套播放所有者：同时只有一句，新的一句会打断，迟到的分片丢掉。
-
-## 测试里的 AIRI
-
-`stage/test/airi.test.ts` 使用一个标明为 mock 的本机 WebSocket。它只复述上面核对过的握手和 `output:gen-ai:chat:complete`，不是 AIRI 的 server-runtime，也没有模型。
+```sh
+npm --prefix desktop run build
+(cd stage && NODE_ENV=development ./node_modules/.bin/vite build --outDir /tmp/stage-airi-test)
+STAGE_TEST_RESOURCES=/tmp/stage-airi-test node desktop/test/airi-stage.mjs
+```

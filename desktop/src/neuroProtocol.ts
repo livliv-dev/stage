@@ -22,7 +22,7 @@ export type ExternalDecision = {
 export type ExternalSelection = { name: string; data?: Record<string, unknown> }
 export type NeuroMessage =
   | { kind: 'context'; id: string; connection: string; character: string; source: string; message: string; reply: 'never' | 'maybe' | 'always' }
-  | { kind: 'dialogue'; id: string; connection: string; started: boolean }
+  | { kind: 'dialogue'; id: string; connection: string; character: string; started: boolean }
   | { kind: 'disconnect'; connection: string }
   | { kind: 'decision'; id: string; expires: number; connection: string; request: ExternalDecision }
   | { kind: 'cancel'; id: string }

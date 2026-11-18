@@ -55,7 +55,7 @@ export type Ask = {
 export type Reply = Omit<Line, 'id' | 'who' | 'name'> & { summary?: string }
 export interface Brain { reply(a: Ask, signal: AbortSignal): Promise<Reply> }
 
-export type ModelConfig = { kind: 'openai'; provider: string; base: string; key: string; model: string }
+export type ModelConfig = { kind: 'openai'; provider: string; base: string; key: string; model: string; airi?: boolean }
 export type LivLivConfig = { kind: 'livliv' }
 export type BrainConfig = { kind: 'demo' } | ModelConfig | LivLivConfig
 
@@ -277,7 +277,7 @@ function spoken(a: Ask): 'zh' | 'en' | 'ja' {
 const SAID = { en: '英文', ja: '日语' } as const
 
 /** a card says the name it was written with; the character may have been renamed since */
-const named = (c: CharacterItem, t: string) => (c.cardName && c.cardName !== c.name ? t.replaceAll(c.cardName, c.name) : t)
+export const named = (c: CharacterItem, t: string) => (c.cardName && c.cardName !== c.name ? t.replaceAll(c.cardName, c.name) : t)
 
 function prompt(a: Ask) {
   // the others in a line each: their whole cards would be most of the prompt

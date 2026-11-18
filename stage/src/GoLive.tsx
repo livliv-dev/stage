@@ -7,6 +7,7 @@ import { actors, onActors } from './actors'
 import { openOutput, outputOpen } from './link'
 import { participants, useScene } from './scene'
 import { desktop } from './desktopBridge'
+import { privateAiri } from './conversation'
 
 export function GoLiveGuide({ id, onClose }: { id: string; onClose: () => void }) {
   const { scene } = useScene()
@@ -15,7 +16,7 @@ export function GoLiveGuide({ id, onClose }: { id: string; onClose: () => void }
   const c = participants(scene).find((i) => i.id === id), a = c && actors.get(c.id)
   if (!c) return null
   const phase = a?.inputPhase, track = a?.tracking, out = outputOpen(), clear = scene.background === 'transparent'
-  const open = () => { if (!outputOpen()) openOutput(scene.width, scene.height, clear) }
+  const open = () => { if (!outputOpen() && !privateAiri()) openOutput(scene.width, scene.height, clear) }
   const steps = [
     { ok: phase === 'on', title: tr('允许使用摄像头'), run: () => { if (phase === 'error') a?.retryInput() },
       how: phase === 'error' ? a!.error : phase === 'on' ? track?.face ? tr('面捕已连接') : tr('未识别到面部') : tr('正在连接摄像头…') },

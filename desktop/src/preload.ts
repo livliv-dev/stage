@@ -24,6 +24,10 @@ if (info) {
   contextBridge.exposeInMainWorld('livlivDesktop', {
     ...info,
     ...(info.stageEditor ? {
+      vision: {
+        list: (): Promise<{ id: string; name: string }[]> => invoke('livliv:vision', 'list'),
+        frame: (sourceId: string): Promise<{ mimeType: 'image/jpeg'; data: string } | null> => invoke('livliv:vision', 'frame', sourceId),
+      },
       collab: {
         get: (): Promise<CollabState> => invoke('livliv:collab', 'get'),
         start: (config: CollabConfig): Promise<CollabState> => invoke('livliv:collab', 'start', config),

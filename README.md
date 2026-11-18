@@ -63,8 +63,8 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # the desktop app
 
 Tests: `npm --prefix stage run check && npm --prefix stage test`, `npm --prefix desktop test`, `npm --prefix collab test`.
 AI chat and memory: [docs/ai-conversations.md](docs/ai-conversations.md), real-time voice:
-[docs/realtime-voice.md](docs/realtime-voice.md), the Neuro SDK bridge: [neuro/README.md](neuro/README.md), the local control API:
-[docs/stage-api.md](docs/stage-api.md), AIRI as the conversation host: [docs/airi.md](docs/airi.md), co-streaming: [collab/README.md](collab/README.md).
+[docs/realtime-voice.md](docs/realtime-voice.md), built-in AIRI ([docs/airi.md](docs/airi.md)), the Neuro SDK bridge: [neuro/README.md](neuro/README.md), the local control API:
+[docs/stage-api.md](docs/stage-api.md), co-streaming: [collab/README.md](collab/README.md).
 Model keys stay in the browser or the app and go straight to the provider. Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
 Security reports: [SECURITY.md](SECURITY.md).
 

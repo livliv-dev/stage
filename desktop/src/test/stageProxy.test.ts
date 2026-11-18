@@ -110,3 +110,10 @@ test('a service that cannot be reached answers 502', async () => {
   assert.equal(r.status, 502)
   assert.match(((await r.json()) as { error: { message: string } }).error.message, /ECONNREFUSED/)
 })
+
+test('a cross-origin redirect cannot resend a model POST body', async () => {
+  const { deps, hops } = network({ 'https://api.example.com/chat': { location: 'https://other.example.net/chat', method: 'POST' } })
+  const response = await send('https://api.example.com/chat', deps, { method: 'POST', body: 'window image and memory' })
+  assert.equal(response.status, 400)
+  assert.equal(hops.length, 1)
+})

@@ -9,7 +9,6 @@
 // Plain Node, no Electron: main.ts hands it what it needs.
 import { timingSafeEqual } from 'node:crypto'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
-import { serveSpeech } from './speechApi'
 import { serveStageApi, type StageApiDeps } from './stageApi'
 import { parseDo, type CmdBody } from './commands'
 
@@ -58,18 +57,15 @@ export function handler(deps: LocalApiDeps, port: () => number) {
     if ((req.url || '').length > 4096) return send(res, 414, { detail: 'too long' })
     let u: URL
     try { u = new URL(req.url || '/', `http://127.0.0.1:${p}`) } catch { send(res, 400, { detail: 'Invalid request URL' }); return }
-    const speechRoute = u.pathname === '/api/stage/speech' || u.pathname === '/api/stage/speech/cancel'
-    const stageRoute = u.pathname === '/api/stage/state' || u.pathname === '/api/stage/command' || speechRoute
+    const stageRoute = u.pathname === '/api/stage/state' || u.pathname === '/api/stage/command'
     const q = u.searchParams, m = q.get('m') || '', k = q.get('k') || ''
     const auth = req.headers.authorization?.match(/^Bearer\s+(\S+)$/i)?.[1] || (req.headers['x-livliv-token'] as string | undefined) || q.get('token') || ''
     const ok = same(auth, deps.token()) || (!stageRoute && !!m && !!k && deps.keyOk(m, k))
     if (busy(ok ? authorized : refused)) return send(res, 429, { detail: '太快了' })
     if (u.pathname === '/api/health') return send(res, 200, { ok: true, app: deps.stage ? 'livliv-stage' : 'livliv-desktop', version: deps.version, stages: deps.stages() })
-    if (speechRoute && deps.stage && !deps.stage.speech) return send(res, 404, { detail: 'Not Found' })
     if (u.pathname !== '/api/live/cmd' && !(stageRoute && deps.stage)) return send(res, 404, { detail: 'Not Found' })
     if (!stageRoute && req.method !== 'GET' && req.method !== 'POST') return send(res, 405, { detail: 'Method Not Allowed' })
     if (!ok) return send(res, 403, { detail: '令牌不对，或者这个角色的开播窗口没开' })
-    if (speechRoute && deps.stage?.speech) { void serveSpeech(req, res, u.pathname, deps.stage.speech, send); return }
     if (stageRoute && deps.stage) { void serveStageApi(req, res, u.pathname, deps.stage, send); return }
     const cmd = parseDo(q.get('do') || '')
     if (!cmd) return send(res, 400, { detail: '不认识这个指令' })

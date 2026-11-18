@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { brainReady, listModels, loadBrainConfig, playDemo, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveBrainConfig, savedBrain, testModel, useBrainConfig, type ModelConfig } from './brain'
 import { conversation, talk, useConversation } from './conversation'
+import { testAiriModel } from './airiEngine'
 import { Panel, PanelTab, TalkSettings } from './Inspector'
 import { byId, fromFiles, fromKept, fromPngs, mine as accountCharacters, samples, type Pick } from './library'
 import { PNG_SLOTS, type PngSlot } from './bodies/png'
@@ -59,7 +60,6 @@ import { GoLiveGuide } from './GoLive'
 import { MemoryPanel } from './MemoryPanel'
 import { memory, type StoredSession } from './memory'
 import { connectNeuro } from './neuroBridge'
-import { connectAiri } from './airiHost'
 import './chat.css'
 
 type SettingsTab = 'general' | 'ai' | 'hotkeys' | 'account'
@@ -164,7 +164,6 @@ export default function App() {
   useEffect(() => { if (phone && mode !== 'show') store.setMode('show') }, [phone, mode])
   useEffect(connectDesktop, [])
   useEffect(() => connectNeuro({ event: talk.externalEvent, dialogue: talk.externalDialogue, decide: talk.decideExternalAction, subscribeSpeech: talk.onSpeech }), [])
-  useEffect(connectAiri, [])
   const profilesKey = participants(scene).filter((character) => character.lines === 'ai' && !character.remote).map((character) => character.profileId ?? character.id).sort().join(',')
   useEffect(() => { const controller = new AbortController(); void talk.restore(controller.signal); return () => controller.abort() }, [profilesKey])
   useEffect(connectAudienceActions, [])
@@ -988,7 +987,10 @@ function ModelForm({ forStart, done, demoDone, onPick, onAccount, onContinue }: 
   const test = async () => {
     request.current?.abort(); const controller = new AbortController(); request.current = controller
     setSt({ busy: 'test' })
-    try { const seconds = await testModel(d, controller.signal); if (!controller.signal.aborted && request.current === controller) setSt({ ok: seconds }) }
+    try {
+      const seconds = await (d.airi && desktop?.vision ? testAiriModel : testModel)(d, controller.signal)
+      if (!controller.signal.aborted && request.current === controller) setSt({ ok: seconds })
+    }
     catch (error) { if (!controller.signal.aborted && request.current === controller) setSt({ err: (error as Error).message }) }
   }
   const save = async (playDemo = demo) => {
@@ -1028,6 +1030,7 @@ function ModelForm({ forStart, done, demoDone, onPick, onAccount, onContinue }: 
         </div>
         <datalist id="model-list">{models.map((m) => <option key={m} value={m} />)}</datalist>
       </label>
+      {desktop?.vision && <label className="switch"><span>{tr('内置 AIRI')}</span><input type="checkbox" checked={d.airi === true} onChange={(e) => setD((value) => ({ ...value, airi: e.target.checked }))} /><i /></label>}
     </>}
     {st.err && <p className="hint error" role="alert">{st.err}</p>}
     <div className="row end">

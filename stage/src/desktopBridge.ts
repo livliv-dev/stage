@@ -6,6 +6,10 @@ import type { CollabConfig, CollabState } from '../../desktop/src/collabProtocol
 
 export type Shortcut = { accelerator: string; do: string; ok: boolean; why?: string }
 type Desktop = {
+  vision?: {
+    list(): Promise<{ id: string; name: string }[]>
+    frame(sourceId: string): Promise<{ mimeType: 'image/jpeg'; data: string } | null>
+  }
   collab?: { get(): Promise<CollabState>; start(config: CollabConfig): Promise<CollabState>; stop(): Promise<CollabState>; onState(callback: (state: CollabState) => void): () => void }
   neuro?: {
     get(): Promise<NeuroState>

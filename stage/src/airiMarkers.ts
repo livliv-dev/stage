@@ -1,6 +1,4 @@
-// AIRI asks its model to prefix lines with <|ACT {"emotion","motion"}|>. The websocket
-// complete event currently has those markers stripped. This parser runs when a raw
-// field is present and otherwise leaves the spoken text unchanged.
+// Decode an AIRI control marker into the gestures supported by the Stage actor.
 import type { ReactionCue, ReactionFeeling, ReactionMove } from './reactions'
 
 const ACT = /<\|ACT\s*([\s\S]*?)\|>/g
