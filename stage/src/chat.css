@@ -27,8 +27,8 @@
 .chat-limits summary { color: var(--fg-2); cursor: pointer; font-size: 12px; margin-bottom: 10px; text-wrap: balance; }
 .reaction-details { border: 0; margin-top: 8px; }
 .reaction-details > summary { padding: 6px 0 10px; font-size: 12px; color: var(--fg-2); font-weight: 400; }
-.talk-settings .hint, .neuro-panel p { text-wrap: balance; }
-.neuro-panel > details > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; font-weight: 600; }
+.talk-settings .hint, .neuro-panel p, .airi-panel p { text-wrap: balance; }
+.neuro-panel > details > summary, .airi-panel > details > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; list-style: none; font-weight: 600; }
 .neuro-panel > details > summary::before { content: '›'; font-size: 18px; color: var(--fg-3); }
 .neuro-panel > details[open] > summary::before { transform: rotate(90deg); }
 .neuro-panel > details > summary span { flex: 1; }

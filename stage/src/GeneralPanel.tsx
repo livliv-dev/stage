@@ -6,6 +6,7 @@ import { desktop } from './desktop'
 import { useScene, participants } from './scene'
 import { talk } from './conversation'
 import { NeuroPanel } from './NeuroPanel'
+import { AiriPanel } from './AiriPanel'
 import { QUALITIES, setQuality, useQuality, type Quality } from './quality'
 import { LANGUAGES, setLocale, tr, useLocale, type Locale } from './i18n'
 import { ResetPreferences } from './ResetPreferences'
@@ -24,6 +25,7 @@ export function GeneralPanel({ onResetLayout }: { onResetLayout: () => void }) {
     {motionSupported() && <NetworkPanel />}
     <StageApiPanel />
     <NeuroPanel characters={participants(scene).filter((character) => character.lines === 'ai' && !character.remote)} onStart={(character) => talk.startChat('public', character)} />
+    <AiriPanel characters={participants(scene).filter((character) => !character.remote).map((character) => ({ id: character.id, name: character.name }))} />
     <ResetPreferences onResetLayout={onResetLayout} />
     <section className="general-about">
       <h3>{tr("关于")}</h3>

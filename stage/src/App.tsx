@@ -59,6 +59,7 @@ import { GoLiveGuide } from './GoLive'
 import { MemoryPanel } from './MemoryPanel'
 import { memory, type StoredSession } from './memory'
 import { connectNeuro } from './neuroBridge'
+import { connectAiri } from './airiHost'
 import './chat.css'
 
 type SettingsTab = 'general' | 'ai' | 'hotkeys' | 'account'
@@ -163,6 +164,7 @@ export default function App() {
   useEffect(() => { if (phone && mode !== 'show') store.setMode('show') }, [phone, mode])
   useEffect(connectDesktop, [])
   useEffect(() => connectNeuro({ event: talk.externalEvent, dialogue: talk.externalDialogue, decide: talk.decideExternalAction, subscribeSpeech: talk.onSpeech }), [])
+  useEffect(connectAiri, [])
   const profilesKey = participants(scene).filter((character) => character.lines === 'ai' && !character.remote).map((character) => character.profileId ?? character.id).sort().join(',')
   useEffect(() => { const controller = new AbortController(); void talk.restore(controller.signal); return () => controller.abort() }, [profilesKey])
   useEffect(connectAudienceActions, [])

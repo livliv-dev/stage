@@ -1,8 +1,9 @@
 import { isCmdBody, type CmdBody } from './commands'
+import type { SpeechControl } from './speechBridge'
 
 export type StageCommand = (CmdBody & { character?: string; weight?: number; on?: boolean; duration?: number }) | { do: 'scene'; id: string }
 export type StageResult = { ok: true; character?: string; scene?: string; pending?: 'voice-input' | 'microphone' } | { ok: false; status: 400 | 404 | 409 | 503; error: string }
-export type StageControlRequest = { id: string; expires: number; command: StageCommand | null }
+export type StageControlRequest = { id: string; expires: number; command: StageCommand | null; speech?: SpeechControl }
 export type StageApiState = { enabled: boolean; port: number | null; token: string; error: string | null }
 
 export function readStageCommand(value: unknown): StageCommand | null {

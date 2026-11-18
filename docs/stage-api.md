@@ -26,6 +26,22 @@
 
 输出窗口不能取得令牌或修改服务；关闭服务会终止未接收完的请求。支持查询和切换命名镜头。没有部署公网服务，也不兼容完整 VTS 插件协议。
 
+## 外部台词
+
+`POST /api/stage/speech` 把一句台词交给当前角色。和上面的接口一样，只在本机、并且要带同一个 Bearer 令牌。角色密钥不能调用它。默认不拉取任何网址：音频必须是 JSON 里的 base64，带 `url`、`audioUrl`、`src`、`href` 或 `uri` 会直接拒绝。
+
+```json
+{ "text": "你好", "emotion": "happy", "audio": "<base64>", "mime": "audio/wav" }
+```
+
+`text` 与 `audio` 至少要有一个。`mime` 只接受 wav、mpeg、mp3、ogg、webm。单句音频解码后不超过 1.5 MB，正文不超过 4000 个字符。`emotion` 可以是 neutral、happy、shy、angry、sad、surprised；角色模型里有对应表情时会用上。
+
+同一时间只有一句在播。新的一句会打断上一句。分片时带上同一个 `utteranceId`、从 0 开始的 `seq`，以及 `final:false`，最后一片 `final:true`。打断之后再到达的旧分片会被丢掉，不会播放。`interrupt:false` 时，如果已经有一句在播，返回 409。
+
+返回 `phase`：`accepted`、`audible-start`、`ended`、`cancelled`、`failed`。接受时是 202。`GET /api/stage/speech?id=UTTERANCE_ID` 查询这一句，`heard` 表示已经出过声。`POST /api/stage/speech/cancel` 的正文是 `{ "utteranceId": "UTTERANCE_ID" }`。
+
+带音频时，口型跟这一段音频。只有文字时，用这个角色已经配置的声音（系统语音、已填写的语音接口，或 LivLiv 声音），不另外请求付费语音服务。
+
 ## 命名镜头
 
 状态包含当前 `scene.id` 和 `scenes: [{ id, name }]`。发送 `{ "do": "scene", "id": "SCENE_ID" }` 切换构图，返回实际镜头 ID；未知 ID 返回404。切换保留角色、摄像头和 AI 会话。显隐控制画面，设备与 AI 各自控制。

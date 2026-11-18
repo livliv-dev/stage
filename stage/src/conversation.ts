@@ -13,7 +13,7 @@ import { tr } from './i18n'
 // run on by itself.
 import { useSyncExternalStore } from 'react'
 import { actors, faceOf, type Take } from './actors'
-import { brainReady, makeBrain, loadBrainConfig, decideExternalAction, type Line } from './brain'
+import { brainReady, makeBrain, loadBrainConfig, decideExternalAction, type Emotion, type Line } from './brain'
 import { demoFor, demoPause, demoReactions, demoSpeaker } from './demo'
 import { participants as characters, store, uid, type CharacterItem } from './scene'
 import { estimate, hush } from './speech'
@@ -25,6 +25,7 @@ import { chatHistory } from './chatHistory'
 import { conversationContext, speechSegments } from './chatContext'
 import { memory, type MemoryScope } from './memory'
 import type { ExternalActionRequest, ExternalEvent } from './externalEvents'
+import { takeAiriLine } from './airiForward'
 
 export type ConvState = {
   running: boolean
@@ -767,6 +768,21 @@ async function runChat(controller: AbortController) {
   }
 }
 
+/** A line spoken by the speech bridge while Stage's own chat loop is idle. */
+export function beginExternalLine(who: string, text: string, emotion: Emotion): string | null {
+  if (state.running) return null
+  const character = characters(store.get()).find((item) => item.id === who)
+  if (!character) return null
+  const id = uid()
+  const line: Line = { id, who, name: character.name, text: text.slice(0, 4000), emotion, action: 'none', to: null }
+  set({ speaking: line, lines: [...state.lines, line].slice(-80) }, false)
+  return id
+}
+
+export function endExternalLine(id: string) {
+  if (state.speaking?.id === id) set({ speaking: null }, false)
+}
+
 export const talk = {
   /** The transport owns audio; this session owns the archive, memory scope and stage lifecycle. */
   async realtime(controls: RealtimeControls, until: number, character: CharacterItem, scope: MemoryScope = state.scope): Promise<RealtimeSession | null> {
@@ -985,6 +1001,16 @@ export const talk = {
     const t = text.trim()
     if (!t) return
     if (realtimeControls) { realtimeControls.say(t); return }
+    if (options.respond !== false) {
+      const airi = takeAiriLine(t)
+      if (airi !== 'ignore') {
+        const me = played()
+        const speaker = me.find((item) => item.id === (state.waiting ?? state.as)) ?? (state.as === 'narrator' ? undefined : me[0])
+        const line: Line = { id: uid(), who: speaker?.id ?? 'me', name: speaker?.name ?? tr('旁白'), text: t.slice(0, 200), emotion: 'neutral', action: 'none', to: null, human: true }
+        set({ lines: [...state.lines, line], error: airi === 'sent' ? '' : tr('AIRI 还没有连上，这句话没有送出') }, false)
+        return
+      }
+    }
     const me = played()
     const c = me.find((x) => x.id === (state.waiting ?? state.as)) ?? (state.as === 'narrator' ? undefined : me[0])
     const line: Line = { id: uid(), who: c?.id ?? 'me', name: c?.name ?? tr("旁白"), text: t.slice(0, 200), emotion: 'neutral', action: 'none', to: null, human: true }

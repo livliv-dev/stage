@@ -1,7 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { SpeechApi } from './speechApi'
 import { readStageCommand, type StageCommand, type StageResult } from './stageCommands'
 
-export type StageApiDeps = { state(): Promise<unknown>; command(command: StageCommand): Promise<StageResult> }
+export type StageApiDeps = { state(): Promise<unknown>; command(command: StageCommand): Promise<StageResult>; speech?: SpeechApi }
 type Respond = (response: ServerResponse, status: number, body: object) => void
 const MAX_BODY = 32 * 1024
 

@@ -26,6 +26,20 @@ export function stageState() {
   }
 }
 
+/** The avatar a speech utterance uses, with the same choice as a stage command. */
+export function speechTarget(character?: string): { ok: true; character: string } | { ok: false; status: 404 | 409; error: string } {
+  const cast = store.get().items.filter((item): item is CharacterItem => item.kind === 'character')
+  const visible = cast.filter((item) => !item.hidden)
+  const target = character
+    ? cast.find((item) => item.id === character)
+    : visible.find((item) => item.id === liveCharacter() && !item.remote) ?? visible.find((item) => item.id === store.selected()) ?? visible.find((item) => item.lines === 'me') ?? visible.find((item) => !item.remote)
+  if (!target) return { ok: false, status: 404, error: 'Avatar not found' }
+  if (target.remote) return { ok: false, status: 409, error: 'This avatar is controlled by a friend' }
+  const actor = actors.get(target.id)
+  if (!actor || actor.status !== 'ready') return { ok: false, status: 409, error: 'This avatar is not loaded' }
+  return { ok: true, character: target.id }
+}
+
 /** One command path for native shortcuts, audience actions and authenticated external clients. */
 export function performStageCommand(cmd: StageCommand): StageResult {
   if (cmd.do === 'scene') {
