@@ -4865,4 +4865,8 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "连接 AIRI": {"zh-Hans": "连接 AIRI", "zh-Hant": "連接 AIRI", "en": "Connect AIRI", "ja": "AIRI に接続"},
   "AIRI 地址需要是 ws:// 或 wss://": {"zh-Hans": "AIRI 地址需要是 ws:// 或 wss://", "zh-Hant": "AIRI 位址需要是 ws:// 或 wss://", "en": "The AIRI address must be a ws:// or wss:// URL", "ja": "AIRI のアドレスは ws:// または wss:// です"},
   "AIRI 还没有连上，这句话没有送出": {"zh-Hans": "AIRI 还没有连上，这句话没有送出", "zh-Hant": "AIRI 還沒連上，這句話沒有送出", "en": "AIRI is not connected, so this line was not sent", "ja": "AIRI に未接続のため、この文章は送られませんでした"},
+  "没有找到要说话的角色": {"zh-Hans": "没有找到要说话的角色", "zh-Hant": "沒有找到要說話的角色", "en": "No character is available to speak", "ja": "話すキャラクターがありません"},
+  "角色还没载入，这句话没说出来": {"zh-Hans": "角色还没载入，这句话没说出来", "zh-Hant": "角色還沒載入，這句話沒說出來", "en": "The character is not loaded, so this line was not spoken", "ja": "キャラクターの読み込み前なので、この文章は話されませんでした"},
+  "这个角色由朋友控制": {"zh-Hans": "这个角色由朋友控制", "zh-Hant": "這個角色由朋友控制", "en": "A friend is controlling this character", "ja": "このキャラクターは友だちが操作しています"},
+  "这句话没说出来": {"zh-Hans": "这句话没说出来", "zh-Hant": "這句話沒說出來", "en": "This line was not spoken", "ja": "この文章は話されませんでした"},
 }

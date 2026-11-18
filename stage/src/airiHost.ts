@@ -14,6 +14,13 @@ const publish = (next: AiriLink) => { link = next; listeners.forEach((listener) 
 export const airiLink = () => link
 export const useAiriLink = () => useSyncExternalStore((listener) => { listeners.add(listener); return () => { listeners.delete(listener) } }, airiLink)
 
+function speechError(error: string | undefined) {
+  if (error === 'Avatar not found') return tr('没有找到要说话的角色')
+  if (error === 'This avatar is not loaded') return tr('角色还没载入，这句话没说出来')
+  if (error === 'This avatar is controlled by a friend') return tr('这个角色由朋友控制')
+  return error || tr('这句话没说出来')
+}
+
 function utteranceId(eventId: string | undefined) {
   const cleaned = (eventId ?? '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 80)
   return cleaned || `airi-${crypto.randomUUID().replace(/-/g, '').slice(0, 24)}`
@@ -52,8 +59,10 @@ export function connectAiri() {
       token: settings.token,
       onReply: (reply) => {
         if (run !== generation || !currentAiriTurn(reply.binding, next.currentBinding)) return
-        const result = stageSpeech().submit({ utteranceId: utteranceId(reply.eventId), text: reply.text, interrupt: true, ...(settings.characterId ? { character: settings.characterId } : {}) })
-        if (result.utteranceId) spoken = result.utteranceId
+        const result = stageSpeech().submit({ utteranceId: utteranceId(reply.eventId), text: reply.text, interrupt: true, ...(loadAiri().characterId ? { character: loadAiri().characterId } : {}) })
+        if (!result.ok) { publish({ phase: 'ready', error: speechError(result.error) }); return }
+        spoken = result.utteranceId
+        publish({ phase: 'ready' })
       },
       onStatus: (status) => {
         if (run !== generation) return

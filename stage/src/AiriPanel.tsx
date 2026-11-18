@@ -24,7 +24,7 @@ export function AiriPanel({ characters }: { characters: { id: string; name: stri
       <label className="switch"><span>{tr('把控制台输入发给 AIRI')}</span><input type="checkbox" checked={settings.forwardInput} onChange={(event) => saveAiri({ forwardInput: event.target.checked })} /><i /></label>
       <p className="hint">{tr('打开后，控制台的话只发给 AIRI，不再让 Stage 自己的模型回答。请先停止 Stage 里正在进行的聊天。')}</p>
       <button className={settings.enabled ? '' : 'primary'} onClick={() => saveAiri({ enabled: !settings.enabled })}>{tr(settings.enabled ? '断开 AIRI' : '连接 AIRI')}</button>
-      {link.phase === 'failed' && link.error && <p className="error" role="alert">{link.error}</p>}
+      {link.error && <p className="error" role="alert">{link.error}</p>}
     </details>
   </section>
 }
