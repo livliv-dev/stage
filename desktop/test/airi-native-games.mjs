@@ -146,19 +146,21 @@ try {
     window.playback = []
     onHeard((sound) => window.playback.push({ at: Date.now(), sound }))
   })
-  await page.getByRole('button', { name: 'AIRI', exact: true }).click()
-  const panel = page.locator('.airi-settings')
+  const liveButton = page.getByRole('button', { name: '直播', exact: true })
+  await liveButton.click()
+  const panel = page.locator('.desktop-live-settings')
+  await panel.getByText('由 Rally Nana 回应', { exact: true }).waitFor()
   await panel.getByLabel('游戏连接').selectOption('minecraft')
   await panel.getByText('发送 Minecraft 画面给模型', { exact: true }).click()
   await page.screenshot({ path: join(out, 'airi-entry.png') })
-  await panel.getByRole('button', { name: '开始 AIRI 直播', exact: true }).click()
+  await panel.getByRole('button', { name: '开始 AI 直播', exact: true }).click()
   await page.getByText('游戏已连接', { exact: true }).waitFor()
   await page.screenshot({ path: join(out, 'airi-connected.png') })
   await panel.getByLabel('游戏指令').fill('Use Airicraft to bring the inventory up to ' + count + ' wood logs.')
   if (twitch) {
     await panel.getByLabel('Twitch 频道名').fill(twitch)
     await panel.getByRole('button', { name: '连接', exact: true }).click()
-    await page.waitForFunction(() => [...document.querySelectorAll('.airi-settings .chat li')].length > 0, null, { timeout: 60_000 })
+    await panel.locator('.chat li').first().waitFor({ timeout: 60_000 })
   } else {
     await panel.locator('.test-chat summary').click()
     await panel.getByLabel('模拟一条弹幕').fill('Describe the Minecraft scene in English.')
@@ -187,7 +189,7 @@ try {
   assert.ok(transcription)
   assert.ok(requests.some((request) => request.owner && request.image))
   const viewerRequest = requests.find((request) => request.viewer && request.image)
-  if (!await panel.count()) await page.getByRole('button', { name: 'AIRI', exact: true }).click()
+  if (!await panel.count()) await liveButton.click()
   const evidence = await page.evaluate(() => ({ gameResult: window.__stage.conversation().game?.text,
     spoken: window.__stage.conversation().lines.filter((line) => !line.human).map((line) => line.text).slice(-4) }))
   const report = { out, game: native ? 'Airicraft' : 'protocol fixture', replies: vision ? 'visual model' : 'stream fixture',

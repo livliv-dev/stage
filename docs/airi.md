@@ -1,6 +1,8 @@
 # 桌面 AIRI
 
-在桌面顶栏打开「AIRI」，选择「游戏直播」或「私聊」。先准备一个本地「AI 来演」角色，再选择支持流式输出的 OpenAI 兼容模型。模型可以运行在本机，也可以通过云端 API 接入。选中的角色档案同时用于说话、回忆和决定游戏动作。可以在游戏直播面板连接 Twitch 公开弹幕。
+在桌面底栏点「和角色聊天」，或者直接发送第一句话。底栏会显示回应你的角色和当前对话范围。日常聊天默认用私聊，点底栏的范围可以切换。直播从顶栏「直播」开始，游戏连接和 Twitch 弹幕都在这个面板。
+
+场景里只有一个设为「AI 来演」的本地角色时，OpenAI 兼容模型默认优先使用 AIRI。模型可运行在本机，也可通过云端 API 接入。AIRI 绑定这个角色的档案，画布选中项不影响绑定。多角色会话沿用 Stage 的角色调度。可以在「模型与声音 → 文字对话」更改单角色会话的 AIRI 偏好。普通聊天可接收一次性回复。选择游戏连接或游戏窗口时，需要支持流式输出的模型。
 
 AIRI 使用当前角色的姓名、人设、口吻、关系和立场。Stage 负责弹幕、语音、字幕、口型、录制和输出。首个完整句段可边生成边播放。按住说话、发送新输入或点「下一句」会打断当前回应。下一轮会记得已经说完的内容。使用自配语音接口可保留声音到录制和输出。系统朗读在本机播放，也可以选择仅字幕。
 
@@ -8,7 +10,7 @@ AIRI 使用当前角色的姓名、人设、口吻、关系和立场。Stage 负
 
 ### Minecraft
 
-启动 [Airicraft](https://github.com/proj-airi/airicraft) 的 Minecraft 1.21.8 Fabric 客户端并进入游戏世界。在「AIRI → 游戏直播」选「Minecraft / Fabric」。Stage 默认读取 Airicraft 生成的 `~/.airicraft/bridge-state.json`。使用不同游戏目录时，可以选择相应的连接文件。
+启动 [Airicraft](https://github.com/proj-airi/airicraft) 的 Minecraft 1.21.8 Fabric 客户端并进入游戏世界。在「直播 → 游戏连接」选「Minecraft / Fabric」。Stage 默认读取 Airicraft 生成的 `~/.airicraft/bridge-state.json`。使用不同游戏目录时，可以选择相应的连接文件。
 
 打开「发送 Minecraft 画面给模型」后，Stage 直接从 Airicraft 获取游戏内截图。模型需要支持图片输入。要让角色收集资源或获取物品，使用直播面板的「游戏指令」，例如「背包至少有两块橡木原木」。该功能需要模型支持工具调用。Airicraft 负责规划和执行游戏内步骤，并通过任务回执更新 Stage 的直播会话。麦克风插话会打断说话。需要结束当前 Minecraft 任务时，点「停止游戏任务」。
 
@@ -18,17 +20,17 @@ AIRI 使用当前角色的姓名、人设、口吻、关系和立场。Stage 负
 
 ### Factorio
 
-启动 [AIRI Factorio](https://github.com/moeru-ai/airi-factorio) 的 Autorio 模组、Factorio Wrapper 和 [RCON API](https://github.com/nekomeowww/factorio-rcon-api)。在「AIRI → 游戏直播」选择「Factorio / Autorio」，填同一存档的 Wrapper 日志端口和 RCON API 端口。可用通过回环地址访问的服务，默认端口为 8080 和 24180。
+启动 [AIRI Factorio](https://github.com/moeru-ai/airi-factorio) 的 Autorio 模组、Factorio Wrapper 和 [RCON API](https://github.com/nekomeowww/factorio-rcon-api)。在「直播 → 游戏连接」选择「Factorio / Autorio」，填同一存档的 Wrapper 日志端口和 RCON API 端口。可用通过回环地址访问的服务，默认端口为 8080 和 24180。
 
 用专用存档，保证只有一个在线玩家。Stage 可以向 Autorio 提交走到目标、采集和合成任务，入队后的任务由游戏执行。游戏日志会进入公开会话。上游 Wrapper 在 ARM64 上依赖 Linux 的 Box64，可以在 Linux 游戏环境运行后将两个端口转发到本机。Factorio 的画面从 Stage 的窗口选择器接入。
 
 ### 其他游戏
 
-在「游戏直播」选择「任选窗口或只聊天」。开启画面后，Stage 会把所选窗口的一帧发给当前模型，需要系统屏幕录制权限。支持 [Neuro SDK](../neuro/README.md) 的游戏仍可从「设置 → 游戏互动」连接，事件和动作回执也进入当前直播会话。
+在「直播」使用「选择游戏窗口」。开启画面后，Stage 会把所选窗口的一帧发给当前模型，需要系统屏幕录制权限。支持 [Neuro SDK](../neuro/README.md) 的游戏仍可从「设置 → 游戏互动」连接，事件和动作回执也进入当前直播会话。
 
 ## 记忆
 
-对角色说「记住……」可保存长期记忆，也可以在 Stage 的「记忆」面板编辑或删除。直播回复和游戏指令共用同一角色的公开记录。AIRI 私聊需要先停掉 Stage 的直播输出、录制和联播。
+对角色说「记住……」可保存长期记忆，也可以在 Stage 的「记忆」面板编辑或删除。直播回复和游戏指令共用同一角色的公开记录。桌面私聊需要先停掉 Stage 的直播输出、录制和联播。
 
 ## 构建和桌面验证
 

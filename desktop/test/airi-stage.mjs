@@ -15,6 +15,7 @@ assert.ok(process.env.STAGE_TEST_RESOURCES, 'Point STAGE_TEST_RESOURCES to a Sta
 const artifacts = await mkdtemp(join(tmpdir(), 'livliv-airi-live-'))
 const turns = [], synthesis = [], errors = []
 const memoryCalls = [], gameCalls = [], sparkCalls = [], gameMessages = []
+const batchCalls = []
 const fact = 'Private setting for Rally Nana. The owner has made this note just long enough to check that the complete text comes from the memory tool after reopening the session. Secret marker: APRICOT771.'
 let app, gameSocket
 
@@ -75,6 +76,13 @@ const server = createServer(async (req, res) => {
     if (!req.url.endsWith('/chat/completions')) return res.writeHead(404).end()
     const prompt = JSON.stringify(body.messages)
     const tools = body.tools?.map(({ function: tool }) => tool.name) ?? []
+    if (JSON.stringify(body.messages.findLast(({ role }) => role === 'user'))?.includes('Check the batch completion')) {
+      batchCalls.push(body.stream)
+      res.writeHead(body.stream ? 400 : 200, { 'content-type': 'application/json' })
+      if (body.stream) return res.end(JSON.stringify({ error: { message: 'stream must be false' } }))
+      return res.end(JSON.stringify({ id: 'batch-completion', model: body.model, choices: [{ finish_reason: 'stop',
+        message: { role: 'assistant', content: batchCalls.length === 2 ? 'I can answer without a stream.' : 'I can answer that again.' } }] }))
+    }
     assert.equal(body.stream, true)
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' })
     if (prompt.includes('in a private LivLiv Stage conversation')) {
@@ -162,7 +170,7 @@ try {
   await page.addInitScript((base) => {
     localStorage.setItem('livliv-stage:locale', 'zh-Hans')
     localStorage.setItem('livliv-stage:coached', '1')
-    localStorage.setItem('livliv-stage:brain', JSON.stringify({ kind: 'openai', provider: 'custom', base, key: '', model: 'rally-fixture', airi: true }))
+    localStorage.setItem('livliv-stage:brain', JSON.stringify({ kind: 'openai', provider: 'custom', base, key: '', model: 'rally-fixture' }))
     localStorage.setItem('livliv-stage:speech', JSON.stringify({ provider: 'custom', base, key: '', model: 'fixture', asr: 'fixture', voice: 'fixture' }))
   }, origin)
   await page.reload()
@@ -175,6 +183,7 @@ try {
       name: 'Rally Nana', cardName: 'OldCardName', persona: 'OldCardName follows the race.',
       voice: { ...actor.item.voice, source: 'api' },
     })
+    stage.store.select(null)
     await stage.talk.restore()
     await stage.talk.setScope('private')
     stage.talk.say('private-scope-fixture', { respond: false })
@@ -196,12 +205,15 @@ try {
     }
   })
   assert.match(blockedPrivate, /请先关闭直播输出/)
-  await page.getByRole('button', { name: '持续聊天', exact: true }).click()
+  const chatButton = page.getByRole('button', { name: '和 Rally Nana 聊天', exact: true })
+  await chatButton.click()
   await page.waitForFunction(() => window.__stage.conversation().waitingInput)
+  await page.locator('.chat-partner').filter({ hasText: '由 Rally Nana 回应' }).waitFor()
+  assert.equal(await page.evaluate(() => window.__stage.conversation().engine), 'airi')
   assert.match(await page.evaluate(async () => {
     await window.__stage.rec.start({ mic: false, talk: false })
     return window.__stage.recording().error
-  }), /请先结束 AIRI 私聊/)
+  }), /请先结束私聊/)
   const ownerSays = async (text, reply) => {
     await page.getByLabel('你说的话').fill(text)
     await page.getByLabel('你说的话').press('Enter')
@@ -216,17 +228,17 @@ try {
     await talk.newChat()
     talk.say('New session after the remembered note.', { respond: false })
   })
-  await page.getByRole('button', { name: '持续聊天', exact: true }).click()
-  await page.waitForFunction(() => window.__stage.conversation().waitingInput)
+  assert.equal(await chatButton.isVisible(), true)
   await ownerSays('Recall my private detail', 'I remember the private detail.')
   assert.equal(memoryCalls.length, 3)
   assert.ok(await page.evaluate(() => window.__stage.conversation().lines.some((line) => line.text === 'I remember the private detail.')))
   await page.evaluate(() => window.__stage.talk.stop())
-  if (!await page.locator('.live-settings').count()) {
-    await page.locator('.start-modes > summary').click()
-    await page.getByRole('button', { name: 'AI 直播', exact: true }).click()
-  }
-  assert.equal(await page.getByLabel('内置 AIRI', { exact: true }).isChecked(), true)
+  await page.getByRole('button', { name: '直播', exact: true }).click()
+  const live = page.locator('.desktop-live-settings')
+  await live.getByText('由 Rally Nana 回应', { exact: true }).waitFor()
+  assert.equal(await live.getByRole('button', { name: '私聊', exact: true }).count(), 0)
+  assert.equal(await live.getByLabel('游戏连接').inputValue(), 'window')
+  await page.screenshot({ path: join(artifacts, 'unified-live.png') })
   await page.getByRole('button', { name: '选择游戏窗口' }).click()
   await page.getByLabel('游戏画面').selectOption({ label: 'AIRI Rally' })
   await page.locator('.test-chat summary').click()
@@ -329,11 +341,27 @@ try {
   await page.waitForFunction(() => !window.__stage.conversation().running)
   await until(() => !!turns[2].closed, 'The old actor request was not cancelled')
   assert.equal(await page.evaluate(() => window.__stage.conversation().speaking), null)
+  await page.evaluate((id) => window.__stage.store.patch(id, { lines: 'ai' }), actorId)
+  await page.locator('.chat-scope-link').filter({ hasText: '私聊' }).waitFor()
+  await page.getByRole('button', { name: '记忆', exact: true }).click()
+  const transcript = page.locator('.transcript')
+  await transcript.getByRole('button', { name: '添加记忆', exact: true }).click()
+  assert.equal(await transcript.getByLabel('可在直播中使用').isChecked(), false)
+  await transcript.getByRole('button', { name: '关闭', exact: true }).click()
+  await ownerSays('After the stream, keep this private.', 'I have your note.')
+  assert.deepEqual(await page.evaluate(() => {
+    const { scope, engine } = window.__stage.conversation()
+    return { scope, engine }
+  }), { scope: 'private', engine: 'airi' })
+  assert.doesNotMatch(JSON.stringify(memoryCalls.at(-1).messages), /Who is winning this race|Race telemetry/)
+  await ownerSays('Check the batch completion.', 'I can answer without a stream.')
+  await ownerSays('Check the batch completion again.', 'I can answer that again.')
+  assert.deepEqual(batchCalls, [true, false, false])
   assert.deepEqual(errors, [])
   const result = {
     artifacts, firstSoundMs, interruptMs: turns[0].closed - interruptAt, imageFrames: 2, liveTurns: turns.length,
     voice: process.env.STAGE_TEST_VOICES === '1' ? 'macOS Samantha' : 'fixture PCM',
-    memoryRead: true, publicScope: true, privateOutputBlocked: true, gameAction: action.name, sparkQuiet: true,
+    memoryRead: true, publicScope: true, privateOutputBlocked: true, privateAfterLive: true, gameAction: action.name, sparkQuiet: true,
     scoreChangeMs: Math.round(scoreChange), gameActionMs: Math.round(gameActionAt),
   }
   await writeFile(join(artifacts, 'results.json'), JSON.stringify(result, null, 2))

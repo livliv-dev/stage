@@ -53,9 +53,24 @@ try {
   await app.evaluate(async ({ app, BrowserWindow }) => { const main = BrowserWindow.getAllWindows()[0]; main.blur(); const load = process.getBuiltinModule('node:module').createRequire(app.getAppPath() + '/package.json'); load('./dist/mainWindow.js').deliverMain({ do: 'mute' }) })
   await page.waitForFunction(() => document.querySelector('.panel input[type="checkbox"]').checked)
   report.backgroundCommand = 'mute reaches the Stage renderer without focusing the editor'
-  await page.evaluate((origin) => localStorage.setItem('livliv-stage:brain', JSON.stringify({ kind: 'openai', provider: 'custom', base: origin + '/hold-ai', key: 'test-only', model: 'fixture-model' })), origin)
+  await page.evaluate((origin) => localStorage.setItem('livliv-stage:brain', JSON.stringify({ kind: 'openai', provider: 'custom', base: origin + '/hold-ai', key: 'test-only', model: 'fixture-model', airi: false })), origin)
   await page.reload(); await page.waitForFunction(() => !document.querySelector('.badge'))
-  await page.locator('.start-modes > summary').click(); await page.getByRole('button', { name: 'AI 直播', exact: true }).click()
+  const privateLine = 'Private desktop marker for the Stage fallback'
+  await page.evaluate(async (text) => {
+    await window.__stage.talk.setScope('private')
+    window.__stage.talk.say(text, { respond: false })
+    const output = window.scopeProbe = new BroadcastChannel('livliv-stage')
+    window.scopeMirrors = []
+    output.onmessage = ({ data }) => { if (data.t === 'conv') window.scopeMirrors.push(data.conv) }
+    output.postMessage({ t: 'hello' })
+  }, privateLine)
+  const input = page.getByLabel('你说的话')
+  await input.fill('Keep this private')
+  await input.press('Enter')
+  await page.getByText(/请先关闭直播输出/).waitFor()
+  assert.equal(await input.inputValue(), 'Keep this private', 'A blocked private chat keeps the draft')
+  await input.clear()
+  await page.getByRole('button', { name: '直播', exact: true }).click()
   await page.locator('.live-settings').getByText('仅字幕（不生成声音）', { exact: true }).click()
   await page.locator('.live-settings .test-chat summary').click()
   await page.getByRole('button', { name: '开始 AI 直播', exact: true }).click()
@@ -63,6 +78,13 @@ try {
   await until(() => pending.has('/hold-ai/chat/completions'), 'live model request did not arrive')
   await page.getByRole('button', { name: '停止 AI', exact: true }).click()
   await until(() => closed.has('/hold-ai/chat/completions'), 'AI stop did not cancel the actual upstream request')
+  const mirrors = await page.evaluate(() => {
+    window.scopeProbe.postMessage({ t: 'bye' }); window.scopeProbe.close()
+    return window.scopeMirrors
+  })
+  assert.ok(mirrors.length)
+  assert.doesNotMatch(JSON.stringify(mirrors), new RegExp(privateLine))
+  report.privateScope = 'private chat is blocked while output is open, and the public startup never mirrors the old transcript'
   report.liveCancellation = 'the AI stop button cancels the actual model HTTP request'
   await page.screenshot({ path: join(artifacts, 'ai-setup.png') })
   await page.locator('.live-settings button[aria-label="关闭"]').click()

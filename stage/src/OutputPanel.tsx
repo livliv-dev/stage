@@ -5,12 +5,12 @@ import { closeOutput, openOutput, outputOpen, reopenOutput } from './link'
 import { store, useScene } from './scene'
 import { onSite } from './host'
 import { desktop } from './desktopBridge'
-import { privateAiri, useConversation } from './conversation'
+import { privateDesktopChat, useConversation } from './conversation'
 
 export function OutputPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { scene } = useScene()
   useConversation()
-  const blocked = privateAiri()
+  const blocked = privateDesktopChat()
   const [connected, setConnected] = useState(false)
   const shape = [scene.width, scene.height, scene.background === 'transparent'].join(':'), last = useRef(shape)
   useEffect(() => { const timer = setInterval(() => setConnected(outputOpen()), 500); return () => clearInterval(timer) }, [])
@@ -34,10 +34,10 @@ export function OutputPanel({ open, onClose }: { open: boolean; onClose: () => v
       <p className="hint">{tr("透明采集出现黑底时，切换绿幕并在 OBS 添加色度键滤镜。")}</p>
       {!desktop && <p className="hint">{tr("别让其他窗口完全盖住输出窗口，否则画面会停住。")}</p>}
     </details>
-    <button className="primary wide" disabled={blocked && !connected} onClick={() => { if (outputOpen()) closeOutput(); else if (!privateAiri()) openOutput(scene.width, scene.height, scene.background === 'transparent'); setConnected(outputOpen()) }}>
+    <button className="primary wide" disabled={blocked && !connected} onClick={() => { if (outputOpen()) closeOutput(); else if (!privateDesktopChat()) openOutput(scene.width, scene.height, scene.background === 'transparent'); setConnected(outputOpen()) }}>
       <MonitorPlay size={15} />{connected ? tr("关闭输出窗口") : tr("打开输出窗口")}
     </button>
-    {blocked && <p className="hint">{tr('请先结束 AIRI 私聊，再录制或打开直播输出')}</p>}
+    {blocked && <p className="hint">{tr('请先结束私聊，再录制或打开直播输出')}</p>}
     {connected && <p className="hint ok">{tr("输出窗口已打开")}</p>}
   </div>
 }

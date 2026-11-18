@@ -111,8 +111,8 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent-soft); outli
   padding: 0 14px; z-index: var(--z-top); }
 .topbar .left { flex: 1; display: flex; align-items: center; gap: 12px; min-width: 0; }
 .topbar .right { flex: none; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
-.topbar .airi-entry { border-color: #b9c6e3; background: #edf2ff; color: #29416c; padding-inline: 11px; font-weight: 650; }
-.topbar .airi-entry:hover, .topbar .airi-entry.on { border-color: #6f86bc; background: #e1e9fd; color: #1c325c; }
+.topbar .stream-entry { border-color: #b9c6e3; background: #edf2ff; color: #29416c; padding-inline: 11px; font-weight: 650; }
+.topbar .stream-entry:hover, .topbar .stream-entry.on { border-color: #6f86bc; background: #e1e9fd; color: #1c325c; }
 .mark { display: block; height: 26px; width: auto; flex: none; }
 .topbar .name { width: 200px; border-color: transparent; background: transparent; font-weight: 500; }
 .topbar .name:hover { border-color: var(--line); }
@@ -537,11 +537,8 @@ button.link.get { padding: 0; font-size: 12px; }
 .solo-mode .cast { bottom:84px }
 .live-settings { width:420px;right:328px;bottom:136px;max-height:calc(100vh - 208px);overflow:auto }
 .live-settings .section { padding:16px 18px }
-.popover.airi-settings { top: 62px; right: 14px; bottom: auto; width: min(430px, calc(100vw - 28px)); max-height: calc(100dvh - 164px); }
-.airi-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 14px 10px; }
-.airi-modes button { justify-content: center; min-width: 0; }
-.airi-modes button.on { border-color: #b9c6e3; background: #edf2ff; color: #29416c; }
-.airi-settings .hint, .airi-settings .field > span { overflow-wrap: anywhere; text-wrap: balance; }
+.popover.desktop-live-settings { top: 62px; right: 14px; bottom: auto; width: min(430px, calc(100vw - 28px)); max-height: calc(100dvh - 164px); }
+.desktop-live-settings .hint, .desktop-live-settings .field > span { overflow-wrap: anywhere; text-wrap: balance; }
 .airi-game-status .row input { min-width: 0; flex: 1; }
 .realtime-settings { position:fixed;width:min(420px,calc(100vw - 32px));max-height:calc(100dvh - 180px) }
 .realtime-fields { border:0;padding:0;margin:0;min-width:0 }

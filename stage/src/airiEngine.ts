@@ -1,15 +1,21 @@
 import type { Conversation, Message, Provider } from '../../vendor/airi-core/core.mjs'
-import type { Line, ModelConfig } from './brain'
+import type { BrainConfig, Line, ModelConfig } from './brain'
 import type { ExternalActionDecision, ExternalActionRequest, ExternalEvent } from './externalEvents'
 import type { MemoryRecord, MemoryScope } from './memory'
 import type { ReactionCue } from './reactions'
 import type { CharacterItem, Talk } from './scene'
 import type { AiriGameFrame } from '../../desktop/src/airiGameProtocol'
 import { aiFetch, named } from './brain'
+import { desktop } from './desktopBridge'
 import { parseAiriMarkers } from './airiMarkers'
 import { tr } from './i18n'
 
 export type AiriSentence = { text: string; cue?: ReactionCue }
+
+export function airiModelForCast(config: BrainConfig, cast: readonly CharacterItem[]): ModelConfig | null {
+  return desktop?.vision && config.kind === 'openai' && cast.length === 1 && !cast[0].remote ? config : null
+}
+
 type Frame = AiriGameFrame
 type Core = typeof import('../../vendor/airi-core/core.mjs')
 type Turn = {
@@ -23,6 +29,7 @@ type Turn = {
   language: Talk['language']
   event?: ExternalEvent
   frame?: Frame
+  allowBatch?: boolean
   signal: AbortSignal
   verifyMemory(): Promise<void>
 }
@@ -47,28 +54,71 @@ function identity(actor: CharacterItem, language: Talk['language'], scope: Memor
   ].filter(Boolean).join('\n')
 }
 
-function provider(config: ModelConfig, signal: AbortSignal, beforeRequest?: () => Promise<void>): Provider {
+async function batchAsStream(response: Response, model: string) {
+  const completion = await response.json()
+  const choice = completion?.choices?.[0]
+  const message = choice?.message
+  const toolCalls = Array.isArray(message?.tool_calls) ? message.tool_calls.map((call: object, index: number) => ({ ...call, index })) : []
+  if (typeof message?.content !== 'string' && !toolCalls.length) {
+    throw new Error(tr('模型没有返回可播放的回复'))
+  }
+  const delta = { role: 'assistant', content: message.content, ...(toolCalls.length ? { tool_calls: toolCalls } : {}) }
+  const chunk = { ...completion, model: completion.model ?? model, object: 'chat.completion.chunk',
+    choices: [{ index: 0, delta, finish_reason: choice.finish_reason ?? (toolCalls.length ? 'tool_calls' : 'stop') }] }
+  return new Response('data: ' + JSON.stringify(chunk) + '\n\ndata: [DONE]\n\n', { headers: { 'content-type': 'text/event-stream' } })
+}
+
+const batchModels = new WeakSet<ModelConfig>()
+
+function provider(config: ModelConfig, signal: AbortSignal, options: {
+  beforeRequest?: () => Promise<void>
+  allowBatch?: boolean
+  onBatch?: () => void
+} = {}): Provider {
+  const { beforeRequest, allowBatch, onBatch } = options
   const baseURL = new URL(config.base.replace(/\/+$/, '') + '/')
   const newLimits = config.provider === 'openai' && /^(gpt-5|o[134])/.test(config.model)
   let requests = 0
+  let batchOnly = !!allowBatch && batchModels.has(config)
   return {
     generation: (model) => ({
       protocol: 'chat-completions',
       config: {
         baseURL, model, apiKey: config.key,
         fetch: async (url, init) => {
-          signal.throwIfAborted()
-          await beforeRequest?.()
-          signal.throwIfAborted()
-          // xsAI follows tool requests until the model answers. Bound the requests for one Stage turn.
-          if (++requests > 4) throw new Error(tr('AIRI 的单轮模型调用已达上限'))
           const headers = new Headers(init?.headers)
           if (!config.key) headers.delete('Authorization')
           const body = JSON.parse(String(init?.body))
           if (newLimits) { body.max_completion_tokens = 420; delete body.max_tokens }
           if (config.provider === 'qwen') body.enable_thinking = false
-          const response = await aiFetch(String(url), { ...init, headers, body: JSON.stringify(body), signal })
+          const send = async () => {
+            signal.throwIfAborted()
+            await beforeRequest?.()
+            signal.throwIfAborted()
+            // xsAI follows tool requests until the model answers. Bound the requests for one Stage turn.
+            if (++requests > 4) throw new Error(tr('AIRI 的单轮模型调用已达上限'))
+            if (batchOnly) { body.stream = false; delete body.stream_options }
+            return aiFetch(String(url), { ...init, headers, body: JSON.stringify(body), signal })
+          }
+          let response = await send()
+          if (allowBatch && response.status === 400 && body.stream) {
+            const problem = await response.clone().json().catch(() => null)
+            const error = problem?.error
+            const rejectsStream = typeof error?.message === 'string'
+              && /\b(?:stream(?:ing)?(?: is)? (?:not supported|unsupported|must be false)|(?:does not|doesn't) support streaming)\b/i.test(error.message)
+            if (error?.param === 'stream' || rejectsStream) {
+              await response.body?.cancel()
+              batchOnly = true
+              response = await send()
+            }
+          }
           if (response.ok && (!response.body || !response.headers.get('content-type')?.includes('text/event-stream'))) {
+            if (allowBatch && response.headers.get('content-type')?.includes('application/json')) {
+              const adapted = await batchAsStream(response, model)
+              batchModels.add(config)
+              onBatch?.()
+              return adapted
+            }
             await response.body?.cancel()
             throw new Error(tr('AIRI 需要支持流式回复的模型接口'))
           }
@@ -124,7 +174,7 @@ const memoryText = (memories: MemoryRecord[]) => memories.slice(0, 12).map(({ te
 async function notify(
   core: Core, turn: Turn, event: ExternalEvent, signal: AbortSignal, speech: ReturnType<typeof spoken>,
 ) {
-  const chatProvider = provider(turn.model, signal, turn.verifyMemory)
+  const chatProvider = provider(turn.model, signal, { beforeRequest: turn.verifyMemory })
   const selectedChat = { chatProvider, model: turn.model.model, providerId: turn.model.provider }
   const required = event.reply === 'always'
   let failed = false
@@ -254,7 +304,8 @@ export function streamAiriReply(turn: Turn): ReadableStream<AiriSentence> {
           runtime.hooks.onTokenLiteral(async (text, ctx) => { if (ctx.sessionId === id) speech.text(text) })
           runtime.hooks.onTokenSpecial(async (token, ctx) => { if (ctx.sessionId === id) speech.marker(token) })
           await runtime.ingest(turn.input, {
-            model: turn.model.model, providerId: turn.model.provider, chatProvider: provider(turn.model, signal, turn.verifyMemory), signal,
+            model: turn.model.model, providerId: turn.model.provider,
+            chatProvider: provider(turn.model, signal, { beforeRequest: turn.verifyMemory, allowBatch: turn.allowBatch }), signal,
             ...(readTools.length ? { tools: readTools } : {}),
             ...(turn.frame ? { supportsVisionInput: true, attachments: [{ type: 'image', ...turn.frame }] } : {}),
           }, id)
@@ -272,14 +323,14 @@ export function streamAiriReply(turn: Turn): ReadableStream<AiriSentence> {
 export async function testAiriModel(model: ModelConfig, signal: AbortSignal) {
   const start = performance.now()
   const core = await import('../../vendor/airi-core/core.mjs')
-  let text = ''
+  let text = '', batch = false
   await core.streamFrom({
-    model: model.model, chatProvider: provider(model, signal),
+    model: model.model, chatProvider: provider(model, signal, { allowBatch: true, onBatch: () => { batch = true } }),
     conversation: { turns: [{ id: 'model-test', type: 'user', content: [{ type: 'text', text: 'Reply with OK.' }] }] },
     options: { abortSignal: signal, maxTokens: 16, onStreamEvent: (event) => { if (event.type === 'text-delta') text += event.text ?? '' } },
   })
   if (!text.trim()) throw new Error(tr('模型没有返回可播放的回复'))
-  return (performance.now() - start) / 1000
+  return { seconds: (performance.now() - start) / 1000, batch }
 }
 
 export async function chooseAiriGameAction(
@@ -319,7 +370,7 @@ export async function chooseAiriGameAction(
   ] }
   try {
     await core.streamFrom({
-      model: model.model, chatProvider: provider(model, active, beforeRequest), conversation: addFrame(conversation, frame),
+      model: model.model, chatProvider: provider(model, active, { beforeRequest }), conversation: addFrame(conversation, frame),
       options: {
         abortSignal: active, providerId: model.provider, maxTokens: 240, supportsVisionInput: !!frame,
         tools: [tool], toolChoice: { type: 'function', function: { name: tool.function.name } }, waitForTools: true,
