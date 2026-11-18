@@ -34,7 +34,7 @@
 { "text": "你好", "emotion": "happy", "audio": "<base64>", "mime": "audio/wav" }
 ```
 
-`text` 与 `audio` 至少要有一个。`mime` 只接受 wav、mpeg、mp3、ogg、webm。单句音频解码后不超过 1.5 MB，正文不超过 4000 个字符。`emotion` 可以是 neutral、happy、shy、angry、sad、surprised；角色模型里有对应表情时会用上。
+`text` 与 `audio` 至少要有一个。可选 `raw` 是同一句里带标记的原文，只用来安排表情，不会被当成地址去读取。`mime` 只接受 wav、mpeg、mp3、ogg、webm。单句音频解码后不超过 1.5 MB，正文不超过 4000 个字符。`emotion` 可以是 neutral、happy、shy、angry、sad、surprised；角色模型里有对应表情时会用上。
 
 同一时间只有一句在播。新的一句会打断上一句。分片时带上同一个 `utteranceId`、从 0 开始的 `seq`，以及 `final:false`，最后一片 `final:true`。打断之后再到达的旧分片会被丢掉，不会播放。`interrupt:false` 时，如果已经有一句在播，返回 409。
 

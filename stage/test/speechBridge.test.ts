@@ -18,10 +18,11 @@ function player() {
 
 test('one owner plays text, and a new line cancels it before late audio can start', () => {
   const { bridge, jobs, cancelled } = player()
-  const first = bridge.submit({ utteranceId: 'line-a', text: 'hello', emotion: 'happy' })
+  const first = bridge.submit({ utteranceId: 'line-a', text: 'hello', emotion: 'happy', raw: '<|ACT {"emotion":"happy"}|>hello' })
   assert.equal(first.status, 202)
   assert.equal(first.phase, 'accepted')
   assert.equal(jobs[0]?.emotion, 'happy')
+  assert.match(jobs[0]?.raw ?? '', /<\|ACT/)
   const second = bridge.submit({ utteranceId: 'line-b', text: 'next' })
   assert.equal(second.utteranceId, 'line-b')
   assert.deepEqual(cancelled, ['line-a'])

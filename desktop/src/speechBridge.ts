@@ -13,6 +13,8 @@ export type SpeechInput = {
   character?: string
   text?: string
   emotion?: SpeechEmotion
+  /** Marked AIRI text, when the server still has it. Never fetched. */
+  raw?: string
   audio?: Uint8Array
   mime?: string
   seq?: number
@@ -41,6 +43,7 @@ export type SpeechJob = {
   character: string
   text: string
   emotion: SpeechEmotion
+  raw?: string
   audio?: Uint8Array
   mime?: string
 }
@@ -57,6 +60,7 @@ type Owned = {
   character: string
   text: string
   emotion: SpeechEmotion
+  raw?: string
   mime?: string
   chunks: Uint8Array[]
   nextSeq: number
@@ -154,6 +158,7 @@ export class SpeechBridge {
     }
     if (spec.text) owned.text = spec.text
     if (spec.emotion) owned.emotion = spec.emotion
+    if (spec.raw) owned.raw = spec.raw
     if (spec.mime) owned.mime = spec.mime
     if (audio?.byteLength) { owned.chunks.push(audio); owned.bytes += audio.byteLength }
     owned.nextSeq += 1
@@ -168,7 +173,7 @@ export class SpeechBridge {
     const generation = owned.generation
     try {
       const handle = this.player.start({
-        utteranceId: owned.id, character: owned.character, text: owned.text, emotion: owned.emotion, ...(audio ? { audio, mime: owned.mime } : {}),
+        utteranceId: owned.id, character: owned.character, text: owned.text, emotion: owned.emotion, ...(owned.raw ? { raw: owned.raw } : {}), ...(audio ? { audio, mime: owned.mime } : {}),
       }, (phase, error) => this.onPlayer(generation, phase, error))
       if (this.owner === owned && open(owned)) owned.handle = handle
       else if (open(owned)) handle.cancel()
@@ -228,6 +233,7 @@ function check(input: SpeechInput): { ok: true; input: SpeechInput } | { ok: fal
   if (input.audio && input.audio.byteLength > SPEECH_AUDIO_LIMIT) return { ok: false, result: { ok: false, status: 413, error: 'Audio is larger than 1.5 MB' } }
   if (input.seq !== undefined && (typeof input.seq !== 'number' || !Number.isInteger(input.seq) || input.seq < 0 || input.seq >= SPEECH_CHUNK_LIMIT)) return { ok: false, result: { ok: false, status: 400, error: 'Chunk sequence is out of range' } }
   if (input.emotion !== undefined && !SPEECH_EMOTIONS.includes(input.emotion)) return { ok: false, result: { ok: false, status: 400, error: 'Unknown emotion' } }
+  if (input.raw !== undefined && (typeof input.raw !== 'string' || [...input.raw].length > 8000)) return { ok: false, result: { ok: false, status: 400, error: 'Raw text is too long' } }
   if (input.final !== undefined && typeof input.final !== 'boolean') return { ok: false, result: { ok: false, status: 400, error: 'Invalid utterance' } }
   if (input.interrupt !== undefined && typeof input.interrupt !== 'boolean') return { ok: false, result: { ok: false, status: 400, error: 'Invalid utterance' } }
   return { ok: true, input }

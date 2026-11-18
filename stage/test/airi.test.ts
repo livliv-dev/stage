@@ -5,7 +5,8 @@ import { createServer, type Server } from 'node:http'
 import { test } from 'node:test'
 import type { AddressInfo } from 'node:net'
 import { AiriClient } from '../src/airiClient.ts'
-import { airiReply, airiServerUrl, currentAiriTurn, parseAiriEvent, type AiriEvent } from '../src/airiProtocol.ts'
+import { AIRI_SENT_EVENTS, airiReply, airiServerUrl, parseAiriEvent, type AiriEvent } from '../src/airiProtocol.ts'
+import { acceptAiriReply } from '../src/airiSession.ts'
 
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 
@@ -62,7 +63,11 @@ async function mockAiri() {
         if (!event) continue
         received.push(event)
         if (event.type === 'module:authenticate') reply({ type: 'module:authenticated', data: { authenticated: event.data.token === 'test-token' } })
-        if (event.type === 'extension:module:announce') reply({ type: 'extension:module:announced', data: { name: event.data.name, identity: event.data.identity } })
+        if (event.type === 'extension:module:announce') {
+          // The real runtime also emits module:authenticated when no token was sent. A second announce must not follow.
+          reply({ type: 'module:authenticated', data: { authenticated: true } })
+          reply({ type: 'extension:module:announced', data: { name: event.data.name, identity: event.data.identity } })
+        }
       }
     })
   })
@@ -80,6 +85,8 @@ test('the mock AIRI handshake delivers a completed reply and does not register S
   try {
     await client.connect()
     assert.equal(server.received[0]?.type, 'extension:module:announce')
+    assert.equal(server.received.filter((event) => event.type === 'extension:module:announce').length, 1)
+    assert.deepEqual(server.received[0]?.data.possibleEvents, [...AIRI_SENT_EVENTS])
     assert.equal(server.received.some((event) => event.type === 'module:consumer:register'), false)
     const arrived = async (type: string) => {
       for (let i = 0; i < 20 && !server.received.some((event) => event.type === type); i++) await new Promise((resolve) => setTimeout(resolve, 15))
@@ -98,12 +105,16 @@ test('the mock AIRI handshake delivers a completed reply and does not register S
     })
     for (let i = 0; i < 20 && replies.length === 0; i++) await new Promise((resolve) => setTimeout(resolve, 15))
     assert.deepEqual(replies, ['hello from the mock'])
-    assert.equal(client.sendText('from stage'), true)
+    assert.equal(client.sendText('from stage', 'sena'), true)
+    assert.equal(client.sendText('again', 'sena'), true)
     await arrived('input:text')
-    const sent = server.received.find((event) => event.type === 'input:text')
-    assert.equal((sent?.data.overrides as { binding?: string } | undefined)?.binding, 'livliv-stage:1')
-    assert.equal(currentAiriTurn('livliv-stage:1', client.currentBinding), true)
-    assert.equal(currentAiriTurn('livliv-stage:0', client.currentBinding), false)
+    const sent = server.received.filter((event) => event.type === 'input:text')
+    assert.equal((sent[0]?.data.overrides as { binding?: string }).binding, 'livliv-stage:sena')
+    assert.equal((sent[1]?.data.overrides as { binding?: string }).binding, 'livliv-stage:sena')
+    assert.equal(sent[0]?.data.livlivTurn, 1)
+    assert.equal(sent[1]?.data.livlivTurn, 2)
+    assert.equal(acceptAiriReply({ binding: 'livliv-stage:sena', turn: 2 }, { binding: client.currentBinding, turn: client.turn }), true)
+    assert.equal(acceptAiriReply({ binding: 'livliv-stage:sena', turn: 1 }, { binding: client.currentBinding, turn: client.turn }), false)
     server.send({ type: 'transport:connection:heartbeat', data: { kind: 'ping', message: '🩵', at: 1 } })
     await arrived('transport:connection:heartbeat')
     assert.equal(server.received.some((event) => event.type === 'transport:connection:heartbeat' && event.data.kind === 'pong'), true)
@@ -128,6 +139,10 @@ test('a token is authenticated before the module announces itself', async () => 
 test('completed text is read from the verified event and addresses stay websocket URLs', () => {
   const event = parseAiriEvent(JSON.stringify({ type: 'output:gen-ai:chat:complete', data: { message: { content: '  plain  ' } }, metadata: { event: { id: 'evt-2' } } }))
   assert.equal(airiReply(event!)?.text, 'plain')
+  const marked = airiReply(parseAiriEvent(JSON.stringify({ type: 'output:gen-ai:chat:complete', data: { message: { content: 'Hi.' }, outputText: '<|ACT {"emotion":"happy"}|>Hi.', livlivTurn: 4, overrides: { binding: 'livliv-stage:sena' } } }))!)
+  assert.equal(marked?.raw?.includes('<|ACT'), true)
+  assert.equal(marked?.turn, 4)
+  assert.equal(marked?.binding, 'livliv-stage:sena')
   assert.equal(airiReply(parseAiriEvent(JSON.stringify({ type: 'output:gen-ai:chat:message', data: { message: { content: 'partial' } } }))!), null)
   assert.equal(airiServerUrl('ws://127.0.0.1:6121/ws'), 'ws://127.0.0.1:6121/ws')
   assert.equal(airiServerUrl('http://127.0.0.1/audio.wav'), null)

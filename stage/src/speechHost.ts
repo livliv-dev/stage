@@ -1,5 +1,6 @@
 import type { Emotion } from './brain'
 import { actors } from './actors'
+import { planAiriSpeech, speakSentences } from './airiSpeech'
 import { beginExternalLine, endExternalLine } from './conversation'
 import { speechTarget } from './control'
 import { length } from './livliv'
@@ -33,10 +34,19 @@ export function stageSpeech() {
             caption = beginExternalLine(job.character, job.text, emotion)
             await actor.perform({ text: job.text, seconds, clip: { blob, seconds, expression: null }, aloud: true }, emotion, 'none', abort.signal, [], () => report('audible-start'))
           } else {
-            const take = await actor.prepare(job.text, emotion, true, abort.signal)
-            if (stopped || abort.signal.aborted) return
-            caption = beginExternalLine(job.character, job.text, emotion)
-            await actor.perform(take, emotion, 'none', abort.signal, [], () => report('audible-start'))
+            const segments = planAiriSpeech(job.text, job.raw)
+            const outcome = await speakSentences({
+              segments, signal: abort.signal,
+              prepare: (segment) => actor.prepare(segment.text, segment.emotion, true, abort.signal),
+              play: async (segment, take, onStart) => {
+                if (stopped || abort.signal.aborted) return
+                stopCaption()
+                caption = beginExternalLine(job.character, segment.text, segment.emotion)
+                await actor.perform(take, segment.emotion, segment.move, abort.signal, segment.cues, onStart)
+              },
+              onStart: () => report('audible-start'),
+            })
+            if (outcome === 'cancelled' || stopped || abort.signal.aborted) return
           }
           if (!stopped && !abort.signal.aborted) report('ended')
         } catch (error) {

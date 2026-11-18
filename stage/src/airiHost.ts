@@ -1,9 +1,15 @@
 import { useSyncExternalStore } from 'react'
 import { tr } from './i18n'
+import { actors } from './actors'
 import { setAiriForward } from './airiForward'
+import { interpretSparkCommand, sparkEmit, type AiriSparkAction } from './airiActions'
 import { AiriClient } from './airiClient'
-import { airiServerUrl, currentAiriTurn } from './airiProtocol'
+import { airiCharacterBrief } from './airiCast'
+import { characterContextUpdate } from './airiCharacter'
+import { airiServerUrl } from './airiProtocol'
+import { acceptAiriReply } from './airiSession'
 import { loadAiri, subscribeAiri, type AiriSettings } from './airiSettings'
+import { conversation, talk } from './conversation'
 import { stageSpeech } from './speechHost'
 
 export type AiriLink = { phase: 'off' | 'connecting' | 'ready' | 'closed' | 'failed'; error?: string }
@@ -34,19 +40,30 @@ export function connectAiri() {
   let generation = 0
   let timer = 0
   let applied = ''
+  let sentCard = ''
   const stopForward = setAiriForward((text) => {
     const settings = loadAiri()
     if (!settings.enabled || !settings.forwardInput) return 'ignore'
     if (spoken) stageSpeech().cancel(spoken)
     spoken = undefined
-    if (!client?.ready || !client.sendText(text)) return 'unavailable'
+    const brief = airiCharacterBrief(settings.characterId)
+    if (!client?.ready || !client.sendText(text, brief?.id ?? settings.characterId, brief ? characterContextUpdate(brief) : undefined)) return 'unavailable'
     return 'sent'
   })
+  const pushCard = () => {
+    if (!client?.ready) return
+    const brief = airiCharacterBrief(loadAiri().characterId)
+    const text = brief ? characterContextUpdate(brief).text : ''
+    if (!brief || text === sentCard) return
+    sentCard = text
+    client.sendContext(characterContextUpdate(brief))
+  }
   const start = (force = false) => {
     const settings = loadAiri()
     const key = JSON.stringify({ enabled: settings.enabled, url: settings.url, token: settings.token })
     if (!force && key === applied) return
     applied = key
+    sentCard = ''
     const run = ++generation
     window.clearTimeout(timer)
     client?.close()
@@ -58,15 +75,23 @@ export function connectAiri() {
       url,
       token: settings.token,
       onReply: (reply) => {
-        if (run !== generation || !currentAiriTurn(reply.binding, next.currentBinding)) return
-        const result = stageSpeech().submit({ utteranceId: utteranceId(reply.eventId), text: reply.text, interrupt: true, ...(loadAiri().characterId ? { character: loadAiri().characterId } : {}) })
+        if (run !== generation || !acceptAiriReply(reply, { binding: next.currentBinding, turn: next.turn })) return
+        const brief = airiCharacterBrief(loadAiri().characterId)
+        const result = stageSpeech().submit({ utteranceId: utteranceId(reply.eventId), text: reply.text, raw: reply.raw, interrupt: true, ...(brief ? { character: brief.id } : {}) })
         if (!result.ok) { publish({ phase: 'ready', error: speechError(result.error) }); return }
         spoken = result.utteranceId
         publish({ phase: 'ready' })
       },
+      onCommand: (data) => {
+        if (run !== generation) return
+        const action = interpretSparkCommand(data)
+        if (action?.interrupt && spoken) { stageSpeech().cancel(spoken); spoken = undefined }
+        const appliedAction = action ? applySpark(action) : false
+        next.sendEmit(sparkEmit(action?.id || 'command', appliedAction ? 'done' : 'dropped', appliedAction ? 'Played on the LivLiv character' : 'Nothing on stage matched this command'))
+      },
       onStatus: (status) => {
         if (run !== generation) return
-        if (status.phase === 'ready') attempts = 0
+        if (status.phase === 'ready') { attempts = 0; pushCard() }
         publish(status)
         const rejected = status.error === 'AIRI did not accept the token'
         if (!rejected && loadAiri().enabled && (status.phase === 'closed' || status.phase === 'failed') && attempts < 8) {
@@ -78,7 +103,7 @@ export function connectAiri() {
     client = next
     void next.connect().catch(() => {})
   }
-  const off = subscribeAiri(start)
+  const off = subscribeAiri(() => { start(false); pushCard() })
   start()
   return () => {
     generation += 1
@@ -88,6 +113,18 @@ export function connectAiri() {
     client?.close()
     publish({ phase: 'off' })
   }
+}
+
+function applySpark(action: AiriSparkAction) {
+  if (!action.perform) return false
+  const brief = airiCharacterBrief(loadAiri().characterId)
+  const actor = brief ? actors.get(brief.id) : undefined
+  let applied = false
+  if (action.pause && conversation().running) { talk.pause(); applied = true }
+  if (action.resume && conversation().running) { talk.resume(); applied = true }
+  if (actor && action.motion) { actor.act(action.motion); applied = true }
+  if (actor && action.feeling) { actor.react({ at: 0, feeling: action.feeling, ...(action.look ? { look: action.look } : {}), ...(action.motion && action.motion !== 'away' ? { action: action.motion } : {}) }); applied = true }
+  return applied
 }
 
 export type { AiriSettings }

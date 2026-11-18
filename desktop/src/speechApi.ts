@@ -88,6 +88,10 @@ export function readSpeechJson(value: unknown): { ok: true; input: SpeechInput }
     if (typeof raw.final !== 'boolean') return { ok: false, result: { ok: false, status: 400, error: 'Invalid utterance' } }
     input.final = raw.final
   }
+  if (raw.raw !== undefined) {
+    if (typeof raw.raw !== 'string') return { ok: false, result: { ok: false, status: 400, error: 'Invalid utterance' } }
+    input.raw = raw.raw
+  }
   if (raw.interrupt !== undefined) {
     if (typeof raw.interrupt !== 'boolean') return { ok: false, result: { ok: false, status: 400, error: 'Invalid utterance' } }
     input.interrupt = raw.interrupt

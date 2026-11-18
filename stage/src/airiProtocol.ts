@@ -9,9 +9,11 @@ export type AiriEvent = {
   metadata?: { event?: { id?: string }; source?: Record<string, unknown> }
 }
 
-export type AiriReply = { text: string; eventId?: string; binding?: string }
+export type AiriReply = { text: string; eventId?: string; binding?: string; turn?: number; raw?: string }
 
 const MODULE_NAME = 'livliv-stage'
+/** Events Stage sends. Completed replies and spark commands are received, not announced as ours. */
+export const AIRI_SENT_EVENTS = ['input:text', 'context:update', 'spark:emit'] as const
 
 export function airiServerUrl(value: string): string | null {
   if (!value || value.length > 300) return null
@@ -48,13 +50,10 @@ export function airiReply(event: AiriEvent): AiriReply | null {
   const text = messageText(event.data.message).trim()
   if (!text) return null
   const binding = readBinding(event.data)
+  const turn = readTurn(event.data)
+  const raw = readRaw(event.data, text)
   const eventId = typeof event.metadata?.event?.id === 'string' ? event.metadata.event.id : undefined
-  return { text: [...text].slice(0, 4000).join(''), ...(eventId ? { eventId } : {}), ...(binding ? { binding } : {}) }
-}
-
-/** A livliv-stage binding belongs to the turn that sent it. Other bindings are AIRI's own chats. */
-export function currentAiriTurn(binding: string | undefined, current: string) {
-  return !(binding?.startsWith('livliv-stage:') && binding !== current)
+  return { text: [...text].slice(0, 4000).join(''), ...(eventId ? { eventId } : {}), ...(binding ? { binding } : {}), ...(turn === undefined ? {} : { turn }), ...(raw ? { raw } : {}) }
 }
 
 export function announcedSelf(event: AiriEvent, identity: string) {
@@ -80,13 +79,32 @@ function messageText(message: unknown) {
   return content.map((part) => part && typeof part === 'object' && (part as { type?: unknown }).type === 'text' && typeof (part as { text?: unknown }).text === 'string' ? (part as { text: string }).text : '').join('')
 }
 
-function readBinding(data: Record<string, unknown>) {
+function inputData(data: Record<string, unknown>) {
+  const direct = data
   const chat = data['gen-ai:chat']
-  if (!chat || typeof chat !== 'object') return undefined
+  if (!chat || typeof chat !== 'object') return direct
   const input = (chat as { input?: unknown }).input
-  if (!input || typeof input !== 'object') return undefined
+  if (!input || typeof input !== 'object') return direct
   const body = (input as { data?: unknown }).data
-  if (!body || typeof body !== 'object') return undefined
-  const binding = (body as { overrides?: { binding?: unknown } }).overrides?.binding
+  return body && typeof body === 'object' ? body as Record<string, unknown> : direct
+}
+
+function readBinding(data: Record<string, unknown>) {
+  const source = inputData(data)
+  const binding = (source.overrides as { binding?: unknown } | undefined)?.binding ?? (data.overrides as { binding?: unknown } | undefined)?.binding
   return typeof binding === 'string' && binding.length <= 200 ? binding : undefined
+}
+
+function readTurn(data: Record<string, unknown>) {
+  const value = inputData(data).livlivTurn ?? data.livlivTurn
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < 1_000_000 ? value : undefined
+}
+
+function readRaw(data: Record<string, unknown>, spoken: string) {
+  for (const key of ['outputText', 'rawText', 'raw']) {
+    const value = data[key]
+    if (typeof value === 'string' && value.includes('<|ACT')) return value.slice(0, 8000)
+  }
+  if (spoken.includes('<|ACT')) return spoken.slice(0, 8000)
+  return undefined
 }

@@ -1,4 +1,5 @@
-import { airiModuleName, airiReply, announcedSelf, parseAiriEvent, stringifyAiriEvent, type AiriEvent, type AiriReply } from './airiProtocol'
+import { AIRI_SENT_EVENTS, airiModuleName, airiReply, announcedSelf, parseAiriEvent, stringifyAiriEvent, type AiriEvent, type AiriReply } from './airiProtocol'
+import { airiBinding } from './airiSession'
 
 export type AiriLinkPhase = 'connecting' | 'ready' | 'closed' | 'failed'
 
@@ -6,7 +7,8 @@ export class AiriClient {
   private socket: WebSocket | null = null
   private identity = ''
   private stopped = false
-  private turn = 0
+  private announced = false
+  turn = 0
   ready = false
   currentBinding = ''
   private readonly options: {
@@ -14,6 +16,7 @@ export class AiriClient {
     token?: string
     timeoutMs?: number
     onReply: (reply: AiriReply) => void
+    onCommand?: (data: Record<string, unknown>) => void
     onSend?: (event: AiriEvent) => void
     onStatus?: (status: { phase: AiriLinkPhase; error?: string }) => void
   }
@@ -24,6 +27,9 @@ export class AiriClient {
     this.identity = crypto.randomUUID()
     this.ready = false
     this.stopped = false
+    this.announced = false
+    this.turn = 0
+    this.currentBinding = ''
     this.options.onStatus?.({ phase: 'connecting' })
     return new Promise<void>((resolve, reject) => {
       const socket = new WebSocket(this.options.url)
@@ -64,8 +70,10 @@ export class AiriClient {
           return
         }
         if (!this.ready && event.type === 'module:authenticated') {
-          if (event.data.authenticated === true) this.announce()
-          else fail(new Error('AIRI did not accept the token'))
+          // A runtime without a token still emits module:authenticated after the first announce.
+          // Announcing again there registered the same module twice.
+          if (event.data.authenticated !== true) { fail(new Error('AIRI did not accept the token')); return }
+          if (this.options.token) this.announce()
           return
         }
         if (!this.ready && announcedSelf(event, this.identity)) { succeed(); return }
@@ -74,6 +82,7 @@ export class AiriClient {
           return
         }
         if (!this.ready) return
+        if (event.type === 'spark:command') { this.options.onCommand?.(event.data); return }
         const reply = airiReply(event)
         if (reply) this.options.onReply(reply)
       })
@@ -87,12 +96,24 @@ export class AiriClient {
     })
   }
 
-  sendText(text: string) {
+  sendText(text: string, characterId = 'stage', context?: Record<string, unknown>) {
     const trimmed = text.trim()
     if (!this.ready || !trimmed) return false
     this.turn += 1
-    this.currentBinding = `livliv-stage:${this.turn}`
-    return this.sendEvent({ type: 'input:text', data: { text: [...trimmed].slice(0, 4000).join(''), overrides: { binding: this.currentBinding } } })
+    this.currentBinding = airiBinding(characterId)
+    const data: Record<string, unknown> = { text: [...trimmed].slice(0, 4000).join(''), livlivTurn: this.turn, overrides: { binding: this.currentBinding } }
+    if (context) data.contextUpdates = [context]
+    return this.sendEvent({ type: 'input:text', data })
+  }
+
+  sendContext(context: Record<string, unknown>) {
+    if (!this.ready) return false
+    return this.sendEvent({ type: 'context:update', data: context })
+  }
+
+  sendEmit(data: Record<string, unknown>) {
+    if (!this.ready) return false
+    return this.sendEvent({ type: 'spark:emit', data })
   }
 
   close() {
@@ -103,12 +124,14 @@ export class AiriClient {
   }
 
   private announce() {
+    if (this.announced) return
+    this.announced = true
     this.sendEvent({
       type: 'extension:module:announce',
       data: {
         name: airiModuleName(),
         identity: { id: this.identity, extension: { id: airiModuleName() } },
-        possibleEvents: ['output:gen-ai:chat:complete', 'input:text'],
+        possibleEvents: [...AIRI_SENT_EVENTS],
         dependencies: [],
       },
     })
