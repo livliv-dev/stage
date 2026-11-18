@@ -8,7 +8,7 @@
 
 1. 有令牌时先 `module:authenticate`，等 `module:authenticated`。没有令牌时不发认证。真实 runtime 仍可能随后发来 `module:authenticated`；Stage 只宣布自己一次，不再因此重复 `extension:module:announce`。
 2. 发送一次 `extension:module:announce`，等 `extension:module:announced`。`possibleEvents` 只列 Stage **发出**的事件：`input:text`、`context:update`、`spark:emit`。
-3. 听 `output:gen-ai:chat:complete`，正文在 `data.message`。若事件另带 `outputText`、`rawText` 或 `raw`，并且里面还有 `<|ACT …|>`，Stage 会按标记安排表情和动作。当前 AIRI 会把标记从 `message.content` 里剥掉，所以没有这个字段时只按普通文本说。
+3. 听 `output:gen-ai:chat:complete`。要对观众说的正文在 `data.message.content`。带 `<|ACT …|>` 的原文在真实完成事件的 `data.message.categorization.speech`（没有则再看 `generationTranscript`）。当前 Stage 的解析器还不读这两个字段，只看 `outputText` / `rawText` / `raw`，所以真实回复上的表情标记现在不会生效。不需要等 AIRI 再加一个 raw 字段。
 4. 听 `spark:command`。能认出的表情、点头一类动作、暂停和继续会做到角色上，并用 `spark:emit` 回答。计划和提议不执行。
 5. 需要时发送 `input:text`。这个事件在 AIRI 里是 `chat-ingestion` 消费者组。接收它的是 AIRI 自己的对话模块，所以 Stage **不会**把自己注册成这个消费者，否则会把输入从 AIRI 手里抢走。
 
@@ -20,13 +20,15 @@
 
 ## 在本机试一次
 
-1. 按 AIRI 自己的说明启动 server-runtime，并让它的对话模块处于运行中（Stage 不代它跑模型）。在 AIRI 里关掉它自己的语音，并藏起它自己的模型，否则会和 Stage 上的角色同时出声、同时出现。
+1. 按 AIRI 自己的说明启动 server-runtime，并让它的对话模块处于运行中（Stage 不代它跑模型）。在 AIRI 里关掉它自己的语音，避免两个声音一起说。网页版 AIRI 是否能藏起自己的形象没有验证过；若采集画面，只采集 Stage 窗口是一条建议，不是已验证的隐藏开关。AIRI 冷启动后可能还没注册 `input:text` 的消费者，Stage 发话会没有回应。临时办法和其余边界见 [airi-handoff.md](airi-handoff.md)。
 2. 打开 Stage 的外部控制 API（设置 → 通用 → 外部控制 API），如果还要用本机 HTTP 喂台词。AIRI 面板本身用的是上面的 WebSocket，不依赖这个 HTTP。
 3. 在 AIRI 角色主持里填写地址，需要的话填写令牌，选择角色，点连接。
 4. 在 AIRI 里说一句。Stage 收到完成回复后，用所选角色说出来。
 5. 若要让 Stage 控制台的文字也进入 AIRI，打开「把控制台输入发给 AIRI」。这时 Stage 自己的模型不再回答这句。请先停止 Stage 里已经在进行的聊天，避免两个说话流程抢同一个角色。
 
-AIRI 现在的完成回复不含 viseme，也不含还带着 `<|ACT …|>` 的原文。表情映射已经接好：一旦 `outputText`（或 `raw` / `rawText`）里有标记，角色会按它在句子中的位置换表情、做 nod / shake / tilt / hop / shy。没有标记时仍用 `neutral`。AIRI 自己的 TTS 和口型没有接到 Stage 上。
+完成回复不含 viseme。`<|ACT …|>` 已经在 `data.message.categorization.speech` 里，当前解析器没读这个字段，所以真实 AIRI 回复仍按中性表情说。解析器只在 `outputText`、`rawText` 或 `raw` 里见到标记时才安排表情和 nod / shake / tilt / hop / shy。AIRI 自己的 TTS 和口型没有接到 Stage 上。
+
+这次成果交给开发团队接着审、补完并合并。已知问题和验收建议写在 [airi-handoff.md](airi-handoff.md)。标成可审阅表示可以开始评审，不表示可以直接上线。
 
 ## 声音从哪来
 
