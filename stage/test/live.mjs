@@ -7,11 +7,11 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-live-')), errors = [], report = { artifacts }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -23,9 +23,7 @@ const k01 = JSON.parse(await readFile(join(root, 'public/characters/k01/model.js
 const moved = { ...k01, expressions: k01.expressions.map((x) => ({ ...x, hotkey: { smile: '3', shy: '1', angry: '2', sad: '9' }[x.id] })) }
 const SITE_LIVE = { smooth: 0.8, follow: 1.2, talk: 1.8, bounce: true, autoAway: 120, expr: { shy: { mode: 'hold' }, angry: { mode: 'timed', secs: 1 }, bogus: { mode: 'sometimes' } }, view: { x: 0, y: 0, zoom: 1 } }
 try {
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, VITE_STAGE_HOST: 'livliv' } })
-  await new Promise((resolve, reject) => { const t = setTimeout(() => reject(new Error('Vite timeout')), 15000); server.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(t); resolve() } }); server.once('exit', (c) => { clearTimeout(t); reject(new Error('Vite exited ' + c)) }) })
+  const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: 'livliv' } })
   const origin = 'http://127.0.0.1:' + port
   browser = await chromium.launch({ args: FLAGS })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['camera', 'microphone'] })

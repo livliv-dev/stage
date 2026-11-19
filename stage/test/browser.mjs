@@ -4,9 +4,8 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { createServer as httpServer } from 'node:http'
+import { freePort, startVite } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const artifacts = await mkdtemp(join(tmpdir(), 'livliv-stage-browser-'))
@@ -23,13 +22,7 @@ function wav(seconds = .7) {
 }
 async function serve() {
   if (process.env.STAGE_TEST_URL) return process.env.STAGE_TEST_URL
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', String(port), '--host', '127.0.0.1'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Vite did not start')), 15000)
-    server.stdout.on('data', (chunk) => { if (String(chunk).includes('Local:')) { clearTimeout(timer); resolve() } })
-    server.once('exit', (code) => { clearTimeout(timer); reject(new Error('Vite exited ' + code)) })
-  })
+  const port = await freePort(); server = await startVite({ port })
   return `http://127.0.0.1:${port}`
 }
 try {

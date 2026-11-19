@@ -1,18 +1,15 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { mkdtemp, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { freePort, startVite } from './vite.mjs'
 const root=fileURLToPath(new URL('..',import.meta.url)), artifacts=await mkdtemp(join(tmpdir(), 'stage-journey-')), errors=[], requests=[], report={artifacts}
 let server,browser,page,asrMode='ok'
 function wav(){const rate=24000,n=rate/2,b=Buffer.alloc(44+n*2);b.write('RIFF');b.writeUInt32LE(b.length-8,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(rate,24);b.writeUInt32LE(rate*2,28);b.writeUInt16LE(2,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(n*2,40);for(let i=0;i<n;i++)b.writeInt16LE(Math.sin(i*440*Math.PI*2/rate)*8000,44+i*2);return b}
 try{
- const socket=createServer();await new Promise(r=>socket.listen(0,'127.0.0.1',r));const port=socket.address().port;await new Promise(r=>socket.close(r))
- server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port',String(port)],{cwd:root,stdio:['ignore','pipe','pipe']})
- await new Promise((r,j)=>{const t=setTimeout(()=>j(Error('Vite timeout')),15000);server.stdout.on('data',b=>{if(String(b).includes('Local:')){clearTimeout(t);r()}})})
+ const port=await freePort();server=await startVite({port})
  browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']})
  const context=await browser.newContext({viewport:{width:1440,height:900},permissions:['camera','microphone']})
  await context.addInitScript(()=>{if(!localStorage.getItem('livliv-stage:locale'))localStorage.setItem('livliv-stage:locale','zh-Hans')})

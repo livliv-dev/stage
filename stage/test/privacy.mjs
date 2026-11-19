@@ -3,28 +3,18 @@
 // no private line, and what is said goes to the public record. Model calls go to a fixture.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-privacy-'))
 const SECRET = 'PAPAYA-913', PUBLIC = 'KIWI-204'
 const errors = [], calls = [], report = { artifacts }
 let server, browser, page
 try {
-  const socket = createServer(); await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve))
-  const port = socket.address().port; await new Promise((resolve) => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--configLoader', 'native', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  let output = ''
-  await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Vite did not start: ' + output)), 20000)
-    server.stdout.on('data', (bytes) => { output += String(bytes); if (output.includes('Local:')) { clearTimeout(timer); resolve() } })
-    server.stderr.on('data', (bytes) => { output += String(bytes) })
-    server.once('exit', (code) => { clearTimeout(timer); reject(new Error('Vite exited ' + code + ': ' + output)) })
-  })
+  const port = await freePort(); server = await startVite({ port, args: ['--configLoader', 'native'] })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   await context.addInitScript(() => { localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1') })

@@ -4,9 +4,9 @@ import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { startRelay } from '../../collab/server.mjs'
+import { freePort, startVite } from './vite.mjs'
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'livliv-stage-collab-'))
 let server, browser, relay, output, stalled
 const stalledSockets = new Set()
@@ -18,9 +18,7 @@ function wav(seconds, hz) {
   return data
 }
 async function serve() {
-  const socket = createServer(); await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve)); const port = socket.address().port; await new Promise((resolve) => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite start timed out')), 15000); server.stdout.on('data', (data) => { if (String(data).includes('Local:')) { clearTimeout(timer); resolve() } }); server.once('exit', (code) => reject(new Error('Vite exited ' + code))) })
+  const port = await freePort(); server = await startVite({ port })
   return `http://127.0.0.1:${port}`
 }
 async function meter(page, ms = 600) {

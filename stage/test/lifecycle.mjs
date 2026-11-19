@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
+import { freePort, startVite } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), calls = [], errors = []
 let server, browser, holdSpeech = false, slowModel = false, reactionOnly = false, releaseSpeech, speechHeld = false
@@ -19,10 +18,7 @@ async function until(condition) {
   assert.ok(condition(), 'the controlled fixture request arrived')
 }
 try {
-  const socket = createServer(); await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve))
-  const port = socket.address().port; await new Promise((resolve) => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--configLoader', 'native', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite did not start')), 20000); server.stdout.on('data', (bytes) => { if (String(bytes).includes('Local:')) { clearTimeout(timer); resolve() } }); server.once('exit', (code) => reject(new Error('Vite exited '+code))) })
+  const port = await freePort(); server = await startVite({ port, args: ['--configLoader', 'native'] })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   await context.addInitScript(() => { localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1') })

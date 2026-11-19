@@ -4,9 +4,8 @@ import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { setTimeout as delay } from 'node:timers/promises'
+import { freePort, startVite } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-handsfree-'))
 const calls = [], recordings = [], errors = [], checks = []
@@ -25,10 +24,7 @@ const until = async (condition) => { for (let i = 0; i < 1000; i++) { if (condit
 const level = (value) => page.evaluate((value) => window.microphone.gain.gain.setValueAtTime(value, window.microphone.context.currentTime), value)
 const speak = async (milliseconds) => { await level(.12); await delay(milliseconds); await level(0) }
 try {
-  const socket = createServer(); await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve))
-  const port = socket.address().port; await new Promise((resolve) => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--configLoader', 'native', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite did not start')), 20000); server.stdout.on('data', (bytes) => { if (String(bytes).includes('Local:')) { clearTimeout(timer); resolve() } }); server.once('exit', (code) => reject(new Error('Vite exited ' + code))) })
+  const port = await freePort(); server = await startVite({ port, args: ['--configLoader', 'native'] })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   await context.addInitScript(() => {

@@ -68,10 +68,15 @@ jobs:
             collab/package-lock.json
       - run: npm ci
       - run: npx playwright-core install --with-deps chromium-headless-shell
+      # pre-bundle Vite's dependencies once, so no check pays the first start
+      - run: node test/vite.mjs --warm
+        env:
+          STAGE_TEST_VITE_TIMEOUT: 120000
       - name: Browser checks
         shell: bash
         env:
           SUITES: ${{ matrix.suites }}
+          STAGE_TEST_VITE_TIMEOUT: 120000
         run: |
           failed=()
           for suite in $SUITES; do

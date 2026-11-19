@@ -1,27 +1,17 @@
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright-core'
+import { freePort, startVite } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const artifacts = await mkdtemp(join(tmpdir(), 'stage-settings-'))
 let server, browser, page
 const errors = [], calls = []
 try {
-  const socket = createServer()
-  await new Promise(resolve => socket.listen(0, '127.0.0.1', resolve))
-  const port = socket.address().port
-  await new Promise(resolve => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, VITE_STAGE_HOST: '' } })
-  await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Vite did not start')), 15000)
-    server.stdout.on('data', bytes => { if (String(bytes).includes('Local:')) { clearTimeout(timer); resolve() } })
-    server.once('exit', code => { clearTimeout(timer); reject(new Error('Vite exited ' + code)) })
-  })
+  const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: '' } })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'zh-CN' })
   await context.addInitScript(() => {
