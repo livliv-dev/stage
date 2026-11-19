@@ -16,7 +16,7 @@ import { Panel, PanelTab, TalkSettings } from './Inspector'
 import { byId, fromFiles, fromKept, fromPngs, mine as accountCharacters, samples, type Pick } from './library'
 import { PNG_SLOTS, type PngSlot } from './bodies/png'
 import { forget, kept, type Kept } from './vault'
-import { bubbleFor, captionBar, characters, hadSaved, participants, newCharacter, store, uid, useScene } from './scene'
+import { bubbleFor, captionBar, characters, hadSaved, participants, newCharacter, store, uid, useScene, type Scene, type StartKind } from './scene'
 import { Stage, type Insets, type MenuAt, type Zoom } from './Stage'
 import { outputOpen } from './link'
 import { OutputPanel } from './OutputPanel'
@@ -99,15 +99,17 @@ async function beginDemo(done?: () => void) {
   pttCancel(); talk.detach(); playDemo(true); done?.(); talk.start()
 }
 
-/** what the main start button begins while nothing runs: the console's (editing), or the show controls' (show
- *  mode). Space begins the same one (useShortcuts) */
-type MainStart = 'replay' | 'chat' | 'conversation'
-function mainStart(brain: BrainConfig, show = false): MainStart {
+/** what the main start button begins while nothing runs: the console's (editing: what the stage's template set,
+ *  else 持续聊天), or the show controls' (show mode). Space begins the same one (useShortcuts) */
+type MainStart = 'replay' | StartKind
+function mainStart(brain: BrainConfig, scene: Scene, show = false): MainStart {
   if (brain.kind === 'demo') return 'replay'
-  return show ? 'conversation' : 'chat'
+  return show ? 'conversation' : scene.talk.start ?? 'chat'
 }
-function startMain(kind: MainStart) {
+/** AI 直播 opens its panel: where its audience, limits and voice are chosen, and its own start button */
+function startMain(kind: MainStart, openLive: () => void) {
   if (kind === 'chat') void talk.startChat().catch(() => {})
+  else if (kind === 'live') openLive()
   else talk.start()
 }
 
@@ -203,6 +205,7 @@ export default function App() {
     zoom: setZoom,
     bare: () => setBare((b) => !b),
     say,
+    live: () => toggle('live'),
   })
   const show = mode === 'show'
   // the stage's room: the same whatever is open (only ⌘\ changes it)
@@ -258,7 +261,7 @@ export default function App() {
   )
 }
 
-type Keys = { escape: () => void; help: () => void; zoom: (z: Zoom | ((z: Zoom) => Zoom)) => void; bare: () => void; say: (s: string) => void }
+type Keys = { escape: () => void; help: () => void; zoom: (z: Zoom | ((z: Zoom) => Zoom)) => void; bare: () => void; say: (s: string) => void; live: () => void }
 
 /** keys while not typing: ⌘Z / ⇧⌘Z undo / redo, ⌘D copy, Delete, arrows move (⇧: by 10), ⇧1 fit, ⇧0 100%, ⌘\
  *  panels, Space start / pause, Esc, ? the list */
@@ -287,11 +290,15 @@ function useShortcuts(keys: Keys) {
         const c = conversation()
         if (!characters(store.get()).some((x) => x.lines === 'ai')) actors.forEach((a) => { if (a.item.lines === 'me') a.calibrate() })
         else if (c.running) { if (c.paused) talk.resume(); else talk.pause() }
-        // lines paid with points start only from a button, never from a key: Space plays the free demo instead
-        else if (loadBrainConfig().kind === 'livliv') {
-          if (demoFor(characters(store.get()))?.script.template === 'trio') void beginDemo()
-          else K.say(tr("用积分的台词，请点按钮开始"))
-        } else startMain(mainStart(loadBrainConfig(), store.mode() === 'show'))
+        else {
+          const kind = mainStart(loadBrainConfig(), store.get(), store.mode() === 'show')
+          // lines paid with points start only from a button, never from a key: Space plays the free demo instead
+          // (AI 直播 only opens its panel)
+          if (loadBrainConfig().kind === 'livliv' && kind !== 'live') {
+            if (demoFor(characters(store.get()))?.script.template === 'trio') void beginDemo()
+            else K.say(tr("用积分的台词，请点按钮开始"))
+          } else startMain(kind, K.live)
+        }
         return
       }
       if (!id || store.mode() !== 'edit') return
@@ -602,7 +609,7 @@ function Cast({ guide }: { guide: ReactNode }) {
  *  apart, what you say (as whom, the line, push to talk, send) */
 function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules, onLive, onRealtime }: { log: boolean; setLog: (on: boolean) => void; onMemory: () => void; model: boolean; toggleModel: () => void; rules: boolean; toggleRules: () => void; onLive: () => void; onRealtime: () => void }) {
   const { scene } = useScene()
-  const conv = useConversation(), realtime = useRealtime(), brain = useBrainConfig(), demo = brain.kind === 'demo', main = mainStart(brain)
+  const conv = useConversation(), realtime = useRealtime(), brain = useBrainConfig(), demo = brain.kind === 'demo', main = mainStart(brain, scene)
   const inRealtime = conv.running && conv.mode === 'realtime'
   const [mine, setMine] = useState('')
   const input = useRef<HTMLInputElement>(null), moreModes = useRef<HTMLDetailsElement>(null)
@@ -640,15 +647,20 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
         <input className="topic" value={scene.topic} placeholder={tr("话题，比如：周末去哪儿玩")} aria-label={tr("话题")} onChange={(e) => store.set({ topic: e.target.value })} />
       </div>
       <div className="zone run">
-        {!conv.running && (main === 'replay' ? <button className="primary" onClick={() => startMain(main)}><Play size={14} />{tr('再看一次')}</button> : <button className="primary start-chat" title={startLabel} onClick={() => startMain(main)}><MessagesSquare size={14} /><span>{startLabel}</span></button>)}
+        {!conv.running && (main === 'replay' ? <button className="primary" onClick={() => startMain(main, onLive)}><Play size={14} />{tr('再看一次')}</button>
+          : main === 'conversation' ? <button className="primary" onClick={() => startMain(main, onLive)}><Play size={14} />{tr('开始对谈')}</button>
+          : main === 'live' ? <button className="primary" onClick={() => startMain(main, onLive)}><Bot size={14} />{tr('AI 直播')}</button>
+          : <button className="primary start-chat" title={startLabel} onClick={() => startMain(main, onLive)}><MessagesSquare size={14} /><span>{startLabel}</span></button>)}
         {!desktop?.vision && <button className="realtime-toggle" aria-label={tr('实时语音')} title={tr('实时语音')} onClick={onRealtime} disabled={conv.running && !inRealtime}><Mic size={14} /><span>{tr('实时语音')}</span></button>}
         {!conv.running && <details ref={moreModes} className="start-modes" onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); moreModes.current!.open = false; moreModes.current?.querySelector('summary')?.focus() } }}>
           <summary>{tr('更多方式')}<ChevronDown size={13} /></summary>
           <div className="card start-mode-options">
             {desktop?.vision
               ? <button onClick={() => { moreModes.current!.open = false; onRealtime() }}><Mic size={16} /><span><b>{tr('实时语音通话')}</b></span></button>
-              : <button aria-label={tr('AI 直播')} onClick={() => { moreModes.current!.open = false; onLive() }}><Bot size={16} /><span><b>{tr('AI 直播')}</b><small>{tr('回应直播间的观众弹幕')}</small></span></button>}
-            <button aria-label={tr('对谈')} onClick={() => { moreModes.current!.open = false; talk.start() }}><Play size={16} /><span><b>{tr('对谈')}</b><small>{tr('让多位角色轮流聊起来')}</small></span></button>
+              : main !== 'live' && <button aria-label={tr('AI 直播')} onClick={() => { moreModes.current!.open = false; onLive() }}><Bot size={16} /><span><b>{tr('AI 直播')}</b><small>{tr('回应直播间的观众弹幕')}</small></span></button>}
+            {/* the sessions the main button doesn't start (on the desktop AI 直播 is in the top bar) */}
+            {main !== 'chat' && main !== 'replay' && <button aria-label={startLabel} onClick={() => { moreModes.current!.open = false; startMain('chat', onLive) }}><MessagesSquare size={16} /><span><b>{startLabel}</b></span></button>}
+            {main !== 'conversation' && <button aria-label={tr('对谈')} onClick={() => { moreModes.current!.open = false; talk.start() }}><Play size={16} /><span><b>{tr('对谈')}</b><small>{tr('让多位角色轮流聊起来')}</small></span></button>}
           </div>
         </details>}
         {conv.running && !conv.paused && <button className="primary" onClick={talk.pause}><Pause size={14} />{tr("暂停")}</button>}
@@ -774,7 +786,7 @@ function Transcript({ view, setView, onClose, right }: { view: 'history' | 'memo
 // ---------------------------------------------------------------- show mode, menus, AI
 
 function ShowControls() {
-  const conv = useConversation(), r = useRecording(), { scene } = useScene(), main = mainStart(useBrainConfig(), true)
+  const conv = useConversation(), r = useRecording(), { scene } = useScene(), main = mainStart(useBrainConfig(), scene, true)
   const hasAI = participants(scene).some((c) => c.lines === 'ai')
   const [on, setOn] = useState(true)
   useEffect(() => {
@@ -785,7 +797,7 @@ function ShowControls() {
   }, [])
   return (
     <div className={`show-controls${on ? ' on' : ''}`} onPointerDown={(e) => e.stopPropagation()}>
-      {hasAI && !conv.running && <button className="primary" onClick={() => startMain(main)}><Play size={14} />{tr(main === 'replay' ? '再看一次' : '开始对谈')}</button>}
+      {hasAI && !conv.running && <button className="primary" onClick={() => startMain(main, () => {})}><Play size={14} />{tr(main === 'replay' ? '再看一次' : '开始对谈')}</button>}
       {conv.running && !conv.paused && <button onClick={talk.pause}><Pause size={14} />{tr("暂停")}</button>}
       {conv.running && conv.paused && <button onClick={talk.resume}><Play size={14} />{tr("继续")}</button>}
       <button className="icon" title={tr("停止")} disabled={!conv.running} onClick={() => { pttCancel(); talk.stop() }}><Square size={14} /></button>

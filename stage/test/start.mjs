@@ -1,4 +1,5 @@
-// The console's main start button and Space: Space begins what the main button begins. Model calls go to a fixture.
+// The console's main start button and Space: Space begins what the main button begins, and each template's main
+// button starts what the template is named for. Model calls go to a fixture.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { spawn } from 'node:child_process'
@@ -22,8 +23,8 @@ try {
     server.stderr.on('data', (bytes) => { output += String(bytes) })
     server.once('exit', (code) => { clearTimeout(timer); reject(new Error('Vite exited ' + code + ': ' + output)) })
   })
-  browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] })
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['camera', 'microphone'] })
   await context.addInitScript(() => { localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1') })
   await context.route('**/*', async (route) => {
     const url = new URL(route.request().url())
@@ -83,6 +84,41 @@ try {
   await page.evaluate(() => { const c = window.__stage.store.get().items.find((i) => i.kind === 'character'); window.__stage.store.patch(c.id, { lines: 'me' }) })
   await space(); await page.waitForTimeout(500)
   assert.equal((await conv()).running, false, 'with no AI character Space starts nothing')
+
+  // each template: its main button says and starts what the template is named for; Space starts the same
+  const templates = {}
+  for (const [label, expected] of [['AI 主播', { text: 'AI 直播', kind: 'live' }], ['双人对谈', { text: '开始对谈', kind: 'conversation' }],
+    ['你和 AI 搭档', { text: '持续聊天', kind: 'chat' }], ['三人闲聊', { text: '开始对谈', kind: 'conversation' }], ['面捕出镜', null], ['空白舞台', null]]) {
+    await page.locator('.topbar').getByRole('button', { name: '模板' }).click()
+    await page.locator('.topbar .dropdown .item').filter({ hasText: label }).click()
+    await page.waitForFunction((name) => window.__stage.store.get().name === name, label === '空白舞台' ? '未命名舞台' : label)
+    if (!expected) {
+      assert.equal(await main.count(), 0, label + ' has no AI character and no start button')
+      templates[label] = null; continue
+    }
+    await page.waitForFunction(() => { const cast = window.__stage.store.get().items.filter((i) => i.kind === 'character' && i.lines === 'ai'); return cast.length && cast.every((c) => window.__stage.actors.get(c.id)?.status === 'ready') }, null, { timeout: 60000 })
+    assert.equal((await main.innerText()).trim(), expected.text, label)
+    const run = async (start) => {
+      await start()
+      if (expected.kind === 'live') {
+        await page.locator('.live-settings').waitFor()
+        assert.equal((await conv()).running, false, 'AI 直播 opens its panel; its own button starts it')
+        await page.locator('.live-settings button[data-close]').click(); await page.locator('.live-settings').waitFor({ state: 'detached' })
+        return 'live'
+      }
+      const kind = await started(); await stop(); return kind
+    }
+    const byButton = await run(() => main.click()), bySpace = await run(space)
+    assert.equal(byButton, expected.kind, label); assert.equal(bySpace, expected.kind, label + ': Space')
+    templates[label] = { text: expected.text, button: byButton, space: bySpace }
+  }
+  report.templates = templates
+  // the menu offers the sessions the main button doesn't start
+  await page.locator('.topbar').getByRole('button', { name: '模板' }).click()
+  await page.locator('.topbar .dropdown .item').filter({ hasText: '双人对谈' }).click()
+  await page.waitForFunction(() => window.__stage.store.get().name === '双人对谈')
+  await page.locator('.start-modes summary').click()
+  assert.deepEqual(await page.locator('.start-mode-options button b').allInnerTexts(), ['AI 直播', '持续聊天'])
 
   await page.screenshot({ path: join(artifacts, 'start.png') })
   assert.deepEqual(errors, [])

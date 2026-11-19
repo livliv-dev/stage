@@ -3,17 +3,22 @@ import { tr } from './i18n'
 import { samples, type Pick } from './library'
 import { kept } from './vault'
 import { controlSettings } from './workflow'
-import { bubbleFor, captionBar, emptyScene, loadable, newCharacter, persistentScene, type CharacterItem, type Item, type Scene } from './scene'
+import { bubbleFor, captionBar, emptyScene, loadable, newCharacter, persistentScene, type CharacterItem, type Item, type Scene, type StartKind, type Talk } from './scene'
 
+/** start: what the console's main button starts on the stage the template makes (none without an AI character) */
 export const TEMPLATES = [
   { id: 'solo', label: '面捕出镜', hint: '用自己的表情和声音直播' },
-  { id: 'ai', label: 'AI 主播', hint: '让角色说话、回应观众' },
-  { id: 'duo', label: '双人对谈', hint: '两个 AI 角色自由聊，各自的字幕气泡' },
-  { id: 'cohost', label: '你和 AI 搭档', hint: '自己出镜，让 AI 接着聊' },
-  { id: 'trio', label: '三人闲聊', hint: '一个主持人带两个嘉宾' },
+  { id: 'ai', label: 'AI 主播', hint: '让角色说话、回应观众', start: 'live' },
+  { id: 'duo', label: '双人对谈', hint: '两个 AI 角色自由聊，各自的字幕气泡', start: 'conversation' },
+  { id: 'cohost', label: '你和 AI 搭档', hint: '自己出镜，让 AI 接着聊', start: 'chat' },
+  { id: 'trio', label: '三人闲聊', hint: '一个主持人带两个嘉宾', start: 'conversation' },
   { id: 'blank', label: '空白舞台', hint: '什么都没有' },
-] as const
+] as const satisfies readonly { id: string; label: string; hint: string; start?: StartKind }[]
 export type TemplateId = (typeof TEMPLATES)[number]['id']
+const withStart = (talk: Talk, id: TemplateId): Talk => {
+  const start = (TEMPLATES.find((t) => t.id === id) as { start?: StartKind } | undefined)?.start
+  return start ? { ...talk, start } : talk
+}
 
 export async function buildTemplate(id: TemplateId): Promise<Scene> {
   const s = emptyScene()
@@ -28,7 +33,7 @@ export async function buildTemplate(id: TemplateId): Promise<Scene> {
     const p = all.find((p) => p.id === 'd03ft') ?? all[0]
     const c = newCharacter(s, p.name, p.model, p.persona, 0.5, p.card)
     Object.assign(c, controlSettings(id === 'solo' ? 'human' : 'ai'))
-    return { ...s, name: id === 'solo' ? tr("面捕出镜") : tr("AI 主播"), background: 'transparent', items: [c, captionBar(s)] }
+    return { ...s, name: id === 'solo' ? tr("面捕出镜") : tr("AI 主播"), background: 'transparent', items: [c, captionBar(s)], talk: withStart(s.talk, id) }
   }
   spots.forEach((at, i) => {
     const p: Pick = list[i]
@@ -43,7 +48,7 @@ export async function buildTemplate(id: TemplateId): Promise<Scene> {
   const host = id === 'trio' ? items.filter((i) => i.kind === 'character')[1].id : null  // the one in the middle
   return {
     ...s, name: tr(TEMPLATES.find((t) => t.id === id)!.label), items, topic: id === 'cohost' ? tr("今天玩点什么") : tr("周末去哪儿玩"),
-    talk: { ...s.talk, order: id === 'trio' ? 'host' : 'free', host },
+    talk: withStart({ ...s.talk, order: id === 'trio' ? 'host' : 'free', host }, id),
   }
 }
 
