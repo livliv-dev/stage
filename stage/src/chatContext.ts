@@ -35,7 +35,9 @@ export function conversationContext(lines: Line[], summary?: ConversationSummary
   }
 }
 
-/** Sentence boundaries let cancellation keep completed speech and discard sentences that never played. */
+/** Sentence boundaries let cancellation keep completed speech and discard sentences that never played. A whole reply
+ *  is split here; AIRI's arrives as a stream and its own markdown segmenter splits it as it comes (airiEngine.ts
+ *  spoken), which can't wait for the whole text, so the two stay apart */
 export function speechSegments(text: string): string[] {
   const parts = text.match(/[^。！？!?\n]+[。！？!?\n]*|[。！？!?\n]+/g)?.map((part) => part.trim()).filter(Boolean) ?? []
   return parts.length ? parts : [text]

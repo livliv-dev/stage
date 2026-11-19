@@ -19,7 +19,8 @@ import { demoReply } from './demo'
 import { LENGTHS, type CharacterItem, type Talk } from './scene'
 import { conversationContext, type ConversationSummary } from './chatContext'
 import { readListenerReactions, readReactionCues } from './reactions'
-import type { Emotion, Line, Move, Reply } from './core/lines'
+import { asEmotion, asMove, type Line, type Reply } from './core/lines'
+import { brainPersona, personaOf } from './brains/persona'
 import type { ExternalActionDecision, ExternalActionRequest } from './externalEvents'
 
 /** role: in host order, whether it hosts or is a guest; cutIn: it is cutting into the line before */
@@ -211,16 +212,13 @@ class LivLivBrain implements Brain {
     }, signal)
     const names = [...a.others.map((x) => x.name), ...a.humans]
     return {
-      text: r.text, emotion: EMOTIONS.includes(r.emotion as Emotion) ? (r.emotion as Emotion) : 'neutral',
-      action: MOVES.includes(r.action as Move) ? (r.action as Move) : 'none',
+      text: r.text, emotion: asEmotion(r.emotion),
+      action: asMove(r.action),
       to: r.to && names.includes(r.to) ? r.to : null, look: r.look && (names.includes(r.look) || r.look === 'camera' || r.look === 'away') ? r.look : null,
       ...(r.audio ? { audio: r.audio } : {}),
     }
   }
 }
-
-const EMOTIONS: Emotion[] = ['neutral', 'happy', 'shy', 'angry', 'sad', 'surprised']
-const MOVES: Move[] = ['none', 'nod', 'shake', 'tilt', 'hop', 'shy']
 
 // ---------------------------------------------------------------- demo
 
@@ -261,25 +259,15 @@ function spoken(a: Ask): 'zh' | 'en' | 'ja' {
 }
 const SAID = { en: '英文', ja: '日语' } as const
 
-/** a card says the name it was written with; the character may have been renamed since */
-export const named = (c: CharacterItem, t: string) => (c.cardName && c.cardName !== c.name ? t.replaceAll(c.cardName, c.name) : t)
-
 /** the prompt for this line (test/prompts.mjs pins it word for word) */
 export function prompt(a: Ask) {
   // the others in a line each: their whole cards would be most of the prompt
   const others = a.others.map((o) => { const about = o.tagline ?? o.persona.slice(0, 60); return `「${o.name}」${about ? `：${about}` : ''}` })
   const people = [...others, ...a.humans.map((h) => `「${h}」：真人`)]
   const chars = (LENGTHS.find((l) => l.id === a.me.length)?.chars ?? 60) * (a.depth === 'discussion' ? 3 : 1), said = spoken(a)
-  const me = a.me
   return [
-    a.scope === 'private' ? `你扮演「${me.name}」，正在与用户和在场角色聊天。` : `你在一个多角色同框的直播 / 视频里扮演「${me.name}」。`,
-    me.persona ? `你的人设：${named(me, me.persona)}` : '',
-    me.style ? `你的说话风格：${named(me, me.style)}` : '',
-    me.relationship ? `你与操作者及观众的关系设定：${me.relationship}` : '',
-    me.stance ? `你的立场与兴趣：${me.stance}` : '',
-    // Chinese example lines pull a reply in another language into Chinese, so they go in only for Chinese replies
-    said === 'zh' && me.examples?.length ? `你平时说话的样子，只学语气，不要照抄：${me.examples.map((l) => named(me, l)).join(' / ')}` : '',
-    me.tagline ? '人设里说的「对方」，在这里就是同框的人。' : '',
+    // who it is, this turn (brains/persona.ts)
+    ...brainPersona(personaOf(a.me, a.language, a.scope ?? 'public'), said),
     people.length ? `同框的还有：${people.join('；')}。` : '',
     a.layout.length > 1 ? `舞台上从左到右站着：${a.layout.join('、')}（你是「${a.me.name}」）。需要时可以用方位称呼别人（左边的、旁边的）。` : '',
     a.topic ? `今天的话题：${a.topic}` : '没有固定话题，随便聊。',
@@ -329,8 +317,8 @@ function parse(raw: string, a: Ask): Reply {
   const names = [...a.others.map((x) => x.name), ...a.humans]
   return {
     text: text || (o.text === '' && a.event ? '' : '……'),
-    emotion: EMOTIONS.includes(o.emotion as Emotion) ? (o.emotion as Emotion) : 'neutral',
-    action: MOVES.includes(o.action as Move) ? (o.action as Move) : 'none',
+    emotion: asEmotion(o.emotion),
+    action: asMove(o.action),
     cues: readReactionCues(o.cues),
     listeners: readListenerReactions(o.listeners, a.others.filter((character) => character.lines === 'ai' && !character.remote && !character.hidden && character.reactions?.listen !== false && character.reactions?.enabled !== false)),
     summary: typeof o.summary === 'string' && o.summary.trim() ? o.summary.trim().slice(0, 1800) : undefined,

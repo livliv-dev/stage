@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import { Check, Pause, Play, Settings, Square, X } from 'lucide-react'
 import { actors, onActors } from './actors'
 import { brainReady, useBrainConfig } from './brain'
-import { airiGameError, airiModelForCast } from './airiEngine'
+import { airiGameError } from './airiEngine'
+import { airiFits, chooseEngine } from './brains/select'
 import { liveModelName, talk, useConversation } from './conversation'
 import { participants, useScene } from './scene'
 import { voiceRoute, useActiveSpeech } from './voiceApi'
@@ -35,10 +36,10 @@ export function LivePanel({ onClose, onSettings }: { onClose: () => void; onSett
   const missingVoice = cast.filter((c) => voiceRoute(c, speech) === 'none')
   const maxGenerations = Number(maxInput), budgetReady = Number.isInteger(maxGenerations) && maxGenerations >= 1 && maxGenerations <= 500
   const active = state.running && state.mode === 'live'
-  const compatibleModel = airiModelForCast(model, cast)
   const needsAiri = game !== 'window' || !!windowId
-  const airiVoiceReady = !compatibleModel || textOnly || cast[0].muted || voiceRoute(cast[0], speech) !== 'livliv'
-  const useAiri = !!compatibleModel && airiVoiceReady && (needsAiri || compatibleModel.airi !== false)
+  // AIRI or not: the one rule (brains/select.ts); a game or a window asks for it whatever the switch says
+  const engine = chooseEngine(model, cast, { kind: 'live', textOnly, needsAiri, voice: cast[0] && voiceRoute(cast[0], speech) }, features)
+  const compatibleModel = airiFits(engine), airiVoiceReady = engine.reason !== 'livliv-voice', useAiri = engine.engine === 'airi'
   const portsReady = game !== 'factorio' || validGamePort(Number(eventsPort)) && validGamePort(Number(rconPort))
   const canStart = budgetReady && modelReady && ready && (textOnly || !missingVoice.length) && (!needsAiri || useAiri) && portsReady
   const gameConfig: AiriGameConfig | undefined = game === 'window' ? undefined

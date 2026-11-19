@@ -14,7 +14,7 @@ import { tr } from './i18n'
 import { useSyncExternalStore } from 'react'
 import { actors, faceOf, type Take } from './actors'
 import { brainReady, makeBrain, loadBrainConfig, decideExternalAction, type ModelConfig } from './brain'
-import type { Line } from './core/lines'
+import { asEmotion, type Line } from './core/lines'
 import { demoFor, demoPause, demoReactions, demoSpeaker } from './demo'
 import { participants, store, uid, type CharacterItem } from './scene'
 import { estimate, hush } from './speech'
@@ -27,7 +27,8 @@ import { conversationContext, speechSegments } from './chatContext'
 import { memory, type MemoryScope } from './memory'
 import type { ExternalActionRequest, ExternalEvent } from './externalEvents'
 import type { AiriGameConfig, AiriGameConnection } from '../../desktop/src/airiGameProtocol'
-import { airiGameError, airiGameText, airiModelForCast, chooseAiriGameAction, streamAiriReply } from './airiEngine'
+import { airiGameError, airiGameText, chooseAiriGameAction, streamAiriReply } from './airiEngine'
+import { airiFits, chooseEngine } from './brains/select'
 import { desktop } from './desktopBridge'
 import { features } from './core/platform'
 import { onRecording, recording } from './recording'
@@ -266,12 +267,11 @@ function bindAiri(controller: AbortController, model: ModelConfig, actor: Charac
   })
 }
 
+/** 持续聊天 on AIRI, when the one rule says so (brains/select.ts): its model and the character */
 function preferredAiriForChat(config: ReturnType<typeof loadBrainConfig>, target?: string) {
-  const cast = participants(store.get()).filter((character) => character.lines === 'ai')
-  const model = airiModelForCast(config, cast)
-  const actor = cast[0]
-  if (!model || model.airi === false || (target && target !== actor.id) || (!actor.muted && voiceRoute(actor) === 'livliv')) return null
-  return { model, actor }
+  const cast = participants(store.get()).filter((character) => character.lines === 'ai'), actor = cast[0]
+  const choice = chooseEngine(config, cast, { kind: 'chat', target, voice: actor && voiceRoute(actor) }, features)
+  return choice.engine === 'airi' && config.kind === 'openai' ? { model: config, actor } : null
 }
 
 const ready = (c: CharacterItem) => actors.get(c.id)?.status === 'ready'
@@ -550,7 +550,7 @@ async function playAiriTurn(me: CharacterItem, model: ModelConfig, chat: Chat | 
     if (result.done) return null
     const { text, cue } = result.value
     const feeling = cue?.feeling
-    const emotion: Line['emotion'] = feeling === 'happy' || feeling === 'sad' || feeling === 'angry' || feeling === 'shy' || feeling === 'surprised' ? feeling : 'neutral'
+    const emotion = asEmotion(feeling)
     const aloud = !textOnly && !actor.item.muted
     if (aloud && voiceRoute(actor.item) === 'livliv') throw new Error(tr('内置 AIRI 支持自配语音接口、系统朗读或仅字幕'))
     const take = await actor.prepare(text, emotion, aloud, signal)
@@ -777,15 +777,17 @@ async function runLive(options: LiveOptions) {
   if (!brainReady(config) || config.kind === 'demo') { set({ error: tr("AI 主播需要接上模型；离线演示可在「对谈」里体验"), needModel: true, modelIntent: 'live' }); return }
   const cast = participants(store.get()).filter((c) => c.lines === 'ai')
   if (!cast.length) { set({ error: tr("先添加一个「AI 来演」的角色") }); return }
-  const airiModel = options.airi && airiModelForCast(config, cast)
-  if (options.airi && !airiModel) {
+  // the panel asked for AIRI: the one rule (brains/select.ts), a game or a window asking for it whatever the switch says
+  const choice = options.airi ? chooseEngine(config, cast, { kind: 'live', needsAiri: true, textOnly: options.textOnly, voice: voiceRoute(cast[0]) }, features) : null
+  if (choice && !airiFits(choice)) {
     set({ error: tr('内置 AIRI 需要一个本地 AI 角色和流式模型接口') }); return
   }
   const gameHost = desktop?.airiGame, gameConfig = options.airi?.game
   if (gameConfig && !gameHost) { set({ error: tr('当前桌面版本不支持 AIRI 游戏') }); return }
-  if (options.airi && !options.textOnly && !cast[0].muted && voiceRoute(cast[0]) === 'livliv') {
+  if (choice?.reason === 'livliv-voice') {
     set({ error: tr('内置 AIRI 支持自配语音接口、系统朗读或仅字幕') }); return
   }
+  const airiModel = choice?.engine === 'airi' && config.kind === 'openai' ? config : null
   if (!options.textOnly && cast.some((c) => voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音，请在设置里接上声音，或选择「仅字幕」") }); return }
   const c = new AbortController(); ctrl = c
   dropAhead(); viewers.clear(); queue.length = 0; externalQueue.length = 0; dialogue.clear(); activeEvent = null

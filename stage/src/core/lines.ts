@@ -1,5 +1,6 @@
 // A line: what a character (or you, a viewer, a game) says in a conversation, with its feeling and move. Every part of
-// Stage that makes, says, records or remembers lines shares these types; they import nothing that runs.
+// Stage that makes, says, records or remembers lines shares these types, and one reading of a feeling and a move a
+// model names; nothing here imports anything that runs.
 import type { Locale } from '../i18n'
 import type { ListenerReaction, ReactionCue } from '../reactions'
 
@@ -16,6 +17,13 @@ export type Line = { id: string; who: string; name: string; text: string; emotio
   memoryRevision?: number
   /** the demo's: its recording, and its place in the script (demo.ts) */
   audio?: string; demo?: number; demoLocale?: Locale }
+
+const EMOTIONS: Emotion[] = ['neutral', 'happy', 'shy', 'angry', 'sad', 'surprised']
+const MOVES: Move[] = ['none', 'nod', 'shake', 'tilt', 'hop', 'shy']
+/** a feeling a model or a marker named, if a line can show it; else neutral */
+export const asEmotion = (value: unknown): Emotion => EMOTIONS.includes(value as Emotion) ? value as Emotion : 'neutral'
+/** a move a model named, if a line can play it; else none */
+export const asMove = (value: unknown): Move => MOVES.includes(value as Move) ? value as Move : 'none'
 
 /** what a brain gives for a line: the line without whose it is, and a new summary of the conversation when asked */
 export type Reply = Omit<Line, 'id' | 'who' | 'name'> & { summary?: string }

@@ -11,7 +11,8 @@ import {
 } from 'lucide-react'
 import { brainReady, listModels, loadBrainConfig, playDemo, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveBrainConfig, savedBrain, testModel, useBrainConfig, type BrainConfig, type ModelConfig } from './brain'
 import { conversation, talk, useConversation } from './conversation'
-import { airiModelForCast, testAiriModel } from './airiEngine'
+import { testAiriModel } from './airiEngine'
+import { chooseEngine } from './brains/select'
 import { Panel, PanelTab, TalkSettings } from './Inspector'
 import { byId, fromFiles, fromKept, fromPngs, mine as accountCharacters, samples, type Pick } from './library'
 import { PNG_SLOTS, type PngSlot } from './bodies/png'
@@ -1055,7 +1056,7 @@ function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, onContinu
     request.current?.abort(); const controller = new AbortController(); request.current = controller
     setSt({ busy: 'test' })
     try {
-      const airi = d.airi !== false && airiModelForCast(d, participants(scene).filter((character) => character.lines === 'ai'))
+      const airi = chooseEngine(d, participants(scene).filter((character) => character.lines === 'ai'), { kind: 'test' }, features).engine === 'airi'
       const result = airi ? await testAiriModel(d, controller.signal) : { seconds: await testModel(d, controller.signal), batch: false }
       if (!controller.signal.aborted && request.current === controller) setSt({ ok: result.seconds, batch: result.batch })
     }
