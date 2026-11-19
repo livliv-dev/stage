@@ -145,6 +145,41 @@ try {
   await main.click(); assert.equal(await started(), 'conversation'); await stop()
   report.demoOwnModel = 'demo end → 用你的模型重来一遍 → model card on the models → 保存 → the same three, main button 开始对谈'
 
+  // a setup detour comes back: AI 直播 → 设置模型与声音 → 保存 → the AI 直播 panel again, as it was left
+  await page.locator('.topbar').getByRole('button', { name: '模板' }).click()
+  await page.locator('.topbar .dropdown .item').filter({ hasText: 'AI 主播' }).click()
+  await page.waitForFunction(() => window.__stage.store.get().name === 'AI 主播')
+  await main.click()
+  const livePanel = page.locator('.live-settings'), settings = page.locator('.popover.settings')
+  await livePanel.waitFor()
+  await livePanel.getByLabel('时长上限').selectOption('60'); await livePanel.getByLabel('生成次数上限').fill('42')
+  await livePanel.getByRole('button', { name: '设置模型与声音' }).click()
+  await settings.waitFor(); await livePanel.waitFor({ state: 'hidden' })
+  await settings.getByRole('button', { name: '保存', exact: true }).click()
+  await settings.waitFor({ state: 'detached' }); await livePanel.waitFor()
+  assert.equal(await livePanel.getByLabel('时长上限').inputValue(), '60', 'the panel keeps what was set')
+  assert.equal(await livePanel.getByLabel('生成次数上限').inputValue(), '42')
+  // closing the form (Esc: the form in front, not the panel behind it) comes back too
+  await livePanel.getByRole('button', { name: '设置模型与声音' }).click()
+  await settings.waitFor()
+  await page.keyboard.press('Escape')
+  await settings.waitFor({ state: 'detached' }); await livePanel.waitFor()
+  assert.equal(await livePanel.getByLabel('时长上限').inputValue(), '60')
+  await livePanel.locator('button[data-close]').click(); await livePanel.waitFor({ state: 'detached' })
+  // 录制 → a voice chip → the voice settings → closed → 录制 again, as it was left
+  await page.getByRole('button', { name: '录制', exact: true }).click()
+  const recordCard = page.locator('.popover.record')
+  await recordCard.waitFor()
+  const micLabel = recordCard.locator('label.switch').filter({ hasText: '录进麦克风' }), micSwitch = micLabel.locator('input')
+  await micLabel.click(); assert.equal(await micSwitch.isChecked(), true)
+  await recordCard.locator('.chips.voices button.chip.off').first().click()
+  await settings.waitFor(); await recordCard.waitFor({ state: 'hidden' })
+  await settings.locator('button[data-close]').click()
+  await settings.waitFor({ state: 'detached' }); await recordCard.waitFor()
+  assert.equal(await micSwitch.isChecked(), true, 'the record card keeps what was set')
+  await recordCard.locator('button[data-close]').click()
+  report.detours = 'AI 直播 → 设置模型与声音 → 保存 / Esc → AI 直播 with its limits; 录制 → voice → close → 录制 with its switch'
+
   await page.screenshot({ path: join(artifacts, 'start.png') })
   assert.deepEqual(errors, [])
   report.modelCalls = calls.length

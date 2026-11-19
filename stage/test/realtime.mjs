@@ -117,9 +117,9 @@ try {
   await modelForm.getByLabel('实时语音服务', { exact: true }).selectOption(provider)
   await modelForm.getByLabel('接口地址', { exact: true }).fill(origin + '/fixture-realtime' + (provider === 'openai' ? '/v1' : ''))
   await modelForm.getByLabel('密钥', { exact: true }).fill('fixture-only')
+  // saved from the realtime panel: back there
   await modelForm.getByRole('button', { name: '保存', exact: true }).click()
-  await modelSettings.getByRole('button', { name: '关闭', exact: true }).click()
-  await page.getByRole('button', { name: '实时语音', exact: true }).click()
+  await modelSettings.waitFor({ state: 'detached' }); await panel.waitFor()
   for (const [width, height] of [[1440, 900], [768, 900], [430, 820]]) {
     await page.setViewportSize({ width, height })
     const box = await panel.boundingBox()

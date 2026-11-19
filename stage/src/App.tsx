@@ -148,8 +148,13 @@ export default function App() {
   // the site's 开播 (?c=<id>&as=face): its card, where the first-visit checklist goes
   const [goLive, setGoLive] = useState<string | null>(null)
   const toggle = (p: Pop) => { if (p === 'settings') { setForStart(false); setSettingsTab('general') } setPop((x) => (x === p ? null : p)) }
-  const openSettings = () => { setVoiceSetup(undefined); setForStart(false); setSettingsTab('general'); setPop('settings') }
-  const openModels = (model: ModelTab, start = false) => { setVoiceSetup(undefined); setForStart(start); setSettingsModel(model); setSettingsTab('ai'); setPop('settings') }
+  // a model, voice or recognition form opened from a panel or card: saving or closing it goes back there. AI 直播,
+  // 联播, the mixer and 录制 wait behind it as they were (kept, hidden); 实时语音 and the model card open afresh (their
+  // settings may just have changed)
+  const [back, setBack] = useState<Pop>(null)
+  useEffect(() => { if (pop !== 'settings') setBack(null) }, [pop])
+  const openModels = (model: ModelTab, start = false, from: Pop = null) => { setVoiceSetup(undefined); setForStart(start); setBack(start ? null : from); setSettingsModel(model); setSettingsTab('ai'); setPop('settings') }
+  const kept = (p: Pop) => pop === p || (pop === 'settings' && back === p)
   const openAccount = () => { setVoiceSetup(undefined); setSettingsTab('account'); setPop('settings') }
   useEffect(() => { void refresh() }, [])  // the LivLiv account, if one is connected
   // LivLiv's points AI asks the site's age question once (livliv.ts stageLine): answered here
@@ -196,7 +201,7 @@ export default function App() {
     if (!conv.needModel) return
     talk.modelAsked(); store.setMode('edit'); openModels('chat', conv.modelIntent !== 'input')
   }, [conv.needModel])
-  const closeSettings = () => { setForStart(false); setSettingsTab('general'); setPop(null) }
+  const closeSettings = () => { setForStart(false); setSettingsTab('general'); setPop(back) }
   const continueAfterModel = () => {
     if (conv.modelIntent === 'chat') void talk.startChat().catch(() => {})
     else if (conv.modelIntent === 'live') setPop('live')
@@ -244,16 +249,16 @@ export default function App() {
         <TalkBar log={log} setLog={(on) => { setLog(on || logView === 'memory'); setLogView('history') }} onMemory={() => { setLogView('memory'); setLog(true) }} model={pop === 'model'} toggleModel={() => { setForStart(false); toggle('model') }}
           rules={pop === 'talk'} toggleRules={() => toggle('talk')} onLive={() => toggle('live')} onRealtime={() => toggle('realtime')} onOwnModel={openOwnModel} />
         {pop === 'audience' && <AudiencePopover onClose={() => setPop(null)} />}
-        {pop === 'mixer' && <MixerPanel onClose={() => setPop(null)} onSettings={() => openModels('speech')} />}
-        {pop === 'collab' && <CollabPanel onClose={() => setPop(null)} onSettings={openSettings} />}
-        {pop === 'live' && <LivePanel onClose={() => setPop(null)} onSettings={() => openModels('chat')} />}
-        {pop === 'realtime' && <RealtimePanel onClose={() => setPop(null)} onSettings={() => openModels('realtime')} />}
+        {kept('mixer') && <Kept on={pop === 'mixer'}><MixerPanel onClose={() => setPop(null)} onSettings={() => openModels('speech', false, 'mixer')} /></Kept>}
+        {kept('collab') && <Kept on={pop === 'collab'}><CollabPanel onClose={() => setPop(null)} onSettings={() => openModels('speech', false, 'collab')} /></Kept>}
+        {kept('live') && <Kept on={pop === 'live'}><LivePanel onClose={() => setPop(null)} onSettings={() => openModels('chat', false, 'live')} /></Kept>}
+        {pop === 'realtime' && <RealtimePanel onClose={() => setPop(null)} onSettings={() => openModels('realtime', false, 'realtime')} />}
         {pop === 'talk' && <TalkSettings onClose={() => setPop(null)} />}
-        {pop === 'model' && <ModelCard forStart={forStart} own={ownModel} onClose={() => { setForStart(false); setPop(null) }} onAccount={openAccount} onContinue={continueAfterModel} onSettings={() => openModels('chat', forStart)} />}
+        {pop === 'model' && <ModelCard forStart={forStart} own={ownModel} onClose={() => { setForStart(false); setPop(null) }} onAccount={openAccount} onContinue={continueAfterModel} onSettings={() => openModels('chat', forStart, 'model')} />}
         {log && <Transcript view={logView} setView={setLogView} onClose={() => setLog(false)} right={bare ? 80 : 324} />}
         {pop === 'add' && <AddCharacter left={228} onClose={() => setPop(null)} onSignIn={() => { setSettingsTab('account'); setPop('settings') }} />}
-        {pop === 'settings' && <><div className="scrim" onPointerDown={closeSettings} /><SettingsCard key={voiceSetup ?? 'settings'} forVoice={voiceSetup} initialTab={settingsTab} initialModel={settingsModel} forStart={forStart} onContinue={continueAfterModel} onResetLayout={resetLayout} onAdd={() => { setForStart(false); setPop('add') }} onClose={closeSettings} /></>}
-        {pop === 'record' && <RecordCard onClose={() => setPop(null)} onVoices={() => openModels('speech')} />}
+        {pop === 'settings' && <><div className="scrim" onPointerDown={closeSettings} /><SettingsCard key={voiceSetup ?? 'settings'} forVoice={voiceSetup} initialTab={settingsTab} initialModel={settingsModel} forStart={forStart} returns={back !== null} onContinue={continueAfterModel} onResetLayout={resetLayout} onAdd={() => { setForStart(false); setPop('add') }} onClose={closeSettings} /></>}
+        {kept('record') && <Kept on={pop === 'record'}><RecordCard onClose={() => setPop(null)} onVoices={() => openModels('speech', false, 'record')} /></Kept>}
         <OutputPanel open={pop === 'output'} onClose={() => setPop(null)} />
         {pop === 'help' && <Help onClose={() => setPop(null)} />}
         {menu && <ContextMenu at={menu} close={() => setMenu(null)} />}
@@ -277,7 +282,7 @@ function useShortcuts(keys: Keys) {
       const t = e.target as HTMLElement
       // any open card closes on Esc first, also while typing in it
       if (e.key === 'Escape') {
-        const x = document.querySelector<HTMLButtonElement>('.popover button[data-close], .card.transcript button[data-close]')
+        const x = [...document.querySelectorAll<HTMLButtonElement>('.popover button[data-close], .card.transcript button[data-close]')].find((button) => button.getClientRects().length > 0)
         if (x) { x.click(); return }
       }
       if (t.closest('input, textarea, select, [contenteditable="true"]') || (e.key === ' ' && t.closest('button'))) return
@@ -317,6 +322,11 @@ function useShortcuts(keys: Keys) {
     addEventListener('keydown', key)
     return () => removeEventListener('keydown', key)
   }, [])
+}
+
+/** a panel kept as it was while a settings form it opened is in front (App: back) */
+function Kept({ on, children }: { on: boolean; children: ReactNode }) {
+  return <div className="kept-panel" style={{ display: on ? 'contents' : 'none' }}>{children}</div>
 }
 
 // ---------------------------------------------------------------- top
@@ -1186,7 +1196,8 @@ function ModelCard({ forStart, own, onClose, onAccount, onContinue, onSettings }
 }
 
 /** Settings for general preferences, models, voice, shortcuts and the optional livliv.ai account. */
-function SettingsCard({ onClose, onAdd, initialTab, initialModel, forStart, forVoice, onContinue, onResetLayout }: { onClose: () => void; onAdd: () => void; initialTab: SettingsTab; initialModel: ModelTab; forStart: boolean; forVoice?: string; onContinue: () => void; onResetLayout: () => void }) {
+/** returns: opened from a panel or card, so saving a form closes it and goes back there */
+function SettingsCard({ onClose, onAdd, initialTab, initialModel, forStart, returns, forVoice, onContinue, onResetLayout }: { onClose: () => void; onAdd: () => void; initialTab: SettingsTab; initialModel: ModelTab; forStart: boolean; returns?: boolean; forVoice?: string; onContinue: () => void; onResetLayout: () => void }) {
   const [tab, setTab] = useState<SettingsTab>(initialTab)
   const [modelTab, setModelTab] = useState<ModelTab>(initialModel)
   useEffect(() => { if (tab === 'account') void checkConnect() }, [tab])
@@ -1201,7 +1212,7 @@ function SettingsCard({ onClose, onAdd, initialTab, initialModel, forStart, forV
         <div className="seg model-tabs" aria-label={tr('模型用途')}>{([{ id: 'chat', label: '文字对话' }, { id: 'speech', label: '配音与识别' }, { id: 'realtime', label: '实时语音' }] as const).map((entry) => <button key={entry.id} className={modelTab === entry.id ? 'on' : ''} aria-pressed={modelTab === entry.id} onClick={() => setModelTab(entry.id)}>{tr(entry.label)}</button>)}</div>
         {modelTab === 'chat' && <section>
         <h3>{tr('文字对话')}</h3><p className="hint model-purpose">{tr('用于持续聊天、对谈和 AI 直播。')}</p>
-        <ModelForm forStart={forStart} done={forStart ? onClose : undefined} onContinue={onContinue} demoDone={onClose} onAccount={() => setTab('account')} />
+        <ModelForm forStart={forStart} done={forStart || returns ? onClose : undefined} onContinue={onContinue} demoDone={onClose} onAccount={() => setTab('account')} />
       </section>}
       {modelTab === 'speech' && <section>
         <h3>{tr('配音与识别')}</h3><p className="hint model-purpose">{tr('用于角色朗读、按住说话和免按键聊天。')}</p>
@@ -1209,7 +1220,7 @@ function SettingsCard({ onClose, onAdd, initialTab, initialModel, forStart, forV
       </section>}
       {modelTab === 'realtime' && <section>
         <h3>{tr('实时语音')}</h3><p className="hint model-purpose">{tr('用于直接听说、自然接话和插话。')}</p>
-        <RealtimeModelForm />
+        <RealtimeModelForm onSaved={returns ? onClose : undefined} />
       </section>}
       </div>}
       {tab === 'account' && <AccountPanel onAdd={onAdd} />}

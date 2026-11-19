@@ -191,9 +191,12 @@ try {
   await realtimeModel.getByRole('textbox', { name: '模型', exact: true }).fill('fixture-realtime-model')
   await realtimeModel.getByRole('textbox', { name: '实时音色', exact: true }).fill('fixture-voice')
   await realtimeModel.getByRole('button', { name: '保存', exact: true }).click()
-  await realtimeModel.getByRole('status').filter({ hasText: '已保存' }).waitFor()
+  // saved from the realtime panel: back there, with the model just saved
+  await page.locator('.realtime-model-summary').getByText(/fixture-realtime-model/).waitFor()
+  assert.equal(await page.locator('.settings').count(), 0)
   assert.equal(await page.evaluate(() => window.uxMediaRequests), 0)
   assert.deepEqual(await page.evaluate(() => [localStorage.getItem('livliv-stage:brain'), localStorage.getItem('livliv-stage:speech')]), originalModels)
+  await page.locator('.realtime-settings').getByRole('button', { name: '设置模型与声音', exact: true }).click()
   await modelSettings.locator('.model-tabs').getByRole('button', { name: '配音与识别', exact: true }).click()
   await modelSettings.getByRole('button', { name: 'OpenAI', exact: true }).click()
   await modelSettings.getByText('识别模型', { exact: true }).waitFor()
@@ -209,8 +212,8 @@ try {
     await page.screenshot({ path: join(artifacts, 'models-390-' + locale + '.png') })
   }
   await page.evaluate(async () => (await import('/src/i18n.ts')).setLocale('zh-Hans')); await page.setViewportSize({ width: 1440, height: 900 })
+  // closed: back in the realtime panel too
   await page.locator('.settings').getByRole('button', { name: '关闭', exact: true }).click()
-  await page.getByRole('button', { name: '实时语音', exact: true }).click()
   await page.locator('.realtime-model-summary').getByText(/fixture-realtime-model/).waitFor()
   assert.equal(await page.locator('.realtime-settings').getByRole('button', { name: '开始实时语音', exact: true }).isEnabled(), true)
   await page.locator('.realtime-settings').getByRole('button', { name: '关闭', exact: true }).click()
