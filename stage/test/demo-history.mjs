@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright-core'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 let server, browser
@@ -21,7 +21,7 @@ try {
     else await route.abort()
   })
   const page = await context.newPage()
-  page.setDefaultTimeout(15000)
+  page.setDefaultTimeout(testTimeout(15000))
   page.on('pageerror', error => errors.push(error.message))
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'networkidle' })
   await page.evaluate(async () => {

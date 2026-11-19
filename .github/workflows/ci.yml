@@ -67,7 +67,8 @@ jobs:
             stage/package-lock.json
             collab/package-lock.json
       - run: npm ci
-      - run: npx playwright-core install --with-deps chromium-headless-shell
+      # the headless shell for most checks; full Chromium for the live check, which drives one over CDP
+      - run: npx playwright-core install --with-deps chromium chromium-headless-shell
       # pre-bundle Vite's dependencies once, so no check pays the first start
       - run: node test/vite.mjs --warm
         env:
@@ -77,6 +78,8 @@ jobs:
         env:
           SUITES: ${{ matrix.suites }}
           STAGE_TEST_VITE_TIMEOUT: 120000
+          # the runner draws WebGL in software more slowly than a laptop: every page wait is three times as long
+          STAGE_TEST_SLOW: 3
         run: |
           failed=()
           for suite in $SUITES; do

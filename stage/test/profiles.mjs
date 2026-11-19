@@ -4,7 +4,7 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-profiles-'))
 const report = { artifacts }, errors = []
@@ -17,7 +17,7 @@ try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['camera', 'microphone'], acceptDownloads: true })
   await context.addInitScript(() => { if (!localStorage.getItem('livliv-stage:locale')) localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1'); const gum = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices); window.cameraStarts = 0; navigator.mediaDevices.getUserMedia = (constraints) => { if (constraints.video) window.cameraStarts++; return gum(constraints) } })
   await context.route('**/api/**', (route) => route.fulfill({ status: route.request().url().endsWith('/me') ? 200 : 404, json: { signed_in: false } }))
-  page = await context.newPage(); page.setDefaultTimeout(15000); page.on('pageerror', (error) => errors.push(error.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(15000)); page.on('pageerror', (error) => errors.push(error.message))
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'networkidle', timeout: 45000 })
   if (!process.env.STAGE_PROFILES_RECORD_ONLY) {
   await page.getByRole('button', { name: /^面捕出镜/ }).click()

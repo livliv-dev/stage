@@ -5,7 +5,7 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-projects-'))
 let server, browser, page
@@ -22,7 +22,7 @@ try {
     return c
   }
   const origin = 'http://127.0.0.1:' + port, first = await context()
-  page = await first.newPage(); page.setDefaultTimeout(20000); page.on('pageerror', (e) => errors.push(e.message)); await page.goto(origin, { waitUntil: 'networkidle' })
+  page = await first.newPage(); page.setDefaultTimeout(testTimeout(20000)); page.on('pageerror', (e) => errors.push(e.message)); await page.goto(origin, { waitUntil: 'networkidle' })
   if (!process.env.STAGE_PROJECT_RECORD_ONLY) {
     await page.getByRole('button', { name: '模板', exact: true }).click(); await page.getByRole('button', { name: /^双人对谈/ }).click(); await ready(page)
     const image = await page.evaluate(async () => {
@@ -69,7 +69,7 @@ try {
 
     // Import into a fresh storage partition with all model endpoints blocked.
     const fresh = await context(); await fresh.route('**/characters/**', (r) => r.abort()); await fresh.route('**/models/**', (r) => r.abort())
-    const restored = await fresh.newPage(); restored.setDefaultTimeout(20000); restored.on('pageerror', (e) => errors.push(e.message)); await restored.goto(origin, { waitUntil: 'networkidle' }); page = restored
+    const restored = await fresh.newPage(); restored.setDefaultTimeout(testTimeout(20000)); restored.on('pageerror', (e) => errors.push(e.message)); await restored.goto(origin, { waitUntil: 'networkidle' }); page = restored
     await page.locator('.topbar input[type=file]').setInputFiles({ name: 'test.livstage', mimeType: 'application/zip', buffer: bytes })
     await page.locator('.project-progress').waitFor({ state: 'hidden' }); await ready(page)
     const loaded = await page.evaluate(async () => {

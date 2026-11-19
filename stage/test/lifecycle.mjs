@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), calls = [], errors = []
 let server, browser, holdSpeech = false, slowModel = false, reactionOnly = false, releaseSpeech, speechHeld = false
@@ -39,7 +39,7 @@ try {
     if (['127.0.0.1', 'localhost'].includes(url.hostname) || ['blob:', 'data:'].includes(url.protocol)) await route.continue()
     else await route.abort()
   })
-  const page = await context.newPage(); page.setDefaultTimeout(15000); page.on('pageerror', (error) => errors.push(error.message))
+  const page = await context.newPage(); page.setDefaultTimeout(testTimeout(15000)); page.on('pageerror', (error) => errors.push(error.message))
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'domcontentloaded' }); await page.waitForFunction(() => !!window.__stage)
   await page.evaluate(async () => {
     const { store, emptyScene, newCharacter } = await import('/src/scene.ts'), { fromPngs } = await import('/src/library.ts')

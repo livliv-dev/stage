@@ -3,6 +3,7 @@ import { chromium } from 'playwright-core'
 import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { testTimeout } from './vite.mjs'
 
 // Run with an existing local Vite server. The SDP endpoint and the other WebRTC peer are fixtures, never paid services.
 const origin = process.env.STAGE_TEST_URL || 'http://127.0.0.1:5244'
@@ -72,7 +73,7 @@ try {
       return Math.sqrt(data.reduce((sum, value) => sum + value * value, 0) / data.length)
     }
   }, { provider })
-  page = await context.newPage(); page.setDefaultTimeout(10000)
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(10000))
   page.on('pageerror', (error) => errors.push(error.message))
   await context.route('**/*', async (route) => {
     const url = new URL(route.request().url())

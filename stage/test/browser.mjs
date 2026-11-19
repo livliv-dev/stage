@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { createServer as httpServer } from 'node:http'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const artifacts = await mkdtemp(join(tmpdir(), 'livliv-stage-browser-'))
@@ -58,7 +58,7 @@ try {
     if (['127.0.0.1', 'localhost'].includes(url.hostname) || ['data:', 'blob:'].includes(url.protocol)) await route.continue()
     else await route.abort()
   })
-  const page = await context.newPage(); page.setDefaultTimeout(30000); page.on('pageerror', (e) => errors.push(e.message))
+  const page = await context.newPage(); page.setDefaultTimeout(testTimeout(30000)); page.on('pageerror', (e) => errors.push(e.message))
   const state = () => page.evaluate(() => window.__stage.conversation())
   await page.goto(origin, { waitUntil: 'networkidle' })
   if (await page.locator('.coach button').count()) await page.getByRole('button', { name: '关闭上手引导', exact: true }).click()

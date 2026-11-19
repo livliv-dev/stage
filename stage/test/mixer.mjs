@@ -4,7 +4,7 @@ import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-mixer-'))
 let server, browser, page
@@ -17,7 +17,7 @@ try {
   await context.addInitScript(() => { localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1') })
   await context.route('**/api/**', (route) => route.fulfill({ status: route.request().url().endsWith('/me') ? 200 : 404, json: { signed_in: false } }))
   await context.route('https://voice-fixture.test/**', (route) => route.fulfill({ json: { voices: [] } }))
-  page = await context.newPage(); page.setDefaultTimeout(20000); page.on('pageerror', (e) => errors.push(e.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(20000)); page.on('pageerror', (e) => errors.push(e.message))
   await page.goto('http://127.0.0.1:' + port, { waitUntil: 'networkidle' })
   await page.evaluate(async () => {
     const { fromPngs } = await import('/src/library.ts'), { emptyScene, newCharacter } = await import('/src/scene.ts'), { saveSpeech } = await import('/src/voiceApi.ts'), { wav16k } = await import('/src/audio.ts')

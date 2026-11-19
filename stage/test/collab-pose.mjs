@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 import { chromium } from 'playwright-core'
 import { startRelay } from '../../collab/server.mjs'
+import { testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-collab-pose-'))
 let vite, relay, browser
@@ -24,7 +25,7 @@ try {
   for (const angle of [17, -9]) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['microphone'] })
     await context.route('**/api/**', (route) => route.fulfill({ contentType: 'application/json', body: '{"signed_in":false,"available":false}' }))
-    const page = await context.newPage(); pages.push(page); page.setDefaultTimeout(10000)
+    const page = await context.newPage(); pages.push(page); page.setDefaultTimeout(testTimeout(10000))
     await page.goto(origin, { waitUntil: 'networkidle' })
     // A fake capture exposes loopback ICE candidates in the isolated browser profiles.
     await page.evaluate(async () => { window.fixtureMic = await navigator.mediaDevices.getUserMedia({ audio: true }) })

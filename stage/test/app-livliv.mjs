@@ -9,7 +9,7 @@ import { chromium } from 'playwright-core'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), errors = []
 const TOKEN = 'app.test-token'
@@ -49,7 +49,7 @@ try {
       return url.hostname === '127.0.0.1' || ['blob:', 'data:'].includes(url.protocol) ? route.continue() : route.abort()
     })
     const page = await context.newPage()
-    page.setDefaultTimeout(30000); page.on('pageerror', (e) => errors.push(e.message))
+    page.setDefaultTimeout(testTimeout(30000)); page.on('pageerror', (e) => errors.push(e.message))
     await page.goto(origin + path, { waitUntil: 'networkidle' })
     return { page, context }
   }

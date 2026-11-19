@@ -11,7 +11,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-live-')), errors = [], report = { artifacts }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -42,7 +42,7 @@ try {
     if (url.hostname === '127.0.0.1' || ['blob:', 'data:'].includes(url.protocol)) return route.continue()
     return route.abort()
   })
-  page = await context.newPage(); page.setDefaultTimeout(30000); page.on('pageerror', (e) => errors.push(e.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(30000)); page.on('pageerror', (e) => errors.push(e.message))
   const live = (id) => page.waitForFunction((id) => { const a = id ? window.__stage.actors.get(id) : [...window.__stage.actors.values()].find((a) => !a.item.hidden); return a?.status === 'ready' && (a.item.driver !== 'face' || a.inputPhase === 'on') }, id, { timeout: 45000 })
   const shot = () => page.evaluate(() => { const s = window.__stage.store, scene = s.get(); return { id: scene.id, name: scene.name, background: scene.background, scenes: s.project().scenes.length, seen: scene.items.filter((i) => !i.hidden).map((i) => ({ kind: i.kind, id: i.id, name: i.name, lines: i.lines, driver: i.driver, faceMic: i.faceMic, x: i.x, w: i.w, h: i.h, smooth: i.smooth, talk: i.talk, autoAway: i.autoAway, exprModes: i.exprModes, follow: i.tuning?.faceFollow, bounce: i.tuning?.bounce })), width: scene.width, height: scene.height } })
   const actor = (id) => page.evaluate((id) => { const a = window.__stage.actors.get(id); return { expression: a.expression, away: a.away } }, id)

@@ -6,7 +6,7 @@ import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-start-'))
 const errors = [], calls = [], report = { artifacts }
@@ -26,7 +26,7 @@ try {
     if (['127.0.0.1', 'localhost'].includes(url.hostname) || ['data:', 'blob:'].includes(url.protocol)) await route.continue()
     else await route.abort()
   })
-  page = await context.newPage(); page.setDefaultTimeout(20000); page.on('pageerror', (error) => errors.push(error.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(20000)); page.on('pageerror', (error) => errors.push(error.message))
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'networkidle' })
   const conv = () => page.evaluate(() => { const c = window.__stage.conversation(); return { running: c.running, mode: c.mode, error: c.error } })
   const stop = async () => { await page.evaluate(() => window.__stage.talk.stop()); await page.waitForFunction(() => !window.__stage.conversation().running) }

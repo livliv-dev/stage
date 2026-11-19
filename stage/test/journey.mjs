@@ -4,7 +4,7 @@ import { mkdtemp, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 const root=fileURLToPath(new URL('..',import.meta.url)), artifacts=await mkdtemp(join(tmpdir(), 'stage-journey-')), errors=[], requests=[], report={artifacts}
 let server,browser,page,asrMode='ok'
 function wav(){const rate=24000,n=rate/2,b=Buffer.alloc(44+n*2);b.write('RIFF');b.writeUInt32LE(b.length-8,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(rate,24);b.writeUInt32LE(rate*2,28);b.writeUInt16LE(2,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(n*2,40);for(let i=0;i<n;i++)b.writeInt16LE(Math.sin(i*440*Math.PI*2/rate)*8000,44+i*2);return b}
@@ -27,7 +27,7 @@ try{
   if(u.hostname==='stage-voice-fixture.test'){assert.equal(r.request().headers().authorization,undefined);await r.fulfill({contentType:'audio/wav',body:wav()});return}
   if(u.hostname==='127.0.0.1'||['blob:','data:'].includes(u.protocol))await r.continue();else await r.abort()
  })
- page=await context.newPage();page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message))
+ page=await context.newPage();page.setDefaultTimeout(testTimeout(20000));page.on('pageerror',e=>errors.push(e.message))
  await page.goto('http://127.0.0.1:'+port);await page.locator('.welcome-demo').waitFor();assert.equal(await page.locator('.coach').count(),0)
  await page.screenshot({path:join(artifacts,'welcome-zh-Hans.png')})
  const defaults=await page.evaluate(async()=>{const {samples}=await import('/src/library.ts'),{buildTemplate}=await import('/src/templates.ts');const cast=s=>s.items.filter(c=>c.kind==='character').map(c=>c.model.url);return {featured:samples().slice(0,3).map(c=>c.id),solo:cast(await buildTemplate('solo')),ai:cast(await buildTemplate('ai')),trio:cast(await buildTemplate('trio'))}})

@@ -4,7 +4,7 @@ import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-shots-'))
 let server, browser, page
@@ -20,7 +20,7 @@ try {
     navigator.mediaDevices.getUserMedia = (c) => { if (c.video) window.cameraStarts++; return gum(c) }
   })
   await context.route('**/api/**', (route) => route.fulfill({ status: route.request().url().endsWith('/me') ? 200 : 404, json: { signed_in: false } }))
-  page = await context.newPage(); page.setDefaultTimeout(20000); page.on('pageerror', (e) => errors.push(e.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(20000)); page.on('pageerror', (e) => errors.push(e.message))
   await page.goto('http://127.0.0.1:' + port, { waitUntil: 'networkidle' })
   await page.getByRole('button', { name: /^面捕出镜/ }).click()
   await page.waitForFunction(() => [...window.__stage.actors.values()][0]?.inputPhase === 'on')

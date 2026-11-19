@@ -4,7 +4,7 @@ import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-props-'))
 let server, browser, page, output
@@ -16,7 +16,7 @@ try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   await context.addInitScript(() => { localStorage.setItem('livliv-stage:coached', '1'); if (!localStorage.getItem('livliv-stage:locale')) localStorage.setItem('livliv-stage:locale', 'zh-Hans') })
   await context.route('**/*', (route) => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) || /^(blob|data):/.test(route.request().url()) ? route.continue() : route.abort())
-  page = await context.newPage(); page.setDefaultTimeout(20000); page.on('pageerror', (e) => errors.push(e.message)); const origin = 'http://127.0.0.1:' + port
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(20000)); page.on('pageerror', (e) => errors.push(e.message)); const origin = 'http://127.0.0.1:' + port
   await page.goto(origin, { waitUntil: 'networkidle' })
   await page.evaluate(async () => {
     const { store, emptyScene, newCharacter, localModels } = await import('/src/scene.ts'), { keep, putAsset } = await import('/src/vault.ts'), { cacheAsset } = await import('/src/assets.tsx')
@@ -103,7 +103,7 @@ try {
   await page.getByLabel('像素风格', { exact: true }).locator('..').click()
   await page.waitForFunction(() => window.__stage.actors.get('c0').player.body.pixelated === true)
   assert.equal(await page.locator('.placed.character').first().locator('canvas').evaluate((el) => getComputedStyle(el).imageRendering), 'pixelated')
-  output = await context.newPage(); await output.goto(origin + '/?output=1')
+  output = await context.newPage(); output.setDefaultTimeout(testTimeout(30000)); await output.goto(origin + '/?output=1')
   await output.waitForFunction(() => window.__stage.actors.get('c0')?.status === 'ready' && window.__stage.actors.get('c0').player.body.pixelated === true)
   assert.equal(await output.locator('.placed.character').first().locator('canvas').evaluate((el) => getComputedStyle(el).imageRendering), 'pixelated')
   await output.close(); output = null

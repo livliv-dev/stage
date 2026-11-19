@@ -1,4 +1,4 @@
-// Stage's dev server for the browser checks. Each check starts its own on a free port and waits until it says it
+// Stage's dev server for the browser checks, and how long they wait. Each check starts its own on a free port and waits until it says it
 // serves; STAGE_TEST_VITE_TIMEOUT (milliseconds, default 20000) is how long that may take. Colours are turned off and
 // stripped either way: GitHub Actions turns them on, and they split the "Local:" the wait looks for.
 // `node test/vite.mjs --warm` starts one, asks for the app once so Vite pre-bundles its dependencies into
@@ -9,6 +9,8 @@ import { fileURLToPath } from 'node:url'
 
 export const stageRoot = fileURLToPath(new URL('..', import.meta.url))
 export const viteTimeout = Number(process.env.STAGE_TEST_VITE_TIMEOUT) || 20000
+/** how long a check's page waits: its own figure, times STAGE_TEST_SLOW on a slower machine (CI sets 3) */
+export const testTimeout = (ms) => ms * (Number(process.env.STAGE_TEST_SLOW) || 1)
 
 export async function freePort() {
   const socket = createServer(); await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve))

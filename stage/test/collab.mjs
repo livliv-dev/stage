@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { createServer } from 'node:net'
 import { startRelay } from '../../collab/server.mjs'
-import { freePort, startVite } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'livliv-stage-collab-'))
 let server, browser, relay, output, stalled
 const stalledSockets = new Set()
@@ -63,7 +63,7 @@ try {
       window.RTCPeerConnection = class extends Peer { constructor(config) { super(config); window.testPeers.push(this); const i = window.testPeers.length; this.addEventListener('iceconnectionstatechange', () => window.rtcLog.push([i, 'ice', this.iceConnectionState])); this.addEventListener('connectionstatechange', () => window.rtcLog.push([i, 'connection', this.connectionState])); this.addEventListener('icecandidate', (e) => { if (e.candidate) window.rtcLog.push([i, 'candidate', e.candidate.candidate]) }) } }
     })
     await context.route('**/*', (route) => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) || /^(blob|data):/.test(route.request().url()) ? route.continue() : route.abort())
-    const page = await context.newPage(); pages.push(page); page.on('pageerror', (error) => errors.push(error.message)); page.setDefaultTimeout(20000)
+    const page = await context.newPage(); pages.push(page); page.on('pageerror', (error) => errors.push(error.message)); page.setDefaultTimeout(testTimeout(20000))
     await page.goto(origin, { waitUntil: 'networkidle' })
     await page.evaluate(async ({ format, index }) => {
       const { store, newCharacter, emptyScene, localModels } = await import('/src/scene.ts')
