@@ -52,9 +52,10 @@ jobs:
             suites: browser settings ux shots projects mixer profiles
           - name: live
             suites: audience props gamepad live collab collab-pose
-          # every way a session starts, compared with its recorded behaviour (test/traces)
+          # every way a session starts, compared with its recorded behaviour (test/traces), and the persona prompts
+          # word for word (test/prompts)
           - name: traces
-            suites: traces
+            suites: traces prompts
     defaults:
       run:
         working-directory: stage

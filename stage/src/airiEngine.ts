@@ -45,7 +45,8 @@ type Turn = {
   verifyMemory(): Promise<void>
 }
 
-function identity(actor: CharacterItem, language: Talk['language'], scope: MemoryScope) {
+/** who the character is, as AIRI's runtime is told (test/prompts.mjs pins it word for word) */
+export function identity(actor: CharacterItem, language: Talk['language'], scope: MemoryScope) {
   const languageRule = language === 'auto' ? 'Reply in the language of the latest speaker.' : {
     zh: 'Reply in Simplified Chinese.',
     en: 'Reply in English.',

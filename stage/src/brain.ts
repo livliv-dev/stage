@@ -264,7 +264,8 @@ const SAID = { en: '英文', ja: '日语' } as const
 /** a card says the name it was written with; the character may have been renamed since */
 export const named = (c: CharacterItem, t: string) => (c.cardName && c.cardName !== c.name ? t.replaceAll(c.cardName, c.name) : t)
 
-function prompt(a: Ask) {
+/** the prompt for this line (test/prompts.mjs pins it word for word) */
+export function prompt(a: Ask) {
   // the others in a line each: their whole cards would be most of the prompt
   const others = a.others.map((o) => { const about = o.tagline ?? o.persona.slice(0, 60); return `「${o.name}」${about ? `：${about}` : ''}` })
   const people = [...others, ...a.humans.map((h) => `「${h}」：真人`)]

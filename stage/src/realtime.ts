@@ -50,7 +50,8 @@ const set = (update: Partial<State>) => { state = { ...state, ...update }; liste
 export const realtimeState = () => state
 export const useRealtime = () => useSyncExternalStore((listener) => { listeners.add(listener); return () => { listeners.delete(listener) } }, realtimeState)
 
-function instructions(character: CharacterItem) {
+/** what the call is told (test/prompts.mjs pins it word for word) */
+export function instructions(character: CharacterItem) {
   const scene = store.get(), language = { auto: '跟随用户当前说话的语言。', zh: '使用中文。', en: 'Speak English.', ja: '日本語で話してください。' }[scene.talk.language]
   return [
     `你在实时语音通话中扮演「${character.name}」，正在和操作者交谈。`,
