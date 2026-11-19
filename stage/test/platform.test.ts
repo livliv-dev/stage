@@ -5,35 +5,56 @@ import { detectFeatures, features } from '../src/core/platform'
 const bridge = (offers: Record<string, unknown> = {}) => ({ version: '0.5.0', platform: 'darwin', hotkeys: {}, requests: {}, onCommand: () => () => {}, ...offers }) as never
 const full = bridge({ vision: {}, airiGame: {}, neuro: {}, tracking: {}, onMotion: () => () => {} })
 
-test('livliv.ai/stage: the site build, LivLiv points, no 联播 and nothing of the desktop app', () => {
-  assert.deepEqual(detectFeatures({ siteBuild: true, appScheme: false, bridge: undefined, hasBridge: false }), {
-    host: 'site', desktopConsole: false, airi: false, vision: false, games: false, collab: false, neuro: false, points: true, globalHotkeys: false, tracking: false, appScheme: false,
-  })
+// Before this object, each place asked on its own: onSite (the site build), inApp() (the app's scheme or its bridge in
+// the page), `desktop` (the bridge), desktop?.vision, inClient (the app's scheme). These are the answers they gave.
+const old = (from: { siteBuild: boolean; appScheme: boolean; bridge: { vision?: unknown; airiGame?: unknown; tracking?: unknown; onMotion?: unknown } | undefined; hasBridge: boolean }) => {
+  const onSite = from.siteBuild, inApp = from.appScheme || from.hasBridge, desktop = !!from.bridge
+  return {
+    site: onSite, shell: inApp, bridgeChecks: desktop, points: onSite || inApp, collab: !onSite, desktopConsole: !!from.bridge?.vision, airi: !!from.bridge?.vision,
+    games: !!from.bridge?.airiGame, tracking: !!from.bridge?.tracking && !!from.bridge?.onMotion, globalHotkeys: desktop, appScheme: from.appScheme,
+  }
+}
+const now = (f: ReturnType<typeof detectFeatures>) => ({
+  site: f.host === 'site', shell: f.shell, bridgeChecks: f.shell, points: f.points, collab: f.collab, desktopConsole: f.desktopConsole, airi: f.airi,
+  games: f.games, tracking: f.tracking, globalHotkeys: f.globalHotkeys, appScheme: f.appScheme,
 })
 
-test('the desktop app, served over its own scheme: everything its bridge offers, model APIs through the app', () => {
-  assert.deepEqual(detectFeatures({ siteBuild: false, appScheme: true, bridge: full, hasBridge: true }), {
-    host: 'desktop', desktopConsole: true, airi: true, vision: true, games: true, collab: true, neuro: true, points: true, globalHotkeys: true, tracking: true, appScheme: true,
+const HOSTS = {
+  'a copy hosted anywhere else (the dev server, your own)': { siteBuild: false, appScheme: false, bridge: undefined, hasBridge: false },
+  'livliv.ai/stage in a browser': { siteBuild: true, appScheme: false, bridge: undefined, hasBridge: false },
+  'livliv.ai/stage inside the desktop shell (its bridge without the editor\'s parts)': { siteBuild: true, appScheme: false, bridge: bridge(), hasBridge: true },
+  'the desktop app\'s Stage, over its own scheme': { siteBuild: false, appScheme: true, bridge: full, hasBridge: true },
+  'a page given the full bridge (the desktop checks)': { siteBuild: false, appScheme: false, bridge: full, hasBridge: true },
+  'a desktop bridge without window capture': { siteBuild: false, appScheme: false, bridge: bridge(), hasBridge: true },
+}
+
+for (const [where, from] of Object.entries(HOSTS)) {
+  test(`${where}: every check answers as it did`, () => {
+    assert.deepEqual(now(detectFeatures(from)), old(from))
   })
+}
+
+test('the host each one is', () => {
+  const host = (where: keyof typeof HOSTS) => detectFeatures(HOSTS[where]).host
+  assert.equal(host('a copy hosted anywhere else (the dev server, your own)'), 'selfhosted')
+  assert.equal(host('livliv.ai/stage in a browser'), 'site')
+  assert.equal(host('livliv.ai/stage inside the desktop shell (its bridge without the editor\'s parts)'), 'site')
+  assert.equal(host('the desktop app\'s Stage, over its own scheme'), 'desktop')
+  assert.equal(host('a page given the full bridge (the desktop checks)'), 'desktop')
 })
 
-test('a page given the desktop bridge (the desktop checks): the desktop app, requests straight', () => {
-  const f = detectFeatures({ siteBuild: false, appScheme: false, bridge: full, hasBridge: true })
-  assert.equal(f.host, 'desktop'); assert.equal(f.appScheme, false); assert.equal(f.points, true); assert.equal(f.airi, true)
+test('the site inside the desktop shell: the site\'s sign-in and services, the shell\'s contexts and output windows', () => {
+  const f = detectFeatures(HOSTS['livliv.ai/stage inside the desktop shell (its bridge without the editor\'s parts)'])
+  assert.equal(f.host, 'site'); assert.equal(f.shell, true); assert.equal(f.collab, false); assert.equal(f.points, true)
+  assert.equal(f.desktopConsole, false); assert.equal(f.airi, false); assert.equal(f.appScheme, false)
 })
 
 test('a desktop bridge without window capture keeps the web console and AIRI off', () => {
-  const f = detectFeatures({ siteBuild: false, appScheme: false, bridge: bridge(), hasBridge: true })
-  assert.equal(f.host, 'desktop'); assert.equal(f.desktopConsole, false); assert.equal(f.airi, false); assert.equal(f.games, false)
+  const f = detectFeatures(HOSTS['a desktop bridge without window capture'])
+  assert.equal(f.desktopConsole, false); assert.equal(f.airi, false); assert.equal(f.games, false)
   assert.equal(f.globalHotkeys, true); assert.equal(f.tracking, false, 'tracking needs both the settings and the motion feed')
 })
 
-test('a copy hosted anywhere else: all the web, no LivLiv account, no desktop', () => {
-  assert.deepEqual(detectFeatures({ siteBuild: false, appScheme: false, bridge: undefined, hasBridge: false }), {
-    host: 'selfhosted', desktopConsole: false, airi: false, vision: false, games: false, collab: true, neuro: false, points: false, globalHotkeys: false, tracking: false, appScheme: false,
-  })
-})
-
 test('outside a page (these tests), Stage reads as a copy hosted elsewhere', () => {
-  assert.equal(features.host, 'selfhosted')
+  assert.equal(features.host, 'selfhosted'); assert.equal(features.shell, false)
 })

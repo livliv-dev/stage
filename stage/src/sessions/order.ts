@@ -15,7 +15,7 @@ export type Speaker = Pick<CharacterItem, 'id' | 'name' | 'lines' | 'chatty' | '
 export type Turns = { lines: Pick<Line, 'who' | 'to'>[]; lastTurn: string | null; skipped: string | null; forced: string | null }
 
 /** where a character is, left to right */
-const across = (c: Speaker) => c.x + c.w / 2
+export const across = (c: Speaker) => c.x + c.w / 2
 
 /** how many lines since `c` last spoke (all of them, and one more, if never) */
 export function quiet(c: Speaker, lines: Pick<Line, 'who'>[]) {

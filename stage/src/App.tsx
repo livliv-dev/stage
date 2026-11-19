@@ -588,7 +588,7 @@ function CrowdNotice({ insets }: { insets: Insets }) {
   if (!scene.items.some((i) => i.kind === 'character' && !i.hidden && crowded.has(i.id))) return null
   return (
     <div className="crowd-notice" role="status" style={{ left: insets.left + 16, right: insets.right + 16 }}>
-      <p><CircleAlert size={15} />{features.host === 'desktop'
+      <p><CircleAlert size={15} />{features.shell
         ? tr("舞台上的角色太多，显示不过来。桌面版大约 {0} 个能正常显示。请隐藏或移除一些角色。", ROOM)
         : tr("舞台上的角色太多，这个浏览器显示不过来。浏览器里大约 {0} 个能正常显示，桌面版可以更多。请隐藏或移除一些角色。", ROOM)}</p>
     </div>

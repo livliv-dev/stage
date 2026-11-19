@@ -35,7 +35,7 @@ import { onRecording, recording } from './recording'
 import { onRoom, roomState } from './collab/session'
 import { chatLimits, counted, deadline, GenerationLimit, LIVE_FAILURES, lineLimit, liveLimits, RETRY_SECONDS, spend, spent, turnLimit as linesFor, type LiveOptions } from './sessions/budget'
 import { checkMemory, memoryIdsOf, memoryUnchanged } from './sessions/memoryGate'
-import { freePick as pickFree, nextSpeaker as speakerAfter } from './sessions/order'
+import { across, freePick as pickFree, nextSpeaker as speakerAfter } from './sessions/order'
 import { outputsOn, publicSwitch, scopeFor } from './sessions/scope'
 import { sleep, untilFree, waitWhile, Wake } from './sessions/wake'
 
@@ -277,8 +277,6 @@ function preferredAiriForChat(config: ReturnType<typeof loadBrainConfig>, target
 const ready = (c: CharacterItem) => actors.get(c.id)?.status === 'ready'
 const voices = () => participants(store.get()).filter((c) => (c.lines === 'ai' && ready(c)) || c.lines === 'me')
 export const played = () => participants(store.get()).filter((c) => c.lines === 'me')
-/** where a character is, left to right */
-const across = (c: CharacterItem) => c.x + c.w / 2
 
 /** one of `pool`, the chattier and the longer quiet the likelier (sessions/order.ts) */
 const freePick = (pool: CharacterItem[]) => pickFree(pool, state.lines)

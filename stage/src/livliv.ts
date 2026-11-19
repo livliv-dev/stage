@@ -60,7 +60,7 @@ const post = (url: string, body: unknown, signal?: AbortSignal) =>
 let refreshVersion = 0
 export async function refresh() {
   const version = ++refreshVersion, session = token()
-  if (features.host === 'desktop' && !token()) { set({ status: 'out', email: '', points: 0 }); return }  // no account here: LivLiv isn't asked
+  if (features.shell && !token()) { set({ status: 'out', email: '', points: 0 }); return }  // no account here: LivLiv isn't asked
   try {
     const me = await answer(await api('/api/me'))
     if (version !== refreshVersion || token() !== session) return
@@ -92,7 +92,7 @@ export async function checkConnect() {
 }
 /** a session kept from an earlier sign-in (the desktop app), before the site has said whether it still holds */
 export const hasSession = () => !!token()
-const device = () => (features.host !== 'desktop' ? tr("浏览器") : /Mac/i.test(navigator.platform) ? 'Mac' : /Win/i.test(navigator.platform) ? 'Windows' : /Linux/i.test(navigator.platform) ? 'Linux' : tr("浏览器"))
+const device = () => (!features.shell ? tr("浏览器") : /Mac/i.test(navigator.platform) ? 'Mac' : /Win/i.test(navigator.platform) ? 'Windows' : /Linux/i.test(navigator.platform) ? 'Linux' : tr("浏览器"))
 const sleep = (ms: number, signal: AbortSignal) => new Promise<void>((ok, no) => {
   const t = setTimeout(ok, ms)
   signal.addEventListener('abort', () => { clearTimeout(t); no(signal.reason) }, { once: true })

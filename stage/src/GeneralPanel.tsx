@@ -27,7 +27,7 @@ export function GeneralPanel({ onResetLayout }: { onResetLayout: () => void }) {
     <ResetPreferences onResetLayout={onResetLayout} />
     <section className="general-about">
       <h3>{tr("关于")}</h3>
-      <div className="about-brand"><img src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" /><span className="about-version num">v{__STAGE_VERSION__}{features.host !== 'desktop' && ` · ${tr("网页版")}`}</span></div>
+      <div className="about-brand"><img src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" /><span className="about-version num">v{__STAGE_VERSION__}{!features.shell && ` · ${tr("网页版")}`}</span></div>
       <p>{tr("面捕出镜、AI 互动和朋友同台。")}</p>
       <span className="about-player">{tr("由 LivLiv Player 驱动")}</span>
       <p className="about-legal">© LivLiv (livliv.ai)<br />{tr("代码采用 Apache 2.0 许可，精选角色另有自己的许可。")}</p>

@@ -4,28 +4,32 @@
 //    with the site's own cookie; only AI services a web page can call straight; no 联播 (its relay runs on your own
 //    computer); recordings follow the visitor's LivLiv plan
 //  - desktop: the desktop app (served over its own livliv-stage:// scheme, or any page its bridge was given to, as the
-//    desktop checks do): LivLiv by a connect code, and what its bridge offers (window capture, AIRI's games, Neuro,
-//    phone tracking, global hotkeys)
+//    desktop checks do): LivLiv by a connect code, and what its bridge offers (window capture, AIRI's games, phone
+//    tracking, global hotkeys)
 //  - selfhosted: anywhere else (the dev server, a copy you host yourself): all of Stage's web features, no LivLiv account
+// The desktop shell also opens livliv.ai itself, whose pages get its bridge too: the site build there is host 'site'
+// with `shell` set, and goes by the shell wherever the bridge's presence decides (`shell`).
 import type { Desktop } from '../desktopBridge'
 
 export type Host = 'site' | 'desktop' | 'selfhosted'
 export type Features = {
   host: Host
+  /** inside the desktop shell: its bridge is there (or the page came over its scheme), whichever build this is. What the
+   *  shell itself gives goes by this: more WebGL contexts, a transparent background for 开播, output windows that keep
+   *  drawing when covered, a sign-in kept by a connect code */
+  shell: boolean
   /** the desktop app's console, since AIRI came: 直播 in the top bar instead of 观众弹幕, chat with the one AI
    *  character as the main start, typing starts 持续聊天, the memory panel by the scope chosen. A web page, and a
-   *  desktop bridge without window capture, keep the web console */
+   *  desktop bridge without window capture, keep the web console. The same condition as `airi` today: phase 3a gives
+   *  the web and the desktop one console, while AIRI stays the desktop's */
   desktopConsole: boolean
-  /** a session can run on AIRI (Project AIRI, built in): a desktop build with window capture */
+  /** a session can run on AIRI (Project AIRI, built in): a desktop build with window capture, which AIRI needs to see a
+   *  game or app window */
   airi: boolean
-  /** a game or app window can be shown to the model (AIRI) */
-  vision: boolean
   /** AIRI's game connections (Minecraft by Airicraft, Factorio by Autorio) */
   games: boolean
   /** 联播 (a friend's character on your stage): anywhere but the site */
   collab: boolean
-  /** the Neuro game API the desktop app serves */
-  neuro: boolean
   /** LivLiv's points model and voices: the site (its sign-in) and the desktop app (a connect code); a copy hosted
    *  elsewhere has no LivLiv account */
   points: boolean
@@ -45,12 +49,11 @@ export function detectFeatures(from: { siteBuild: boolean; appScheme: boolean; b
   const host: Host = siteBuild ? 'site' : appScheme || from.hasBridge ? 'desktop' : 'selfhosted'
   return {
     host,
+    shell: appScheme || from.hasBridge,
     desktopConsole: !!bridge?.vision,
     airi: !!bridge?.vision,
-    vision: !!bridge?.vision,
     games: !!bridge?.airiGame,
     collab: host !== 'site',
-    neuro: !!bridge?.neuro,
     points: host !== 'selfhosted',
     globalHotkeys: !!bridge,
     tracking: !!bridge?.tracking && !!bridge.onMotion,

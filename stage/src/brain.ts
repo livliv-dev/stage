@@ -81,7 +81,7 @@ function load(): ModelConfig | LivLivConfig {
   // nothing chosen yet: on livliv.ai, LivLiv (the site's own, by its sign-in: someone signed in goes straight to AI
   // live); in the desktop app LivLiv too when it keeps a sign-in (else as below, until one: see the end of this file);
   // elsewhere a model of one's own still to be set up
-  return features.host === 'site' || (features.host === 'desktop' && hasSession()) ? { kind: 'livliv' } : UNSET
+  return features.host === 'site' || (features.shell && hasSession()) ? { kind: 'livliv' } : UNSET
 }
 const chosen = () => { try { return !!localStorage.getItem(KEY) } catch { return false } }
 /** the model set up (saved), and what the AI characters think with now: it, or the demo */
@@ -100,7 +100,7 @@ export function saveBrainConfig(c: ModelConfig | LivLivConfig) {
 // the desktop app: signing in (with a connect code) while nothing has been chosen yet makes LivLiv the AI's model, as
 // it is from the start for someone who comes back signed in
 onAccount(() => {
-  if (features.host !== 'desktop' || !signedIn() || chosen() || saved.kind !== 'openai' || saved.provider) return
+  if (!features.shell || !signedIn() || chosen() || saved.kind !== 'openai' || saved.provider) return
   const c: LivLivConfig = { kind: 'livliv' }
   if (config === saved) config = c
   saved = c
