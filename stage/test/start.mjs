@@ -120,6 +120,31 @@ try {
   await page.locator('.start-modes summary').click()
   assert.deepEqual(await page.locator('.start-mode-options button b').allInnerTexts(), ['AI 直播', '持续聊天'])
 
+  // the demo's end: 用你的模型重来一遍 opens the model card on the models; saving brings back the same three, ready to start
+  await page.locator('.topbar').getByRole('button', { name: '模板' }).click()
+  await page.locator('.topbar .dropdown .item').filter({ hasText: '空白舞台' }).click()
+  await page.waitForFunction(() => window.__stage.store.get().name === '未命名舞台')
+  await page.locator('.welcome-demo').click()
+  await page.waitForFunction(() => window.__stage.conversation().turns === 6 && !window.__stage.conversation().running, null, { timeout: 120000 })
+  const demoCast = await page.evaluate(() => window.__stage.store.get().items.filter((i) => i.kind === 'character').map((c) => c.id))
+  await page.locator('.console').getByRole('button', { name: '再看一次', exact: true }).waitFor()
+  await page.screenshot({ path: join(artifacts, 'demo-end.png') })
+  await page.locator('.console').getByRole('button', { name: '用你的模型重来一遍', exact: true }).click()
+  await page.locator('.card.model').waitFor()
+  assert.equal(await page.locator('.card.model .providers .demo.on').count(), 0, 'the card opens on the models, not on the demo')
+  await page.locator('.card.model .providers').getByRole('button', { name: '其他', exact: true }).click()
+  await page.locator('.card.model').getByPlaceholder('https://…/v1').fill(`http://127.0.0.1:${port}/fixture-ai`)
+  await page.locator('.card.model input[type="password"]').fill('test-only')
+  await page.locator('.card.model').getByPlaceholder('模型名').fill('fixture-model')
+  await page.locator('.card.model').getByRole('button', { name: '保存', exact: true }).click()
+  await page.locator('.card.model').waitFor({ state: 'detached' })
+  assert.equal(await page.evaluate(async () => (await import('/src/brain.ts')).loadBrainConfig().kind), 'openai')
+  assert.deepEqual(await page.evaluate(() => window.__stage.store.get().items.filter((i) => i.kind === 'character').map((c) => c.id)), demoCast, 'the same characters stay')
+  assert.equal((await main.innerText()).trim(), '开始对谈', 'ready to start the three with the model just saved')
+  assert.equal((await conv()).running, false)
+  await main.click(); assert.equal(await started(), 'conversation'); await stop()
+  report.demoOwnModel = 'demo end → 用你的模型重来一遍 → model card on the models → 保存 → the same three, main button 开始对谈'
+
   await page.screenshot({ path: join(artifacts, 'start.png') })
   assert.deepEqual(errors, [])
   report.modelCalls = calls.length

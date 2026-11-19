@@ -188,6 +188,10 @@ export default function App() {
   // Choose the model before asking for a particular provider's account.
   const conv = useConversation()
   const [forStart, setForStart] = useState(false)
+  // the model card opened to go from the demo to a model of one's own: it opens on the models, not on the demo
+  const [ownModel, setOwnModel] = useState(false)
+  const openOwnModel = () => { setForStart(false); setOwnModel(true); setPop('model') }
+  useEffect(() => { if (pop !== 'model') setOwnModel(false) }, [pop])
   useEffect(() => {
     if (!conv.needModel) return
     talk.modelAsked(); store.setMode('edit'); openModels('chat', conv.modelIntent !== 'input')
@@ -235,17 +239,17 @@ export default function App() {
           onCharacter={() => { setWelcome(false); setPop('add') }} />}
         {!leftFolded && <Cast guide={goLive ? <GoLiveGuide id={goLive} onClose={() => setGoLive(null)} /> : coach && !welcome && !pop && scene.items.length > 0 ? <Checklist
           done={() => { setCoach(false); try { localStorage.setItem(COACHED, '1') } catch { /* private mode */ } }}
-          onModel={() => { setForStart(false); setPop('model') }} onVoice={() => openModels('speech')}
+          onModel={openOwnModel} onVoice={() => openModels('speech')}
           onCharacter={() => { setBare(false); store.select(characters(store.get())[0]?.id ?? null) }} onOutput={() => setPop('output')} /> : null} />}
         <TalkBar log={log} setLog={(on) => { setLog(on || logView === 'memory'); setLogView('history') }} onMemory={() => { setLogView('memory'); setLog(true) }} model={pop === 'model'} toggleModel={() => { setForStart(false); toggle('model') }}
-          rules={pop === 'talk'} toggleRules={() => toggle('talk')} onLive={() => toggle('live')} onRealtime={() => toggle('realtime')} />
+          rules={pop === 'talk'} toggleRules={() => toggle('talk')} onLive={() => toggle('live')} onRealtime={() => toggle('realtime')} onOwnModel={openOwnModel} />
         {pop === 'audience' && <AudiencePopover onClose={() => setPop(null)} />}
         {pop === 'mixer' && <MixerPanel onClose={() => setPop(null)} onSettings={() => openModels('speech')} />}
         {pop === 'collab' && <CollabPanel onClose={() => setPop(null)} onSettings={openSettings} />}
         {pop === 'live' && <LivePanel onClose={() => setPop(null)} onSettings={() => openModels('chat')} />}
         {pop === 'realtime' && <RealtimePanel onClose={() => setPop(null)} onSettings={() => openModels('realtime')} />}
         {pop === 'talk' && <TalkSettings onClose={() => setPop(null)} />}
-        {pop === 'model' && <ModelCard forStart={forStart} onClose={() => { setForStart(false); setPop(null) }} onAccount={openAccount} onContinue={continueAfterModel} onSettings={() => openModels('chat', forStart)} />}
+        {pop === 'model' && <ModelCard forStart={forStart} own={ownModel} onClose={() => { setForStart(false); setPop(null) }} onAccount={openAccount} onContinue={continueAfterModel} onSettings={() => openModels('chat', forStart)} />}
         {log && <Transcript view={logView} setView={setLogView} onClose={() => setLog(false)} right={bare ? 80 : 324} />}
         {pop === 'add' && <AddCharacter left={228} onClose={() => setPop(null)} onSignIn={() => { setSettingsTab('account'); setPop('settings') }} />}
         {pop === 'settings' && <><div className="scrim" onPointerDown={closeSettings} /><SettingsCard key={voiceSetup ?? 'settings'} forVoice={voiceSetup} initialTab={settingsTab} initialModel={settingsModel} forStart={forStart} onContinue={continueAfterModel} onResetLayout={resetLayout} onAdd={() => { setForStart(false); setPop('add') }} onClose={closeSettings} /></>}
@@ -607,7 +611,7 @@ function Cast({ guide }: { guide: ReactNode }) {
 /** three parts: what they talk about; running it; what you say */
 /** the console: the conversation (topic, start / pause, the model, next, stop, how far, its rules, the transcript) and,
  *  apart, what you say (as whom, the line, push to talk, send) */
-function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules, onLive, onRealtime }: { log: boolean; setLog: (on: boolean) => void; onMemory: () => void; model: boolean; toggleModel: () => void; rules: boolean; toggleRules: () => void; onLive: () => void; onRealtime: () => void }) {
+function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules, onLive, onRealtime, onOwnModel }: { log: boolean; setLog: (on: boolean) => void; onMemory: () => void; model: boolean; toggleModel: () => void; rules: boolean; toggleRules: () => void; onLive: () => void; onRealtime: () => void; onOwnModel: () => void }) {
   const { scene } = useScene()
   const conv = useConversation(), realtime = useRealtime(), brain = useBrainConfig(), demo = brain.kind === 'demo', main = mainStart(brain, scene)
   const inRealtime = conv.running && conv.mode === 'realtime'
@@ -647,7 +651,9 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
         <input className="topic" value={scene.topic} placeholder={tr("话题，比如：周末去哪儿玩")} aria-label={tr("话题")} onChange={(e) => store.set({ topic: e.target.value })} />
       </div>
       <div className="zone run">
-        {!conv.running && (main === 'replay' ? <button className="primary" onClick={() => startMain(main, onLive)}><Play size={14} />{tr('再看一次')}</button>
+        {!conv.running && (main === 'replay' ? <><button className="primary" onClick={() => startMain(main, onLive)}><Play size={14} />{tr('再看一次')}</button>
+          {/* after the demo: the same characters, with a model of one's own (the model card, then back here) */}
+          <button className="demo-own-model" aria-label={tr('用你的模型重来一遍')} title={tr('用你的模型重来一遍')} onClick={onOwnModel}><Bot size={14} /><span>{tr('用你的模型重来一遍')}</span></button></>
           : main === 'conversation' ? <button className="primary" onClick={() => startMain(main, onLive)}><Play size={14} />{tr('开始对谈')}</button>
           : main === 'live' ? <button className="primary" onClick={() => startMain(main, onLive)}><Bot size={14} />{tr('AI 直播')}</button>
           : <button className="primary start-chat" title={startLabel} onClick={() => startMain(main, onLive)}><MessagesSquare size={14} /><span>{startLabel}</span></button>)}
@@ -830,12 +836,13 @@ function Checklist({ done, onModel, onVoice, onCharacter, onOutput }: { done: ()
   const cs = characters(scene).filter((c) => !c.remote), ai = cs.some((c) => c.lines === 'ai')
   const [, redraw] = useState(0), [open, setOpen] = useState(false)
   useEffect(() => { const timer = setInterval(() => redraw((n) => n + 1), 500); return () => clearInterval(timer) }, [])
-  const model = brainReady(brain), sound = brain.kind === 'demo' || cs.filter((c) => c.lines === 'ai').every((c) => voiceRoute(c, speech) !== 'none')
+  // watching the demo finishes none of it: it is no model of one's own, and its lines are no conversation of one's own
+  const model = brain.kind !== 'demo' && brainReady(brain), sound = cs.filter((c) => c.lines === 'ai').every((c) => voiceRoute(c, speech) !== 'none')
   const human = cs.find((c) => c.lines === 'me'), actor = human && actors.get(human.id)
   const steps = ai ? [
     { ok: cs.length > 0 && cs.every((c) => actors.get(c.id)?.status === 'ready'), title: tr('选择角色'), how: tr('点选角色，查看它的设置'), run: onCharacter },
     { ok: model && sound, title: tr('连接模型与声音'), how: model ? tr('先听听角色的声音') : tr('填一份密钥，开始真实对话'), run: model ? onVoice : onModel },
-    { ok: conv.lines.length > 0, title: tr('开始对话'), how: tr('让角色先聊几句'), run: talk.start },
+    { ok: conv.lines.some((line) => line.demo === undefined), title: tr('开始对话'), how: tr('让角色先聊几句'), run: talk.start },
   ] : [
     { ok: cs.length > 0 && cs.every((c) => actors.get(c.id)?.status === 'ready'), title: tr('选择角色'), how: tr('点选角色，查看它的设置'), run: onCharacter },
     { ok: !!actor?.canCalibrate && actor.calibratedAt > 0, title: tr('校准正面'), how: tr('看向镜头，保持自然表情'), run: () => { if (actor?.canCalibrate) actor.calibrate(); else onCharacter() } },
@@ -993,11 +1000,12 @@ function ModelButton({ on, onClick }: { on: boolean; onClick: () => void }) {
 }
 
 /** where the AI characters' lines come from: your own model (a preset, or any OpenAI-compatible API), LivLiv's points
- *  on livliv.ai, or the demo (one more option in the row). onPick: what is chosen now, saved or not */
-function ModelForm({ forStart, done, demoDone, onPick, onAccount, onContinue }: { forStart?: boolean; done?: () => void; demoDone?: () => void; onPick?: (kind: 'demo' | 'livliv' | 'openai') => void; onAccount: () => void; onContinue?: () => void }) {
+ *  on livliv.ai, or the demo (one more option in the row). onPick: what is chosen now, saved or not. own: opened to
+ *  leave the demo, so the demo isn't the one chosen */
+function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, onContinue }: { forStart?: boolean; own?: boolean; done?: () => void; demoDone?: () => void; onPick?: (kind: 'demo' | 'livliv' | 'openai') => void; onAccount: () => void; onContinue?: () => void }) {
   const cur = useBrainConfig(), { scene } = useScene()
   const demoAvailable = demoFor(participants(scene))?.script.template === 'trio'
-  const [demo, setDemo] = useState(cur.kind === 'demo')
+  const [demo, setDemo] = useState(!own && cur.kind === 'demo')
   // livliv.ai/stage: LivLiv's points instead of a key of one's own (the site writes and voices the lines)
   // LivLiv's points (the site writes and voices the lines): on livliv.ai/stage and in the desktop app
   const [points, setPoints] = useState(livlivHere() && (cur.kind === 'livliv' || !previousModelConfig().provider || (cur.kind === 'demo' && savedBrain().kind === 'livliv')))
@@ -1165,11 +1173,11 @@ function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; onDone: (
 }
 
 /** the model card over the console */
-function ModelCard({ forStart, onClose, onAccount, onContinue, onSettings }: { forStart: boolean; onClose: () => void; onAccount: () => void; onContinue: () => void; onSettings: () => void }) {
+function ModelCard({ forStart, own, onClose, onAccount, onContinue, onSettings }: { forStart: boolean; own?: boolean; onClose: () => void; onAccount: () => void; onContinue: () => void; onSettings: () => void }) {
   return (
     <div className="card popover model" onPointerDown={(e) => e.stopPropagation()}>
       <header><span className="title">{tr("AI 模型")}</span><button className="icon" data-close="true" aria-label={tr("关闭")} onClick={onClose}><X size={16} /></button></header>
-      <ModelForm forStart={forStart} done={onClose} onAccount={onAccount} onContinue={onContinue} />
+      <ModelForm forStart={forStart} own={own} done={onClose} onAccount={onAccount} onContinue={onContinue} />
       <button className="link model-settings-link" onClick={onSettings}><Settings size={13} />{tr('设置模型与声音')}</button>
     </div>
   )

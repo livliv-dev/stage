@@ -4797,6 +4797,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "Close other Stage windows to update conversation storage": {"zh-Hans": "请关闭其他 Stage 窗口以更新对话存储", "zh-Hant": "請關閉其他 Stage 視窗以更新對話儲存空間", "en": "Close other Stage windows to update conversation storage", "ja": "会話の保存領域を更新するには、他の Stage ウィンドウを閉じてください"},
   "Conversation storage transaction was aborted": {"zh-Hans": "对话保存操作已中止", "zh-Hant": "對話儲存作業已中止", "en": "Conversation storage transaction was aborted", "ja": "会話の保存処理が中止されました"},
   "聊天原文仍保留，可在对话记录中单独删除。": {"zh-Hans": "聊天原文仍保留，可在对话记录中单独删除。", "zh-Hant": "聊天原文仍保留，可在對話記錄中單獨刪除。", "en": "The original chat stays in the transcript. You can delete it there.", "ja": "元の会話は履歴に残ります。履歴から個別に削除できます。"},
+  "用你的模型重来一遍": {"zh-Hans": "用你的模型重来一遍", "zh-Hant": "用你的模型重來一遍", "en": "Run it with your own model", "ja": "自分のモデルでもう一度"},
   "持续聊天": {"zh-Hans": "持续聊天", "zh-Hant": "持續聊天", "en": "Continuous chat", "ja": "会話を続ける"},
   "私聊": {"zh-Hans": "私聊", "zh-Hant": "私聊", "en": "Private chat", "ja": "プライベート会話"},
   "公开互动": {"zh-Hans": "公开互动", "zh-Hant": "公開互動", "en": "Public interaction", "ja": "公開会話"},
