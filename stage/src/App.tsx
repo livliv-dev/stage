@@ -27,9 +27,9 @@ import { useRealtime } from './realtime'
 import { HotkeysPanel } from './HotkeysPanel'
 import { CollabPanel } from './CollabPanel'
 import { useRoom } from './collab/session'
-import { connectDesktop, desktop } from './desktop'
+import { connectDesktop } from './desktop'
 import { ROOM, useCrowded } from './contexts'
-import { ageGate, cancelConnect, checkConnect, livlivHere, openConnect, refresh, setAge, useAccount } from './livliv'
+import { ageGate, cancelConnect, checkConnect, openConnect, refresh, setAge, useAccount } from './livliv'
 import { rec, takeLimit, useRecording } from './recording'
 import { cancel as pttCancel, clearError as pttClear, holdKey, press as pttPress, release as pttRelease, setHandsFree, usePtt } from './ptt'
 import { activeSpeech, asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, useActiveSpeech, transcribeApi, useSpeech, voiceRoute, type SpeechApi } from './voiceApi'
@@ -51,7 +51,8 @@ import { ScenesMenu } from './ScenesMenu'
 import { GeneralPanel } from './GeneralPanel'
 import { SidebarToggle } from './SidebarToggle'
 import { tr, getLocale, useLocale } from './i18n'
-import { onSite, small } from './host'
+import { small } from './host'
+import { features } from './core/platform'
 import { linkedAs, linkedId, openLinked } from './entry'
 import { PhoneIntro, SiteWelcome } from './SiteIntro'
 import { connectLiveKeys, liveCharacter } from './live'
@@ -143,8 +144,8 @@ export default function App() {
   const [coach, setCoach] = useState(() => !coached())
   // livliv.ai/stage: a phone gets the demo to watch; a computer's first visit gets the demo's three on the stage and a
   // welcome with the ways in (none for a link to a character, which opens that one instead)
-  const phone = onSite && small()
-  const [welcome, setWelcome] = useState(() => onSite && !phone && !hadSaved && !linkedId())
+  const phone = features.host === 'site' && small()
+  const [welcome, setWelcome] = useState(() => features.host === 'site' && !phone && !hadSaved && !linkedId())
   // the site's 开播 (?c=<id>&as=face): its card, where the first-visit checklist goes
   const [goLive, setGoLive] = useState<string | null>(null)
   const toggle = (p: Pop) => { if (p === 'settings') { setForStart(false); setSettingsTab('general') } setPop((x) => (x === p ? null : p)) }
@@ -170,7 +171,7 @@ export default function App() {
     ageAsk?.(adult); setAgeAsk(null)
   }
   useEffect(() => {
-    if (onSite && (phone || (!hadSaved && !linkedId()))) void ensureTrio().then(() => { store.select(null); if (phone) store.setMode('show') }, () => {})
+    if (features.host === 'site' && (phone || (!hadSaved && !linkedId()))) void ensureTrio().then(() => { store.select(null); if (phone) store.setMode('show') }, () => {})
     const id = linkedId(), as = linkedAs()
     if (id && !phone) void openLinked(id, as).then(({ note, character }) => {
       if (note) say(note)
@@ -179,7 +180,7 @@ export default function App() {
     })
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
   // on the site, signing in or out happens on its own pages, maybe in another tab: asked again when this one is back
-  useEffect(() => { if (!onSite) return; const again = () => void refresh(); addEventListener('focus', again); return () => removeEventListener('focus', again) }, [])
+  useEffect(() => { if (!(features.host === 'site')) return; const again = () => void refresh(); addEventListener('focus', again); return () => removeEventListener('focus', again) }, [])
   useEffect(() => { if (phone && mode !== 'show') store.setMode('show') }, [phone, mode])
   useEffect(connectDesktop, [])
   useEffect(() => connectNeuro({ event: talk.externalEvent, dialogue: talk.externalDialogue, decide: talk.decideExternalAction, subscribeSpeech: talk.onSpeech }), [])
@@ -370,7 +371,7 @@ function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) =
         <button onClick={() => store.setMode('show')} title={tr("只留画面（Esc 回来）")} aria-label={tr("预览")}><Play size={13} /><span className="mode-label">{tr("预览")}</span></button>
       </div>
       <div className="right">
-        {desktop?.vision && <button className={'stream-entry' + (pop === 'live' ? ' on' : '')} aria-expanded={pop === 'live'}
+        {features.desktopConsole && <button className={'stream-entry' + (pop === 'live' ? ' on' : '')} aria-expanded={pop === 'live'}
           title={tr('游戏直播与观众弹幕')} onClick={() => toggle('live')}><Radio size={16} />{tr('直播')}{conv.running && conv.mode === 'live' && <i className="live-dot on" />}</button>}
         <button className="icon" title={tr("撤销（⌘Z）")} disabled={!canUndo} onClick={store.undo}><Undo2 size={16} /></button>
         <button className="icon" title={tr("重做（⇧⌘Z）")} disabled={!canRedo} onClick={store.redo}><Redo2 size={16} /></button>
@@ -383,8 +384,8 @@ function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) =
             </div>
           )}
         </div>
-        {!onSite && <button className={pop === 'collab' ? 'on collab-button' : 'collab-button'} onClick={() => toggle('collab')}><UserPlus size={15} />{tr("联播")}{collab.phase === 'on' && <i className="live-dot on" />}{collab.pending.length > 0 && <span className="room-count">{collab.pending.length}</span>}</button>}
-        {!desktop?.vision && <button className={pop === 'audience' ? 'icon on' : 'icon'} title={tr('观众弹幕')} onClick={() => toggle('audience')}><MessagesSquare size={16} /></button>}
+        {features.collab && <button className={pop === 'collab' ? 'on collab-button' : 'collab-button'} onClick={() => toggle('collab')}><UserPlus size={15} />{tr("联播")}{collab.phase === 'on' && <i className="live-dot on" />}{collab.pending.length > 0 && <span className="room-count">{collab.pending.length}</span>}</button>}
+        {!features.desktopConsole && <button className={pop === 'audience' ? 'icon on' : 'icon'} title={tr('观众弹幕')} onClick={() => toggle('audience')}><MessagesSquare size={16} /></button>}
         <button className={pop === 'mixer' ? 'icon on' : 'icon'} title={tr('调音台')} onClick={() => toggle('mixer')}><Volume2 size={16} /></button>
         <RecordButton on={pop === 'record'} toggle={() => toggle('record')} />
         <button className="primary output-button" onClick={() => toggle('output')}><MonitorPlay size={15} />{tr("输出到 OBS")}</button>
@@ -453,7 +454,7 @@ function AddCharacter({ left, onClose, onSignIn }: { left: number; onClose: () =
   useEffect(() => { void kept().then(setMine) }, [])
   // on livliv.ai/stage, signed in: the account's own characters, to pick instead of typing an id
   const [own, setOwn] = useState<Pick[] | null>(null)
-  useEffect(() => { if (onSite && signed) void accountCharacters().then(setOwn, (e: Error) => setErr(e.message)) }, [signed])
+  useEffect(() => { if (features.host === 'site' && signed) void accountCharacters().then(setOwn, (e: Error) => setErr(e.message)) }, [signed])
   const take = (p: Pick) => { place(p); onClose() }
   const files = async (f: FileList | File[] | null) => {
     if (!f?.length) return
@@ -585,7 +586,7 @@ function CrowdNotice({ insets }: { insets: Insets }) {
   if (!scene.items.some((i) => i.kind === 'character' && !i.hidden && crowded.has(i.id))) return null
   return (
     <div className="crowd-notice" role="status" style={{ left: insets.left + 16, right: insets.right + 16 }}>
-      <p><CircleAlert size={15} />{desktop
+      <p><CircleAlert size={15} />{features.host === 'desktop'
         ? tr("舞台上的角色太多，显示不过来。桌面版大约 {0} 个能正常显示。请隐藏或移除一些角色。", ROOM)
         : tr("舞台上的角色太多，这个浏览器显示不过来。浏览器里大约 {0} 个能正常显示，桌面版可以更多。请隐藏或移除一些角色。", ROOM)}</p>
     </div>
@@ -652,7 +653,7 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
     : conv.waiting ? tr("轮到你了：以 {0} 说…", name ?? tr("旁白")) : name ? tr("以 {0} 说一句…", name) : tr("以旁白说一句…")
   const cast = participants(scene).filter((c) => c.lines === 'ai')
   if (!cast.length) return <SoloStatus />
-  const partner = desktop?.vision && !demo && cast.length === 1 ? cast[0].name : ''
+  const partner = features.desktopConsole && !demo && cast.length === 1 ? cast[0].name : ''
   const startLabel = partner ? tr('和 {0} 聊天', partner) : tr('持续聊天')
   // the scope: the session's while one runs, else the one the next gets (public while an output is on)
   const scope = conv.running ? conv.scope : conv.output ? 'public' : conv.chatScope
@@ -670,11 +671,11 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
           : main === 'conversation' ? <button className="primary" onClick={() => startMain(main, onLive)}><Play size={14} />{tr('开始对谈')}</button>
           : main === 'live' ? <button className="primary" onClick={() => startMain(main, onLive)}><Bot size={14} />{tr('AI 直播')}</button>
           : <button className="primary start-chat" title={startLabel} onClick={() => startMain(main, onLive)}><MessagesSquare size={14} /><span>{startLabel}</span></button>)}
-        {!desktop?.vision && <button className="realtime-toggle" aria-label={tr('实时语音')} title={tr('实时语音')} onClick={onRealtime} disabled={conv.running && !inRealtime}><Mic size={14} /><span>{tr('实时语音')}</span></button>}
+        {!features.desktopConsole && <button className="realtime-toggle" aria-label={tr('实时语音')} title={tr('实时语音')} onClick={onRealtime} disabled={conv.running && !inRealtime}><Mic size={14} /><span>{tr('实时语音')}</span></button>}
         {!conv.running && <details ref={moreModes} className="start-modes" onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); moreModes.current!.open = false; moreModes.current?.querySelector('summary')?.focus() } }}>
           <summary>{tr('更多方式')}<ChevronDown size={13} /></summary>
           <div className="card start-mode-options">
-            {desktop?.vision
+            {features.desktopConsole
               ? <button onClick={() => { moreModes.current!.open = false; onRealtime() }}><Mic size={16} /><span><b>{tr('实时语音通话')}</b></span></button>
               : main !== 'live' && <button aria-label={tr('AI 直播')} onClick={() => { moreModes.current!.open = false; onLive() }}><Bot size={16} /><span><b>{tr('AI 直播')}</b><small>{tr('回应直播间的观众弹幕')}</small></span></button>}
             {/* the sessions the main button doesn't start (on the desktop AI 直播 is in the top bar) */}
@@ -689,7 +690,7 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
         <button className="icon" title={tr("停止")} disabled={!conv.running} onClick={() => { pttCancel(); talk.stop() }}><Square size={14} /></button>
         {conv.mode === 'chat' ? conv.running && partner && <span className="chat-partner" title={tr('由 {0} 回应', partner)}>{tr('由 {0} 回应', partner)}</span>
           : conv.mode === 'realtime' ? inRealtime ? <button className="live-state" onClick={onRealtime}>{tr('语音通话中')}</button> : <span className="live-state">{tr('通话已结束')}</span>
-          : conv.mode === 'live' ? desktop?.vision ? <span className="live-state">{liveStatus}</span> : <button className="live-state" onClick={onLive}>{liveStatus}</button>
+          : conv.mode === 'live' ? features.desktopConsole ? <span className="live-state">{liveStatus}</span> : <button className="live-state" onClick={onLive}>{liveStatus}</button>
           : <TurnCount turns={conv.turns} limit={conv.limit} />}
         <button className={`icon${rules ? ' on' : ''}`} title={tr("对话设置：谁先说、抢话、语言、节奏、弹幕")} onClick={toggleRules}><SlidersHorizontal size={15} /></button>
         <button className={`icon${log ? ' on' : ''}`} title={tr("对话记录")} aria-label={tr("对话记录")} onClick={() => setLog(!log)}>
@@ -755,7 +756,7 @@ function Transcript({ view, setView, onClose, right }: { view: 'history' | 'memo
   const profileIds = cast.map((character) => character.profileId ?? character.id)
   const names = Object.fromEntries(cast.map((character) => [character.profileId ?? character.id, character.name]))
   const profilesKey = JSON.stringify([...profileIds].sort())
-  const panelScope = desktop?.vision && !conv.running && view === 'memory' && !source ? conv.chatScope : conv.scope
+  const panelScope = features.desktopConsole && !conv.running && view === 'memory' && !source ? conv.chatScope : conv.scope
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }) }, [conv.lines.length, view])
   useEffect(() => { if (view === 'history') setSource(undefined) }, [view])
   useEffect(() => setSource(undefined), [conv.sessionId, conv.scope, profilesKey])
@@ -947,10 +948,10 @@ function RecordCard({ onClose, onVoices }: { onClose: () => void; onVoices: () =
         <div className="chips">
           <span className="chip num">{scene.width} × {scene.height}</span><span className="chip">30 fps</span><span className="chip">MP4</span>
           {scene.background === 'transparent' && <span className="chip warn" title={tr("视频没有透明通道：透明背景录成绿幕")}>{tr("绿幕")}</span>}
-          {onSite && <span className="chip num">{most.seconds < 60 ? tr("最长 {0} 秒", most.seconds) : tr("最长 {0} 分钟", Math.round(most.seconds / 60))}</span>}
-          {onSite && most.mark && <span className="chip">{tr("LivLiv 标记")}</span>}
+          {features.host === 'site' && <span className="chip num">{most.seconds < 60 ? tr("最长 {0} 秒", most.seconds) : tr("最长 {0} 分钟", Math.round(most.seconds / 60))}</span>}
+          {features.host === 'site' && most.mark && <span className="chip">{tr("LivLiv 标记")}</span>}
         </div>
-        {onSite && most.mark && <p className="hint"><a href="/pricing" target="_blank" rel="noopener">{tr("会员录 5 分钟，没有标记")}<ExternalLink size={11} /></a></p>}
+        {features.host === 'site' && most.mark && <p className="hint"><a href="/pricing" target="_blank" rel="noopener">{tr("会员录 5 分钟，没有标记")}<ExternalLink size={11} /></a></p>}
         {voiced.length > 0 && <div className="chips voices">
           {voiced.map((c) => heard(c)
             ? <span key={c.id} className="chip"><Volume2 size={12} />{c.name}</span>
@@ -1022,7 +1023,7 @@ function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, onContinu
   const [demo, setDemo] = useState(!own && cur.kind === 'demo')
   // livliv.ai/stage: LivLiv's points instead of a key of one's own (the site writes and voices the lines)
   // LivLiv's points (the site writes and voices the lines): on livliv.ai/stage and in the desktop app
-  const [points, setPoints] = useState(livlivHere() && (cur.kind === 'livliv' || !previousModelConfig().provider || (cur.kind === 'demo' && savedBrain().kind === 'livliv')))
+  const [points, setPoints] = useState(features.points && (cur.kind === 'livliv' || !previousModelConfig().provider || (cur.kind === 'demo' && savedBrain().kind === 'livliv')))
   const account = useAccount()
   useEffect(() => { onPick?.(demo ? 'demo' : points ? 'livliv' : 'openai') }, [demo, points])  // eslint-disable-line react-hooks/exhaustive-deps
   const [d, setD] = useState<ModelConfig>(() => (previousModelConfig().provider ? previousModelConfig() : { kind: 'openai', provider: PROVIDERS_HERE[0].id, base: PROVIDERS_HERE[0].base, key: '', model: '' }))
@@ -1070,7 +1071,7 @@ function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, onContinu
   return <div className="model-form">
     <div className="demo-launch"><div><b>{tr('三人对谈演示')}</b><span>{tr('无需密钥')}</span></div><button title={demoAvailable ? undefined : tr('打开演示舞台')} disabled={st.busy === 'demo'} onClick={() => void save(true)}>{st.busy === 'demo' ? <LoaderCircle size={14} className="spin" /> : <Play size={14} />}{tr('看演示')}</button></div>
     <div className="providers">
-      {livlivHere() && <button className={!demo && points ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(false); setPoints(true); setSt({}); if (account.status !== 'in') onAccount() }}>livliv.ai</button>}
+      {features.points && <button className={!demo && points ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(false); setPoints(true); setSt({}); if (account.status !== 'in') onAccount() }}>livliv.ai</button>}
       {PROVIDERS_HERE.map((q) => <button key={q.id} className={!demo && !points && d.provider === q.id ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
       {/* the three's prepared conversation in their recorded voices: no key, no model */}
       <button className={`demo${demo ? ' on' : ''}`} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(true); setSt({}) }}>{tr("演示")}</button>
@@ -1083,7 +1084,7 @@ function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, onContinu
         <div className="row"><button onClick={openConnect}><ExternalLink size={14} />{tr("再打开网页")}</button><button onClick={cancelConnect}>{tr("取消")}</button></div>
       </div> : account.status === 'out' && <button disabled={account.closed} onClick={onAccount}><ExternalLink size={14} />{tr("登录 livliv.ai")}</button>}
       {account.status === 'out' && account.error && !account.closed && <p className="hint error" role="alert">{tr(account.error ?? '')}</p>}
-    </> : onSite && <p className="hint">{tr("网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。")}</p>}
+    </> : features.host === 'site' && <p className="hint">{tr("网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。")}</p>}
     {!demo && !points && <>
       {(p.id === 'custom' || p.id === 'ollama') && <label className="field"><span>{tr("接口地址")}</span>
         <input value={d.base} placeholder="https://…/v1" onChange={(e) => change({ base: e.target.value, model: '' })} onBlur={() => void fetchModels()} /></label>}
@@ -1096,7 +1097,7 @@ function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, onContinu
         </div>
         <datalist id="model-list">{models.map((m) => <option key={m} value={m} />)}</datalist>
       </label>
-      {desktop?.vision && <label className="switch"><span>{tr('单角色会话优先使用 AIRI')}</span><input type="checkbox" checked={d.airi !== false} onChange={(e) => change({ airi: e.target.checked })} /><i /></label>}
+      {features.airi && <label className="switch"><span>{tr('单角色会话优先使用 AIRI')}</span><input type="checkbox" checked={d.airi !== false} onChange={(e) => change({ airi: e.target.checked })} /><i /></label>}
     </>}
     {st.err && <p className="hint error" role="alert">{st.err}</p>}
     {st.batch && <p className="hint" role="status">{tr('可以聊天，连接游戏或发送画面需要流式输出。')}</p>}

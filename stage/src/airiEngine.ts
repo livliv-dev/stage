@@ -6,14 +6,14 @@ import type { ReactionCue } from './reactions'
 import type { CharacterItem, Talk } from './scene'
 import type { AiriGameFrame, AiriGameMessage } from '../../desktop/src/airiGameProtocol'
 import { aiFetch, named } from './brain'
-import { desktop } from './desktopBridge'
+import { features } from './core/platform'
 import { parseAiriMarkers } from './airiMarkers'
 import { tr } from './i18n'
 
 export type AiriSentence = { text: string; cue?: ReactionCue }
 
 export function airiModelForCast(config: BrainConfig, cast: readonly CharacterItem[]): ModelConfig | null {
-  return desktop?.vision && config.kind === 'openai' && cast.length === 1 && !cast[0].remote ? config : null
+  return features.airi && config.kind === 'openai' && cast.length === 1 && !cast[0].remote ? config : null
 }
 
 export function airiGameText(message: AiriGameMessage) {

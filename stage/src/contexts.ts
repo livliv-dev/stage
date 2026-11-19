@@ -8,10 +8,10 @@
 // together, the stage lends its own while the video is made (each character shows a still of itself meanwhile) and
 // takes them back after, rather than have the browser take some away.
 import { useSyncExternalStore } from 'react'
-import { desktop } from './desktopBridge'
+import { features } from './core/platform'
 
 /** about how many characters a stage holds here, to tell people (a few contexts left for face tracking and the like) */
-export const ROOM = desktop ? 30 : 15
+export const ROOM = features.host === 'desktop' ? 30 : 15
 
 const crowded = new Set<string>()
 /** asked to start again, not started yet */

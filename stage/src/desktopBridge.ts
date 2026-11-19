@@ -7,7 +7,7 @@ import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameMessage
 import type { ExternalSelection } from '../../desktop/src/neuroProtocol'
 
 export type Shortcut = { accelerator: string; do: string; ok: boolean; why?: string }
-type Desktop = {
+export type Desktop = {
   vision?: {
     list(): Promise<{ id: string; name: string }[]>
     frame(sourceId: string): Promise<{ mimeType: 'image/jpeg'; data: string } | null>

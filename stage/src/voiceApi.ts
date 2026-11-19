@@ -11,7 +11,7 @@ import { useSyncExternalStore } from 'react'
 import { aiFetch, failed, loadBrainConfig, previousModelConfig, useBrainConfig, type BrainConfig, type Emotion } from './brain'
 import { modelId, signedIn } from './livliv'
 import type { CharacterItem } from './scene'
-import { onSite } from './host'
+import { features } from './core/platform'
 
 export type SpeechApi = { provider: string; base: string; key: string; model: string; voice: string; asr: string }
 /** tone: the model takes a speaking style (OpenAI's instructions); voicesPath: the API lists its voices there */
@@ -37,7 +37,7 @@ export const SPEECH_PROVIDERS: SpeechProvider[] = [
 ]
 /** the ones offered: on livliv.ai/stage only those a web page can call straight (Kokoro runs on your computer, any
  *  other service is unknown); the desktop app reaches all */
-export const SPEECH_HERE = onSite ? SPEECH_PROVIDERS.filter((p) => !['kokoro', 'custom'].includes(p.id)) : SPEECH_PROVIDERS
+export const SPEECH_HERE = features.host === 'site' ? SPEECH_PROVIDERS.filter((p) => !['kokoro', 'custom'].includes(p.id)) : SPEECH_PROVIDERS
 export const speechProviderOf = (s: SpeechApi) => SPEECH_PROVIDERS.find((p) => p.id === s.provider) ?? SPEECH_PROVIDERS.at(-1)!
 export const speechReady = (s: SpeechApi) => !!s.base && !!s.model && (!!s.key || s.provider === 'custom' || !!speechProviderOf(s).noKey)
 export const asrReady = (s: SpeechApi) => !!s.base && !!s.asr && (!!s.key || s.provider === 'custom' || !!speechProviderOf(s).noKey)

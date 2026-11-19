@@ -15,8 +15,7 @@ import { controlSettings } from './workflow'
 import { setLiveCharacter } from './live'
 import { talk } from './conversation'
 import { GREEN } from './paint'
-import { onSite } from './host'
-import { desktop } from './desktopBridge'
+import { features } from './core/platform'
 
 /** the id asked for in the address, if any */
 export const linkedId = () => new URLSearchParams(location.search).get('c')?.trim() || null
@@ -41,7 +40,7 @@ export async function openLinked(id: string, as: LinkedAs | null = null): Promis
     const sample = samples().find((s) => s.id === id)
     pick = sample ?? await byId(id)
     // a featured one's live settings are on the site only (its card); elsewhere it goes as it comes
-    live = sample ? onSite ? await liveOf(id) : undefined : pick.live
+    live = sample ? features.host === 'site' ? await liveOf(id) : undefined : pick.live
   } catch (e) {
     return { note: (e as Error).message, character: null }  // the id stays: signing in comes back here with it
   }
@@ -74,7 +73,7 @@ function onStage(pick: Pick, there: CharacterItem | undefined, as: LinkedAs, liv
   if (own) store.switchScene(own.id)
   else {
     if (store.get().items.some((i) => !i.hidden)) store.addScene(true)
-    store.set({ name: as === 'face' ? tr("开播 · {0}", pick.name) : `${tr("AI 直播")} · ${pick.name}`, background: desktop ? 'transparent' : GREEN, backgroundAsset: undefined })
+    store.set({ name: as === 'face' ? tr("开播 · {0}", pick.name) : `${tr("AI 直播")} · ${pick.name}`, background: features.host === 'desktop' ? 'transparent' : GREEN, backgroundAsset: undefined })
   }
   // big, in the middle, standing on the bottom edge (in its own shot, where you put it last time)
   const s = store.get(), h = Math.round(Math.min(s.height * 0.94, s.width * 0.9 * 1.5)), w = Math.round(h * 2 / 3)

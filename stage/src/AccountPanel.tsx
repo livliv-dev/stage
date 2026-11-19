@@ -1,7 +1,7 @@
 import { tr } from './i18n'
 import { Check, ExternalLink, LoaderCircle, Sparkles, UserPlus, Volume2, Zap } from 'lucide-react'
 import { cancelConnect, connect, logout, openConnect, useAccount } from './livliv'
-import { onSite } from './host'
+import { features } from './core/platform'
 
 const BENEFITS = [
   { icon: UserPlus, tone: 'peach', title: '带入云端角色', hint: '把你在 livliv.ai 的角色加入舞台。' },
@@ -21,7 +21,7 @@ export function AccountPanel({ onAdd }: { onAdd: () => void }) {
     {account.status === 'in' ? <div className="account-profile">
       <div className="account-person"><span className="account-initial" aria-hidden="true">{[...account.email][0]?.toUpperCase() || 'L'}</span><span><b>{account.email}</b><small>{tr("积分")} {account.points}</small></span></div>
       <button className="primary account-cta" onClick={onAdd}><UserPlus size={15} />{tr("从 livliv.ai 增加")}</button>
-      {onSite  // signed in to the site itself: its own pages manage the account
+      {features.host === 'site'  // signed in to the site itself: its own pages manage the account
         ? <a className="link account-signout" href="/me" target="_blank" rel="noopener">{tr("在 livliv.ai 管理")}<ExternalLink size={12} /></a>
         : <button className="link account-signout" onClick={() => void logout()}>{tr("退出登录")}</button>}
     </div> : account.connect ? <div className="account-connect">

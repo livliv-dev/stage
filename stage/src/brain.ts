@@ -13,8 +13,8 @@ import { tr, type Locale } from './i18n'
 // CORS, so local servers (Ollama) and APIs without browser access work too
 import { useSyncExternalStore } from 'react'
 import { desktopFetch } from './request'
-import { onSite } from './host'
-import { hasSession, inApp, livlivHere, modelId, onAccount, signedIn, stageLine } from './livliv'
+import { features } from './core/platform'
+import { hasSession, modelId, onAccount, signedIn, stageLine } from './livliv'
 import { demoReply } from './demo'
 import { LENGTHS, type CharacterItem, type Talk } from './scene'
 import { conversationContext, type ConversationSummary } from './chatContext'
@@ -74,10 +74,10 @@ export const PROVIDERS: Provider[] = [
 ]
 /** the ones offered: on livliv.ai/stage only those whose APIs answer a web page straight (tested 2026-11-12: Zhipu's
  *  chat refuses browsers, Ollama runs on your computer, any other service is unknown); the desktop app reaches all */
-export const PROVIDERS_HERE = onSite ? PROVIDERS.filter((p) => !['zhipu', 'ollama', 'custom'].includes(p.id)) : PROVIDERS
+export const PROVIDERS_HERE = features.host === 'site' ? PROVIDERS.filter((p) => !['zhipu', 'ollama', 'custom'].includes(p.id)) : PROVIDERS
 export const providerOf = (c: ModelConfig) => PROVIDERS.find((p) => p.id === c.provider) ?? PROVIDERS.at(-1)!
 /** a model to talk with is set: where, and which */
-export const brainReady = (c: BrainConfig) => c.kind === 'demo' || (c.kind === 'livliv' ? livlivHere() && signedIn()
+export const brainReady = (c: BrainConfig) => c.kind === 'demo' || (c.kind === 'livliv' ? features.points && signedIn()
   : !!c.base && !!c.model && (!!c.key || c.provider === 'custom' || !!providerOf(c).noKey))
 
 const KEY = 'livliv-stage:brain', LAST_MODEL = 'livliv-stage:brain-api'
@@ -86,7 +86,7 @@ const DEMO: BrainConfig = { kind: 'demo' }
 function load(): ModelConfig | LivLivConfig {
   try {
     let c = JSON.parse(localStorage.getItem(KEY) || 'null')
-    if (c?.kind === 'livliv' && livlivHere()) return { kind: 'livliv' }
+    if (c?.kind === 'livliv' && features.points) return { kind: 'livliv' }
     // earlier versions saved the demo in the model's place, and the model set up before it apart
     if (c?.kind === 'demo') c = JSON.parse(localStorage.getItem(LAST_MODEL) || 'null')
     if (c?.kind === 'openai' && typeof c.base === 'string') return { ...UNSET, ...c, provider: c.provider ?? (PROVIDERS.find((p) => p.base === c.base)?.id ?? 'custom') }
@@ -94,7 +94,7 @@ function load(): ModelConfig | LivLivConfig {
   // nothing chosen yet: on livliv.ai, LivLiv (the site's own, by its sign-in: someone signed in goes straight to AI
   // live); in the desktop app LivLiv too when it keeps a sign-in (else as below, until one: see the end of this file);
   // elsewhere a model of one's own still to be set up
-  return onSite || (inApp() && hasSession()) ? { kind: 'livliv' } : UNSET
+  return features.host === 'site' || (features.host === 'desktop' && hasSession()) ? { kind: 'livliv' } : UNSET
 }
 const chosen = () => { try { return !!localStorage.getItem(KEY) } catch { return false } }
 /** the model set up (saved), and what the AI characters think with now: it, or the demo */
@@ -113,7 +113,7 @@ export function saveBrainConfig(c: ModelConfig | LivLivConfig) {
 // the desktop app: signing in (with a connect code) while nothing has been chosen yet makes LivLiv the AI's model, as
 // it is from the start for someone who comes back signed in
 onAccount(() => {
-  if (!inApp() || !signedIn() || chosen() || saved.kind !== 'openai' || saved.provider) return
+  if (features.host !== 'desktop' || !signedIn() || chosen() || saved.kind !== 'openai' || saved.provider) return
   const c: LivLivConfig = { kind: 'livliv' }
   if (config === saved) config = c
   saved = c
@@ -131,14 +131,13 @@ export const useBrainConfig = () => useSyncExternalStore((f) => { subs.add(f); r
 
 /** a request to a model's API (this one's, the speech API's): in the desktop app through it (no CORS: Stage served at
  *  livliv-stage://app has its /__ai), anywhere else (a browser, the shell on the dev server) straight */
-const inClient = typeof location !== 'undefined' && location.protocol === 'livliv-stage:'
 export async function aiFetch(url: string, init: RequestInit) {
   const signal = AbortSignal.any([...(init.signal ? [init.signal] : []), AbortSignal.timeout(45_000)])
   // the app passes on only requests that carry this header, which a picture or link in the page can't send
   const headers = new Headers(init.headers)
-  if (inClient) headers.set('X-LivLiv-AI', '1')
+  if (features.appScheme) headers.set('X-LivLiv-AI', '1')
   try {
-    return await desktopFetch(inClient ? `/__ai?u=${encodeURIComponent(url)}` : url, { ...init, headers, signal })
+    return await desktopFetch(features.appScheme ? `/__ai?u=${encodeURIComponent(url)}` : url, { ...init, headers, signal })
   } catch (e) {
     if (signal.aborted) throw signal.reason
     let host = url
