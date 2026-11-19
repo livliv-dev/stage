@@ -642,7 +642,8 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
   if (!cast.length) return <SoloStatus />
   const partner = desktop?.vision && !demo && cast.length === 1 ? cast[0].name : ''
   const startLabel = partner ? tr('和 {0} 聊天', partner) : tr('持续聊天')
-  const scope = tr((conv.running || !desktop?.vision ? conv.scope : conv.chatScope) === 'public' ? '公开互动' : '私聊')
+  // the scope: the session's while one runs, else the one the next gets (public while an output is on)
+  const scope = conv.running ? conv.scope : conv.output ? 'public' : conv.chatScope
   const liveStatus = tr(!conv.running ? '会话已结束' : conv.paused ? '已暂停' : conv.waitingAudience ? '等待弹幕' : '回应中') + ` · ${conv.generations}/${conv.generationLimit}`
   return (
     <div className="console" onPointerDown={(e) => e.stopPropagation()}>
@@ -692,9 +693,11 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
         </select>
         <input ref={input} value={mine} disabled={inRealtime && (realtime.phase === 'connecting' || conv.paused)} aria-label={tr("你说的话")} onChange={(e) => { setMine(e.target.value); pttClear() }} placeholder={tr(hint)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) void send() }} />
-        {conv.mode === 'chat' && conv.running
-          ? <span className="chat-status" role="status" title={tr('已生成 {0} / {1} 次', conv.generations, conv.generationLimit)}>{scope} · {tr(conv.paused ? '已暂停' : conv.waitingInput ? '等你说话' : conv.thinking ? '正在思考' : '回应中')}</span>
-          : !conv.running && partner && <button className="chat-status chat-scope-link" title={tr('对话范围')} onClick={async () => { if (conv.scope === conv.chatScope || await talk.setScope(conv.chatScope)) setLog(true) }}>{scope}</button>}
+        {/* the one place to choose private: only with no output on (OBS, a recording, a co-stream, a live audience) */}
+        <button className={`chat-status chat-scope-link scope-tag ${scope}`} aria-label={tr('对话范围')} disabled={conv.running || conv.output}
+          title={tr(conv.output ? '输出开着（OBS、录制、联播或直播间）：只用公开记忆' : conv.running ? '对话范围' : '点一下在私聊和公开记忆之间切换')}
+          onClick={() => void talk.setScope(scope === 'private' ? 'public' : 'private')}>{tr(scope === 'public' ? '公开记忆' : '私聊')}</button>
+        {conv.mode === 'chat' && conv.running && <span className="chat-status" role="status" title={tr('已生成 {0} / {1} 次', conv.generations, conv.generationLimit)}>{tr(conv.paused ? '已暂停' : conv.waitingInput ? '等你说话' : conv.thinking ? '正在思考' : '回应中')}</span>}
         <button className="console-memory" onClick={onMemory}>{tr('记忆')}</button>
         <button className={`handsfree${ptt.automatic ? ' on' : ''}`} aria-label={tr('免按键语音')} aria-pressed={ptt.automatic} disabled={!ptt.automatic && (!hear || inRealtime || (conv.running && conv.mode === 'conversation'))} title={tr('自动判断说完；外放时建议戴耳机。')} onClick={() => void handsFree()}>{tr(ptt.automatic ? '关闭免按键' : '免按键')}</button>
         <button className={`icon mic ${ptt.phase}`} title={ptt.phase === 'recognizing' && !ptt.automatic ? tr("正在识别，Esc 取消") : hear ? tr("按住说话，松开说出去（也可以按住 ` 键）") : tr("按住说话：在设置里接上语音识别后可用")}
@@ -757,11 +760,10 @@ function Transcript({ view, setView, onClose, right }: { view: 'history' | 'memo
         event.preventDefault(); event.stopPropagation()
         const next = event.key === 'Home' ? 'history' : event.key === 'End' ? 'memory' : view === 'history' ? 'memory' : 'history'
         setView(next); document.getElementById(`${tabs}-${next}`)?.focus()
-      }}>{(['history', 'memory'] as const).map((tab) => <button key={tab} id={`${tabs}-${tab}`} role="tab" aria-selected={view === tab} aria-controls={`${tabs}-content`} tabIndex={view === tab ? 0 : -1} onClick={() => setView(tab)}>{tr(tab === 'history' ? '对话记录' : '记忆')}</button>)}</div><span className="chat-scope">{tr(panelScope === 'public' ? '公开互动' : '仅私聊')}</span><button className="icon" data-close="true" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button></header>
+      }}>{(['history', 'memory'] as const).map((tab) => <button key={tab} id={`${tabs}-${tab}`} role="tab" aria-selected={view === tab} aria-controls={`${tabs}-content`} tabIndex={view === tab ? 0 : -1} onClick={() => setView(tab)}>{tr(tab === 'history' ? '对话记录' : '记忆')}</button>)}</div><span className="chat-scope">{tr(panelScope === 'public' ? '公开记忆' : '私聊')}</span><button className="icon" data-close="true" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button></header>
       <div id={`${tabs}-content`} role="tabpanel" aria-labelledby={`${tabs}-${view}`}>
       {view === 'memory' ? <MemoryPanel embedded profileIds={profileIds} profileNames={names} scope={panelScope} source={source} /> : <>
       <div className="chat-history-controls">
-        <select aria-label={tr('对话范围')} disabled={conv.running} value={conv.scope} onChange={(event) => void talk.setScope(event.target.value as 'private' | 'public')}><option value="private">{tr('私聊')}</option><option value="public">{tr('公开互动')}</option></select>
         <select aria-label={tr('已保存的对话')} disabled={conv.running} value={sessions.some((session) => session.id === conv.sessionId) ? conv.sessionId : ''} onChange={(event) => void talk.openSession(event.target.value)}>
           <option value="" disabled>{tr('已保存的对话')}</option>{sessions.map((session) => <option key={session.id} value={session.id}>{session.title || tr('新对话')}</option>)}
         </select>

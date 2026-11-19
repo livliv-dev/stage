@@ -39,6 +39,7 @@
     "test:points": "node test/points.mjs",
     "test:app-livliv": "node test/app-livliv.mjs",
     "test:start": "node test/start.mjs",
+    "test:privacy": "node test/privacy.mjs",
     "build:site": "node scripts/build-site.mjs"
   },
   "dependencies": {

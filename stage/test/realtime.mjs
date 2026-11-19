@@ -304,7 +304,9 @@ try {
     session.summary = { text: 'earlier-summary-fixture', sourceIds: session.lines.slice(0, 4).map((line) => line.id), memoryIds: [], memoryRevision: (await memory.context([profileId], 'private')).revision }
     await memory.saveSession(session); chatHistory.reset()
   }, id)
-  await panel.getByLabel('对话范围', { exact: true }).selectOption('private')
+  // the scope comes from the console's tag
+  assert.equal(await page.evaluate(() => window.__stage.talk.setScope('private')), true)
+  await page.locator('.console .scope-tag').filter({ hasText: '私聊' }).waitFor()
   await panel.getByRole('button', { name: '开始实时语音', exact: true }).click()
   await page.waitForFunction(() => window.__realtimeModule.realtimeState().phase === 'listening')
   const privateSeed = await page.evaluate(() => window.__voiceFixture.clientEvents.filter((event) => event.type === 'conversation.item.create').at(-1).item.content[0].text)
@@ -314,7 +316,14 @@ try {
   await page.waitForFunction(() => !window.__stage.conversation().running)
   assert.ok(await page.evaluate(() => window.__stage.conversation().ended.includes('记忆已更新')))
   await page.evaluate(async () => { window.__voiceFixture.peer.close(); await window.__voiceFixture.context.close() })
-  await panel.getByLabel('对话范围', { exact: true }).selectOption('public')
+  // an output comes on during a private call: the provider holds private context, so the call ends
+  await panel.getByRole('button', { name: '开始实时语音', exact: true }).click()
+  await page.waitForFunction(() => window.__realtimeModule.realtimeState().phase === 'listening' && window.__stage.conversation().scope === 'private')
+  await page.evaluate(() => { const output = window.__outputProbe = new BroadcastChannel('livliv-stage'); output.postMessage({ t: 'hello' }) })
+  await page.waitForFunction(() => !window.__stage.conversation().running && window.__stage.conversation().ended.includes('私聊通话已结束'))
+  await page.evaluate(async () => { window.__outputProbe.postMessage({ t: 'bye' }); window.__outputProbe.close(); window.__voiceFixture.peer.close(); await window.__voiceFixture.context.close() })
+  await page.waitForFunction(() => !window.__stage.conversation().output)
+  assert.equal(await page.evaluate(() => window.__stage.talk.setScope('public')), true)
   await panel.getByRole('button', { name: '开始实时语音', exact: true }).click()
   await page.waitForFunction(() => window.__realtimeModule.realtimeState().phase === 'listening')
   assert.equal(await page.evaluate(() => window.__stage.talk.externalEvent({ id: 'wrong-character', character: 'another-character', source: 'fixture', message: 'do not redirect this event', reply: 'always' })), false)

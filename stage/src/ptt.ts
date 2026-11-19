@@ -2,8 +2,7 @@ import { tr } from './i18n'
 import { useSyncExternalStore } from 'react'
 import { wav16k } from './audio'
 import { inputs, microphoneConstraints, onInputs, refreshDevices } from './devices'
-import { conversation, onConv, talk } from './conversation'
-import { desktop } from './desktopBridge'
+import { conversation, onConv, sessionScope, talk } from './conversation'
 import { recognize, signedIn } from './livliv'
 import { busGain, onMixer } from './mixer'
 import { routeMicrophone } from './microphone'
@@ -213,7 +212,7 @@ export function cancel() {
   if (automatic) close(); else later()
 }
 
-const inputScope = (conv: ReturnType<typeof conversation>) => conv.running || !desktop?.vision ? conv.scope : conv.chatScope
+const inputScope = (conv: ReturnType<typeof conversation>) => conv.running ? conv.scope : sessionScope()
 let previous = conversation()
 onConv(() => {
   const conv = conversation(), active = conv.running && conv.mode !== 'conversation'

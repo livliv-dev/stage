@@ -64,7 +64,7 @@ function instructions(character: CharacterItem) {
 }
 
 /** The model connection does not know about Stage. Only this adapter owns a character, controls and transcript. */
-export async function startRealtime(settings: RealtimeSettings, characterId: string, scope: MemoryScope = conversation().scope) {
+export async function startRealtime(settings: RealtimeSettings, characterId: string, scope?: MemoryScope) {
   if (conversation().running) return
   const actor = actors.get(characterId), character = actor?.item, config = realtimeCredentials(settings)
   if (!character || actor.status !== 'ready' || character.remote || character.lines !== 'ai') { set({ phase: 'error', error: tr('先选择一个已载入的 AI 角色') }); return }

@@ -17,7 +17,7 @@ import { brainReady, makeBrain, loadBrainConfig, decideExternalAction, type Line
 import { demoFor, demoPause, demoReactions, demoSpeaker } from './demo'
 import { participants as characters, store, uid, type CharacterItem } from './scene'
 import { estimate, hush } from './speech'
-import { chatState, isBlocked, onChat, type Chat } from './danmaku'
+import { chatState, isBlocked, onChat, onChatState, type Chat } from './danmaku'
 import { AudienceInbox } from './audience'
 import { voiceRoute } from './voiceApi'
 import { isOutput, onMsg, outputOpen, post } from './link'
@@ -28,7 +28,7 @@ import type { ExternalActionRequest, ExternalEvent } from './externalEvents'
 import type { AiriGameConfig, AiriGameConnection } from '../../desktop/src/airiGameProtocol'
 import { airiGameError, airiGameText, airiModelForCast, chooseAiriGameAction, streamAiriReply } from './airiEngine'
 import { desktop } from './desktopBridge'
-import { recording } from './recording'
+import { onRecording, recording } from './recording'
 import { onRoom, roomState } from './collab/session'
 
 export type ConvState = {
@@ -64,12 +64,14 @@ export type ConvState = {
   error: string
   engine?: 'airi'
   game?: { name: AiriGameConfig['game']; status: 'connecting' | 'ready' | 'submitting' | 'playing' | 'offline'; text: string }
+  /** an output is on (outputOn): sessions are public, and private can't be chosen */
+  output: boolean
   /** an AI turn needed a model and none is set up: the app shows where to set one */
   needModel: boolean
   modelIntent: 'chat' | 'conversation' | 'live' | 'input'
 }
 
-let state: ConvState = { running: false, mode: 'conversation', scope: 'private', chatScope: 'private', sessionId: '', waitingInput: false, storageError: '', waitingAudience: false, until: 0, generations: 0, generationLimit: 100, retryAt: 0, ended: '', paused: false, thinking: null, speaking: null, waiting: null, as: '', lines: [], turns: 0, limit: 12, gap: 0.6, error: '', needModel: false, modelIntent: 'conversation' }
+let state: ConvState = { running: false, mode: 'conversation', scope: 'private', chatScope: 'private', sessionId: '', waitingInput: false, storageError: '', waitingAudience: false, until: 0, generations: 0, generationLimit: 100, retryAt: 0, ended: '', paused: false, thinking: null, speaking: null, waiting: null, as: '', lines: [], turns: 0, limit: 12, gap: 0.6, error: '', output: false, needModel: false, modelIntent: 'conversation' }
 
 /** an AI character's turn came with no model set up: the conversation stops there and asks for one (needModel) */
 class NeedModel extends Error {}
@@ -98,7 +100,7 @@ const sendConv = () => {
     : { lines: [], speaking: null, thinking: null, waiting: null } })
 }
 if (!isOutput) onMsg((m) => {
-  if ((m.t === 'hello' || m.t === 'alive') && privateDesktopChat()) stopPrivateChatForOutput()
+  if (m.t === 'hello' || m.t === 'alive' || m.t === 'bye') outputChanged()
   if (m.t === 'hello') sendConv()
 })
 /** the output window: the editor's conversation */
@@ -183,16 +185,47 @@ export type LiveOptions = { minutes: number; maxGenerations: number; warmupSecon
 let liveOptions: LiveOptions | null = null
 let airi: { model: ModelConfig; actorId: string; windowId: string; game?: AiriGameConnection } | null = null
 export const liveModelName = () => state.mode === 'live' ? airi?.model.model : undefined
-export const privateDesktopChat = () => !!desktop?.vision && state.running && state.mode === 'chat' && state.scope === 'private'
 const liveRoom = () => ['connecting', 'waiting', 'on'].includes(roomState().phase)
-const privateOutputError = () => tr('请先关闭直播输出、录制或联播，再开始私聊')
 const gameName = (game: AiriGameConfig['game']) => game === 'minecraft' ? 'Minecraft' : 'Factorio'
-const chatScope = () => desktop?.vision ? state.chatScope : state.scope
 
-function stopPrivateChatForOutput() {
-  talk.stop()
-  set({ error: privateOutputError() })
+/** an output is on: the OBS output window, a recording, a co-stream (好友联播) or a live audience (Twitch chat, AI 直播).
+ *  While one is, every session is public: no private memory is read or written, by any path, and the conversation goes
+ *  to the public record. With all of them off, the scope chosen in the console (chatScope) applies */
+export function outputOn() {
+  return outputOpen() || ['starting', 'recording'].includes(recording().phase) || liveRoom() || chatState().status === 'on' || (state.running && state.mode === 'live')
 }
+/** the scope a session started now gets: the one chosen, unless an output is on */
+export const sessionScope = (chosen: MemoryScope = state.chatScope): MemoryScope => outputOn() ? 'public' : chosen
+
+/** told by everything that turns an output on or off (the output window, a recording, the room, Twitch), and checked
+ *  every second as well (an output window can close without saying so) */
+function outputChanged() {
+  if (isOutput) return
+  const on = outputOn()
+  if (on !== state.output) set({ output: on }, false)
+  if (on) goPublic()
+}
+/** an output came on while a private session runs: it is public from here on. The turn in hand (made with private
+ *  memories) is cut, a line made ahead is dropped, and the session goes on in the public record, each turn (an AIRI
+ *  one too) built from public memories only. A realtime call keeps its private context at the provider: it ends */
+let switching: Promise<void> | null = null
+function goPublic() {
+  if (!state.running || state.scope === 'public' || switching) return
+  if (loadBrainConfig().kind === 'demo' && state.mode !== 'realtime') return  // the demo reads and writes no memory
+  if (realtimeControls) { talk.stop(); set({ ended: tr('输出已打开，私聊通话已结束') }); return }
+  const run = ctrl
+  if (!run) return
+  inputEpoch++; dropAhead(); interruptTurn()
+  set({ scope: 'public', sessionId: '', lines: [], speaking: null, thinking: null }, false)
+  switching = openHistory('public', run.signal).catch((error: unknown) => {
+    if (!run.signal.aborted && ctrl === run) { talk.stop(); set({ error: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }) }
+  }).finally(() => { switching = null; wakeLive?.() })
+}
+// once every module is ready (some of these import this one)
+if (!isOutput && typeof window !== 'undefined') setTimeout(() => {
+  onRecording(outputChanged); onRoom(outputChanged); onChatState(outputChanged)
+  setInterval(outputChanged, 1000)
+}, 0)
 
 function bindAiri(controller: AbortController, model: ModelConfig, actor: CharacterItem, windowId = '') {
   airi = { model: { ...model }, actorId: actor.id, windowId }
@@ -470,6 +503,7 @@ function makeAhead() {
   const who = cfg.kind === 'demo' ? demoSpeaker(voices(), state.lines) : nextSpeaker()
   if (!who) return
   if (who.lines !== 'ai') { forced = who.id; return }  // your turn is next: nothing to make, and it stays next
+  if (switching) return
   const ctl = new AbortController(), chat = state.scope === 'public' ? someViewer() : null
   ahead = { who, after: last.id, topic: store.get().topic, ctl, chat, made: makeLine(who, AbortSignal.any([ctrl.signal, ctl.signal]), chat).catch(() => null) }
 }
@@ -564,6 +598,7 @@ async function playAiriTurn(me: CharacterItem, model: ModelConfig, chat: Chat | 
 
 async function aiTurn(me: CharacterItem, parent: AbortSignal, audience?: Chat | null, replyToOwner = false) {
   parent.throwIfAborted()
+  if (switching) { await switching; parent.throwIfAborted() }
   while (dialogue.size || externalDecisions || inputPending) await liveEvent(parent)
   const model = airi?.model ?? loadBrainConfig()
   const scope = state.scope
@@ -658,6 +693,7 @@ async function yours(line: Line, signal: AbortSignal) {
 }
 
 async function consumeInput(signal: AbortSignal) {
+  if (switching) { await switching; signal.throwIfAborted() }
   const { line, transcribed } = queue.shift()!
   if (transcribed) {
     if (!state.lines.some((entry) => entry.id === line.id)) set({ lines: [...state.lines, line] })
@@ -696,7 +732,7 @@ async function run(once: boolean) {
   single = once; liveOptions = null; boundProfiles = castKey()
   // A public conversation consumes viewer inputs and opens only the public history.
   const audience = store.get().talk.danmaku > 0 && (chatState().status === 'on' || viewers.available(Date.now(), isBlocked))
-  const scope: MemoryScope = audience ? 'public' : 'private'
+  const scope: MemoryScope = audience ? 'public' : sessionScope()
   const switchScope = scope !== state.scope && loadBrainConfig().kind !== 'demo'
   set({ running: true, mode: 'conversation', waitingAudience: false, until: 0, ended: '', paused: false, error: '',
     ...(switchScope ? { scope, sessionId: '', lines: [], speaking: null } : {}),
@@ -893,7 +929,8 @@ async function runLive(options: LiveOptions) {
   }
 }
 
-async function startChatSession(scope: MemoryScope = chatScope(), target?: string, firstInput?: ChatInput) {
+async function startChatSession(chosen: MemoryScope = state.chatScope, target?: string, firstInput?: ChatInput) {
+  const scope = sessionScope(chosen)
   if (state.running) {
     if ((state.mode === 'chat' || (state.mode === 'live' && airi)) && state.scope === scope
       && (!airi || (state.sessionId && (!target || airi.actorId === target)))) return
@@ -906,19 +943,11 @@ async function startChatSession(scope: MemoryScope = chatScope(), target?: strin
     set({ error }); throw new Error(error)
   }
   const preferred = preferredAiriForChat(config, target)
-  const privateOnDesktop = desktop?.vision && scope === 'private'
-  if (privateOnDesktop && (outputOpen() || ['starting', 'recording'].includes(recording().phase) || liveRoom())) {
-    const error = privateOutputError()
-    set({ error }); throw new Error(error)
-  }
   const controller = new AbortController(); ctrl = controller
   dropAhead(); single = true; liveOptions = null; forced = target ?? null; boundProfiles = castKey()
   externalQueue.length = 0; dialogue.clear(); activeEvent = null
   const offAiriCast = preferred ? bindAiri(controller, preferred.model, preferred.actor) : undefined
-  const offRoom = privateOnDesktop ? onRoom(() => {
-    if (ctrl === controller && liveRoom()) stopPrivateChatForOutput()
-  }) : undefined
-  const unbind = () => { offAiriCast?.(); offRoom?.() }
+  const unbind = () => { offAiriCast?.() }
   const settings = store.get().talk
   const minutes = Math.max(1, Math.min(240, settings.chatMinutes ?? 60))
   set({ running: true, mode: 'chat', scope, sessionId: '', lines: [], speaking: null, waitingInput: false, paused: false, thinking: null, waitingAudience: false,
@@ -999,8 +1028,9 @@ async function runChat(controller: AbortController, unbind: () => void) {
 
 export const talk = {
   /** The transport owns audio; this session owns the archive, memory scope and stage lifecycle. */
-  async realtime(controls: RealtimeControls, until: number, character: CharacterItem, scope: MemoryScope = state.scope): Promise<RealtimeSession | null> {
+  async realtime(controls: RealtimeControls, until: number, character: CharacterItem, chosen: MemoryScope = state.chatScope): Promise<RealtimeSession | null> {
     if (state.running) return null
+    const scope = sessionScope(chosen)
     const controller = new AbortController(); ctrl = controller
     dropAhead(); queue.length = 0; realtimeControls = controls; boundProfiles = castKey(); liveOptions = null
     set({ running: true, mode: 'realtime', scope, sessionId: '', lines: [], paused: false, thinking: null, speaking: null, waiting: null, waitingAudience: false, waitingInput: true,
@@ -1075,7 +1105,7 @@ export const talk = {
     finally { if (restoreRequest?.controller === controller) restoreRequest = null }
   },
   async setScope(scope: MemoryScope) {
-    if (state.running) return false
+    if (state.running || (scope === 'private' && outputOn())) return false
     try { await openHistory(scope, new AbortController().signal); set({ chatScope: scope }); return true }
     catch (error) { set({ storageError: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }); return false }
   },
@@ -1279,7 +1309,7 @@ export const talk = {
     if (desktop?.vision && !state.running && options.respond !== false && profiles().length) {
       const model = loadBrainConfig()
       if (model.kind !== 'demo') {
-        return startChatSession(chatScope(), undefined, { line, transcribed: options.transcribed === true }).then(() => true, () => false)
+        return startChatSession(state.chatScope, undefined, { line, transcribed: options.transcribed === true }).then(() => true, () => false)
       }
     }
     if (options.transcribed || options.respond === false) set({ lines: [...state.lines, line] })
