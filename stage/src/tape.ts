@@ -7,7 +7,7 @@ import { tr } from './i18n'
 //  - the sound: each LivLiv clip with when it was heard and where it was cut off, and the microphone when asked for.
 //    The system's own voice gives no sound to take down: those lines are in the video without it
 import { actors, onActors, onFrame, onHeard, type Actor, type Heard } from './actors'
-import { conversation, onConv } from './conversation'
+import { conversation, onConv, shownConv } from './conversation'
 import { store, type Scene } from './scene'
 import type { Line } from './brain'
 import type { Params, View } from '@livliv-dev/player'
@@ -107,7 +107,8 @@ export async function record(mic: boolean, inputStatus?: (error: Error | null) =
     const c = conversation()
     if (stream || liveAudio || !c.running || c.speaking || c.mode === 'chat' || c.mode === 'live' || c.mode === 'realtime') endWait()
     else if (!waiting) { waiting = { from: performance.now(), to: Infinity }; take.cuts.push(waiting) }
-    take.convs.push({ t: sec(), lines: c.lines, speaking: c.speaking })
+    const shown = shownConv(c)
+    take.convs.push({ t: sec(), lines: shown.lines, speaking: shown.speaking })
   }
   conv()
   const pose = (a: Actor) => {

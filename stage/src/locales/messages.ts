@@ -4803,6 +4803,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "公开记忆": {"zh-Hans": "公开记忆", "zh-Hant": "公開記憶", "en": "Public memory", "ja": "公開の記憶"},
   "输出开着（OBS、录制、联播或直播间）：只用公开记忆": {"zh-Hans": "输出开着（OBS、录制、联播或直播间）：只用公开记忆", "zh-Hant": "輸出開著（OBS、錄製、聯播或直播間）：只用公開記憶", "en": "An output is on (OBS, a recording, a co-stream or a live audience): public memory only", "ja": "出力中（OBS、録画、コラボ配信、視聴者あり）：公開の記憶だけを使います"},
   "点一下在私聊和公开记忆之间切换": {"zh-Hans": "点一下在私聊和公开记忆之间切换", "zh-Hant": "點一下在私聊和公開記憶之間切換", "en": "Click to switch between private chat and public memory", "ja": "クリックでプライベート会話と公開の記憶を切り替え"},
+  "输出已打开，还没说出的私聊输入已丢弃": {"zh-Hans": "输出已打开，还没说出的私聊输入已丢弃", "zh-Hant": "輸出已開啟，還沒說出的私聊輸入已丟棄", "en": "An output came on, so private input not yet said was dropped", "ja": "出力が始まったため、まだ話していないプライベートの入力を破棄しました"},
   "输出已打开，私聊通话已结束": {"zh-Hans": "输出已打开，私聊通话已结束", "zh-Hant": "輸出已開啟，私聊通話已結束", "en": "An output came on, so the private call ended", "ja": "出力が始まったため、プライベート通話を終了しました"},
   "私聊": {"zh-Hans": "私聊", "zh-Hant": "私聊", "en": "Private chat", "ja": "プライベート会話"},
   "等你说话": {"zh-Hans": "等你说话", "zh-Hant": "等你說話", "en": "Listening", "ja": "話しかけてください"},

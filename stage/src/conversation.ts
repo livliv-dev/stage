@@ -92,13 +92,16 @@ const set = (p: Partial<ConvState>, persist = true) => {
     void chatHistory.save(p.lines).then(() => { if (revision === saveRevision && state.storageError) set({ storageError: '' }) }, (error: unknown) => { if (revision === saveRevision) set({ storageError: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }) })
   }
 }
-// what the output window needs of it: the lines, and who is thinking, speaking or awaited
-const sendConv = () => {
-  const demo = loadBrainConfig().kind === 'demo' && state.lines.every((line) => line.demo !== undefined)
-  post({ t: 'conv', conv: state.scope === 'public' || demo
-    ? { lines: state.lines, speaking: state.speaking, thinking: state.thinking, waiting: state.waiting }
-    : { lines: [], speaking: null, thinking: null, waiting: null } })
+/** what an output may show of the conversation (the output window, a recording): its lines and who is thinking,
+ *  speaking or awaited, when it is public or the demo's prepared lines; nothing of a private one */
+export function shownConv(c: ConvState = state) {
+  const demo = loadBrainConfig().kind === 'demo' && c.lines.every((line) => line.demo !== undefined)
+  return c.scope === 'public' || demo
+    ? { lines: c.lines, speaking: c.speaking, thinking: c.thinking, waiting: c.waiting }
+    : { lines: [] as Line[], speaking: null, thinking: null, waiting: null }
 }
+// what the output window needs of it
+const sendConv = () => post({ t: 'conv', conv: shownConv() })
 if (!isOutput) onMsg((m) => {
   if (m.t === 'hello' || m.t === 'alive' || m.t === 'bye') outputChanged()
   if (m.t === 'hello') sendConv()
@@ -205,21 +208,44 @@ function outputChanged() {
   if (on !== state.output) set({ output: on }, false)
   if (on) goPublic()
 }
-/** an output came on while a private session runs: it is public from here on. The turn in hand (made with private
- *  memories) is cut, a line made ahead is dropped, and the session goes on in the public record, each turn (an AIRI
- *  one too) built from public memories only. A realtime call keeps its private context at the provider: it ends */
+/** an output came on while the private record is open: it is public from here on. Nothing running, the public
+ *  record takes its place (what a recording or the output window may show). A session running: the turn in hand
+ *  (made with private memories) is cut, a line made ahead and your lines not yet said are dropped (never said or
+ *  remembered in public), and the session goes on in the public record, each turn (an AIRI one too) built from
+ *  public memories only. A realtime call keeps its private context at the provider: it ends */
 let switching: Promise<void> | null = null
 function goPublic() {
-  if (!state.running || state.scope === 'public' || switching) return
+  if (state.scope === 'public' || switching) return
   if (loadBrainConfig().kind === 'demo' && state.mode !== 'realtime') return  // the demo reads and writes no memory
+  if (!state.running) { showPublicRecord(); return }
   if (realtimeControls) { talk.stop(); set({ ended: tr('输出已打开，私聊通话已结束') }); return }
   const run = ctrl
   if (!run) return
-  inputEpoch++; dropAhead(); interruptTurn()
-  set({ scope: 'public', sessionId: '', lines: [], speaking: null, thinking: null }, false)
+  const unsaid = queue.length
+  queue.length = 0; inputEpoch++; dropAhead(); interruptTurn()
+  set({ scope: 'public', sessionId: '', lines: [], speaking: null, thinking: null, ...(unsaid ? { error: tr('输出已打开，还没说出的私聊输入已丢弃') } : {}) }, false)
   switching = openHistory('public', run.signal).catch((error: unknown) => {
     if (!run.signal.aborted && ctrl === run) { talk.stop(); set({ error: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }) }
   }).finally(() => { switching = null; wakeLive?.() })
+}
+/** nothing running: the public record in place of the private one */
+function showPublicRecord() {
+  cancelRestore()
+  set({ scope: 'public', sessionId: '', lines: [], speaking: null }, false)
+  if (!profiles().length) { chatHistory.reset(); return }
+  const controller = new AbortController()
+  restoreRequest = { controller, signal: controller.signal }
+  void openHistory('public', controller.signal)
+    .catch((error: unknown) => { if (!controller.signal.aborted) set({ storageError: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }) })
+    .finally(() => { if (restoreRequest?.controller === controller) restoreRequest = null })
+}
+/** opens a starting session's record; an output coming on meanwhile opens the public one instead (goPublic) */
+async function openRecord(scope: MemoryScope, signal: AbortSignal) {
+  try { await openHistory(scope, signal) }
+  catch (error) {
+    if (signal.aborted || !switching) throw error
+    await switching; signal.throwIfAborted()
+  }
 }
 // once every module is ready (some of these import this one)
 if (!isOutput && typeof window !== 'undefined') setTimeout(() => {
@@ -388,11 +414,14 @@ async function deliver(line: Line, c: CharacterItem | null, signal: AbortSignal,
   const a = c ? actors.get(c.id) : undefined
   const take = ready ?? (a && c ? await a.prepare(line.text, line.emotion, (!line.human || c.readAloud) && !c.muted, signal) : undefined)
   signal.throwIfAborted()
+  // your line typed before an output switched the session to public: not said there
+  if (line.human && state.scope !== scope) return
   const seconds = take?.seconds ?? estimate(line.text)
   looks(c, line, seconds)
   if (c && !line.human) await wait(line.demo === undefined ? 260 : 140, signal)  // a look first, then the words
   if (speech) await speech.beforeStart()
   signal.throwIfAborted()
+  if (line.human && state.scope !== scope) return
   lastTurn = c?.id ?? lastTurn; skipped = null
   line = { ...line, seconds }
   set({ speaking: line, lines: [...state.lines, line] })
@@ -626,6 +655,8 @@ async function aiTurn(me: CharacterItem, parent: AbortSignal, audience?: Chat | 
       beforeStart: async () => {
         do {
           while (state.paused || dialogue.size || inputPending) await liveEvent(signal)
+          // made before an output switched the session to public: never said
+          if (state.scope !== scope) { turn.abort(TURN_INTERRUPTED); signal.throwIfAborted() }
           if (loadBrainConfig().kind !== 'demo' && (await memory.context([me.profileId ?? me.id], state.scope)).revision !== memoryRevision) throw new Error(tr('记忆已更新，请重新发送这一句'))
           signal.throwIfAborted()
         } while (state.paused || dialogue.size || inputPending)
@@ -686,27 +717,29 @@ async function aiTurn(me: CharacterItem, parent: AbortSignal, audience?: Chat | 
 let single = false
 
 /** your line, said by whom it is from */
-async function yours(line: Line, signal: AbortSignal) {
+async function yours(line: Line, signal: AbortSignal, scope = state.scope) {
   await deliver(line, characters(store.get()).find((character) => character.id === line.who) ?? null, signal)
   signal.throwIfAborted()
-  await rememberLine(line)
+  await rememberLine(line, undefined, scope)
 }
 
 async function consumeInput(signal: AbortSignal) {
   if (switching) { await switching; signal.throwIfAborted() }
+  const scope = state.scope
   const { line, transcribed } = queue.shift()!
   if (transcribed) {
     if (!state.lines.some((entry) => entry.id === line.id)) set({ lines: [...state.lines, line] })
-    await rememberLine(line)
-  } else await yours(line, signal)
+    await rememberLine(line, undefined, scope)
+  } else await yours(line, signal, scope)
 }
 
-async function rememberLine(line: Line, target?: CharacterItem) {
+/** 记住…: saved in the scope the line was said in; not at all if an output switched the session since */
+async function rememberLine(line: Line, target?: CharacterItem, scope = state.scope) {
   const remembered = line.text.match(/^(?:请)?记住(?:这件事)?[：:，,\s]*(.+)$/s)?.[1] ?? line.text.match(/^remember\s+(.+)$/is)?.[1]
-  if (!remembered || (loadBrainConfig().kind === 'demo' && state.mode !== 'realtime')) return
+  if (!remembered || (loadBrainConfig().kind === 'demo' && state.mode !== 'realtime') || state.scope !== scope) return
   const character = target ?? characters(store.get()).find((candidate) => candidate.id === forced && candidate.lines === 'ai')
     ?? characters(store.get()).find((candidate) => candidate.lines === 'ai' && !candidate.remote)
-  if (character) await memory.remember({ profileId: character.profileId ?? character.id, scope: state.scope, text: remembered.trim(), sourceSessionId: state.sessionId, sourceLineIds: [line.id] })
+  if (character) await memory.remember({ profileId: character.profileId ?? character.id, scope, text: remembered.trim(), sourceSessionId: state.sessionId, sourceLineIds: [line.id] })
 }
 
 /** your character's turn: wait for your line, or a skip */
@@ -738,7 +771,7 @@ async function run(once: boolean) {
     ...(switchScope ? { scope, sessionId: '', lines: [], speaking: null } : {}),
   }, !switchScope)
   try {
-    if (profiles().length) await openHistory(scope, c.signal)
+    if (profiles().length) await openRecord(scope, c.signal)
     else { chatHistory.reset(); set({ sessionId: '', scope }) }
     // characters still loading (a template just placed, its players not made yet) are waited for, a little
     const loading = () => characters(store.get()).some((x) => x.lines === 'ai' && !['ready', 'error'].includes(actors.get(x.id)?.status ?? ''))
@@ -955,7 +988,7 @@ async function startChatSession(chosen: MemoryScope = state.chatScope, target?: 
     generations: 0, generationLimit: Math.max(1, Math.min(500, settings.chatGenerations ?? 100)), turns: 0,
     until: Date.now() + minutes * 60000, ended: '', error: '' }, false)
   try {
-    await openHistory(scope, controller.signal)
+    await openRecord(scope, controller.signal)
     for (let i = 0; i < 60 && !voices().some((character) => character.lines === 'ai'); i++) await wait(250, controller.signal)
     if (!voices().some((character) => character.lines === 'ai')) throw new Error(tr('有 AI 角色尚未载入，请检查角色列表'))
     controller.signal.throwIfAborted()
@@ -1100,7 +1133,7 @@ export const talk = {
     if (!profiles().length) { chatHistory.reset(); set({ sessionId: '' }); return }
     const controller = new AbortController(), active = AbortSignal.any([signal, controller.signal])
     restoreRequest = { controller, signal: active }
-    try { await openHistory(state.scope, active) }
+    try { await openHistory(sessionScope(state.scope), active) }
     catch (error) { if (!active.aborted) set({ storageError: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }) }
     finally { if (restoreRequest?.controller === controller) restoreRequest = null }
   },
@@ -1111,19 +1144,19 @@ export const talk = {
   },
   async newChat() {
     talk.stop()
-    try { await openHistory(state.scope, new AbortController().signal, true); await chatHistory.save([]) }
+    try { await openHistory(sessionScope(state.scope), new AbortController().signal, true); await chatHistory.save([]) }
     catch (error) { set({ storageError: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }) }
   },
   async openSession(id: string) {
     if (state.running) return
     cancelRestore()
     try {
-      const session = await chatHistory.select(id, profiles(), state.scope)
+      const session = await chatHistory.select(id, profiles(), sessionScope(state.scope))
       restoring = true
       try { set({ sessionId: session.id, lines: session.lines }) } finally { restoring = false }
     } catch (error) { set({ storageError: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }) }
   },
-  detach() { talk.stop(); chatHistory.reset(); set({ lines: [], sessionId: '', turns: 0, scope: 'private', chatScope: 'private', storageError: '' }) },
+  detach() { talk.stop(); chatHistory.reset(); set({ lines: [], sessionId: '', turns: 0, scope: sessionScope('private'), chatScope: 'private', storageError: '' }) },
   hearing(active = true, options: { interrupt?: boolean } = {}) {
     if (!realtimeControls) {
       inputPending = active
