@@ -300,13 +300,15 @@ function useShortcuts(keys: Keys) {
         if (!characters(store.get()).some((x) => x.lines === 'ai')) actors.forEach((a) => { if (a.item.lines === 'me') a.calibrate() })
         else if (c.running) { if (c.paused) talk.resume(); else talk.pause() }
         else {
-          const kind = mainStart(loadBrainConfig(), store.get(), store.mode() === 'show')
+          const brain = loadBrainConfig(), kind = mainStart(brain, store.get(), store.mode() === 'show')
           // lines paid with points start only from a button, never from a key: Space plays the free demo instead
-          // (AI 直播 only opens its panel)
-          if (loadBrainConfig().kind === 'livliv' && kind !== 'live') {
+          // (AI 直播 only opens its panel). Points pay for LivLiv's lines and for every line in a LivLiv voice
+          const paidVoice = brain.kind !== 'demo' && participants(store.get()).some((c) => c.lines === 'ai' && !c.muted && voiceRoute(c) === 'livliv')
+          if (brain.kind === 'livliv' && kind !== 'live') {
             if (demoFor(characters(store.get()))?.script.template === 'trio') void beginDemo()
             else K.say(tr("用积分的台词，请点按钮开始"))
-          } else startMain(kind, K.live)
+          } else if (paidVoice && kind !== 'live') K.say(tr("用积分的台词，请点按钮开始"))
+          else startMain(kind, K.live)
         }
         return
       }

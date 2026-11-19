@@ -1,7 +1,7 @@
 // LivLiv's points AI on the site's build (VITE_STAGE_HOST=livliv): what Stage asks the site for. A line is asked for
 // with its voice (voice: true) only when it will be heard in the character's LivLiv voice; 仅字幕, a character on the
 // system voice and a muted one ask for none, and no line is voiced a second time (no /say call). Space never starts
-// paid lines: with the demo's three on the stage it plays the free demo. 对谈 answers a waiting viewer, and a clip that won't
+// paid lines: with the demo's three on the stage it plays the free demo, and with a model of one's own in the LivLiv voice it starts nothing. 对谈 answers a waiting viewer, and a clip that won't
 // play doesn't end it. In 持续聊天 with a model of one's own, a line in the LivLiv voice is one /say call, not one a sentence. The site is faked: nothing is spent.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
@@ -123,6 +123,13 @@ try {
     sayOk = true
     await patchAll({ ids, patch: { muted: false } }); await patchAll({ ids, patch: 'livliv' })
     await page.evaluate(async () => (await import('/src/brain.ts')).saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' }))
+    // Space with a model of one's own but the LivLiv voice: every line would be a paid /say, so Space starts nothing
+    said.length = 0
+    await page.evaluate(() => document.activeElement?.blur?.()); await page.keyboard.press('Space')
+    await page.locator('.toast').filter({ hasText: '用积分的台词' }).waitFor()
+    await page.waitForTimeout(1500)
+    assert.equal((await conv()).running, false, 'Space starts no session voiced in the LivLiv voice')
+    assert.deepEqual(said, [], 'Space asks for no /say')
     await page.evaluate(() => { void window.__stage.talk.startChat('private') })
     await page.waitForFunction(() => window.__stage.conversation().waitingInput, null, { timeout: 60000 })
     const before = await page.evaluate(() => window.__stage.conversation().turns)
