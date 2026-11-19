@@ -19,6 +19,8 @@
 - 长期记忆和实时语音对话
 - 角色之间互相对话，也回应 Twitch 弹幕
 - 说话时跟着情绪变的表情
+- 桌面版和角色聊天，每个角色有自己的记忆，由 [Project AIRI](https://github.com/moeru-ai/airi) 驱动
+- 桌面版的游戏连接：Minecraft（[Airicraft](https://github.com/proj-airi/airicraft)）、Factorio（[Autorio](https://github.com/moeru-ai/airi-factorio)），或者让角色看着任意游戏窗口
 - 内置 Neuro SDK 支持（桌面版）
 - 基础功能都有：摄像头面捕（手机面捕 App 和 VMC/OSC 用桌面版）、OBS 输出、录视频
 - 27 个精选角色，开箱即用。基于 [LivLiv Player](https://github.com/livliv-dev/player)

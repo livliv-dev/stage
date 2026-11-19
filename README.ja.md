@@ -19,6 +19,8 @@
 - 長期記憶とリアルタイム音声会話
 - キャラクター同士の掛け合いと、Twitch コメントへの返事
 - 話しながら感情に合わせて変わる表情
+- デスクトップ版の AI チャット：キャラクターごとに記憶を持ちます。[Project AIRI](https://github.com/moeru-ai/airi) を利用
+- デスクトップ版のゲーム接続：Minecraft（[Airicraft](https://github.com/proj-airi/airicraft)）、Factorio（[Autorio](https://github.com/moeru-ai/airi-factorio)）、または任意のゲームウィンドウ
 - Neuro SDK に標準対応（デスクトップ版）
 - 基本機能：Web カメラのフェイストラッキング（スマホアプリと VMC/OSC はデスクトップ版）、OBS 出力、動画の録画
 - 厳選キャラクター 27 体、すぐに使えます。[LivLiv Player](https://github.com/livliv-dev/player) がベース

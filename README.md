@@ -19,6 +19,8 @@
 - Long-term memory and real-time voice chat
 - Characters that talk to each other and to your Twitch chat
 - Emotional reactions as they speak
+- AI chat that remembers, in the desktop app: each character keeps its own memory, powered by [Project AIRI](https://github.com/moeru-ai/airi)
+- Game connections in the desktop app: Minecraft through [Airicraft](https://github.com/proj-airi/airicraft), Factorio through [Autorio](https://github.com/moeru-ai/airi-factorio), or any game window the character watches
 - Built-in Neuro SDK support (desktop app)
 - All the basics: webcam face tracking (phone apps and VMC/OSC in the desktop app), OBS output, video recording
 - 27 featured characters, ready to use. Built on [LivLiv Player](https://github.com/livliv-dev/player)
