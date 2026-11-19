@@ -61,11 +61,12 @@ try {
   await range(appearance.getByLabel('内部缩放'), 1.3); await range(appearance.getByLabel('水平取景'), .2); await range(appearance.getByLabel('垂直取景'), .1)
   await page.waitForFunction(() => window.__stage.actors.get(window.avatarId).player.getPose().view.zoom === 1.3)
   const expression = await page.evaluate(() => window.__stage.actors.get(window.avatarId).player.expressions.find((e) => e.id !== 'smile'))
-  const expressions = page.locator('.panel .chips').first()
-  await range(page.getByLabel('表情强度'), .4); await expressions.getByRole('button', { name: expression.labels.zh ?? expression.labels['zh-Hans'] ?? expression.label, exact: true }).click()
+  // the expression chips (the reaction tuning above them has chips of its own); a chip's name ends with its number key
+  const expressions = page.locator('.panel .chips').filter({ has: page.getByRole('button', { name: /^恢复/ }) })
+  await range(page.getByLabel('表情强度'), .4); await expressions.getByRole('button', { name: new RegExp('^' + (expression.labels.zh ?? expression.labels['zh-Hans'] ?? expression.label)) }).click()
   await page.waitForFunction((id) => Math.abs(window.__stage.actors.get(window.avatarId).player.getPose().expr[id] - .4) < .01, expression.id)
   await page.evaluate(async () => { const a = window.__stage.actors.get(window.avatarId); await a.perform({ text: 'ok', seconds: .1, clip: null, aloud: false }, 'neutral', 'none') })
-  await expressions.getByRole('button', { name: expression.labels.zh ?? expression.labels['zh-Hans'] ?? expression.label, exact: true }).click(); await page.waitForTimeout(1400)
+  await expressions.getByRole('button', { name: new RegExp('^' + (expression.labels.zh ?? expression.labels['zh-Hans'] ?? expression.label)) }).click(); await page.waitForTimeout(1400)
   assert.equal(await page.evaluate(() => window.__stage.actors.get(window.avatarId).expression), expression.id)
   report.expression = 'live strength and manual expression survive an earlier line’s delayed reset'
   assert.equal(await page.evaluate(() => window.avatarCanvas === document.querySelector('canvas.character')), true)

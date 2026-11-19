@@ -62,7 +62,8 @@ npm --prefix stage ci && npm --prefix stage run dev            # 网页版，htt
 npm --prefix desktop ci && npm --prefix desktop run stage:dev  # 桌面版（stage:mac、stage:win 打安装包）
 ```
 
-测试：`npm --prefix stage run check && npm --prefix stage test`、`npm --prefix desktop test`、`npm --prefix collab test`。
+测试：`npm --prefix stage run check && npm --prefix stage test`、`npm --prefix desktop test`、`npm --prefix collab test`；
+浏览器测试是 [stage/package.json](stage/package.json) 里的 `test:*` 脚本。每个 PR 都会在 GitHub Actions 上跑这些测试。
 AI 聊天和记忆见 [docs/ai-conversations.md](docs/ai-conversations.md)，实时语音见 [docs/realtime-voice.md](docs/realtime-voice.md)，
 Neuro SDK 桥接见 [neuro/README.md](neuro/README.md)，本机控制接口见 [docs/stage-api.md](docs/stage-api.md)，联播见 [collab/README.md](collab/README.md)。
 模型密钥只存在浏览器或应用里，请求直接发给服务商。欢迎贡献：[CONTRIBUTING.md](CONTRIBUTING.md)。

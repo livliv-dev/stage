@@ -46,15 +46,15 @@ npm --prefix vendor/airi-core run build -- /path/to/airi
 在安装 Stage 和桌面的 npm 依赖之后，可运行本地 Electron 验收。脚本使用独立用户目录、本地流式模型测试服务和模拟弹幕。macOS 上可用 `STAGE_TEST_VOICES=1` 将测试音频换成系统语音。
 
 ```sh
-npm --prefix desktop run build
-(cd stage && NODE_ENV=development ./node_modules/.bin/vite build --outDir /tmp/stage-airi-test)
-STAGE_TEST_RESOURCES=/tmp/stage-airi-test node desktop/test/airi-stage.mjs
+npm --prefix desktop run test:airi-stage
 ```
+
+脚本会先构建桌面外壳，再把 Stage 的开发版构建到 `stage/dist-dev`。
 
 macOS 上可从顶栏走一遍 Airicraft 桌面流程。
 
 ```sh
-STAGE_TEST_RESOURCES=/tmp/stage-airi-test node desktop/test/airi-native-games.mjs
+npm --prefix desktop run test:airi-native-games
 ```
 
 可选参数 `STAGE_TEST_MINECRAFT_BRIDGE`、`STAGE_TEST_VISION_API` 和 `STAGE_TEST_TWITCH` 分别接入独立测试存档、本地视觉模型和真实公开弹幕。脚本使用固定的工具调用和转录结果，便于单独验证真实游戏与画面生成链路。重复用同一存档测试时，可用 `STAGE_TEST_MINECRAFT_LOGS` 把采集目标设在已有库存以上。

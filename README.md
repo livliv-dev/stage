@@ -63,7 +63,8 @@ npm --prefix stage ci && npm --prefix stage run dev            # the web app at 
 npm --prefix desktop ci && npm --prefix desktop run stage:dev  # the desktop app (stage:mac, stage:win build installers)
 ```
 
-Tests: `npm --prefix stage run check && npm --prefix stage test`, `npm --prefix desktop test`, `npm --prefix collab test`.
+Tests: `npm --prefix stage run check && npm --prefix stage test`, `npm --prefix desktop test`, `npm --prefix collab test`;
+the browser checks are the `test:*` scripts in [stage/package.json](stage/package.json), and GitHub Actions runs all of these on every pull request.
 AI chat and memory: [docs/ai-conversations.md](docs/ai-conversations.md), real-time voice:
 [docs/realtime-voice.md](docs/realtime-voice.md), built-in AIRI ([docs/airi.md](docs/airi.md)), the Neuro SDK bridge: [neuro/README.md](neuro/README.md), the local control API:
 [docs/stage-api.md](docs/stage-api.md), co-streaming: [collab/README.md](collab/README.md).

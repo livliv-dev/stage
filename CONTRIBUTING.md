@@ -23,7 +23,9 @@ For a code change, run this first:
 npm --prefix stage run check && npm --prefix stage test && npm --prefix desktop test && npm --prefix collab test
 ```
 
-For a change to the interface, also run `npm --prefix stage run test:browser` (see the README for the Playwright setup).
+For a change to the interface, also run `npm --prefix stage run test:browser` and the other `test:*` scripts in
+`stage/package.json` that cover it (install the headless browser once with `cd stage && npx playwright-core install
+chromium-headless-shell`). Every pull request runs all of them in GitHub Actions.
 
 ## What we can't take
 

@@ -1,9 +1,8 @@
 import { tr } from './i18n'
-// Ready-made scenes, built from the sample characters that come with Stage, and scenes as files (save / open).
+// Ready-made scenes, built from the sample characters that come with Stage.
 import { samples, type Pick } from './library'
-import { kept } from './vault'
 import { controlSettings } from './workflow'
-import { bubbleFor, captionBar, emptyScene, loadable, newCharacter, persistentScene, type CharacterItem, type Item, type Scene, type StartKind, type Talk } from './scene'
+import { bubbleFor, captionBar, emptyScene, newCharacter, type CharacterItem, type Item, type Scene, type StartKind, type Talk } from './scene'
 
 /** start: what the console's main button starts on the stage the template makes (none without an AI character) */
 export const TEMPLATES = [
@@ -51,28 +50,3 @@ export async function buildTemplate(id: TemplateId): Promise<Scene> {
     talk: withStart({ ...s.talk, order: id === 'trio' ? 'host' : 'free', host }, id),
   }
 }
-
-const FORMAT = 'livliv-stage'
-
-export function saveFile(s: Scene) {
-  const blob = new Blob([JSON.stringify({ format: FORMAT, version: 1, scene: persistentScene(s) }, null, 2)], { type: 'application/json' })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = `${(s.name || tr("舞台")).replace(/[\\/:*?"<>|]/g, '_')}.livstage.json`
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(a.href), 10_000)
-}
-
-/** a scene file; missing: characters imported from files that this browser doesn't keep (they need importing here) */
-export async function openFile(f: File): Promise<{ scene: Scene; missing: number }> {
-  let data: { format?: string; scene?: Partial<Scene> }
-  try { data = JSON.parse(await f.text()) } catch { throw new Error(tr("这个文件读不出来")) }
-  if (data.format !== FORMAT) throw new Error(tr("这不是 LivLiv Stage 的场景文件"))
-  const scene = loadable(data.scene ?? null, false)
-  if (!scene) throw new Error(tr("场景文件里没有内容"))
-  const here = new Set((await kept()).map((k) => k.key))
-  return { scene, missing: scene.items.filter((i) => i.kind === 'character' && i.model.type === 'files' && !here.has(i.model.key)).length }
-}
-
-/** characters imported from files: the scene file only names them (their files stay in this browser) */
-export const unsaved = (s: Scene) => s.items.filter((i) => i.kind === 'character' && !i.remote && i.model.type === 'files').length

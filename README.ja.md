@@ -63,6 +63,7 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # デスクトッ
 ```
 
 テスト：`npm --prefix stage run check && npm --prefix stage test`、`npm --prefix desktop test`、`npm --prefix collab test`。
+ブラウザのテストは [stage/package.json](stage/package.json) の `test:*` スクリプトです。プルリクエストごとに GitHub Actions がこれらを実行します。
 AI チャットと記憶は [docs/ai-conversations.md](docs/ai-conversations.md)、リアルタイム音声は [docs/realtime-voice.md](docs/realtime-voice.md)、
 Neuro SDK ブリッジは [neuro/README.md](neuro/README.md)、ローカル制御 API は [docs/stage-api.md](docs/stage-api.md)、共同配信は [collab/README.md](collab/README.md) にあります。
 モデルの API キーはブラウザかアプリの中にだけ保存され、サービスへ直接送られます。コントリビュートは [CONTRIBUTING.md](CONTRIBUTING.md)、

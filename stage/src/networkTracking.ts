@@ -10,7 +10,6 @@ let latest: MotionFrame | null = null, received = 0
 const listeners = new Set<() => void>()
 export const motionSupported = () => !!desktop?.tracking && !!desktop.onMotion
 export const useMotion = () => useSyncExternalStore((f) => { listeners.add(f); return () => { listeners.delete(f) } }, () => state)
-export const motionState = () => state
 export const currentMotion = () => ({ frame: latest, active: state.listening && !!latest?.available && performance.now() - received < 500 })
 const frame = (next: MotionFrame | null) => { latest = next; received = next ? performance.now() - Math.max(0, Date.now() - next.at) : 0 }
 const hydrate = (next: MotionState) => { state = next; frame(next.frame); listeners.forEach((f) => f()) }
