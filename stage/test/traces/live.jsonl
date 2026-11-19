@@ -1,0 +1,17 @@
+{"scenario":"live","about":"AI 直播: one AI character answers two viewers in its voice and stops at its generation limit (2)"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"start","mode":"live","scope":"public"}
+{"t":"record","scope":"public","earlier":0}
+{"t":"model","engine":"openai","speaker":"Nana","scope":"public","memories":["public: 公开的爱好是猫"],"viewer":"Aki: 今天聊什么"}
+{"t":"voice","via":"api","text":"Nana的第1句。我接着说下去。"}
+{"t":"line","from":"viewer","name":"弹幕 · Aki","text":"今天聊什么","scope":"public"}
+{"t":"save","scope":"public","lines":1}
+{"t":"line","from":"ai","name":"Nana","text":"Nana的第1句。我接着说下去。","scope":"public"}
+{"t":"save","scope":"public","lines":2}
+{"t":"model","engine":"openai","speaker":"Nana","scope":"public","memories":["public: 公开的爱好是猫"],"viewer":"Mio: 晚上好"}
+{"t":"voice","via":"api","text":"Nana的第2句。我接着说下去。"}
+{"t":"line","from":"viewer","name":"弹幕 · Mio","text":"晚上好","scope":"public"}
+{"t":"save","scope":"public","lines":3}
+{"t":"line","from":"ai","name":"Nana","text":"Nana的第2句。我接着说下去。","scope":"public"}
+{"t":"save","scope":"public","lines":4}
+{"t":"end","mode":"live","scope":"public","turns":2,"generations":2,"ended":"已达到本次生成次数上限"}

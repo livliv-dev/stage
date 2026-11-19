@@ -1,0 +1,11 @@
+{"scenario":"demo","about":"The demo: the 双人对谈 template's prepared conversation, in its recorded voices, to its end; no model call and nothing saved"}
+{"t":"start","mode":"conversation","scope":"private"}
+{"t":"line","from":"ai","name":"Sena","text":"周末去哪儿玩？Kai，别告诉我你又打算在游戏里过周末！","scope":"private"}
+{"t":"line","from":"ai","name":"Kai","text":"本来是这么想的。直到我家猫踩了键盘，把存档点变成了复活点。","scope":"private"}
+{"t":"line","from":"ai","name":"Sena","text":"哈哈哈，那今天换个地图！我们去游戏厅，我要挑战音乐机。","scope":"private"}
+{"t":"line","from":"ai","name":"Kai","text":"可以。先说好，唱歌加分的话，那不算公平对战。","scope":"private"}
+{"t":"line","from":"ai","name":"Sena","text":"我这是实力！你负责打节奏，我负责给全场开演唱会。","scope":"private"}
+{"t":"line","from":"ai","name":"Kai","text":"专业耳机带上了。保持冷静，是职业选手的基本素养。","scope":"private"}
+{"t":"line","from":"ai","name":"Sena","text":"嘴硬！输了的人请奶茶，观众帮我们记分！","scope":"private"}
+{"t":"line","from":"ai","name":"Kai","text":"成交。新地图，双人组队。猫留在家里保管键盘。","scope":"private"}
+{"t":"end","mode":"conversation","scope":"private","turns":8,"generations":0}

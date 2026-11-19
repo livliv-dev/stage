@@ -1,0 +1,8 @@
+{"scenario":"next-up","about":"One-shot: idle, a click on Kai's card (nextUp) makes Kai say one line"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"start","mode":"conversation","scope":"private"}
+{"t":"model","engine":"openai","speaker":"Kai","scope":"private","memories":[]}
+{"t":"voice","via":"api","text":"Kai的第1句。我接着说下去。"}
+{"t":"line","from":"ai","name":"Kai","text":"Kai的第1句。我接着说下去。","scope":"private"}
+{"t":"save","scope":"private","lines":1}
+{"t":"end","mode":"conversation","scope":"private","turns":1,"generations":0}

@@ -52,6 +52,9 @@ jobs:
             suites: browser settings ux shots projects mixer profiles
           - name: live
             suites: audience props gamepad live collab collab-pose
+          # every way a session starts, compared with its recorded behaviour (test/traces)
+          - name: traces
+            suites: traces
     defaults:
       run:
         working-directory: stage
