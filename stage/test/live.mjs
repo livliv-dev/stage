@@ -195,13 +195,13 @@ try {
   await until(out, "!!document.querySelector('canvas.character')")
   await evaluate(out, "(() => { window.got = 0; new BroadcastChannel('livliv-stage').onmessage = (e) => { if (e.data.t === 'pose') window.got++ } })()")
   const count = async (label, ms) => { await evaluate(out, 'window.got = 0'); await sleep(ms); const poses = await evaluate(out, 'window.got'), editor = await evaluate(ed, 'document.visibilityState'); return { label, editor, poses, perSecond: +(poses / ms * 1000).toFixed(1) } }
-  const hidden = [await count('editor in sight', 3000)]
+  const hidden = [await count('editor in sight', testTimeout(3000))]
   const { targetId: tab } = await send('Target.createTarget', { url: 'about:blank', newWindow: false }); await send('Target.activateTarget', { targetId: tab }); await sleep(500)
-  hidden.push(await count('another tab in front', 4000))
+  hidden.push(await count('another tab in front', testTimeout(4000)))
   await send('Target.activateTarget', { targetId: editorId }); await sleep(500)
   const { windowId } = await send('Browser.getWindowForTarget', { targetId: editorId })
   await send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'minimized' } }); await sleep(500)
-  hidden.push(await count('editor window minimised', 4000))
+  hidden.push(await count('editor window minimised', testTimeout(4000)))
   await send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'normal' } })
   ws.close()
   report.hiddenEditor = hidden; console.log(JSON.stringify(hidden))
