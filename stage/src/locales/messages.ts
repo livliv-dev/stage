@@ -4765,7 +4765,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型": {"zh-Hans": "LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型", "zh-Hant": "LivLiv 只能讓 LivLiv 的角色說話：給「{0}」接上你自己的模型", "en": "LivLiv works for LivLiv characters only: connect your own model for “{0}”", "ja": "LivLiv で話せるのは LivLiv のキャラクターだけです。「{0}」には自分のモデルをつないでください"},
   "登录 livliv.ai 后可用": {"zh-Hans": "登录 livliv.ai 后可用", "zh-Hant": "登入 livliv.ai 後可用", "en": "Available after you sign in to livliv.ai", "ja": "livliv.ai にログインすると使えます"},
   "这句的声音没有生成": {"zh-Hans": "这句的声音没有生成", "zh-Hant": "這句的聲音沒有生成", "en": "This line’s voice wasn’t made", "ja": "このセリフの音声は作られませんでした"},
-  "用积分的台词，请从「对谈」或「AI 直播」开始": {"zh-Hans": "用积分的台词，请从「对谈」或「AI 直播」开始", "zh-Hant": "用積分的台詞，請從「對談」或「AI 直播」開始", "en": "Lines paid with points start from Chat or AI live", "ja": "ポイントを使うセリフは「対話」か「AI配信」から始めてください"},
+  "用积分的台词，请点按钮开始": {"zh-Hans": "用积分的台词，请点按钮开始", "zh-Hant": "用積分的台詞，請點按鈕開始", "en": "Lines paid with points start from a button, not from Space", "ja": "ポイントを使うセリフはボタンから始めてください"},
   "无需密钥。消耗 livliv.ai 积分，每句台词 {0} 积分，只能用于 LivLiv 的角色。": {"zh-Hans": "无需密钥。消耗 livliv.ai 积分，每句台词 {0} 积分，只能用于 LivLiv 的角色。", "zh-Hant": "無需金鑰。消耗 livliv.ai 積分，每句台詞 {0} 積分，只能用於 LivLiv 的角色。", "en": "No key needed. Uses your livliv.ai points, {0} points a line. LivLiv characters only.", "ja": "キー不要。livliv.ai のポイントを使います。1 行あたり {0} ポイント。LivLiv のキャラクターのみ。"},
   "记忆": {"zh-Hans": "记忆", "zh-Hant": "記憶", "en": "Memory", "ja": "記憶"},
   "已记住": {"zh-Hans": "已记住", "zh-Hant": "已記住", "en": "Remembered", "ja": "記憶しました"},

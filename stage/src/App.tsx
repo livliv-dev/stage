@@ -9,7 +9,7 @@ import {
   FileBox, Plus, RefreshCw, SlidersHorizontal, Volume2, VolumeX,
   MonitorPlay, Pencil, Pause, Play, Radio, Redo2, RotateCcw, Save, Send, SkipForward, Square, StepForward, Settings, Sparkles, Type, Undo2, UserPlus, X,
 } from 'lucide-react'
-import { brainReady, listModels, loadBrainConfig, playDemo, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveBrainConfig, savedBrain, testModel, useBrainConfig, type ModelConfig } from './brain'
+import { brainReady, listModels, loadBrainConfig, playDemo, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveBrainConfig, savedBrain, testModel, useBrainConfig, type BrainConfig, type ModelConfig } from './brain'
 import { conversation, talk, useConversation } from './conversation'
 import { airiModelForCast, testAiriModel } from './airiEngine'
 import { Panel, PanelTab, TalkSettings } from './Inspector'
@@ -97,6 +97,18 @@ async function beginDemo(done?: () => void) {
       y: cast.get(item.id)!.y } : item
   }) }); store.select(null)
   pttCancel(); talk.detach(); playDemo(true); done?.(); talk.start()
+}
+
+/** what the main start button begins while nothing runs: the console's (editing), or the show controls' (show
+ *  mode). Space begins the same one (useShortcuts) */
+type MainStart = 'replay' | 'chat' | 'conversation'
+function mainStart(brain: BrainConfig, show = false): MainStart {
+  if (brain.kind === 'demo') return 'replay'
+  return show ? 'conversation' : 'chat'
+}
+function startMain(kind: MainStart) {
+  if (kind === 'chat') void talk.startChat().catch(() => {})
+  else talk.start()
 }
 
 export default function App() {
@@ -275,11 +287,11 @@ function useShortcuts(keys: Keys) {
         const c = conversation()
         if (!characters(store.get()).some((x) => x.lines === 'ai')) actors.forEach((a) => { if (a.item.lines === 'me') a.calibrate() })
         else if (c.running) { if (c.paused) talk.resume(); else talk.pause() }
-        // lines paid with points start only from 对谈 or AI 直播, never from a key: Space plays the free demo instead
+        // lines paid with points start only from a button, never from a key: Space plays the free demo instead
         else if (loadBrainConfig().kind === 'livliv') {
           if (demoFor(characters(store.get()))?.script.template === 'trio') void beginDemo()
-          else K.say(tr("用积分的台词，请从「对谈」或「AI 直播」开始"))
-        } else talk.start()
+          else K.say(tr("用积分的台词，请点按钮开始"))
+        } else startMain(mainStart(loadBrainConfig(), store.mode() === 'show'))
         return
       }
       if (!id || store.mode() !== 'edit') return
@@ -590,7 +602,7 @@ function Cast({ guide }: { guide: ReactNode }) {
  *  apart, what you say (as whom, the line, push to talk, send) */
 function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules, onLive, onRealtime }: { log: boolean; setLog: (on: boolean) => void; onMemory: () => void; model: boolean; toggleModel: () => void; rules: boolean; toggleRules: () => void; onLive: () => void; onRealtime: () => void }) {
   const { scene } = useScene()
-  const conv = useConversation(), realtime = useRealtime(), demo = useBrainConfig().kind === 'demo'
+  const conv = useConversation(), realtime = useRealtime(), brain = useBrainConfig(), demo = brain.kind === 'demo', main = mainStart(brain)
   const inRealtime = conv.running && conv.mode === 'realtime'
   const [mine, setMine] = useState('')
   const input = useRef<HTMLInputElement>(null), moreModes = useRef<HTMLDetailsElement>(null)
@@ -628,7 +640,7 @@ function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules
         <input className="topic" value={scene.topic} placeholder={tr("话题，比如：周末去哪儿玩")} aria-label={tr("话题")} onChange={(e) => store.set({ topic: e.target.value })} />
       </div>
       <div className="zone run">
-        {!conv.running && (demo ? <button className="primary" onClick={talk.start}><Play size={14} />{tr('再看一次')}</button> : <button className="primary start-chat" title={startLabel} onClick={() => void talk.startChat().catch(() => {})}><MessagesSquare size={14} /><span>{startLabel}</span></button>)}
+        {!conv.running && (main === 'replay' ? <button className="primary" onClick={() => startMain(main)}><Play size={14} />{tr('再看一次')}</button> : <button className="primary start-chat" title={startLabel} onClick={() => startMain(main)}><MessagesSquare size={14} /><span>{startLabel}</span></button>)}
         {!desktop?.vision && <button className="realtime-toggle" aria-label={tr('实时语音')} title={tr('实时语音')} onClick={onRealtime} disabled={conv.running && !inRealtime}><Mic size={14} /><span>{tr('实时语音')}</span></button>}
         {!conv.running && <details ref={moreModes} className="start-modes" onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); moreModes.current!.open = false; moreModes.current?.querySelector('summary')?.focus() } }}>
           <summary>{tr('更多方式')}<ChevronDown size={13} /></summary>
@@ -762,7 +774,7 @@ function Transcript({ view, setView, onClose, right }: { view: 'history' | 'memo
 // ---------------------------------------------------------------- show mode, menus, AI
 
 function ShowControls() {
-  const conv = useConversation(), r = useRecording(), { scene } = useScene(), demo = useBrainConfig().kind === 'demo'
+  const conv = useConversation(), r = useRecording(), { scene } = useScene(), main = mainStart(useBrainConfig(), true)
   const hasAI = participants(scene).some((c) => c.lines === 'ai')
   const [on, setOn] = useState(true)
   useEffect(() => {
@@ -773,7 +785,7 @@ function ShowControls() {
   }, [])
   return (
     <div className={`show-controls${on ? ' on' : ''}`} onPointerDown={(e) => e.stopPropagation()}>
-      {hasAI && !conv.running && <button className="primary" onClick={talk.start}><Play size={14} />{tr(demo ? '再看一次' : '开始对谈')}</button>}
+      {hasAI && !conv.running && <button className="primary" onClick={() => startMain(main)}><Play size={14} />{tr(main === 'replay' ? '再看一次' : '开始对谈')}</button>}
       {conv.running && !conv.paused && <button onClick={talk.pause}><Pause size={14} />{tr("暂停")}</button>}
       {conv.running && conv.paused && <button onClick={talk.resume}><Play size={14} />{tr("继续")}</button>}
       <button className="icon" title={tr("停止")} disabled={!conv.running} onClick={() => { pttCancel(); talk.stop() }}><Square size={14} /></button>
