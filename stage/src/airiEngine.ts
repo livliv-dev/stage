@@ -1,5 +1,6 @@
 import type { Conversation, Message, Provider } from '../../vendor/airi-core/core.mjs'
-import type { BrainConfig, Line, ModelConfig } from './brain'
+import type { BrainConfig, ModelConfig } from './brain'
+import type { Line } from './core/lines'
 import type { ExternalActionDecision, ExternalActionRequest, ExternalEvent } from './externalEvents'
 import type { MemoryRecord, MemoryScope } from './memory'
 import type { ReactionCue } from './reactions'

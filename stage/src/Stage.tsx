@@ -246,7 +246,7 @@ function Toolbar({ item, style }: { item: Item; style: CSSProperties }) {
   return (
     <div className="mini" style={style} onPointerDown={(e) => e.stopPropagation()}>
       {c && <>
-        {c.remote ? <span className="remote-control">{tr("朋友控制")}</span> : <select value={controlOf(c)} title={tr("谁来控制")} aria-label={tr("谁来控制")} onChange={(e) => { const control = e.target.value as Control; store.patch(c.id, controlSettings(control)); if (control === 'human') talk.setAs(c.id) }}>
+        {c.remote ? <span className="remote-control">{tr("朋友控制")}</span> : <select value={controlOf(c)} title={tr("谁来控制")} aria-label={tr("谁来控制")} onChange={(e) => { const control = e.target.value as Control; store.patch(c.id, controlSettings(control)); if (control === 'me') talk.setAs(c.id) }}>
           {CONTROLS.map((mode) => <option key={mode.id} value={mode.id}>{tr(mode.label ?? '')}</option>)}
         </select>}
         <button className={`icon${c.mirror ? ' on' : ''}`} title={tr("左右翻转")} onClick={() => store.patch(c.id, { mirror: !c.mirror })}><FlipHorizontal2 size={15} /></button>

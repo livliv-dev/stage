@@ -55,7 +55,8 @@ import { small } from './host'
 import { features } from './core/platform'
 import { linkedAs, linkedId, openLinked } from './entry'
 import { PhoneIntro, SiteWelcome } from './SiteIntro'
-import { connectLiveKeys, liveCharacter } from './live'
+import { connectCharacterKeys } from './characterKeys'
+import { faceCharacter } from './control'
 import { connectOutputFeed } from './outputFeed'
 import { GoLiveGuide } from './GoLive'
 import { MemoryPanel } from './MemoryPanel'
@@ -189,7 +190,7 @@ export default function App() {
   useEffect(connectAudienceActions, [])
   useEffect(connectNetworkTracking, [])
   useEffect(() => holdKey(), [])  // push to talk: hold `
-  useEffect(connectLiveKeys, [])  // 1-9 0 Q W E R T B (live.ts)
+  useEffect(connectCharacterKeys, [])  // 1-9 0 Q W E R T B (characterKeys.ts)
   useEffect(connectOutputFeed, [])
   // Choose the model before asking for a particular provider's account.
   const conv = useConversation()
@@ -736,7 +737,7 @@ function SoloStatus() {
   const cast = participants(scene)
   if (!cast.length) return null
   // the one 开播 put on the stage, else the first you play (in sight first)
-  const human = cast.find((c) => c.id === liveCharacter() && !c.hidden) ?? cast.find((c) => c.lines === 'me' && !c.hidden) ?? cast.find((c) => c.lines === 'me')
+  const human = cast.find((c) => c.id === faceCharacter() && !c.hidden) ?? cast.find((c) => c.lines === 'me' && !c.hidden) ?? cast.find((c) => c.lines === 'me')
   const actor = human && actors.get(human.id), track = actor?.tracking
   const label = actor?.inputPhase === 'error' ? actor.error : actor?.away ? tr("暂离中，按 B 回来") : actor?.inputPhase === 'opening' ? tr("正在连接摄像头…")
     : track ? track.face ? tr("面捕已连接") : tr("未识别到面部") : tr("画面实时更新")

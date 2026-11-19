@@ -1,4 +1,4 @@
-import { tr, type Locale } from './i18n'
+import { tr } from './i18n'
 // What an AI character says next. A brain gets who is speaking, who else is on the stage, the topic and the
 // conversation so far, and gives one line with a feeling, a move and whom it is said to.
 //  - openai: the user's own model (bring your own key): any OpenAI-compatible chat API, presets for the usual ones,
@@ -18,22 +18,9 @@ import { hasSession, modelId, onAccount, signedIn, stageLine } from './livliv'
 import { demoReply } from './demo'
 import { LENGTHS, type CharacterItem, type Talk } from './scene'
 import { conversationContext, type ConversationSummary } from './chatContext'
-import { readListenerReactions, readReactionCues, type ListenerReaction, type ReactionCue } from './reactions'
+import { readListenerReactions, readReactionCues } from './reactions'
+import type { Emotion, Line, Move, Reply } from './core/lines'
 import type { ExternalActionDecision, ExternalActionRequest } from './externalEvents'
-
-export type Emotion = 'neutral' | 'happy' | 'shy' | 'angry' | 'sad' | 'surprised'
-export type Move = 'none' | 'nod' | 'shake' | 'tilt' | 'hop' | 'shy'
-/** human: typed by you; cut: it was interrupted (said up to there); audience: a viewer's message (弹幕), never said;
- *  seconds: how long it takes to say (its voice's length, set as it is said) */
-/** look: where the speaker's eyes go while it says the line: someone's name, 'camera' (the audience), 'away' (shy,
- *  thinking); null: whoever it answers or names (conversation.ts looks) */
-export type Line = { id: string; who: string; name: string; text: string; emotion: Emotion; action: Move; to: string | null; look?: string | null; human?: boolean; cut?: boolean; audience?: boolean; seconds?: number
-  cues?: ReactionCue[]
-  listeners?: ListenerReaction[]
-  memoryIds?: string[]
-  memoryRevision?: number
-  /** the demo's: its recording, and its place in the script (demo.ts) */
-  audio?: string; demo?: number; demoLocale?: Locale }
 
 /** role: in host order, whether it hosts or is a guest; cutIn: it is cutting into the line before */
 export type Ask = {
@@ -52,7 +39,6 @@ export type Ask = {
   memories?: { id: string; text: string }[]
   event?: { source: string; message: string }
 }
-export type Reply = Omit<Line, 'id' | 'who' | 'name'> & { summary?: string }
 export interface Brain { reply(a: Ask, signal: AbortSignal): Promise<Reply> }
 
 export type ModelConfig = { kind: 'openai'; provider: string; base: string; key: string; model: string; airi?: boolean }

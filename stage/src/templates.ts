@@ -31,7 +31,7 @@ export async function buildTemplate(id: TemplateId): Promise<Scene> {
   if (id === 'solo' || id === 'ai') {
     const p = all.find((p) => p.id === 'd03ft') ?? all[0]
     const c = newCharacter(s, p.name, p.model, p.persona, 0.5, p.card)
-    Object.assign(c, controlSettings(id === 'solo' ? 'human' : 'ai'))
+    Object.assign(c, controlSettings(id === 'solo' ? 'me' : 'ai'))
     return { ...s, name: id === 'solo' ? tr("面捕出镜") : tr("AI 主播"), background: 'transparent', items: [c, captionBar(s)], talk: withStart(s.talk, id) }
   }
   spots.forEach((at, i) => {

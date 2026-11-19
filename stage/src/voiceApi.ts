@@ -8,7 +8,8 @@ import { tr } from './i18n'
 // Which voice a character speaks in (voiceRoute): the one chosen for it if it can be had, else your API, LivLiv's
 // voice (signed in, a LivLiv character), else none: its lines show as subtitles. The system's voice only if chosen.
 import { useSyncExternalStore } from 'react'
-import { aiFetch, failed, loadBrainConfig, previousModelConfig, useBrainConfig, type BrainConfig, type Emotion } from './brain'
+import { aiFetch, failed, loadBrainConfig, previousModelConfig, useBrainConfig, type BrainConfig } from './brain'
+import type { Emotion, StreamingVoice } from './core/lines'
 import { modelId, signedIn } from './livliv'
 import type { CharacterItem } from './scene'
 import { features } from './core/platform'
@@ -120,10 +121,6 @@ export async function speakApi(s: SpeechApi, text: string, voice: string, emotio
   return r.blob()
 }
 
-/** a line's sound as it is being made: for the player from its start, whatever has come so far and the rest as it comes;
- *  when all of it is in, the whole file (for a recording) and its true length */
-export type Live = { open(): Response; whole: Promise<Blob>; seconds: () => number | null }
-
 /** a WAV of unknown length as it was sent: its header given the real sizes, and its seconds */
 function finished(parts: Uint8Array[], type: string): { blob: Blob; seconds: number | null } {
   const n = parts.reduce((a, p) => a + p.length, 0), all = new Uint8Array(n)
@@ -148,7 +145,7 @@ function finished(parts: Uint8Array[], type: string): { blob: Blob; seconds: num
 /** a line as WAV as it is made, once the first of it has come back. It keeps coming in whether or not it is being
  *  played yet; a line made ahead of its turn is complete by the time it is said. A service that sends something else
  *  still works: the player takes it whole */
-export async function speakLive(s: SpeechApi, text: string, voice: string, emotion: Emotion, rate: number, signal?: AbortSignal): Promise<Live> {
+export async function speakLive(s: SpeechApi, text: string, voice: string, emotion: Emotion, rate: number, signal?: AbortSignal): Promise<StreamingVoice> {
   const tone = speechProviderOf(s).tone && TONE[emotion]
   const r = await aiFetch(endpoint(s, '/audio/speech'), {
     method: 'POST', signal, headers: { 'Content-Type': 'application/json', ...auth(s) },

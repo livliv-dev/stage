@@ -1,4 +1,4 @@
-import type { Line } from './brain'
+import type { Line } from './core/lines'
 
 export type ConversationSummary = { text: string; sourceIds: string[]; memoryIds?: string[]; memoryRevision?: number }
 

@@ -3,7 +3,7 @@
 // (public/demo/<template>/NN.mp3). What Stage is with a real model and real voices, before you set either up. It plays
 // when the stage has a script's cast (the samples by their folders), in the script's order, and ends with it.
 import type { CharacterItem } from './scene'
-import type { Line, Reply } from './brain'
+import type { Line, Reply } from './core/lines'
 import { getLocale, type Locale } from './i18n'
 import { readReactionCues } from './reactions'
 import duo from './demo/duo.json'

@@ -3,8 +3,7 @@ import { tr } from './i18n'
 // origin). A character has two separate choices: what moves it (its driver: by itself, a face, the microphone, the
 // mouse) and who gives it its lines (AI, you, or nobody). Kept in a small store the components read with useScene(),
 // with undo / redo; saved in localStorage; imported model files are kept in IndexedDB.
-import { shareCast, type Project } from './shots'
-import { readAttachment, type PropAttachment } from './attachments'
+import { readAttachment, type PropAttachment } from './attachmentData'
 import { readAudienceRules, type AudienceRule } from './triggers'
 import { readReactionSettings, type ReactionSettings } from './reactions'
 import { useSyncExternalStore } from 'react'
@@ -96,7 +95,7 @@ export type CharacterItem = Box & {
   faceMic?: boolean
   /** seconds without a face before it dozes off by itself (away), 0 never; unset: AUTO_AWAY */
   autoAway?: number
-  /** how its number keys show each expression, by id (live.ts); one not here goes on and off */
+  /** how its number keys show each expression, by id (characterKeys.ts, control.ts); one not here goes on and off */
   exprModes?: Record<string, ExprMode>
 }
 /** how a number key shows an expression live: on and off (toggle), while held (hold), or for `secs` seconds (timed).
@@ -472,6 +471,29 @@ export const store = {
 export function useScene() { return useSyncExternalStore(store.subscribe, () => snapshot) }
 
 export function uid() { return Math.random().toString(36).slice(2, 10) }
+export type Project = { active: string; scenes: Scene[] }
+
+/** A shot owns placement and framing; the cast keeps its devices, voice and identity across cuts. */
+export function shareCast(scenes: Scene[], active: Scene): Scene[] {
+  const cast = new Map<string, CharacterItem>()
+  for (const scene of [...scenes.filter((s) => s.id !== active.id), active]) {
+    for (const item of scene.items) if (item.kind === 'character') cast.set(item.id, item)
+  }
+  return scenes.map((scene) => {
+    const present = new Set(scene.items.map((i) => i.id))
+    const items = scene.items.map((item) => {
+      if (item.kind !== 'character') return item
+      const source = cast.get(item.id)!
+      if (source === item) return item
+      return { ...source, x: item.x, y: item.y, w: item.w, h: item.h, hidden: item.hidden, locked: item.locked,
+        mirror: item.mirror, shadow: item.shadow, color: item.color, tuning: { ...source.tuning, view: item.tuning.view } }
+    })
+    for (const item of cast.values()) if (!present.has(item.id)) items.push({ ...item, hidden: true })
+    if (scene.topic === active.topic && scene.talk === active.talk && items.length === scene.items.length && items.every((item, i) => item === scene.items[i])) return scene
+    return { ...scene, topic: active.topic, talk: active.talk, items }
+  })
+}
+
 export const participants = (s: Scene) => s.items.filter((i): i is CharacterItem => i.kind === 'character')
 export const characters = (s: Scene) => participants(s).filter((i) => !i.hidden)
 

@@ -1,4 +1,4 @@
-// Going live from the site (entry.ts, live.ts, GoLive.tsx, outputFeed.ts), on the site's build (VITE_STAGE_HOST=livliv):
+// Going live from the site (entry.ts, characterKeys.ts, GoLive.tsx, outputFeed.ts), on the site's build (VITE_STAGE_HOST=livliv):
 // ?c=<id>&as=face lands in the 开播 shot (green, the character alone, your face and microphone on it), the live keys
 // and the three expression modes, the modes and settings a site character's card gives, the shot reused, ?as=ai with
 // the AI 直播 panel and the 「AI 生成」 label (editor, output window and recording), the LivLiv mark on the output by

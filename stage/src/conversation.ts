@@ -13,9 +13,10 @@ import { tr } from './i18n'
 // run on by itself.
 import { useSyncExternalStore } from 'react'
 import { actors, faceOf, type Take } from './actors'
-import { brainReady, makeBrain, loadBrainConfig, decideExternalAction, type Line, type ModelConfig } from './brain'
+import { brainReady, makeBrain, loadBrainConfig, decideExternalAction, type ModelConfig } from './brain'
+import type { Line } from './core/lines'
 import { demoFor, demoPause, demoReactions, demoSpeaker } from './demo'
-import { participants as characters, store, uid, type CharacterItem } from './scene'
+import { participants, store, uid, type CharacterItem } from './scene'
 import { estimate, hush } from './speech'
 import { chatState, isBlocked, onChat, onChatState, type Chat } from './danmaku'
 import { AudienceInbox } from './audience'
@@ -136,7 +137,7 @@ let externalDecisions = 0
 let activeEvent: ExternalEvent | null = null
 type SpeechEvent = { character: string; scope: MemoryScope; speaking: boolean; final?: boolean; cancelled?: boolean }
 const speechListeners = new Set<(event: SpeechEvent) => void>()
-const profiles = () => characters(store.get()).filter((c) => c.lines === 'ai' && !c.remote).map((c) => c.profileId ?? c.id)
+const profiles = () => participants(store.get()).filter((c) => c.lines === 'ai' && !c.remote).map((c) => c.profileId ?? c.id)
 const castKey = () => JSON.stringify([...new Set(profiles())].sort())
 let boundProfiles = ''
 
@@ -258,7 +259,7 @@ function bindAiri(controller: AbortController, model: ModelConfig, actor: Charac
   airi = { model: { ...model }, actorId: actor.id, windowId }
   return store.subscribe(() => {
     if (ctrl !== controller || controller.signal.aborted) return
-    const cast = characters(store.get()).filter((character) => character.lines === 'ai')
+    const cast = participants(store.get()).filter((character) => character.lines === 'ai')
     if (cast.length === 1 && cast[0].id === actor.id && !cast[0].remote && cast[0].name === actor.name && boundProfiles === castKey()) return
     controller.abort()
     set({ ended: tr('角色已切换，本次 AIRI 会话已停止') })
@@ -266,7 +267,7 @@ function bindAiri(controller: AbortController, model: ModelConfig, actor: Charac
 }
 
 function preferredAiriForChat(config: ReturnType<typeof loadBrainConfig>, target?: string) {
-  const cast = characters(store.get()).filter((character) => character.lines === 'ai')
+  const cast = participants(store.get()).filter((character) => character.lines === 'ai')
   const model = airiModelForCast(config, cast)
   const actor = cast[0]
   if (!model || model.airi === false || (target && target !== actor.id) || (!actor.muted && voiceRoute(actor) === 'livliv')) return null
@@ -291,8 +292,8 @@ function liveEvent(signal: AbortSignal, milliseconds?: number) {
 }
 
 const ready = (c: CharacterItem) => actors.get(c.id)?.status === 'ready'
-const voices = () => characters(store.get()).filter((c) => (c.lines === 'ai' && ready(c)) || c.lines === 'me')
-export const played = () => characters(store.get()).filter((c) => c.lines === 'me')
+const voices = () => participants(store.get()).filter((c) => (c.lines === 'ai' && ready(c)) || c.lines === 'me')
+export const played = () => participants(store.get()).filter((c) => c.lines === 'me')
 /** where a character is, left to right */
 const across = (c: CharacterItem) => c.x + c.w / 2
 
@@ -344,7 +345,7 @@ const later = (seconds: number, f: () => void) => { glances.push(window.setTimeo
 function looks(speaker: CharacterItem | null, line: Line | null, seconds = 0) {
   for (const g of glances) clearTimeout(g)
   glances = []
-  const all = characters(store.get())
+  const all = participants(store.get())
   const free = (c: CharacterItem) => !(c.driver === 'face' || c.driver === 'replay' || c.driver === 'pointer')
   const byName = (n: string | null | undefined) => (n ? all.find((x) => x.name === n && x.id !== speaker?.id) : undefined)
   const said = line?.text ?? ''
@@ -394,7 +395,7 @@ function looks(speaker: CharacterItem | null, line: Line | null, seconds = 0) {
 
 /** Content reactions follow audible playback; gaze can turn toward the speaker before the voice starts. */
 function listenTo(speaker: CharacterItem | null, line: Line, seconds: number) {
-  const all = characters(store.get())
+  const all = participants(store.get())
   if (line.demo !== undefined) for (const { character, cues } of demoReactions(all, line)) {
     const listener = actors.get(character.id)
     if (!listener || character.id === speaker?.id) continue
@@ -496,7 +497,7 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
   const r = await makeBrain(cfg).reply({
     me, others: ai.filter((c) => c.id !== me.id), humans: people, topic: s.topic, lines: context.lines, role, cutIn, language: t.language, viewer,
     voiced, scope: state.scope, depth: t.depth, summary: context.summary, memories: context.memories, event: activeEvent ? { source: activeEvent.source, message: activeEvent.message } : undefined,
-    layout: [...characters(s)].sort((a, b) => across(a) - across(b)).map((c) => c.name),
+    layout: [...participants(s)].sort((a, b) => across(a) - across(b)).map((c) => c.name),
   }, signal)
   signal.throwIfAborted()
   const { summary, ...reply } = r
@@ -719,7 +720,7 @@ let single = false
 
 /** your line, said by whom it is from */
 async function yours(line: Line, signal: AbortSignal, scope = state.scope) {
-  await deliver(line, characters(store.get()).find((character) => character.id === line.who) ?? null, signal)
+  await deliver(line, participants(store.get()).find((character) => character.id === line.who) ?? null, signal)
   signal.throwIfAborted()
   await rememberLine(line, undefined, scope)
 }
@@ -738,8 +739,8 @@ async function consumeInput(signal: AbortSignal) {
 async function rememberLine(line: Line, target?: CharacterItem, scope = state.scope) {
   const remembered = line.text.match(/^(?:请)?记住(?:这件事)?[：:，,\s]*(.+)$/s)?.[1] ?? line.text.match(/^remember\s+(.+)$/is)?.[1]
   if (!remembered || (loadBrainConfig().kind === 'demo' && state.mode !== 'realtime') || state.scope !== scope) return
-  const character = target ?? characters(store.get()).find((candidate) => candidate.id === forced && candidate.lines === 'ai')
-    ?? characters(store.get()).find((candidate) => candidate.lines === 'ai' && !candidate.remote)
+  const character = target ?? participants(store.get()).find((candidate) => candidate.id === forced && candidate.lines === 'ai')
+    ?? participants(store.get()).find((candidate) => candidate.lines === 'ai' && !candidate.remote)
   if (character) await memory.remember({ profileId: character.profileId ?? character.id, scope, text: remembered.trim(), sourceSessionId: state.sessionId, sourceLineIds: [line.id] })
 }
 
@@ -775,7 +776,7 @@ async function run(once: boolean) {
     if (profiles().length) await openRecord(scope, c.signal)
     else { chatHistory.reset(); set({ sessionId: '', scope }) }
     // characters still loading (a template just placed, its players not made yet) are waited for, a little
-    const loading = () => characters(store.get()).some((x) => x.lines === 'ai' && !['ready', 'error'].includes(actors.get(x.id)?.status ?? ''))
+    const loading = () => participants(store.get()).some((x) => x.lines === 'ai' && !['ready', 'error'].includes(actors.get(x.id)?.status ?? ''))
     for (let i = 0; i < 60 && loading(); i++) await wait(250, c.signal)
     do {
       while (queue.length) await consumeInput(c.signal)
@@ -826,7 +827,7 @@ async function run(once: boolean) {
 async function runLive(options: LiveOptions) {
   const config = loadBrainConfig()
   if (!brainReady(config) || config.kind === 'demo') { set({ error: tr("AI 主播需要接上模型；离线演示可在「对谈」里体验"), needModel: true, modelIntent: 'live' }); return }
-  const cast = characters(store.get()).filter((c) => c.lines === 'ai')
+  const cast = participants(store.get()).filter((c) => c.lines === 'ai')
   if (!cast.length) { set({ error: tr("先添加一个「AI 来演」的角色") }); return }
   const airiModel = options.airi && airiModelForCast(config, cast)
   if (options.airi && !airiModel) {
@@ -1191,7 +1192,7 @@ export const talk = {
     if (!ctrl || !state.running || state.scope !== 'public' || state.paused) throw new Error(tr('请先开启公开的游戏互动会话'))
     const engine = airi
     if (engine && (!state.sessionId || request.character !== engine.actorId)) throw new Error(tr('参与角色已改变，请重新开始会话'))
-    const actor = characters(store.get()).find((character) => character.id === request.character && character.lines === 'ai' && !character.remote)
+    const actor = participants(store.get()).find((character) => character.id === request.character && character.lines === 'ai' && !character.remote)
     if (!actor) throw new Error(tr('先选择一个 AI 角色'))
     const signal = AbortSignal.any([ctrl.signal, incoming, AbortSignal.timeout(45000)])
     externalDecisions++
@@ -1218,7 +1219,7 @@ export const talk = {
     if (!engine || !game || !host || !parent || !sessionId || state.scope !== 'public' || state.paused || state.game?.status !== 'ready') {
       throw new Error(tr('请先在 AIRI 开启游戏直播'))
     }
-    const actor = characters(store.get()).find((character) => character.id === engine.actorId)
+    const actor = participants(store.get()).find((character) => character.id === engine.actorId)
     const query = instruction.trim().slice(0, 500)
     if (!actor || !query) return
     if (state.generations >= state.generationLimit) throw new Error(tr('会话已暂停或达到生成上限'))

@@ -10,10 +10,9 @@ import { getLocale, tr } from './i18n'
 //    before is free. The MP3 is fetched whole and its length read, so the subtitle and a cut-off go by the real voice
 import { useSyncExternalStore } from 'react'
 import { desktopFetch } from './request'
-import type { Emotion } from './brain'
+import type { Emotion, StreamingVoice } from './core/lines'
 import type { CharacterItem } from './scene'
 import { SAMPLES } from './samples'
-import type { Live } from './voiceApi'
 import { signInUrl } from './host'
 import { features } from './core/platform'
 
@@ -212,7 +211,7 @@ export function voicesOf(mid: string): Promise<Voices> {
 }
 
 /** live: the sound is still coming in (voiceApi speakLive): blob comes with it, seconds is a guess until then */
-export type Clip = { blob: Blob; seconds: number; expression: string | null; live?: Live }
+export type Clip = { blob: Blob; seconds: number; expression: string | null; live?: StreamingVoice }
 
 /** a line in the character's voice (`voice`: one of its voices by id, '' its default) */
 export async function voiceLine(mid: string, text: string, emotion: Emotion, voice: string, signal?: AbortSignal): Promise<Clip> {

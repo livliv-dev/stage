@@ -5,7 +5,7 @@ import { actors, onActors } from './actors'
 import { brainReady, useBrainConfig } from './brain'
 import { airiGameError, airiModelForCast } from './airiEngine'
 import { liveModelName, talk, useConversation } from './conversation'
-import { participants as characters, useScene } from './scene'
+import { participants, useScene } from './scene'
 import { voiceRoute, useActiveSpeech } from './voiceApi'
 import { useAccount } from './livliv'
 import { cancel as cancelPtt } from './ptt'
@@ -30,7 +30,7 @@ export function LivePanel({ onClose, onSettings }: { onClose: () => void; onSett
   const [eventsPort, setEventsPort] = useState('8080'), [rconPort, setRconPort] = useState('24180')
   const [instruction, setInstruction] = useState(''), [actionError, setActionError] = useState('')
   useEffect(() => { setWindows(null); setWindowId(''); setVisionError('') }, [model])
-  const cast = characters(scene).filter((c) => c.lines === 'ai')
+  const cast = participants(scene).filter((c) => c.lines === 'ai')
   const modelReady = brainReady(model) && model.kind !== 'demo', ready = cast.length > 0 && cast.every((c) => actors.get(c.id)?.status === 'ready')
   const missingVoice = cast.filter((c) => voiceRoute(c, speech) === 'none')
   const maxGenerations = Number(maxInput), budgetReady = Number.isInteger(maxGenerations) && maxGenerations >= 1 && maxGenerations <= 500

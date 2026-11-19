@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
-import { aiFetch, loadBrainConfig, previousModelConfig, type Line } from './brain'
+import { aiFetch, loadBrainConfig, previousModelConfig } from './brain'
+import type { Line } from './core/lines'
 import { actors, onActors, onFrame } from './actors'
 import { conversation, talk, type RealtimeSession } from './conversation'
 import { cancel as cancelPtt } from './ptt'
