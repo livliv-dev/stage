@@ -1,6 +1,6 @@
 # 桌面 AIRI
 
-在桌面底栏点「和角色聊天」，或者直接发送第一句话。底栏会显示回应你的角色和当前对话范围。日常聊天默认用私聊，点底栏的范围可以切换。直播从顶栏「直播」开始，游戏连接和 Twitch 弹幕都在这个面板。
+舞台上只有一个 AI 角色时，桌面底栏的聊天按钮写作「和 <名字> 聊天」（比如「和 Nana 聊天」），点它或者直接发送第一句话。它通常是底栏的主按钮；用「AI 主播」模板时主按钮是「AI 直播」，聊天在旁边的「更多方式」里。有两个以上 AI 角色时，按钮写作「持续聊天」。底栏会显示回应你的角色和对话范围标签（「私聊」或「公开记忆」）。日常聊天默认用私聊，没有输出开着时点这个标签切换。直播从顶栏「直播」开始，游戏连接和 Twitch 弹幕都在这个面板。
 
 场景里只有一个设为「AI 来演」的本地角色时，OpenAI 兼容模型默认优先使用 AIRI。模型可运行在本机，也可通过云端 API 接入。AIRI 绑定这个角色的档案，画布选中项不影响绑定。多角色会话沿用 Stage 的角色调度。可以在「模型与声音 → 文字对话」更改单角色会话的 AIRI 偏好。普通聊天可接收一次性回复。选择游戏连接或游戏窗口时，需要支持流式输出的模型。
 
@@ -30,7 +30,7 @@ AIRI 使用当前角色的姓名、人设、口吻、关系和立场。Stage 负
 
 ## 记忆
 
-对角色说「记住……」可保存长期记忆，也可以在 Stage 的「记忆」面板编辑或删除。直播回复和游戏指令共用同一角色的公开记录。桌面私聊需要先停掉 Stage 的直播输出、录制和联播。
+对角色说「记住……」可保存长期记忆，也可以在 Stage 的「记忆」面板编辑或删除。直播回复和游戏指令共用同一角色的公开记录。直播输出、录制或联播开着时，聊天自动用公开记录，AIRI 的记忆工具也只读公开记忆；私聊中途打开它们，会从下一句起转成公开。
 
 ## 构建和桌面验证
 
@@ -46,15 +46,15 @@ npm --prefix vendor/airi-core run build -- /path/to/airi
 在安装 Stage 和桌面的 npm 依赖之后，可运行本地 Electron 验收。脚本使用独立用户目录、本地流式模型测试服务和模拟弹幕。macOS 上可用 `STAGE_TEST_VOICES=1` 将测试音频换成系统语音。
 
 ```sh
-npm --prefix desktop run build
-(cd stage && NODE_ENV=development ./node_modules/.bin/vite build --outDir /tmp/stage-airi-test)
-STAGE_TEST_RESOURCES=/tmp/stage-airi-test node desktop/test/airi-stage.mjs
+npm --prefix desktop run test:airi-stage
 ```
+
+脚本会先构建桌面外壳，再把 Stage 的开发版构建到 `stage/dist-dev`。
 
 macOS 上可从顶栏走一遍 Airicraft 桌面流程。
 
 ```sh
-STAGE_TEST_RESOURCES=/tmp/stage-airi-test node desktop/test/airi-native-games.mjs
+npm --prefix desktop run test:airi-native-games
 ```
 
 可选参数 `STAGE_TEST_MINECRAFT_BRIDGE`、`STAGE_TEST_VISION_API` 和 `STAGE_TEST_TWITCH` 分别接入独立测试存档、本地视觉模型和真实公开弹幕。脚本使用固定的工具调用和转录结果，便于单独验证真实游戏与画面生成链路。重复用同一存档测试时，可用 `STAGE_TEST_MINECRAFT_LOGS` 把采集目标设在已有库存以上。

@@ -19,6 +19,8 @@
 - Long-term memory and real-time voice chat
 - Characters that talk to each other and to your Twitch chat
 - Emotional reactions as they speak
+- AI chat that remembers, in the desktop app: each character keeps its own memory, powered by [Project AIRI](https://github.com/moeru-ai/airi)
+- Game connections in the desktop app: Minecraft through [Airicraft](https://github.com/proj-airi/airicraft), Factorio through [Autorio](https://github.com/moeru-ai/airi-factorio), or any game window the character watches
 - Built-in Neuro SDK support (desktop app)
 - All the basics: webcam face tracking (phone apps and VMC/OSC in the desktop app), OBS output, video recording
 - 27 featured characters, ready to use. Built on [LivLiv Player](https://github.com/livliv-dev/player)
@@ -61,7 +63,8 @@ npm --prefix stage ci && npm --prefix stage run dev            # the web app at 
 npm --prefix desktop ci && npm --prefix desktop run stage:dev  # the desktop app (stage:mac, stage:win build installers)
 ```
 
-Tests: `npm --prefix stage run check && npm --prefix stage test`, `npm --prefix desktop test`, `npm --prefix collab test`.
+Tests: `npm --prefix stage run check && npm --prefix stage test`, `npm --prefix desktop test`, `npm --prefix collab test`;
+the browser checks are the `test:*` scripts in [stage/package.json](stage/package.json), and GitHub Actions runs all of these on every pull request.
 AI chat and memory: [docs/ai-conversations.md](docs/ai-conversations.md), real-time voice:
 [docs/realtime-voice.md](docs/realtime-voice.md), built-in AIRI ([docs/airi.md](docs/airi.md)), the Neuro SDK bridge: [neuro/README.md](neuro/README.md), the local control API:
 [docs/stage-api.md](docs/stage-api.md), co-streaming: [collab/README.md](collab/README.md).

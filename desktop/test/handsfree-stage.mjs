@@ -32,7 +32,7 @@ const backend = createServer(async (request, response) => {
 try {
   await new Promise((resolve) => backend.listen(0, '127.0.0.1', resolve))
   const origin = `http://127.0.0.1:${backend.address().port}`
-  app = await electron.launch({ executablePath: join(root, 'node_modules/electron/dist/Electron.app/Contents/MacOS/Electron'), args: [root, '--app=stage', '--stage-dir=' + fileURLToPath(new URL('../../stage/dist.nosync', import.meta.url)), '--user-data=' + join(artifacts, 'profile'), '--api=' + origin, '--mute'], timeout: 30000 })
+  app = await electron.launch({ executablePath: join(root, 'node_modules/electron/dist/Electron.app/Contents/MacOS/Electron'), args: [root, '--app=stage', '--stage-dir=' + (process.env.STAGE_TEST_RESOURCES || fileURLToPath(new URL('../../stage/dist', import.meta.url))), '--user-data=' + join(artifacts, 'profile'), '--api=' + origin, '--mute'], timeout: 30000 })
   const page = await app.firstWindow(); page.setDefaultTimeout(15000); page.on('pageerror', (error) => errors.push(error.message))
   await page.locator('.topbar').waitFor()
   await page.addInitScript(() => {

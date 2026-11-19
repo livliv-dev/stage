@@ -1,18 +1,15 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
 import { mkdtemp, writeFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-gamepad-'))
 let server, browser, page, output
 const report = { artifacts }, errors = []
 try {
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite timeout')), 15000); server.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(timer); resolve() } }); server.once('exit', (c) => { clearTimeout(timer); reject(new Error('Vite exited ' + c)) }) })
+  const port = await freePort(); server = await startVite({ port })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   await context.addInitScript(() => {
@@ -25,7 +22,7 @@ try {
     window.removeEventListener = (type, fn, ...args) => { if (type.startsWith('gamepad')) window.padListeners.get(type)?.delete(fn); return remove(type, fn, ...args) }
   })
   await context.route('**/*', (route) => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) || /^(blob|data):/.test(route.request().url()) ? route.continue() : route.abort())
-  page = await context.newPage(); page.setDefaultTimeout(20000); page.on('pageerror', (e) => errors.push(e.message)); const origin = 'http://127.0.0.1:' + port
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(20000)); page.on('pageerror', (e) => errors.push(e.message)); const origin = 'http://127.0.0.1:' + port
   await page.goto(origin, { waitUntil: 'networkidle' })
   await page.evaluate(async () => { const { store, emptyScene, newCharacter } = await import('/src/scene.ts'), scene = { ...emptyScene(), width: 640, height: 360 }, c = { ...newCharacter(scene, 'Stella', { type: 'url', url: '/characters/k01/' }), id: 'pad-avatar', driver: 'auto', lines: 'none', shadow: false }; c.tuning.idle = false; store.replace({ ...scene, items: [c] }); store.select(c.id) })
   await page.waitForFunction(() => window.__stage.actors.get('pad-avatar')?.status === 'ready')

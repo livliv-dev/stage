@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-ux-'))
 let server, browser, page, failList = true, slowPreview = false, listCalls = 0
@@ -18,16 +17,7 @@ function wav() {
   return buffer
 }
 try {
-  const socket = createServer(); await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve))
-  const port = socket.address().port; await new Promise((resolve) => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--configLoader', 'native', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  let output = ''
-  await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Vite did not start: ' + output)), 20000)
-    server.stdout.on('data', (data) => { output += String(data); if (output.includes('Local:')) { clearTimeout(timer); resolve() } })
-    server.stderr.on('data', (data) => { output += String(data) })
-    server.once('exit', (code) => { clearTimeout(timer); reject(new Error('Vite exited ' + code + ': ' + output)) })
-  })
+  const port = await freePort(); server = await startVite({ port, args: ['--configLoader', 'native'] })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   await context.addInitScript(() => {
@@ -62,7 +52,7 @@ try {
     if (['127.0.0.1', 'localhost'].includes(url.hostname) || ['data:', 'blob:'].includes(url.protocol)) await route.continue()
     else await route.abort()
   })
-  page = await context.newPage(); page.setDefaultTimeout(15000); page.on('pageerror', (error) => errors.push(error.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(15000)); page.on('pageerror', (error) => errors.push(error.message))
   page.on('console', (message) => { if (message.type() === 'error' && message.text().includes('same key')) errors.push(message.text()) })
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'networkidle' })
   await page.evaluate(async () => {
@@ -191,9 +181,12 @@ try {
   await realtimeModel.getByRole('textbox', { name: '模型', exact: true }).fill('fixture-realtime-model')
   await realtimeModel.getByRole('textbox', { name: '实时音色', exact: true }).fill('fixture-voice')
   await realtimeModel.getByRole('button', { name: '保存', exact: true }).click()
-  await realtimeModel.getByRole('status').filter({ hasText: '已保存' }).waitFor()
+  // saved from the realtime panel: back there, with the model just saved
+  await page.locator('.realtime-model-summary').getByText(/fixture-realtime-model/).waitFor()
+  assert.equal(await page.locator('.settings').count(), 0)
   assert.equal(await page.evaluate(() => window.uxMediaRequests), 0)
   assert.deepEqual(await page.evaluate(() => [localStorage.getItem('livliv-stage:brain'), localStorage.getItem('livliv-stage:speech')]), originalModels)
+  await page.locator('.realtime-settings').getByRole('button', { name: '设置模型与声音', exact: true }).click()
   await modelSettings.locator('.model-tabs').getByRole('button', { name: '配音与识别', exact: true }).click()
   await modelSettings.getByRole('button', { name: 'OpenAI', exact: true }).click()
   await modelSettings.getByText('识别模型', { exact: true }).waitFor()
@@ -209,8 +202,8 @@ try {
     await page.screenshot({ path: join(artifacts, 'models-390-' + locale + '.png') })
   }
   await page.evaluate(async () => (await import('/src/i18n.ts')).setLocale('zh-Hans')); await page.setViewportSize({ width: 1440, height: 900 })
+  // closed: back in the realtime panel too
   await page.locator('.settings').getByRole('button', { name: '关闭', exact: true }).click()
-  await page.getByRole('button', { name: '实时语音', exact: true }).click()
   await page.locator('.realtime-model-summary').getByText(/fixture-realtime-model/).waitFor()
   assert.equal(await page.locator('.realtime-settings').getByRole('button', { name: '开始实时语音', exact: true }).isEnabled(), true)
   await page.locator('.realtime-settings').getByRole('button', { name: '关闭', exact: true }).click()

@@ -1,19 +1,16 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-shots-'))
 let server, browser, page
 const report = { artifacts }, errors = []
 try {
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite timeout')), 15000); server.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(timer); resolve() } }); server.once('exit', (c) => { clearTimeout(timer); reject(new Error('Vite exited ' + c)) }) })
+  const port = await freePort(); server = await startVite({ port })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['camera', 'microphone'] })
   await context.addInitScript(() => {
@@ -23,7 +20,7 @@ try {
     navigator.mediaDevices.getUserMedia = (c) => { if (c.video) window.cameraStarts++; return gum(c) }
   })
   await context.route('**/api/**', (route) => route.fulfill({ status: route.request().url().endsWith('/me') ? 200 : 404, json: { signed_in: false } }))
-  page = await context.newPage(); page.setDefaultTimeout(20000); page.on('pageerror', (e) => errors.push(e.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(20000)); page.on('pageerror', (e) => errors.push(e.message))
   await page.goto('http://127.0.0.1:' + port, { waitUntil: 'networkidle' })
   await page.getByRole('button', { name: /^面捕出镜/ }).click()
   await page.waitForFunction(() => [...window.__stage.actors.values()][0]?.inputPhase === 'on')
@@ -53,7 +50,7 @@ try {
   await output.waitForFunction(() => [...window.__stage.actors.values()][0]?.status === 'ready')
   await output.evaluate(() => { window.firstCanvas = [...window.__stage.actors.values()][0].player.canvas })
   await page.evaluate(() => window.__stage.store.patch(window.avatarId, { hidden: true }))
-  const before = await page.evaluate(() => window.poseFrames); await page.waitForTimeout(300)
+  const before = await page.evaluate(() => window.poseFrames); await page.waitForTimeout(testTimeout(300))
   assert.ok(await page.evaluate(() => window.poseFrames) > before + 2, 'hidden avatars still publish final poses')
   assert.equal(await page.locator('.placed.character').evaluate((e) => getComputedStyle(e).visibility), 'hidden')
   const cut = await page.evaluate(async () => { const { performStageCommand, stageState } = await import('/src/control.ts'); return { result: performStageCommand({ do: 'scene', id: window.secondScene }), state: stageState() } })

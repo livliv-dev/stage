@@ -158,7 +158,12 @@ export type Talk = {
   danmaku: 0 | 1 | 2
   triggersOn: boolean
   triggers: AudienceRule[]
+  /** what the console's main button starts: set by the template the stage came from (templates.ts); unset, 持续聊天 */
+  start?: StartKind
 }
+/** the sessions a template's main button can start: 持续聊天, 对谈, AI 直播 */
+export type StartKind = 'chat' | 'conversation' | 'live'
+const START_KINDS: StartKind[] = ['chat', 'conversation', 'live']
 
 export type Scene = {
   id: string
@@ -235,6 +240,7 @@ function withoutLive(i: CharacterItem): CharacterItem {
 export function loadable(s: Partial<Scene> | null, keepRemote = true): Scene | null {
   if (!s || !Array.isArray(s.items)) return null
   const value: Scene = { ...emptyScene(), ...s, id: typeof s.id === 'string' && s.id ? s.id : uid(), talk: { ...TALK, ...s.talk, depth: s.talk?.depth === 'discussion' ? 'discussion' : 'casual', proactiveSeconds: [30, 60, 120].includes(s.talk?.proactiveSeconds ?? 0) ? s.talk!.proactiveSeconds : 0, chatMinutes: [15, 30, 60, 120].includes(s.talk?.chatMinutes ?? 0) ? s.talk!.chatMinutes : 60, chatGenerations: Number.isInteger(s.talk?.chatGenerations) && s.talk!.chatGenerations! >= 1 && s.talk!.chatGenerations! <= 500 ? s.talk!.chatGenerations : 100, triggersOn: s.talk?.triggersOn === true, triggers: readAudienceRules(s.talk?.triggers ?? []) ?? [] }, items: s.items.map(normalize) }
+  if (value.talk.start !== undefined && !START_KINDS.includes(value.talk.start)) delete value.talk.start
   return keepRemote ? value : persistentScene(value)
 }
 

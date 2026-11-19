@@ -6,7 +6,8 @@ import { tr } from './i18n'
 import { loadRealtime, realtimeCredentials, realtimeDefaults, saveRealtime, type RealtimeSettings } from './realtime'
 import { useSpeech } from './voiceApi'
 
-export function RealtimeModelForm() {
+/** onSaved: told once the settings are saved (opened from the realtime panel: back there) */
+export function RealtimeModelForm({ onSaved }: { onSaved?: () => void } = {}) {
   useBrainConfig(); useSpeech()
   const conversation = useConversation()
   const [settings, setSettings] = useState(loadRealtime), [saved, setSaved] = useState(false), [error, setError] = useState('')
@@ -14,7 +15,7 @@ export function RealtimeModelForm() {
   const ready = !!effective.base && !!effective.key && !!settings.model.trim()
   const change = (patch: Partial<RealtimeSettings>) => { setSettings((current) => ({ ...current, ...patch })); setSaved(false); setError('') }
   const save = () => {
-    try { saveRealtime(settings); setSaved(true); setError('') }
+    try { saveRealtime(settings); setSaved(true); setError(''); onSaved?.() }
     catch (cause) { setSaved(false); setError(tr('设置未保存：{0}', (cause as Error).message)) }
   }
   return <div className="model-form realtime-model-form">

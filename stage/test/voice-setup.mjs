@@ -1,23 +1,16 @@
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { fileURLToPath } from 'node:url'
+import { mkdtemp } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { chromium } from 'playwright-core'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
-const root = fileURLToPath(new URL('..', import.meta.url))
+const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-voice-setup-'))
 let server, browser
 const errors = [], speechCalls = []
 try {
-  const socket = createServer()
-  await new Promise(resolve => socket.listen(0, '127.0.0.1', resolve))
-  const port = socket.address().port
-  await new Promise(resolve => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Vite did not start')), 15000)
-    server.stdout.on('data', bytes => { if (String(bytes).includes('Local:')) { clearTimeout(timer); resolve() } })
-    server.once('exit', code => { clearTimeout(timer); reject(new Error('Vite exited ' + code)) })
-  })
+  const port = await freePort(); server = await startVite({ port })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } })
   await context.addInitScript(() => { localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1') })
@@ -39,7 +32,7 @@ try {
     else await route.abort()
   })
   const page = await context.newPage()
-  page.setDefaultTimeout(15000)
+  page.setDefaultTimeout(testTimeout(15000))
   page.on('pageerror', error => errors.push(error.message))
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'networkidle' })
   const original = await page.evaluate(async () => {
@@ -65,9 +58,9 @@ try {
     assert.equal(await settings.evaluate(el => el.scrollWidth > el.clientWidth), false)
   }
   await page.evaluate(async () => (await import('/src/i18n.ts')).setLocale('zh-Hans'))
-  await page.screenshot({ path: '/private/tmp/stage-voice-setup-390.png', fullPage: true })
+  await page.screenshot({ path: join(artifacts, 'voice-setup-390.png'), fullPage: true })
   await page.setViewportSize({ width: 1280, height: 900 })
-  await page.screenshot({ path: '/private/tmp/stage-voice-setup-1280.png', fullPage: true })
+  await page.screenshot({ path: join(artifacts, 'voice-setup-1280.png'), fullPage: true })
   await page.keyboard.press('Escape')
   await settings.waitFor({ state: 'detached' })
   assert.deepEqual(await page.evaluate(id => window.__stage.store.get().items.find(c => c.id === id).voice, original.id), original.voice)

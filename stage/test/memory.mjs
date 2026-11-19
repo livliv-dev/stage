@@ -1,24 +1,16 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 let server, browser, testPage
 const errors = [], artifacts = await mkdtemp(join(tmpdir(), 'stage-memory-'))
 try {
-  const socket = createServer(); await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve))
-  const port = socket.address().port; await new Promise((resolve) => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('Vite did not start')), 15000)
-    server.stdout.on('data', (bytes) => { if (String(bytes).includes('Local:')) { clearTimeout(timeout); resolve() } })
-    server.once('exit', (code) => { clearTimeout(timeout); reject(new Error('Vite exited: ' + code)) })
-  })
+  const port = await freePort(); server = await startVite({ port })
   browser = await chromium.launch()
   const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   await context.addInitScript(() => localStorage.setItem('livliv-stage:locale', 'zh-Hans'))

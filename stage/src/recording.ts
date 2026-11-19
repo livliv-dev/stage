@@ -4,7 +4,7 @@ import { tr } from './i18n'
 // A take stops by itself at MAX_SECONDS. Stopping a take that started the conversation stops that conversation too
 // (not one started after it). A take whose video fails is kept, to make it again.
 import { useSyncExternalStore } from 'react'
-import { conversation, privateDesktopChat, talk } from './conversation'
+import { conversation, talk } from './conversation'
 import { renderTake, type Made } from './render'
 import { store } from './scene'
 import { MAX_SECONDS, record, type Recorder, type Take } from './tape'
@@ -24,6 +24,8 @@ const subs = new Set<() => void>()
 const set = (p: Partial<RecState>) => { state = { ...state, ...p }; subs.forEach((f) => f()) }
 export const useRecording = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => state)
 export const recording = () => state
+/** told each time the recording changes (a take on is an output: conversation.ts outputOn) */
+export const onRecording = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
 
 let recorder: Recorder | null = null
 let stopTalk: (() => void) | null = null
@@ -55,10 +57,6 @@ async function make(take: Take) {
 export const rec = {
   async start(o: { mic: boolean; talk: boolean }) {
     if (state.phase === 'recording' || state.phase === 'starting' || state.phase === 'making') return
-    if (privateDesktopChat()) {
-      set({ phase: 'error', error: tr('请先结束私聊，再录制或打开直播输出'), retry: false })
-      return
-    }
     kept = null
     set({ phase: 'starting', made: null, error: '', progress: 0, retry: false })
     try {

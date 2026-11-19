@@ -9,7 +9,7 @@ import { _electron as electron } from '../../stage/node_modules/playwright-core/
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const artifacts = await mkdtemp(join(tmpdir(), 'livliv-stage-electron-'))
-const pending = new Map(), closed = new Set(), errors = [], report = { artifacts }
+const pending = new Map(), closed = new Set(), held = [], errors = [], report = { artifacts }
 const server = createServer((req, res) => {
   if (req.url.includes('stream')) {
     pending.set(req.url, true); res.writeHead(200, { 'content-type': 'text/plain' }); res.write('first piece')
@@ -17,6 +17,7 @@ const server = createServer((req, res) => {
     res.on('close', () => { clearInterval(timer); closed.add(req.url) })
   } else if (req.url.includes('hold')) {
     pending.set(req.url, true)
+    let body = ''; req.on('data', (chunk) => { body += chunk }); req.on('end', () => held.push(body))
     const timer = setTimeout(() => res.end('too late'), 15000)
     res.on('close', () => { clearTimeout(timer); closed.add(req.url) })
   } else if (req.url.startsWith('/api/')) { res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ signed_in: false, available: false })) }
@@ -77,11 +78,19 @@ try {
     output.onmessage = ({ data }) => { if (data.t === 'conv') window.scopeMirrors.push(data.conv) }
     output.postMessage({ t: 'hello' })
   })
-  await input.fill('Keep this private')
+  // an output is on: the chat starts public, and nothing from the private conversation reaches the model
+  const scopeTag = page.locator('.console .scope-tag')
+  await scopeTag.filter({ hasText: '公开记忆' }).waitFor()
+  assert.equal(await scopeTag.isDisabled(), true, 'private can not be chosen while an output is on')
+  const publicLine = 'Said while the output window is open'
+  await input.fill(publicLine)
   await input.press('Enter')
-  await page.getByText(/请先关闭直播输出/).waitFor()
-  assert.equal(await input.inputValue(), 'Keep this private', 'A blocked private chat keeps the draft')
-  await input.clear()
+  await until(() => pending.has(modelPath) && held.some((body) => body.includes(publicLine)), 'the public chat did not reach the model', 15_000)
+  assert.equal((await scopeTag.innerText()).trim(), '公开记忆', 'the running chat is public')
+  assert.doesNotMatch(held.find((body) => body.includes(publicLine)), new RegExp(privateLine), 'no private line reaches the model while an output is on')
+  await page.locator('.console').getByRole('button', { name: '停止', exact: true }).click()
+  await until(() => closed.has(modelPath), 'the public chat did not cancel the model request')
+  pending.delete(modelPath); closed.delete(modelPath)
   await page.getByRole('button', { name: '直播', exact: true }).click()
   await page.locator('.live-settings').getByText('仅字幕（不生成声音）', { exact: true }).click()
   await page.locator('.live-settings .test-chat summary').click()
@@ -96,7 +105,7 @@ try {
   })
   assert.ok(mirrors.length)
   assert.doesNotMatch(JSON.stringify(mirrors), new RegExp(privateLine))
-  report.privateScope = 'private chat is blocked while output is open, and the public startup never mirrors the old transcript'
+  report.privateScope = 'with the output window open a chat starts public: no private line reaches the model or the output window'
   report.liveCancellation = 'the AI stop button cancels the actual model HTTP request'
   await page.screenshot({ path: join(artifacts, 'ai-setup.png') })
   await page.locator('.live-settings button[aria-label="关闭"]').click()

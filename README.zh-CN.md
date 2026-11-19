@@ -19,6 +19,8 @@
 - 长期记忆和实时语音对话
 - 角色之间互相对话，也回应 Twitch 弹幕
 - 说话时跟着情绪变的表情
+- 桌面版和角色聊天，每个角色有自己的记忆，由 [Project AIRI](https://github.com/moeru-ai/airi) 驱动
+- 桌面版的游戏连接：Minecraft（[Airicraft](https://github.com/proj-airi/airicraft)）、Factorio（[Autorio](https://github.com/moeru-ai/airi-factorio)），或者让角色看着任意游戏窗口
 - 内置 Neuro SDK 支持（桌面版）
 - 基础功能都有：摄像头面捕（手机面捕 App 和 VMC/OSC 用桌面版）、OBS 输出、录视频
 - 27 个精选角色，开箱即用。基于 [LivLiv Player](https://github.com/livliv-dev/player)
@@ -60,7 +62,8 @@ npm --prefix stage ci && npm --prefix stage run dev            # 网页版，htt
 npm --prefix desktop ci && npm --prefix desktop run stage:dev  # 桌面版（stage:mac、stage:win 打安装包）
 ```
 
-测试：`npm --prefix stage run check && npm --prefix stage test`、`npm --prefix desktop test`、`npm --prefix collab test`。
+测试：`npm --prefix stage run check && npm --prefix stage test`、`npm --prefix desktop test`、`npm --prefix collab test`；
+浏览器测试是 [stage/package.json](stage/package.json) 里的 `test:*` 脚本。每个 PR 都会在 GitHub Actions 上跑这些测试。
 AI 聊天和记忆见 [docs/ai-conversations.md](docs/ai-conversations.md)，实时语音见 [docs/realtime-voice.md](docs/realtime-voice.md)，
 Neuro SDK 桥接见 [neuro/README.md](neuro/README.md)，本机控制接口见 [docs/stage-api.md](docs/stage-api.md)，联播见 [collab/README.md](collab/README.md)。
 模型密钥只存在浏览器或应用里，请求直接发给服务商。欢迎贡献：[CONTRIBUTING.md](CONTRIBUTING.md)。

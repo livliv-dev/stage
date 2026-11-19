@@ -244,7 +244,7 @@ class DemoBrain implements Brain {
   async reply(a: Ask, signal: AbortSignal) {
     await new Promise((r, j) => { const t = setTimeout(r, 250); signal.addEventListener('abort', () => { clearTimeout(t); j(signal.reason) }) })
     const r = demoReply([a.me, ...a.others], a.lines)
-    if (!r) throw new Error(NO_DEMO)
+    if (!r) throw new Error(tr(NO_DEMO))
     return r
   }
 }

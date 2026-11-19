@@ -19,6 +19,8 @@
 - 長期記憶とリアルタイム音声会話
 - キャラクター同士の掛け合いと、Twitch コメントへの返事
 - 話しながら感情に合わせて変わる表情
+- デスクトップ版の AI チャット：キャラクターごとに記憶を持ちます。[Project AIRI](https://github.com/moeru-ai/airi) を利用
+- デスクトップ版のゲーム接続：Minecraft（[Airicraft](https://github.com/proj-airi/airicraft)）、Factorio（[Autorio](https://github.com/moeru-ai/airi-factorio)）、または任意のゲームウィンドウ
 - Neuro SDK に標準対応（デスクトップ版）
 - 基本機能：Web カメラのフェイストラッキング（スマホアプリと VMC/OSC はデスクトップ版）、OBS 出力、動画の録画
 - 厳選キャラクター 27 体、すぐに使えます。[LivLiv Player](https://github.com/livliv-dev/player) がベース
@@ -61,6 +63,7 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # デスクトッ
 ```
 
 テスト：`npm --prefix stage run check && npm --prefix stage test`、`npm --prefix desktop test`、`npm --prefix collab test`。
+ブラウザのテストは [stage/package.json](stage/package.json) の `test:*` スクリプトです。プルリクエストごとに GitHub Actions がこれらを実行します。
 AI チャットと記憶は [docs/ai-conversations.md](docs/ai-conversations.md)、リアルタイム音声は [docs/realtime-voice.md](docs/realtime-voice.md)、
 Neuro SDK ブリッジは [neuro/README.md](neuro/README.md)、ローカル制御 API は [docs/stage-api.md](docs/stage-api.md)、共同配信は [collab/README.md](collab/README.md) にあります。
 モデルの API キーはブラウザかアプリの中にだけ保存され、サービスへ直接送られます。コントリビュートは [CONTRIBUTING.md](CONTRIBUTING.md)、

@@ -1,18 +1,15 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { mkdtemp, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 const root=fileURLToPath(new URL('..',import.meta.url)), artifacts=await mkdtemp(join(tmpdir(), 'stage-journey-')), errors=[], requests=[], report={artifacts}
 let server,browser,page,asrMode='ok'
 function wav(){const rate=24000,n=rate/2,b=Buffer.alloc(44+n*2);b.write('RIFF');b.writeUInt32LE(b.length-8,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(rate,24);b.writeUInt32LE(rate*2,28);b.writeUInt16LE(2,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(n*2,40);for(let i=0;i<n;i++)b.writeInt16LE(Math.sin(i*440*Math.PI*2/rate)*8000,44+i*2);return b}
 try{
- const socket=createServer();await new Promise(r=>socket.listen(0,'127.0.0.1',r));const port=socket.address().port;await new Promise(r=>socket.close(r))
- server=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port',String(port)],{cwd:root,stdio:['ignore','pipe','pipe']})
- await new Promise((r,j)=>{const t=setTimeout(()=>j(Error('Vite timeout')),15000);server.stdout.on('data',b=>{if(String(b).includes('Local:')){clearTimeout(t);r()}})})
+ const port=await freePort();server=await startVite({port})
  browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']})
  const context=await browser.newContext({viewport:{width:1440,height:900},permissions:['camera','microphone']})
  await context.addInitScript(()=>{if(!localStorage.getItem('livliv-stage:locale'))localStorage.setItem('livliv-stage:locale','zh-Hans')})
@@ -30,7 +27,7 @@ try{
   if(u.hostname==='stage-voice-fixture.test'){assert.equal(r.request().headers().authorization,undefined);await r.fulfill({contentType:'audio/wav',body:wav()});return}
   if(u.hostname==='127.0.0.1'||['blob:','data:'].includes(u.protocol))await r.continue();else await r.abort()
  })
- page=await context.newPage();page.setDefaultTimeout(20000);page.on('pageerror',e=>errors.push(e.message))
+ page=await context.newPage();page.setDefaultTimeout(testTimeout(20000));page.on('pageerror',e=>errors.push(e.message))
  await page.goto('http://127.0.0.1:'+port);await page.locator('.welcome-demo').waitFor();assert.equal(await page.locator('.coach').count(),0)
  await page.screenshot({path:join(artifacts,'welcome-zh-Hans.png')})
  const defaults=await page.evaluate(async()=>{const {samples}=await import('/src/library.ts'),{buildTemplate}=await import('/src/templates.ts');const cast=s=>s.items.filter(c=>c.kind==='character').map(c=>c.model.url);return {featured:samples().slice(0,3).map(c=>c.id),solo:cast(await buildTemplate('solo')),ai:cast(await buildTemplate('ai')),trio:cast(await buildTemplate('trio'))}})
@@ -50,6 +47,10 @@ try{
  assert.ok(reactions.some(r=>r.listener==='Sena'&&r.speaker==='Kai'&&r.turn===3&&r.cue.action==='shy'))
  assert.equal(await page.evaluate(()=>window.journeySenaClosedSmile),false,'the high-note line keeps Sena out of the closed-eye smile texture')
  report.demoListenerReactions=reactions
+ // the demo's end leads on (the same three with a model of one's own), and watching it finishes no step of 三步上手
+ await page.getByRole('button',{name:'用你的模型重来一遍',exact:true}).waitFor();await page.locator('.coach').waitFor();await page.waitForTimeout(3000)
+ assert.equal(await page.evaluate(()=>localStorage.getItem('livliv-stage:coached')),null,'watching the demo leaves 三步上手 open');assert.equal(await page.locator('.coach').count(),1)
+ report.demoEnd='再看一次 and 用你的模型重来一遍 offered; 三步上手 still open, coached unset'
  await page.getByRole('button',{name:'再看一次',exact:true}).click();await page.waitForFunction(()=>window.__stage.conversation().turns===1&&window.__stage.conversation().thinking&&window.pendingDemoSignal);await page.evaluate(()=>window.__stage.talk.stop());assert.equal(await page.evaluate(()=>window.pendingDemoSignal.aborted),true);await page.evaluate(async()=>{const {Actor}=await import('/src/actors.ts');Actor.prototype.prepare=window.originalDemoPrepare})
  const actorIds=await page.evaluate(()=>[...window.__stage.actors.keys()]);await page.evaluate(()=>{const c=window.__stage.store.get().items.find(c=>c.kind==='character'&&c.name==='Nana');window.__stage.store.patch(c.id,{lines:'me',muted:true})});await page.locator('.model-btn').click();await page.locator('.demo-launch button').click();await page.waitForFunction(()=>window.__stage.conversation().speaking?.name==='Nana'&&!window.__stage.conversation().waiting);assert.deepEqual(await page.evaluate(()=>[...window.__stage.actors.keys()]),actorIds);assert.equal(await page.evaluate(()=>window.__stage.store.get().items.find(c=>c.name==='Nana').lines),'ai');await page.evaluate(()=>window.__stage.talk.stop());const stoppedReactions=await page.evaluate(()=>window.journeyReactions.length);await page.waitForTimeout(4500);assert.equal(await page.evaluate(()=>window.journeyReactions.length),stoppedReactions,'stopping cancels pending listener directions');await page.evaluate(async()=>{(await import('/src/actors.ts')).Actor.prototype.react=window.originalDemoReact});report.demoRecovery='promoted voice preparation aborts on stop; a human-controlled Nana returns to the prepared demo without replacing the actors'
  await page.locator('.actor-select').filter({hasText:'Nana'}).click()
@@ -102,7 +103,7 @@ try{
  const config=await page.evaluate(async()=>{const v=await import('/src/voiceApi.ts'),b=await import('/src/brain.ts'),cast=window.__stage.store.get().items.filter(c=>c.kind==='character'),s=v.activeSpeech();return {provider:s.provider,model:s.model,voices:cast.map(c=>v.apiVoice(c,s,cast)),brain:b.loadBrainConfig().provider}})
  assert.equal(config.provider,'qwen');assert.equal(config.model,'qwen-audio-3.1-tts-flash');assert.equal(new Set(config.voices).size,3);const stable=await page.evaluate(async()=>{const v=await import('/src/voiceApi.ts'),cast=window.__stage.store.get().items.filter(c=>c.kind==='character'),s=v.activeSpeech();return cast.every(c=>v.apiVoice(c,s,cast)===v.apiVoice(c,s,[...cast].reverse())&&v.apiVoice(c,s,cast)===v.apiVoice(c,s,[c]))});assert.equal(stable,true);report.defaults=config
  await page.evaluate(()=>{const s=window.__stage.store;s.set({talk:{...s.get().talk,order:'round'}});window.__stage.talk.clear();window.__stage.talk.setLimit(2)})
- await page.locator('.start-modes > summary').click(); await page.getByRole('button',{name:'对谈',exact:true}).click();await page.waitForFunction(()=>window.__stage.conversation().turns===2&&!window.__stage.conversation().running)
+ await page.locator('.console').getByRole('button',{name:'开始对谈',exact:true}).click();await page.waitForFunction(()=>window.__stage.conversation().turns===2&&!window.__stage.conversation().running)
  assert.equal((await page.evaluate(()=>window.__stage.conversation().error)),'');assert.ok(requests.some(r=>r.path.endsWith('/SpeechSynthesizer')))
  assert.equal(await page.evaluate(async()=>{const v=await import('/src/voiceApi.ts');return v.asrReady({...v.activeSpeech(),key:''})}),false)
  await page.evaluate(()=>localStorage.setItem('livliv-stage:fake-mic','https://stage-voice-fixture.test/mic.wav'))

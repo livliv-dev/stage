@@ -14,7 +14,8 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 assert.ok(process.env.STAGE_TEST_RESOURCES, 'Point STAGE_TEST_RESOURCES to a Stage development build')
 const artifacts = await mkdtemp(join(tmpdir(), 'livliv-airi-live-'))
 const turns = [], synthesis = [], errors = []
-const memoryCalls = [], gameCalls = [], sparkCalls = [], gameMessages = []
+const memoryCalls = [], gameCalls = [], sparkCalls = [], gameMessages = [], publicCalls = []
+let publicReply = ''
 const batchCalls = []
 let deferredAsr = false, asrStarted = false, asrCancelled = false, retryCalls = 0
 const fact = 'Private setting for Rally Nana. The owner has made this note just long enough to check that the complete text comes from the memory tool after reopening the session. Secret marker: APRICOT771.'
@@ -116,6 +117,13 @@ const server = createServer(async (req, res) => {
       return finish(res)
     }
     assert.doesNotMatch(prompt, /private-scope-fixture|APRICOT771|OldCardName/)
+    if (publicReply) {
+      // a session an output made public: no private memory or line, and no memory tool to reach one
+      publicCalls.push(body)
+      assert.ok(!tools.includes('builtIn_readMemory'))
+      event(res, publicReply)
+      return finish(res)
+    }
     if (tools.includes('select_game_action')) {
       gameCalls.push(body)
       assert.equal(body.tool_choice.function.name, 'select_game_action')
@@ -204,31 +212,35 @@ try {
     stage.talk.say('private-scope-fixture', { respond: false })
     return actor.item.id
   })
-  const blockedPrivate = await page.evaluate(async () => {
+  // with an output on, asking for a private chat starts a public one
+  publicReply = 'Hello from the public stage.'
+  const outputScope = await page.evaluate(async () => {
     const output = new BroadcastChannel('livliv-stage')
     output.postMessage({ t: 'hello' })
     try {
       await new Promise((resolve) => setTimeout(resolve, 100))
       await window.__stage.talk.startChat('private')
-      return ''
-    } catch (error) {
-      return error.message
+      return window.__stage.conversation().scope
     } finally {
+      window.__stage.talk.stop()
       output.postMessage({ t: 'bye' })
       output.close()
       await new Promise((resolve) => setTimeout(resolve, 100))
     }
   })
-  assert.match(blockedPrivate, /请先关闭直播输出/)
-  const chatButton = page.getByRole('button', { name: '和 Rally Nana 聊天', exact: true })
-  await chatButton.click()
+  assert.equal(outputScope, 'public')
+  await page.waitForFunction(() => !window.__stage.conversation().output)
+  publicReply = ''
+  // the AI 主播 stage's main button opens AI 直播; the chat with its one character is under 更多方式
+  const startChat = async () => {
+    await page.locator('.start-modes > summary').click()
+    await page.getByRole('button', { name: '和 Rally Nana 聊天', exact: true }).click()
+  }
+  await startChat()
   await page.waitForFunction(() => window.__stage.conversation().waitingInput)
   await page.locator('.chat-partner').filter({ hasText: '由 Rally Nana 回应' }).waitFor()
   assert.equal(await page.evaluate(() => window.__stage.conversation().engine), 'airi')
-  assert.match(await page.evaluate(async () => {
-    await window.__stage.rec.start({ mic: false, talk: false })
-    return window.__stage.recording().error
-  }), /请先结束私聊/)
+  assert.equal(await page.evaluate(() => window.__stage.conversation().scope), 'private')
   const ownerSays = async (text, reply) => {
     await page.getByLabel('你说的话').fill(text)
     await page.getByLabel('你说的话').press('Enter')
@@ -243,9 +255,30 @@ try {
     await talk.newChat()
     talk.say('New session after the remembered note.', { respond: false })
   })
-  assert.equal(await chatButton.isVisible(), true)
+  assert.equal(await page.locator('.start-modes').isVisible(), true)
   await ownerSays('Recall my private detail', 'I remember the private detail.')
   assert.equal(memoryCalls.length, 3)
+  assert.ok(await page.evaluate(() => window.__stage.conversation().lines.some((line) => line.text === 'I remember the private detail.')))
+  // a recording starts during the private AIRI chat: the chat goes on in public, and AIRI's memory tool no longer
+  // reaches the private note
+  publicReply = 'Nothing private to share on camera.'
+  await page.evaluate(async () => { await window.__stage.rec.start({ mic: false, talk: false }) })
+  await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.running && c.scope === 'public' && !!c.sessionId && c.engine === 'airi' })
+  await page.locator('.console .scope-tag').filter({ hasText: '公开记忆' }).waitFor()
+  await ownerSays('Recall my private detail', publicReply)
+  assert.equal(memoryCalls.length, 3, 'no private prompt while recording')
+  assert.ok(publicCalls.length > 0)
+  assert.doesNotMatch(JSON.stringify(publicCalls), /APRICOT771|private-scope-fixture|I remember the private detail/)
+  await page.evaluate(async () => {
+    const { rec, recording } = window.__stage, stopped = rec.stop()
+    for (let i = 0; i < 200 && recording().phase === 'recording'; i++) await new Promise((resolve) => setTimeout(resolve, 25))
+    rec.cancel(); await stopped
+    window.__stage.talk.stop()
+  })
+  publicReply = ''
+  // all outputs off: the private conversation is there to choose again
+  await page.waitForFunction(() => !window.__stage.conversation().output)
+  assert.equal(await page.evaluate(() => window.__stage.talk.setScope('private')), true)
   assert.ok(await page.evaluate(() => window.__stage.conversation().lines.some((line) => line.text === 'I remember the private detail.')))
   await page.evaluate(() => window.__stage.talk.stop())
   await page.getByRole('button', { name: '直播', exact: true }).click()
@@ -414,7 +447,7 @@ try {
   const result = {
     artifacts, firstSoundMs, interruptMs: turns[0].closed - interruptAt, imageFrames: 2, liveTurns: turns.length,
     voice: process.env.STAGE_TEST_VOICES === '1' ? 'macOS Samantha' : 'fixture PCM',
-    memoryRead: true, publicScope: true, privateOutputBlocked: true, privateAfterLive: true, privateCaptureCancelled: true,
+    memoryRead: true, publicScope: true, publicWhileOutput: true, privateAfterLive: true, privateCaptureCancelled: true,
     manualCaption: true, retryCalls, gameAction: action.name, sparkQuiet: true,
     scoreChangeMs: Math.round(scoreChange), gameActionMs: Math.round(gameActionAt),
   }

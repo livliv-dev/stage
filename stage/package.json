@@ -38,6 +38,11 @@
     "test:live": "node test/live.mjs",
     "test:points": "node test/points.mjs",
     "test:app-livliv": "node test/app-livliv.mjs",
+    "test:start": "node test/start.mjs",
+    "test:privacy": "node test/privacy.mjs",
+    "test:realtime": "node test/with-vite.mjs test/realtime.mjs",
+    "test:collab": "npm ci --prefix ../collab --no-audit --no-fund && node test/collab.mjs",
+    "test:collab-pose": "npm ci --prefix ../collab --no-audit --no-fund && node test/collab-pose.mjs",
     "build:site": "node scripts/build-site.mjs"
   },
   "dependencies": {

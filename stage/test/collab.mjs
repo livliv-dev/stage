@@ -4,9 +4,9 @@ import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { startRelay } from '../../collab/server.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'livliv-stage-collab-'))
 let server, browser, relay, output, stalled
 const stalledSockets = new Set()
@@ -18,9 +18,7 @@ function wav(seconds, hz) {
   return data
 }
 async function serve() {
-  const socket = createServer(); await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve)); const port = socket.address().port; await new Promise((resolve) => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite start timed out')), 15000); server.stdout.on('data', (data) => { if (String(data).includes('Local:')) { clearTimeout(timer); resolve() } }); server.once('exit', (code) => reject(new Error('Vite exited ' + code))) })
+  const port = await freePort(); server = await startVite({ port })
   return `http://127.0.0.1:${port}`
 }
 async function meter(page, ms = 600) {
@@ -65,7 +63,7 @@ try {
       window.RTCPeerConnection = class extends Peer { constructor(config) { super(config); window.testPeers.push(this); const i = window.testPeers.length; this.addEventListener('iceconnectionstatechange', () => window.rtcLog.push([i, 'ice', this.iceConnectionState])); this.addEventListener('connectionstatechange', () => window.rtcLog.push([i, 'connection', this.connectionState])); this.addEventListener('icecandidate', (e) => { if (e.candidate) window.rtcLog.push([i, 'candidate', e.candidate.candidate]) }) } }
     })
     await context.route('**/*', (route) => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) || /^(blob|data):/.test(route.request().url()) ? route.continue() : route.abort())
-    const page = await context.newPage(); pages.push(page); page.on('pageerror', (error) => errors.push(error.message)); page.setDefaultTimeout(20000)
+    const page = await context.newPage(); pages.push(page); page.on('pageerror', (error) => errors.push(error.message)); page.setDefaultTimeout(testTimeout(20000))
     await page.goto(origin, { waitUntil: 'networkidle' })
     await page.evaluate(async ({ format, index }) => {
       const { store, newCharacter, emptyScene, localModels } = await import('/src/scene.ts')

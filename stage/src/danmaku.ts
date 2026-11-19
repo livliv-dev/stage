@@ -12,6 +12,8 @@ const subs = new Set<() => void>()
 const set = (change: Partial<State>) => { state = { ...state, ...change }; subs.forEach((f) => f()) }
 export const useChat = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => state)
 export const chatState = () => state
+/** told each time the Twitch connection or its viewers change */
+export const onChatState = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
 const audienceListeners = new Set<(c: Chat) => void>()
 export const onAudienceMessage = (f: (c: Chat) => void) => { audienceListeners.add(f); return () => { audienceListeners.delete(f) } }
 const seenMessages = new Map<string, number>()

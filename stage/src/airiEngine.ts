@@ -47,7 +47,6 @@ type Turn = {
 function identity(actor: CharacterItem, language: Talk['language'], scope: MemoryScope) {
   const languageRule = language === 'auto' ? 'Reply in the language of the latest speaker.' : {
     zh: 'Reply in Simplified Chinese.',
-    zht: 'Reply in Traditional Chinese.',
     en: 'Reply in English.',
     ja: 'Reply in Japanese.',
   }[language]

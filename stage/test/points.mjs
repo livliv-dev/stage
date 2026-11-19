@@ -1,15 +1,14 @@
 // LivLiv's points AI on the site's build (VITE_STAGE_HOST=livliv): what Stage asks the site for. A line is asked for
 // with its voice (voice: true) only when it will be heard in the character's LivLiv voice; 仅字幕, a character on the
 // system voice and a muted one ask for none, and no line is voiced a second time (no /say call). Space never starts
-// paid lines: with the demo's three on the stage it plays the free demo. 对谈 answers a waiting viewer, and a clip that won't
+// paid lines: with the demo's three on the stage it plays the free demo, and with a model of one's own in the LivLiv voice it starts nothing. 对谈 answers a waiting viewer, and a clip that won't
 // play doesn't end it. In 持续聊天 with a model of one's own, a line in the LivLiv voice is one /say call, not one a sentence. The site is faked: nothing is spent.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), errors = []
 const FLAGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required']
@@ -18,9 +17,7 @@ let server, browser, page
 const asked = [], said = [], requests = []
 let badClips = 0, sayOk = false  // sayOk: /say answers (持续聊天 with a model of one's own and the LivLiv voice)  // the next n line clips come back as bytes no player can play
 try {
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, VITE_STAGE_HOST: 'livliv' } })
-  await new Promise((resolve, reject) => { const t = setTimeout(() => reject(new Error('Vite timeout')), 15000); server.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(t); resolve() } }); server.once('exit', (c) => { clearTimeout(t); reject(new Error('Vite exited ' + c)) }) })
+  const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: 'livliv' } })
   const origin = 'http://127.0.0.1:' + port
   browser = await chromium.launch({ args: FLAGS })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
@@ -48,7 +45,7 @@ try {
     if (url.hostname === '127.0.0.1' || ['blob:', 'data:'].includes(url.protocol)) return route.continue()
     return route.abort()
   })
-  page = await context.newPage(); page.setDefaultTimeout(30000); page.on('pageerror', (e) => errors.push(e.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(30000)); page.on('pageerror', (e) => errors.push(e.message))
   await page.goto(origin + '/', { waitUntil: 'networkidle' })
   // the first visit: the demo's three on the stage, signed in, LivLiv the AI's model
   await page.waitForFunction(() => { const a = [...window.__stage.actors.values()]; return a.length === 3 && a.every((x) => x.status === 'ready') }, null, { timeout: 60000 })
@@ -126,6 +123,13 @@ try {
     sayOk = true
     await patchAll({ ids, patch: { muted: false } }); await patchAll({ ids, patch: 'livliv' })
     await page.evaluate(async () => (await import('/src/brain.ts')).saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' }))
+    // Space with a model of one's own but the LivLiv voice: every line would be a paid /say, so Space starts nothing
+    said.length = 0
+    await page.evaluate(() => document.activeElement?.blur?.()); await page.keyboard.press('Space')
+    await page.locator('.toast').filter({ hasText: '用积分的台词' }).waitFor()
+    await page.waitForTimeout(1500)
+    assert.equal((await conv()).running, false, 'Space starts no session voiced in the LivLiv voice')
+    assert.deepEqual(said, [], 'Space asks for no /say')
     await page.evaluate(() => { void window.__stage.talk.startChat('private') })
     await page.waitForFunction(() => window.__stage.conversation().waitingInput, null, { timeout: 60000 })
     const before = await page.evaluate(() => window.__stage.conversation().turns)
