@@ -50,7 +50,7 @@ try {
   await output.waitForFunction(() => [...window.__stage.actors.values()][0]?.status === 'ready')
   await output.evaluate(() => { window.firstCanvas = [...window.__stage.actors.values()][0].player.canvas })
   await page.evaluate(() => window.__stage.store.patch(window.avatarId, { hidden: true }))
-  const before = await page.evaluate(() => window.poseFrames); await page.waitForTimeout(300)
+  const before = await page.evaluate(() => window.poseFrames); await page.waitForTimeout(testTimeout(300))
   assert.ok(await page.evaluate(() => window.poseFrames) > before + 2, 'hidden avatars still publish final poses')
   assert.equal(await page.locator('.placed.character').evaluate((e) => getComputedStyle(e).visibility), 'hidden')
   const cut = await page.evaluate(async () => { const { performStageCommand, stageState } = await import('/src/control.ts'); return { result: performStageCommand({ do: 'scene', id: window.secondScene }), state: stageState() } })

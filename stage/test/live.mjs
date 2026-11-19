@@ -170,9 +170,11 @@ try {
 
   // the editor's page out of sight (raw CDP, see the top): poses keep reaching the output window
   profile = await mkdtemp(join(tmpdir(), 'stage-live-cdp-'))
-  chrome = spawn(chromium.executablePath(), ['--headless=new', '--remote-debugging-port=0', '--user-data-dir=' + profile, '--no-first-run', '--no-default-browser-check', '--window-size=1280,800', ...FLAGS, 'about:blank'], { stdio: 'ignore' })
+  // Linux runners (Ubuntu 24.04) refuse Chrome's sandbox; Playwright's own launches go without it there too
+  chrome = spawn(chromium.executablePath(), ['--headless=new', '--remote-debugging-port=0', '--user-data-dir=' + profile, '--no-first-run', '--no-default-browser-check', '--window-size=1280,800', ...(process.platform === 'linux' ? ['--no-sandbox'] : []), ...FLAGS, 'about:blank'], { stdio: 'ignore' })
   let cdpPort
-  for (let i = 0; i < 150 && !cdpPort; i++) { await sleep(100); cdpPort = (await readFile(join(profile, 'DevToolsActivePort'), 'utf8').catch(() => '')).split('\n')[0] }
+  for (let i = 0; i < testTimeout(150) && !cdpPort; i++) { await sleep(100); cdpPort = (await readFile(join(profile, 'DevToolsActivePort'), 'utf8').catch(() => '')).split('\n')[0] }
+  if (!cdpPort) throw new Error('Chromium did not open its DevTools port: ' + chromium.executablePath())
   const ws = new WebSocket((await (await fetch(`http://127.0.0.1:${cdpPort}/json/version`)).json()).webSocketDebuggerUrl); await new Promise((r) => ws.addEventListener('open', r, { once: true }))
   let n = 0; const waiting = new Map()
   ws.addEventListener('message', (e) => { const m = JSON.parse(e.data); const p = waiting.get(m.id); if (p) { waiting.delete(m.id); if (m.error) p.no(new Error(m.error.message)); else p.ok(m.result) } })
