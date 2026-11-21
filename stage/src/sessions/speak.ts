@@ -1,0 +1,294 @@
+import { tr } from '../i18n'
+// One AI turn, said: the engine's answer (brains/engines) a line at a time, each voiced and played on the stage
+// (performance.ts). A whole reply from a model of one's own, LivLiv or the demo is made first (with its voice); in a
+// chat with a model of one's own it is said sentence by sentence, so the first is heard sooner (never in the LivLiv
+// voice: livliv.ai charges every /say call, so a line in it is voiced whole, one call); AIRI's reply streams and each
+// sentence is said as it comes. In a 对谈 the next line is made while this one is said (one ahead).
+import { actors, type Take } from '../actors'
+import { brainReady, loadBrainConfig, type Ask } from '../brain'
+import { chatHistory } from '../chatHistory'
+import { conversationContext, speechSegments } from '../chatContext'
+import { demoFor, demoSpeaker } from '../demo'
+import { desktop } from '../desktopBridge'
+import { memory } from '../memory'
+import type { Chat } from '../danmaku'
+import { participants, store, uid, type CharacterItem } from '../scene'
+import { voiceRoute } from '../voiceApi'
+import type { Line } from '../core/lines'
+import { engineFor, type Utterance } from '../brains/engines'
+import { counted, GenerationLimit, spend, spent, turnLimit as linesFor } from './budget'
+import { chance } from './chance'
+import { castKey, NeedModel, played, session, TURN_INTERRUPTED, voices, VoiceFailed } from './context'
+import { inbox, someViewer, speechHeld, wake } from './inbox'
+import { checkMemory, memoryIdsOf } from './memoryGate'
+import { across, freePick as pickFree, nextSpeaker as speakerAfter } from './order'
+import { cut, deliver, hooks, takeCutting, tellSpeech, type LineSpeech } from './performance'
+import { conversation, set } from './state'
+import { untilFree, waitWhile } from './wake'
+
+/** one of `pool`, the chattier and the longer quiet the likelier (sessions/order.ts) */
+export const freePick = (pool: CharacterItem[]) => pickFree(pool, conversation().lines, chance)
+
+/** who speaks next by the stage's talk order (sessions/order.ts); a character picked by hand goes once */
+export function nextSpeaker(): CharacterItem | null {
+  const who = speakerAfter(store.get().talk, voices(), { lines: conversation().lines, lastTurn: session.lastTurn, skipped: session.skipped, forced: session.forced }, chance)
+  session.forced = null
+  return who
+}
+
+/** the lines a 对谈 runs to: a prepared demo always reaches its ending, paid conversations keep the user's limit */
+export const turnLimit = () => linesFor(loadBrainConfig().kind === 'demo' ? demoFor(voices())?.script.lines.length : undefined, conversation().limit)
+
+/** a line and its voice, made ready (a model of one's own, LivLiv or the demo: the whole reply) */
+async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat | null) {
+  const s = store.get(), t = s.talk
+  if (session.boundProfiles !== castKey()) throw new Error(tr('参与角色已改变，请重新开始会话'))
+  const ai = voices().filter((c) => c.lines === 'ai')
+  const people = played().map((h) => h.name)
+  if (conversation().lines.some((l) => l.who === 'me')) people.push(tr("我"))
+  const role = t.order === 'host' ? (me.id === (t.host ?? ai[0]?.id) ? 'host' : 'guest') : null
+  const cutIn = takeCutting()
+  const chat = audience === undefined ? conversation().scope === 'public' ? someViewer() : null : audience
+  if (conversation().mode !== 'conversation') set(spend(conversation()))
+  const viewer = chat ? { user: chat.user, text: chat.text } : null
+  const cfg = loadBrainConfig(), aloud = !session.liveOptions?.textOnly && !me.muted
+  const voiced = aloud && voiceRoute(me) === 'livliv'
+  const sessionId = conversation().sessionId
+  const context = loadBrainConfig().kind === 'demo' ? { lines: conversation().lines, summary: undefined, memories: [], revision: 0 } : await chatHistory.context(me.profileId ?? me.id, conversation().lines, conversation().scope)
+  signal.throwIfAborted()
+  const used = conversationContext(context.lines, context.summary)
+  const memoryIds = memoryIdsOf(context)
+  const ask: Ask = {
+    me, others: ai.filter((c) => c.id !== me.id), humans: people, topic: s.topic, lines: context.lines, role, cutIn, language: t.language, viewer,
+    voiced, scope: conversation().scope, depth: t.depth, summary: context.summary, memories: context.memories, event: inbox.activeEvent ? { source: inbox.activeEvent.source, message: inbox.activeEvent.message } : undefined,
+    layout: [...participants(s)].sort((a, b) => across(a) - across(b)).map((c) => c.name),
+  }
+  const answer = engineFor(cfg).reply({ kind: 'standard', ask }, signal)[Symbol.asyncIterator]()
+  const first = await answer.next()
+  signal.throwIfAborted()
+  if (first.done) throw new Error(tr('模型没有返回可播放的回复'))
+  const r = first.value
+  const { summary, ...reply } = r
+  if (summary && used.updateSummary) {
+    await chatHistory.summarize(summary, used.sourceIds, memoryIds, context.revision, sessionId, conversation().lines)
+  }
+  // its voice is made while it still shows 在想 (a LivLiv voice takes about a second)
+  const recorded = r.audio ?? (voiced && cfg.kind === 'livliv' ? null : undefined)
+  const bySentence = conversation().mode === 'chat' && cfg.kind !== 'livliv' && voiceRoute(me) !== 'livliv'
+  const take = bySentence ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, recorded)
+  signal.throwIfAborted()
+  if (session.liveOptions && !session.liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕"))
+  return { r: { ...reply, memoryIds, memoryRevision: context.revision }, take, chat, memoryRevision: context.revision, bySentence }
+}
+
+// The next line is made while this one is said, so it can follow at once: at most one line ahead. It is thrown away
+// when what it answers changes (you said something, the line was cut, the topic changed, the conversation stopped);
+// that costs one model call and one line's voice at most (with LivLiv, one line's points), at the user's own expense,
+// so it isn't done where lines get cut on purpose (AI 抢话). A viewer's message it answers goes back to wait for the
+// next line
+type Ahead = { who: CharacterItem; after: string; topic: string; ctl: AbortController; chat: Chat | null; made: Promise<Awaited<ReturnType<typeof makeLine>> | null> }
+let ahead: Ahead | null = null
+export function dropAhead() { if (ahead?.chat) inbox.viewers.putBack(ahead.chat); ahead?.ctl.abort(); ahead = null }
+
+function makeAhead() {
+  const t = store.get().talk, last = conversation().lines.at(-1)
+  if (conversation().mode !== 'conversation' || ahead || !session.ctrl || session.single || !last || inbox.queue.length || conversation().turns >= turnLimit()) return
+  const cfg = loadBrainConfig()
+  if (!brainReady(cfg) || (cfg.kind !== 'demo' && t.interrupt)) return
+  const who = cfg.kind === 'demo' ? demoSpeaker(voices(), conversation().lines) : nextSpeaker()
+  if (!who) return
+  if (who.lines !== 'ai') { session.forced = who.id; return }  // your turn is next: nothing to make, and it stays next
+  if (session.switching) return
+  const ctl = new AbortController(), chat = conversation().scope === 'public' ? someViewer() : null
+  ahead = { who, after: last.id, topic: store.get().topic, ctl, chat, made: makeLine(who, AbortSignal.any([session.ctrl.signal, ctl.signal]), chat).catch(() => null) }
+}
+hooks.aiLineStarted = makeAhead
+hooks.cutOff = dropAhead
+
+/** the line made ahead, if it still answers what was just said */
+export function aheadStill() {
+  if (ahead && (ahead.after !== conversation().lines.at(-1)?.id || ahead.topic !== store.get().topic || (session.forced && session.forced !== ahead.who.id)
+    || !voices().some((c) => c.id === ahead!.who.id && c.lines === 'ai'))) dropAhead()
+  return ahead
+}
+
+/** the turn in hand stops: a call is interrupted, a line made ahead is dropped, the line being said is cut */
+export function interruptTurn() {
+  session.realtime?.interrupt()
+  dropAhead()
+  const speaking = conversation().speaking
+  if (speaking) cut(speaking.id, true)
+  session.currentTurn?.abort(TURN_INTERRUPTED)
+}
+
+function addViewer(chat: Chat | null | undefined) {
+  if (!chat || conversation().lines.some((line) => line.id === chat.id)) return
+  set({ lines: [...conversation().lines, { id: chat.id, who: 'audience', name: tr("弹幕 · {0}", chat.user), text: chat.text, emotion: 'neutral', action: 'none', to: null, human: true, audience: true }] })
+}
+
+/** a turn on AIRI: its reply streams, each sentence voiced and said as it comes (the next made ready while one plays) */
+async function airiTurn(me: CharacterItem, chat: Chat | null | undefined, replyToOwner: boolean, signal: AbortSignal, onStart: () => void, onEnd: (cancelled: boolean) => void) {
+  const airi = session.airi
+  const actor = actors.get(me.id), profile = me.profileId ?? me.id
+  const { sessionId, scope } = conversation(), windowId = airi?.windowId, event = inbox.activeEvent
+  if (!airi || airi.actorId !== me.id || !sessionId || actor?.status !== 'ready' || session.boundProfiles !== castKey()) throw new Error(tr('参与角色已改变，请重新开始会话'))
+  if (spent(conversation())) throw new GenerationLimit()
+  const context = await chatHistory.context(profile, conversation().lines, scope)
+  const verifyMemory = async () => {
+    await checkMemory(memory, profile, scope, context.revision)
+    signal.throwIfAborted()
+  }
+  signal.throwIfAborted()
+  const snapshot = airi.game ? await desktop?.airiGame?.snapshot(airi.game.id, true) : undefined
+  signal.throwIfAborted()
+  const frame = snapshot?.frame ?? (windowId ? await desktop?.vision?.frame(windowId) : undefined)
+  signal.throwIfAborted()
+  if (windowId && !frame) throw new Error(tr('游戏窗口已关闭或屏幕录制权限不可用'))
+  const latest = replyToOwner ? context.lines.findLast((line) => line.human && !line.audience) : undefined
+  const input = chat ? `Viewer ${chat.user}: ${chat.text}` : latest?.text
+    ?? (conversation().mode === 'live' ? 'The livestream is quiet. Start a short conversation about the show.' : 'Start a short conversation with the user.')
+  const used = conversationContext(context.lines, context.summary)
+  const memories = context.memories.slice(0, 48)
+  const memoryIds = memoryIdsOf({ ...context, memories })
+  const textOnly = session.liveOptions?.textOnly === true
+  set(counted(conversation()))
+  addViewer(chat)
+  const answer = engineFor(loadBrainConfig(), airi.model).reply({ kind: 'airi', turn: {
+    sessionId, scope, actor: me, model: airi.model, input, verifyMemory, allowBatch: !airi.game && !windowId, ...(frame ? { frame } : {}), ...(event ? { event } : {}),
+    lines: context.lines.filter((line) => line.id !== latest?.id && line.id !== chat?.id),
+    language: store.get().talk.language,
+    context: { topic: store.get().topic, game: snapshot?.state, summary: used.earlier, memories },
+  } }, signal)[Symbol.asyncIterator]()
+  const speech: LineSpeech = {
+    final: false, onStart, onEnd,
+    beforeStart: () => untilFree(speechHeld, wake, signal, async () => {
+      if (conversation().sessionId !== sessionId || conversation().scope !== scope || session.boundProfiles !== castKey() || actors.get(me.id) !== actor) throw new Error(tr('参与角色已改变，请重新开始会话'))
+      await verifyMemory()
+    }),
+  }
+  let first = true
+  const prepareNext = async () => {
+    const result = await answer.next()
+    signal.throwIfAborted()
+    if (result.done) return null
+    const said = result.value
+    const aloud = !textOnly && !actor.item.muted
+    if (aloud && voiceRoute(actor.item) === 'livliv') throw new Error(tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕'))
+    const take = await actor.prepare(said.text, said.emotion, aloud, signal)
+    signal.throwIfAborted()
+    if (aloud && take.mute) throw new VoiceFailed(actor.voiceError || tr('声音播放失败，请检查声音设置'))
+    return { said, take }
+  }
+  try {
+    let ready = await prepareNext()
+    while (ready) {
+      const { said, take } = ready
+      if (first) { set({ thinking: null, turns: conversation().turns + 1 }); first = false }
+      const next = prepareNext()
+      void next.catch(() => {})
+      await deliver({ id: uid(), who: me.id, name: me.name, ...said, memoryIds, memoryRevision: context.revision }, me, signal, take, speech)
+      ready = await next
+    }
+    if (first && event?.reply !== 'maybe') throw new Error(tr('模型没有返回可播放的回复'))
+  } finally {
+    await answer.return?.()
+  }
+}
+
+/** an AI character's turn, said: true when it was said, false when you cut it off (the session goes on) */
+export async function speakTurn(me: CharacterItem, parent: AbortSignal, audience?: Chat | null, replyToOwner = false) {
+  parent.throwIfAborted()
+  if (session.switching) { await session.switching; parent.throwIfAborted() }
+  await waitWhile(() => inbox.dialogue.size > 0 || inbox.decisions > 0 || inbox.hearing, wake, parent)
+  const model = session.airi?.model ?? loadBrainConfig()
+  const scope = conversation().scope
+  if (!brainReady(model)) throw new NeedModel()
+  const turn = new AbortController(), signal = AbortSignal.any([parent, turn.signal])
+  session.currentTurn = turn
+  let spoke = false, hadCut = false
+  set({ thinking: me.id })
+  actors.get(me.id)?.setPhase('thinking')
+  const prepared = aheadStill()?.who.id === me.id ? ahead : null
+  const cancelPrepared = () => prepared?.ctl.abort(signal.reason)
+  try {
+    if (session.airi) {
+      await airiTurn(me, audience, replyToOwner, signal, () => { spoke = true }, (cancelled) => { hadCut ||= cancelled })
+      return true
+    }
+    if (!prepared) dropAhead()
+    else { ahead = null; signal.addEventListener('abort', cancelPrepared, { once: true }) }
+    const made = prepared ? await prepared.made : null
+    signal.throwIfAborted()
+    const { r, take, chat, memoryRevision, bySentence } = made ?? await makeLine(me, signal, prepared?.chat ?? audience)
+    signal.throwIfAborted()
+    const speech: LineSpeech = {
+      final: false, onStart: () => { spoke = true }, onEnd: (cancelled: boolean) => { hadCut ||= cancelled },
+      beforeStart: () => untilFree(speechHeld, wake, signal, async () => {
+        // made before an output switched the session to public: never said
+        if (conversation().scope !== scope) { turn.abort(TURN_INTERRUPTED); signal.throwIfAborted() }
+        if (loadBrainConfig().kind !== 'demo') await checkMemory(memory, me.profileId ?? me.id, conversation().scope, memoryRevision)
+        signal.throwIfAborted()
+      }),
+    }
+    await speech.beforeStart()
+    set({ thinking: null, turns: conversation().turns + 1 })
+    if (!r.text.trim()) {
+      actors.get(me.id)?.react({ at: 0, feeling: r.emotion, action: r.action, ...r.cues?.[0] })
+      for (const reaction of r.listeners ?? []) {
+        const listener = actors.get(reaction.who)
+        if (listener?.item.reactions?.listen !== false) listener?.react(reaction.cue)
+      }
+      return true
+    }
+    addViewer(chat)
+    if (bySentence) await bySentences(me, r, memoryRevision, signal, speech)
+    else await deliver({ id: uid(), who: me.id, name: me.name, ...r }, me, signal, take, speech)
+    if (session.liveOptions && !session.liveOptions.textOnly) {
+      await take?.clip?.live?.whole
+      const error = actors.get(me.id)?.voiceError
+      if (error) throw new VoiceFailed(error)
+    }
+    return true
+  } catch (error) {
+    if (parent.aborted || !turn.signal.aborted) throw error
+    return false
+  } finally {
+    if (spoke) tellSpeech({ character: me.id, scope, speaking: false, final: true, cancelled: signal.aborted || hadCut })
+    turn.abort()
+    signal.removeEventListener('abort', cancelPrepared)
+    if (session.currentTurn === turn) { session.currentTurn = null; set({ thinking: null }); actors.get(me.id)?.setPhase('waiting') }
+  }
+}
+
+/** a whole reply said sentence by sentence (a chat with a model of one's own): each voice made while the one before is
+ *  said, its reactions where they fall */
+async function bySentences(me: CharacterItem, r: Utterance & Pick<Line, 'memoryIds' | 'memoryRevision'>, memoryRevision: number, signal: AbortSignal, speech: LineSpeech) {
+  const segments = speechSegments(r.text), total = segments.reduce((sum, text) => sum + text.length, 0) || 1
+  const actor = actors.get(me.id)
+  let preparedVoice: Promise<Take> | undefined = actor?.prepare(segments[0], r.emotion, true, signal)
+  let offset = 0
+  for (let i = 0; i < segments.length; i++) {
+    const text = segments[i]
+    signal.throwIfAborted()
+    await waitWhile(() => conversation().paused || inbox.dialogue.size > 0, wake, signal)
+    const voice = await preparedVoice
+    signal.throwIfAborted()
+    await checkMemory(memory, me.profileId ?? me.id, conversation().scope, memoryRevision)
+    if (voice?.mute && voiceRoute(me) !== 'none') throw new Error(actor?.voiceError || tr('声音播放失败，请检查声音设置'))
+    preparedVoice = i + 1 < segments.length ? actor?.prepare(segments[i + 1], r.emotion, true, signal) : undefined
+    // A cancelled future sentence may reject before playback reaches it.
+    void preparedVoice?.catch(() => {})
+    const start = offset / total, width = text.length / total
+    const cues = r.cues?.filter((cue) => cue.at >= start && cue.at < start + width).map((cue) => ({ ...cue, at: (cue.at - start) / width }))
+    const listeners = r.listeners?.filter(({ cue }) => cue.at >= start && cue.at < start + width).map((reaction) => ({ ...reaction, cue: { ...reaction.cue, at: (reaction.cue.at - start) / width } }))
+    await deliver({ id: uid(), who: me.id, name: me.name, ...r, text, cues, listeners }, me, signal, voice, speech)
+    offset += text.length
+  }
+}
+
+/** a 对谈 turn: a clip that won't play keeps its subtitle (the character shows the voice error) and the talk goes on,
+ *  as it always did; the turn was already counted, so a voice that keeps failing still ends at the turn limit */
+export async function talkOn(who: CharacterItem, signal: AbortSignal) {
+  try { await speakTurn(who, signal) } catch (e) { if (!(e instanceof VoiceFailed) || signal.aborted) throw e }
+}
+
