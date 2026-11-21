@@ -62,7 +62,7 @@ try {
 
   // no output: the tag chooses, private by default, and a private chat reads private memories
   assert.equal((await tag.innerText()).trim(), '私聊'); assert.equal(await tag.isEnabled(), true)
-  await page.locator('.console .run .primary').click()
+  await page.locator('.console .start-button').click()
   await page.waitForFunction(() => window.__stage.conversation().running && window.__stage.conversation().waitingInput)
   assert.equal((await conv()).scope, 'private'); assert.equal(await tag.isDisabled(), true, 'the scope is fixed while a session runs')
   const privateRequest = await send('私下说一句：今天有点累。')
@@ -115,7 +115,7 @@ try {
 
   // the OBS output window opens during a private chat: the same switch, and the output never sees a private line
   await page.evaluate(async () => { await window.__stage.talk.setScope('private') })
-  await page.locator('.console .run .primary').click()
+  await page.locator('.console .start-button').click()
   await page.waitForFunction(() => window.__stage.conversation().running && window.__stage.conversation().waitingInput)
   assert.equal((await conv()).scope, 'private')
   await send('再私下说一句：别告诉别人。')
@@ -146,7 +146,7 @@ try {
   // a turn in flight when the recording starts: its reply was made from the private memory, so it is cut and dropped,
   // never shown or saved in public, and the chat waits for you instead of answering again on its own
   await page.evaluate(async () => { await window.__stage.talk.setScope('private') })
-  await page.locator('.console .run .primary').click()
+  await page.locator('.console .start-button').click()
   await page.waitForFunction(() => window.__stage.conversation().running && window.__stage.conversation().waitingInput)
   delay = 3000
   let mark = calls.length
@@ -167,7 +167,7 @@ try {
 
   // a line being said when the recording starts (made from the private memory): it stops there, marked cut
   await page.evaluate(async () => { await window.__stage.talk.setScope('private') })
-  await page.locator('.console .run .primary').click()
+  await page.locator('.console .start-button').click()
   await page.waitForFunction(() => window.__stage.conversation().running && window.__stage.conversation().waitingInput)
   long = true
   const privateId = await page.evaluate(() => window.__stage.conversation().sessionId)

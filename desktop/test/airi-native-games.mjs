@@ -135,7 +135,8 @@ try {
     localStorage.setItem('livliv-stage:speech', JSON.stringify({ provider: 'custom', base, key: '', model: 'local-voice', asr: 'test', voice: 'Samantha' }))
   }, origin)
   await page.reload()
-  await page.getByRole('button', { name: /^AI 主播/ }).click()
+  // the start page's AI 来开播: its stage and checklist
+  await page.locator('.start-page .goal-tile', { hasText: 'AI 来开播' }).locator('.goal-main').click()
   await page.waitForFunction(() => [...window.__stage.actors.values()].some((actor) => actor.status === 'ready'))
   await page.evaluate(async () => {
     const { actors, store, talk, onHeard } = window.__stage
@@ -146,14 +147,17 @@ try {
     window.playback = []
     onHeard((sound) => window.playback.push({ at: Date.now(), sound }))
   })
-  const liveButton = page.getByRole('button', { name: '直播', exact: true })
-  await liveButton.click()
+  // the game: the checklist's 游戏 opens the 直播间 card; 开播 is the console's; while live the card (the status
+  // line's 直播间) shows the game, its task and the viewers' messages
+  const liveButton = page.locator('.status-line .st-tag', { hasText: '直播间' })
+  await page.locator('.popover.checklist .check', { hasText: '游戏' }).getByRole('button', { name: '去设置', exact: true }).click()
   const panel = page.locator('.desktop-live-settings')
-  await panel.getByText('由 Rally Nana 回应', { exact: true }).waitFor()
+  await page.locator('.status-line .st-tag', { hasText: 'AIRI' }).waitFor()
   await panel.getByLabel('游戏连接').selectOption('minecraft')
   await panel.getByText('发送 Minecraft 画面给模型', { exact: true }).click()
   await page.screenshot({ path: join(out, 'airi-entry.png') })
-  await panel.getByRole('button', { name: '开始 AI 直播', exact: true }).click()
+  await page.locator('.console .start-button', { hasText: '开播' }).click()
+  await liveButton.click()
   await page.getByText('游戏已连接', { exact: true }).waitFor()
   await page.screenshot({ path: join(out, 'airi-connected.png') })
   await panel.getByLabel('游戏指令').fill('Use Airicraft to bring the inventory up to ' + count + ' wood logs.')

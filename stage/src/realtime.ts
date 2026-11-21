@@ -63,7 +63,7 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
   if (conversation().running) return
   const actor = actors.get(characterId), character = actor?.item, config = realtimeCredentials(settings)
   if (!character || actor.status !== 'ready' || character.remote || character.lines !== 'ai') { set({ phase: 'error', error: tr('先选择一个已载入的 AI 角色') }); return }
-  if (!config.key || !config.base || !config.model) { set({ phase: 'error', error: tr('请配置实时语音的接口地址、模型和密钥') }); return }
+  if (!config.key || !config.base || !config.model) { set({ phase: 'error', error: tr('请配置实时通话的接口地址、模型和密钥') }); return }
   try { saveRealtime(settings) } catch { /* The active call can use unsaved settings. */ }
   cancelPtt()
   const until = Date.now() + Math.max(1, Math.min(30, settings.minutes)) * 60_000
@@ -114,7 +114,7 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
   }
   const fail = (error: Error) => {
     if (finished) return
-    const message = error instanceof RealtimeHttpError ? tr('实时语音连接失败（{0}）', error.status) : tr(error.message)
+    const message = error instanceof RealtimeHttpError ? tr('实时通话连接失败（{0}）', error.status) : tr(error.message)
     set({ error: message, phase: 'error' }); if (sink) sink.end(message); else close()
   }
   try {
@@ -200,7 +200,7 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
       if (typeof event.item_id !== 'string' || typeof event.transcript !== 'string') return
       sink!.line({ id: 'rt:' + event.item_id, who: 'me', name: tr('我'), text: event.transcript, emotion: 'neutral', action: 'none', to: null, human: true })
     } else if (kind === 'conversation.item.input_audio_transcription.failed') {
-      fail(new Error('实时语音识别失败，请重新开始'))
+      fail(new Error('实时通话识别失败，请重新开始'))
     } else if (kind === 'response.created') {
       const response = event.response as { id?: string; metadata?: { livliv_epoch?: string } } | undefined
       if (response?.id) inFlight.add(response.id)
@@ -241,7 +241,7 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
       }
       if (response?.id && response.id !== responseId) return
       generating = false
-      if (response?.status === 'failed') { fail(new Error('实时语音回应失败，请检查模型和额度')); return }
+      if (response?.status === 'failed') { fail(new Error('实时通话回应失败，请检查模型和额度')); return }
       if (response?.status === 'cancelled') { interrupt(false); phase('listening'); return }
       for (const item of response?.output ?? []) if (item.type === 'function_call') react({ type: 'response.output_item.done', response_id: responseId, item })
       const hasAudio = played || response?.output?.some((item) => item.content?.some((content) => content.type === 'audio' || content.type === 'output_audio'))
@@ -295,7 +295,7 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
     }, exchange: aiFetch,
   })
   timer = window.setTimeout(() => sink!.end('', tr('已达到本次时长上限')), Math.max(0, until - Date.now()))
-  offActors = onActors(() => { if (!finished && (actors.get(characterId) !== actor || actor.item.lines !== 'ai' || actor.status !== 'ready')) sink!.end('', tr('实时语音角色已离开')) })
+  offActors = onActors(() => { if (!finished && (actors.get(characterId) !== actor || actor.item.lines !== 'ai' || actor.status !== 'ready')) sink!.end('', tr('实时通话角色已离开')) })
   offFrame = onFrame((value) => {
     if (value !== actor || finished || paused || !turnOpen || hearing || cancellation) return
     if (sound.level() > .02) {
@@ -309,7 +309,7 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
     } else if (!generating && output && !quietSince) quietSince = performance.now()
   })
   const microphone = inputs().microphone
-  offInputs = onInputs(() => { if (inputs().microphone !== microphone) sink!.end('', tr('麦克风已更改，请重新开始实时语音')) })
+  offInputs = onInputs(() => { if (inputs().microphone !== microphone) sink!.end('', tr('麦克风已更改，请重新开始实时通话')) })
   try { await sound.ready; if (!finished) await connection.start() } catch (error) { fail(error as Error) }
 }
 addEventListener('pagehide', () => { if (conversation().running && conversation().mode === 'realtime') talk.stop() })

@@ -1,10 +1,11 @@
-import { Check, Copy, Plus, Trash } from 'lucide-react'
+import { Check, Copy, Plus, Sparkles, Trash } from 'lucide-react'
 import { store, useScene } from './scene'
 import { tr } from './i18n'
 
-export function ScenesMenu({ close }: { close: () => void }) {
+export function ScenesMenu({ close, onStartPage }: { close: () => void; onStartPage?: () => void }) {
   const { scene, scenes } = useScene()
   return <div className="card shots-menu">
+    {onStartPage && <button className="shot-start" onClick={onStartPage}><Sparkles size={14} />{tr('开始页')}</button>}
     <header><b>{tr('镜头')}</b><span className="num">{scenes.length}</span></header>
     <div className="shots-list">
       {scenes.map((shot, index) => <div className={`shot-row${shot.id === scene.id ? ' active' : ''}`} key={shot.id}>

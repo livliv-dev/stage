@@ -54,8 +54,8 @@ try {
   assert.ok(!hotkeys.some((b) => b.accelerator.endsWith('+Space')))
   assert.ok(await app.evaluate(({ globalShortcut }) => globalShortcut.isRegistered('Control+Alt+M')))
   report.hotkeys = { total: hotkeys.length, registered: hotkeys.filter((b) => b.ok).length }
-  // the empty stage offers its workflows directly; the checklist only shows once something is on the stage
-  await page.getByRole('button', { name: /^AI 主播/ }).click()
+  // the empty stage is the start page: a goal sets up the stage and opens its checklist
+  await page.locator('.start-page .goal-tile', { hasText: '和角色聊天' }).click()
   await page.waitForFunction(() => document.querySelector('canvas.character') && !document.querySelector('.badge'))
   // Use the same dispatch entry point the registered OS shortcut calls, with the editor unfocused.
   await app.evaluate(async ({ app, BrowserWindow }) => { const main = BrowserWindow.getAllWindows()[0]; main.blur(); const load = process.getBuiltinModule('node:module').createRequire(app.getAppPath() + '/package.json'); load('./dist/mainWindow.js').deliverMain({ do: 'mute' }) })
@@ -66,10 +66,14 @@ try {
   const privateLine = 'Private desktop marker for the Stage fallback'
   const input = page.getByLabel('你说的话')
   const modelPath = '/hold-ai/chat/completions'
+  // the chat starts from its button (the character's first line is held), and what you type cuts in
+  await page.locator('.console .start-button').click()
+  await until(() => pending.has(modelPath), 'private chat did not reach the model', 15_000)
   await input.fill(privateLine)
   await input.press('Enter')
-  await until(() => pending.has(modelPath), 'private chat did not reach the model', 15_000)
-  await page.locator('.console').getByRole('button', { name: '停止', exact: true }).click()
+  await until(() => held.some((body) => body.includes(privateLine)), 'the private line did not reach the model', 15_000)
+  closed.delete(modelPath)  // the first line's request closed when the typed line cut in; the stop closes this one
+  await page.locator('.console').getByRole('button', { name: '结束', exact: true }).click()
   await until(() => closed.has(modelPath), 'private chat did not cancel the model request')
   pending.delete(modelPath); closed.delete(modelPath)
   await page.evaluate(() => {
@@ -83,21 +87,28 @@ try {
   await scopeTag.filter({ hasText: '公开记忆' }).waitFor()
   assert.equal(await scopeTag.isDisabled(), true, 'private can not be chosen while an output is on')
   const publicLine = 'Said while the output window is open'
+  const publicFrom = held.length
+  await page.locator('.console .start-button').click()
+  await until(() => pending.has(modelPath), 'the public chat did not start', 15_000)
   await input.fill(publicLine)
   await input.press('Enter')
   await until(() => pending.has(modelPath) && held.some((body) => body.includes(publicLine)), 'the public chat did not reach the model', 15_000)
   assert.equal((await scopeTag.innerText()).trim(), '公开记忆', 'the running chat is public')
-  assert.doesNotMatch(held.find((body) => body.includes(publicLine)), new RegExp(privateLine), 'no private line reaches the model while an output is on')
-  await page.locator('.console').getByRole('button', { name: '停止', exact: true }).click()
+  for (const body of held.slice(publicFrom)) assert.doesNotMatch(body, new RegExp(privateLine), 'no private line reaches the model while an output is on')
+  closed.delete(modelPath)
+  await page.locator('.console').getByRole('button', { name: '结束', exact: true }).click()
   await until(() => closed.has(modelPath), 'the public chat did not cancel the model request')
   pending.delete(modelPath); closed.delete(modelPath)
-  await page.getByRole('button', { name: '直播', exact: true }).click()
-  await page.locator('.live-settings').getByText('仅字幕（不生成声音）', { exact: true }).click()
+  // 直播间: the start page again (the stage name's menu), AI 来开播 on these characters, 开播; a test message from the
+  // 直播间 card while live, and the console's 结束
+  await page.locator('.scene-switcher > button').click(); await page.locator('.shot-start').click()
+  await page.locator('.start-page .goal-tile', { hasText: 'AI 来开播' }).locator('.goal-main').click()
+  await page.locator('.popover.checklist footer .primary', { hasText: '开播' }).click()
+  await page.locator('.status-line .st-tag', { hasText: '直播间' }).click()
   await page.locator('.live-settings .test-chat summary').click()
-  await page.getByRole('button', { name: '开始 AI 直播', exact: true }).click()
   await page.getByLabel('模拟一条弹幕').fill('test desktop cancellation'); await page.locator('.live-settings').getByRole('button', { name: '发送', exact: true }).click()
   await until(() => pending.has('/hold-ai/chat/completions'), 'live model request did not arrive')
-  await page.getByRole('button', { name: '停止 AI', exact: true }).click()
+  await page.locator('.console').getByRole('button', { name: '结束', exact: true }).click()
   await until(() => closed.has('/hold-ai/chat/completions'), 'AI stop did not cancel the actual upstream request')
   const mirrors = await page.evaluate(() => {
     window.scopeProbe.postMessage({ t: 'bye' }); window.scopeProbe.close()
@@ -106,7 +117,7 @@ try {
   assert.ok(mirrors.length)
   assert.doesNotMatch(JSON.stringify(mirrors), new RegExp(privateLine))
   report.privateScope = 'with the output window open a chat starts public: no private line reaches the model or the output window'
-  report.liveCancellation = 'the AI stop button cancels the actual model HTTP request'
+  report.liveCancellation = 'the console\'s 结束 cancels the actual model HTTP request'
   await page.screenshot({ path: join(artifacts, 'ai-setup.png') })
   await page.locator('.live-settings button[aria-label="关闭"]').click()
   await page.getByRole('button', { name: '输出到 OBS', exact: true }).click()

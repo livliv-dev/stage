@@ -102,7 +102,8 @@ try {
   await page.keyboard.press('3'); assert.equal((await actor(one.id)).expression, 'smile', 'its own key 3 is smile')
   await page.keyboard.press('2'); assert.equal((await actor(one.id)).expression, 'angry')
   await page.waitForFunction((id) => window.__stage.actors.get(id).expression === null, one.id, { timeout: 3000 })
-  // the inspector shows each one's key and mode
+  // the inspector shows each one's key and mode (the card's 身体 page)
+  await page.getByRole('tab', { name: '身体', exact: true }).click()
   await page.locator('.key-modes > summary').click()
   assert.equal(await page.getByLabel(/的触发方式$/).count(), 4)
   report.siteCharacter = { exprModes: one.exprModes, seeded: { smooth: one.smooth, follow: one.follow, talk: one.talk, bounce: one.bounce, autoAway: one.autoAway } }
@@ -137,16 +138,16 @@ try {
   await output.locator('.stage-mark').waitFor()
   report.mark = 'free plan: the mark on the output window; a member: none, as the account changes'
 
-  // AI 直播: the character as AI, the panel open, 「AI 生成」 on the stage, the output and in a recording
+  // AI 来开播: the character as AI, its checklist open, 「AI 生成」 on the stage, the output and in a recording
   await output.close()
   await page.goto(origin + '/?c=k01&as=ai', { waitUntil: 'networkidle' })
   await live()
-  await page.locator('.live-settings').waitFor()
+  await page.locator('.popover.checklist').waitFor()
   const ai = await shot()
   assert.equal(ai.seen.find((i) => i.kind === 'character').lines, 'ai'); assert.ok(ai.seen.some((i) => i.kind === 'subtitle'))
   await page.locator('.stage .ai-label', { hasText: 'AI 生成' }).waitFor()
   await page.screenshot({ path: join(artifacts, 'golive-ai.png') })
-  await page.locator('.live-settings button[data-close]').click()
+  await page.locator('.popover.checklist button[data-close]').click()
   await page.getByRole('button', { name: '输出到 OBS', exact: true }).click()
   const popup2 = page.waitForEvent('popup'); await page.locator('.output-settings').getByRole('button', { name: '打开输出窗口', exact: true }).click()
   const output2 = await popup2; await output2.locator('.ai-label', { hasText: 'AI 生成' }).waitFor()

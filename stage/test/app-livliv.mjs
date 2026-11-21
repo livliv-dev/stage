@@ -1,4 +1,4 @@
-// LivLiv's points AI in the desktop app (core/platform.ts features.points, brain.ts, App.tsx ModelForm), on Stage's own build with the
+// LivLiv's points AI in the desktop app (core/platform.ts features.points, brain.ts, shell/ConnectForms.tsx ModelForm), on Stage's own build with the
 // app's bridge stood in for (window.livlivDesktop) and the site faked. Signed out: LivLiv is the first option, chosen it
 // says the site's price and offers 登录 livliv.ai, which starts the connect code (shown in the form, the site's page
 // opened), and once allowed LivLiv becomes the model. Signed in (a kept token): LivLiv is the model from the start and a
@@ -56,11 +56,13 @@ try {
   const row = (page) => page.locator('.model-form .providers button').allInnerTexts()
   /** livliv.ai/stage's own parts (the web branch): the way to make a character, the logo link */
   const siteOnly = (page) => page.locator('.topbar .create-button, .topbar a.mark-link, .create-link').count()
-  const chip = (page) => page.locator('.model-btn').innerText()
+  /** the console's model tag (the status line's first) and the way into Settings → 连接 */
+  const chip = (page) => page.locator('.status-line .st-tag').first().innerText()
+  const models = (page) => page.locator('.status-line .st-tag').first().click()
 
   // the desktop app, signed out, nothing chosen: LivLiv first, the price, sign in with a code; allowed, it is the model
   let { page, context } = await open({ app: true }, '/?c=k01&as=ai')
-  await page.locator('.model-btn').click()
+  await models(page)
   assert.equal((await row(page))[0], 'livliv.ai', 'LivLiv is the first option in the app')
   await page.locator('.model-form .providers button', { hasText: 'livliv.ai' }).click()
   await page.locator('.account-panel').waitFor()
@@ -71,14 +73,14 @@ try {
   await page.waitForFunction(() => !document.querySelector('.account-connect'), null, { timeout: 15000 })
   assert.equal(await page.evaluate(() => localStorage.getItem('livliv-stage:session')), TOKEN, 'the connect token is kept')
   await page.keyboard.press('Escape')
-  await page.waitForFunction(() => document.querySelector('.model-btn')?.textContent?.includes('LivLiv'))
+  await page.waitForFunction(() => document.querySelector('.status-line .st-tag')?.textContent?.includes('LivLiv'))
   assert.match(await chip(page), /LivLiv/, 'signed in with nothing chosen yet: LivLiv is the model')
   await context.close()
 
   // the desktop app, signed in (a kept token): LivLiv from the start; a line asked with the app's token
   ;({ page, context } = await open({ app: true, token: TOKEN }, '/?c=k01&as=ai'))
   await page.waitForFunction(() => [...window.__stage.actors.values()].some((a) => a.status === 'ready'), null, { timeout: 60000 })
-  await page.waitForFunction(() => document.querySelector('.model-btn')?.textContent?.includes('LivLiv'))
+  await page.waitForFunction(() => document.querySelector('.status-line .st-tag')?.textContent?.includes('LivLiv'))
   const first = async (start) => {
     asked.length = 0
     await page.evaluate(start)
@@ -97,7 +99,7 @@ try {
 
   // a copy of Stage hosted anywhere else (neither the site nor the app): no LivLiv
   ;({ page, context } = await open({ app: false }, '/?c=k01&as=ai'))
-  await page.locator('.model-btn').click()
+  await models(page)
   assert.ok(!(await row(page)).includes('LivLiv'), 'no LivLiv outside the site and the app')
   assert.equal(await siteOnly(page), 0, "nor the site's own parts")
   await context.close()

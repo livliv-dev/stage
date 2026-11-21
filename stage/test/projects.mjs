@@ -24,7 +24,7 @@ try {
   const origin = 'http://127.0.0.1:' + port, first = await context()
   page = await first.newPage(); page.setDefaultTimeout(testTimeout(20000)); page.on('pageerror', (e) => errors.push(e.message)); await page.goto(origin, { waitUntil: 'networkidle' })
   if (!process.env.STAGE_PROJECT_RECORD_ONLY) {
-    await page.getByRole('button', { name: '模板', exact: true }).click(); await page.getByRole('button', { name: /^双人对谈/ }).click(); await ready(page)
+    await page.getByRole('button', { name: '模板', exact: true }).click(); await page.locator('.card.dropdown').getByRole('button', { name: /^双人聊天/ }).click(); await ready(page)
     const image = await page.evaluate(async () => {
       const canvas = new OffscreenCanvas(80, 120), g = canvas.getContext('2d'); g.fillStyle = '#3388ee'; g.fillRect(0, 0, 80, 120)
       const blob = await canvas.convertToBlob(), { fromPngs } = await import('/src/library.ts'), { newCharacter } = await import('/src/scene.ts')

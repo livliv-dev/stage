@@ -25,6 +25,23 @@ try {
   for (const angle of [17, -9]) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['microphone'] })
     await context.route('**/api/**', (route) => route.fulfill({ contentType: 'application/json', body: '{"signed_in":false,"available":false}' }))
+    // the order of connection and data channel events, for the failure dump (the rejoin has failed on CI with a share
+    // sent on a channel that was no longer open)
+    await context.addInitScript(() => {
+      const log = window.rtcLog = [], t0 = performance.now(), note = (...entry) => { log.push([Math.round(performance.now() - t0), ...entry]); if (log.length > 300) log.shift() }
+      const watch = (channel, id) => { for (const type of ['open', 'close', 'error']) channel.addEventListener(type, () => note(id, channel.label, type, channel.readyState)) }
+      const Base = window.RTCPeerConnection
+      window.RTCPeerConnection = class extends Base {
+        constructor(...args) {
+          super(...args); const id = this.logId = Math.random().toString(36).slice(2, 6); note(id, 'new')
+          this.addEventListener('connectionstatechange', () => note(id, 'connection', this.connectionState))
+          this.addEventListener('signalingstatechange', () => note(id, 'signaling', this.signalingState))
+          this.addEventListener('datachannel', (event) => { note(id, 'datachannel', event.channel.label, event.channel.readyState); watch(event.channel, id) })
+        }
+        createDataChannel(label, options) { const channel = super.createDataChannel(label, options); note(this.logId, 'create', label); watch(channel, this.logId); return channel }
+        close() { note(this.logId, 'close()'); return super.close() }
+      }
+    })
     const page = await context.newPage(); pages.push(page); page.setDefaultTimeout(testTimeout(10000))
     await page.goto(origin, { waitUntil: 'networkidle' })
     // A fake capture exposes loopback ICE candidates in the isolated browser profiles.
@@ -67,5 +84,6 @@ try {
   await writeFile(join(artifacts, 'results.json'), JSON.stringify(report, null, 2)); console.log(JSON.stringify(report, null, 2))
 } catch (error) {
   report.states = await Promise.all(pages.map((page) => details(page).catch(() => null)))
+  report.rtc = await Promise.all(pages.map((page) => page.evaluate(() => window.rtcLog).catch(() => null)))
   await writeFile(join(artifacts, 'failure.json'), JSON.stringify({ ...report, error: error.stack }, null, 2)); console.error(JSON.stringify(report, null, 2)); throw error
 } finally { await browser?.close(); await relay?.close(); await vite?.close() }

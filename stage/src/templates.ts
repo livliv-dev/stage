@@ -7,8 +7,8 @@ import { bubbleFor, captionBar, emptyScene, newCharacter, type CharacterItem, ty
 /** start: what the console's main button starts on the stage the template makes (none without an AI character) */
 export const TEMPLATES = [
   { id: 'solo', label: '面捕出镜', hint: '用自己的表情和声音直播' },
-  { id: 'ai', label: 'AI 主播', hint: '让角色说话、回应观众', start: 'live' },
-  { id: 'duo', label: '双人对谈', hint: '两个 AI 角色自由聊，各自的字幕气泡', start: 'conversation' },
+  { id: 'ai', label: 'AI 来开播', hint: '让角色说话、回应观众', start: 'live' },
+  { id: 'duo', label: '双人聊天', hint: '两个 AI 角色自由聊，各自的字幕气泡', start: 'conversation' },
   { id: 'cohost', label: '你和 AI 搭档', hint: '自己出镜，让 AI 接着聊', start: 'chat' },
   { id: 'trio', label: '三人闲聊', hint: '一个主持人带两个嘉宾', start: 'conversation' },
   { id: 'blank', label: '空白舞台', hint: '什么都没有' },
@@ -32,7 +32,7 @@ export async function buildTemplate(id: TemplateId): Promise<Scene> {
     const p = all.find((p) => p.id === 'd03ft') ?? all[0]
     const c = newCharacter(s, p.name, p.model, p.persona, 0.5, p.card)
     Object.assign(c, controlSettings(id === 'solo' ? 'me' : 'ai'))
-    return { ...s, name: id === 'solo' ? tr("面捕出镜") : tr("AI 主播"), background: 'transparent', items: [c, captionBar(s)], talk: withStart(s.talk, id) }
+    return { ...s, name: id === 'solo' ? tr("面捕出镜") : tr("AI 来开播"), background: 'transparent', items: [c, captionBar(s)], talk: withStart(s.talk, id) }
   }
   spots.forEach((at, i) => {
     const p: Pick = list[i]

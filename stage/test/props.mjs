@@ -99,7 +99,8 @@ try {
   await page.evaluate(() => window.__stage.store.select('hat'))
   assert.equal(await page.getByLabel('跟随角色', { exact: true }).inputValue(), 'c2')
   await page.evaluate(() => window.__stage.store.select('c0'))
-  await page.locator('details.advanced > summary').filter({ hasText: '外观' }).click()
+  // the look: on the card's 身体 page
+  await page.getByRole('tab', { name: '身体', exact: true }).click()
   await page.getByLabel('像素风格', { exact: true }).locator('..').click()
   await page.waitForFunction(() => window.__stage.actors.get('c0').player.body.pixelated === true)
   assert.equal(await page.locator('.placed.character').first().locator('canvas').evaluate((el) => getComputedStyle(el).imageRendering), 'pixelated')

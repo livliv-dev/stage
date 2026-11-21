@@ -464,7 +464,7 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
   const bySentence = state.mode === 'chat' && cfg.kind !== 'livliv' && voiceRoute(me) !== 'livliv'
   const take = bySentence ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, recorded)
   signal.throwIfAborted()
-  if (liveOptions && !liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音，请设置声音或选择仅字幕"))
+  if (liveOptions && !liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕"))
   return { r: { ...reply, memoryIds, memoryRevision: context.revision }, take, chat, memoryRevision: context.revision, bySentence }
 }
 
@@ -551,7 +551,7 @@ async function playAiriTurn(me: CharacterItem, model: ModelConfig, chat: Chat | 
     const feeling = cue?.feeling
     const emotion = asEmotion(feeling)
     const aloud = !textOnly && !actor.item.muted
-    if (aloud && voiceRoute(actor.item) === 'livliv') throw new Error(tr('内置 AIRI 支持自配语音接口、系统朗读或仅字幕'))
+    if (aloud && voiceRoute(actor.item) === 'livliv') throw new Error(tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕'))
     const take = await actor.prepare(text, emotion, aloud, signal)
     signal.throwIfAborted()
     if (aloud && take.mute) throw new VoiceFailed(actor.voiceError || tr('声音播放失败，请检查声音设置'))
@@ -773,7 +773,7 @@ async function run(once: boolean) {
 
 async function runLive(options: LiveOptions) {
   const config = loadBrainConfig()
-  if (!brainReady(config) || config.kind === 'demo') { set({ error: tr("AI 主播需要接上模型；离线演示可在「对谈」里体验"), needModel: true, modelIntent: 'live' }); return }
+  if (!brainReady(config) || config.kind === 'demo') { set({ error: tr("直播间需要接上模型，演示只能在「只有我」里看"), needModel: true, modelIntent: 'live' }); return }
   const cast = participants(store.get()).filter((c) => c.lines === 'ai')
   if (!cast.length) { set({ error: tr("先添加一个「AI 来演」的角色") }); return }
   // the panel asked for AIRI: the one rule (brains/select.ts), a game or a window asking for it whatever the switch says
@@ -784,10 +784,11 @@ async function runLive(options: LiveOptions) {
   const gameHost = desktop?.airiGame, gameConfig = options.airi?.game
   if (gameConfig && !gameHost) { set({ error: tr('当前桌面版本不支持 AIRI 游戏') }); return }
   if (choice?.reason === 'livliv-voice') {
-    set({ error: tr('内置 AIRI 支持自配语音接口、系统朗读或仅字幕') }); return
+    set({ error: tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕') }); return
   }
   const airiModel = choice?.engine === 'airi' && config.kind === 'openai' ? config : null
-  if (!options.textOnly && cast.some((c) => voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音，请在设置里接上声音，或选择「仅字幕」") }); return }
+  // a muted character speaks no line aloud: only the ones that speak need a voice, else the session is subtitles only
+  if (!options.textOnly && cast.some((c) => !c.muted && voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕") }); return }
   const c = new AbortController(); ctrl = c
   dropAhead(); viewers.clear(); queue.length = 0; externalQueue.length = 0; dialogue.clear(); activeEvent = null
   liveOptions = options
@@ -921,7 +922,7 @@ async function startChatSession(chosen: MemoryScope = state.chatScope, target?: 
     throw new Error(tr('请先停止当前会话'))
   }
   const config = loadBrainConfig()
-  if (!brainReady(config) || config.kind === 'demo') { set({ needModel: true, modelIntent: firstInput ? 'input' : 'chat' }); throw new Error(tr('持续聊天需要接上 AI 模型')) }
+  if (!brainReady(config) || config.kind === 'demo') { set({ needModel: true, modelIntent: firstInput ? 'input' : 'chat' }); throw new Error(tr('和角色聊天需要接上 AI 模型')) }
   if (!profiles().length) {
     const error = tr('先添加一个「AI 来演」的角色')
     set({ error }); throw new Error(error)
@@ -1059,8 +1060,8 @@ export const talk = {
       offRealtimeHistory = memory.subscribe(() => {
         void Promise.all([memoryUnchanged(memory, character.profileId ?? character.id, scope, context.revision), memory.session(sessionId)]).then(([unchanged, saved]) => {
           if (!mine()) return
-          if (!saved) session.end('', tr('对话记录已删除，请重新开始实时语音'))
-          else if (!unchanged) session.end('', tr('记忆已更新，请重新开始实时语音'))
+          if (!saved) session.end('', tr('对话记录已删除，请重新开始实时通话'))
+          else if (!unchanged) session.end('', tr('记忆已更新，请重新开始实时通话'))
         }, (error: unknown) => { if (mine()) session.end(tr('对话未保存：{0}', error instanceof Error ? error.message : String(error))) })
       })
       return session
@@ -1280,7 +1281,9 @@ export const talk = {
   },
   /** you say something, as whom the console says. On your character's turn it is that turn; otherwise it waits for
    *  the current line (or cuts it off, cutIn) and they answer */
-  say(text: string, options: { respond?: boolean; transcribed?: boolean } = {}) {
+  /** a line of yours. With nothing running, in the desktop app or asked for (chat: 和角色聊天's first line), it starts
+   *  a chat with this line as its first input; elsewhere it starts the characters talking */
+  say(text: string, options: { respond?: boolean; transcribed?: boolean; chat?: boolean } = {}) {
     const t = text.trim()
     if (!t) return
     if (realtimeControls) { realtimeControls.say(t); return }
@@ -1289,7 +1292,7 @@ export const talk = {
     const c = me.find((x) => x.id === (state.waiting ?? state.as)) ?? (state.as === 'narrator' ? undefined : me[0])
     const line: Line = { id: uid(), who: c?.id ?? 'me', name: c?.name ?? tr("旁白"), text: t.slice(0, 200), emotion: 'neutral', action: 'none', to: null, human: true }
     set({ error: '' })
-    if (features.desktopConsole && !state.running && options.respond !== false && profiles().length) {
+    if ((features.desktopConsole || options.chat) && !state.running && options.respond !== false && profiles().length) {
       const model = loadBrainConfig()
       if (model.kind !== 'demo') {
         return startChatSession(state.chatScope, undefined, { line, transcribed: options.transcribed === true }).then(() => true, () => false)

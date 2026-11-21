@@ -10,8 +10,8 @@ export type ModelManifest = { id: string; name: string; format: 'livliv' | 'vrm'
 const privateHost = (host: string) => host === 'localhost' || host === '[::1]' || /^\[f[cd][\da-f]{2}:/.test(host) || /^(127|10|192\.168|172\.(1[6-9]|2\d|3[01]))\.[\d.]+$/.test(host)
 export function serviceUrl(raw: string) {
   const url = URL.canParse(raw) ? new URL(raw) : null
-  if (!url || !['ws:', 'wss:'].includes(url.protocol) || url.username || url.password || url.hash) throw new Error('联播服务地址不对')
-  if (url.protocol === 'ws:' && !privateHost(url.hostname)) throw new Error('公网联播服务要用 wss:// 地址')
+  if (!url || !['ws:', 'wss:'].includes(url.protocol) || url.username || url.password || url.hash) throw new Error('好友联播服务地址不对')
+  if (url.protocol === 'ws:' && !privateHost(url.hostname)) throw new Error('公网好友联播服务要用 wss:// 地址')
   if (url.pathname === '/') url.pathname = '/room'
   return url.href
 }

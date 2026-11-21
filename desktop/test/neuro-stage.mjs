@@ -39,7 +39,7 @@ try {
     // Stage's own engine: one desktop character would otherwise go to AIRI, whose game decisions airi-stage.mjs checks
     localStorage.setItem('livliv-stage:brain', JSON.stringify({ kind: 'openai', provider: 'custom', base: origin + '/fixture', key: 'fixture-only', model: 'fixture-model', airi: false }))
   }, origin)
-  await page.reload(); await page.getByRole('button', { name: /^AI 主播/ }).click()
+  await page.reload(); await page.locator('.start-page .goal-tile', { hasText: '和角色聊天' }).click()
   await page.waitForFunction(() => document.querySelector('canvas.character') && !document.querySelector('.badge'))
   await page.locator('.panel label.switch').filter({ hasText: '静音角色声音' }).click()
   assert.equal((await page.evaluate(() => window.livlivDesktop.neuro.get())).enabled, false)
@@ -49,7 +49,7 @@ try {
   await panel.getByRole('button', { name: '开始游戏互动', exact: true }).click()
   const state = await until(() => page.evaluate(() => window.livlivDesktop.neuro.get()), (value) => value.enabled && value.port, 'local game interface did not open')
   assert.ok(state.url.startsWith('ws://127.0.0.1:'))
-  await page.locator('.chat-status').filter({ hasText: '等你说话' }).waitFor()
+  await page.locator('.status-line .st-tag').filter({ hasText: '等你说话' }).waitFor()
   const initialCalls = requests.length
   game = new WebSocket(state.url); game.on('message', (data) => messages.push(JSON.parse(data.toString()))); await once(game, 'open')
   const send = (command, data) => game.send(JSON.stringify({ command, game: 'Local journey game', ...(data === undefined ? {} : { data }) }))

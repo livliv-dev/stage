@@ -54,7 +54,7 @@ try {
   })
   await page.waitForFunction(() => [...window.__stage.actors.values()].length === 1 && [...window.__stage.actors.values()].every((actor) => actor.status === 'ready'))
   await page.evaluate(() => { window.__speechEvents = []; window.__stage.talk.onSpeech((event) => window.__speechEvents.push(event)) })
-  await page.getByRole('button', { name: '持续聊天', exact: true }).click()
+  await page.locator('.console .start-button').click()
   await page.waitForFunction(() => window.__stage.conversation().waitingInput)
   assert.equal(await page.evaluate(() => window.__speechEvents.filter((event) => event.final === true).length), 1, 'segmented replies publish only one final speech event')
   const send = async (text) => {
@@ -71,7 +71,7 @@ try {
   await page.evaluate(() => window.__stage.talk.stop())
   await page.reload({ waitUntil: 'networkidle' })
   await page.waitForFunction((id) => window.__stage.conversation().sessionId === id && window.__stage.conversation().lines.some((line) => line.text.includes('暗号')), privateId)
-  await page.getByRole('button', { name: '持续聊天', exact: true }).click()
+  await page.locator('.console .start-button').click()
   await page.waitForFunction(() => window.__stage.conversation().waitingInput)
   const beforeCalls = calls.length
   slow = true
@@ -126,11 +126,11 @@ try {
   await page.waitForFunction(() => !window.__stage.conversation().running)
   assert.equal(await page.evaluate(() => { const cast = window.__stage.store.get().items.filter((item) => item.kind === 'character'); return cast.length === 2 && cast[0].profileId !== cast[1].profileId }), true, 'duplicated characters use independent profiles')
   await page.getByRole('button', { name: '对话记录', exact: true }).click()
-  await page.getByRole('button', { name: '记忆', exact: true }).click()
+  await page.getByRole('tab', { name: '记忆', exact: true }).click()
   await page.locator('.memory-entry').getByText('我的暗号是橘子。', { exact: true }).waitFor()
-  assert.ok(await page.locator('.topic-zone input').evaluate((input) => input.getBoundingClientRect().width >= 120), 'topic remains usable at desktop width')
+  assert.ok(await page.locator('.console .run-bar input').evaluate((input) => input.getBoundingClientRect().width >= 120), 'topic remains usable at desktop width')
   await page.screenshot({ path: join(artifacts, 'chat-memory-1440.png') })
-  await page.setViewportSize({ width: 1280, height: 800 }); assert.ok(await page.locator('.topic-zone input').evaluate((input) => input.getBoundingClientRect().width >= 120), 'topic remains usable at 1280px'); await page.screenshot({ path: join(artifacts, 'chat-memory-1280.png') })
+  await page.setViewportSize({ width: 1280, height: 800 }); assert.ok(await page.locator('.console .run-bar input').evaluate((input) => input.getBoundingClientRect().width >= 120), 'topic remains usable at 1280px'); await page.screenshot({ path: join(artifacts, 'chat-memory-1280.png') })
   reactionCase = true
   await page.evaluate(async () => {
     const { Actor, onHeard } = await import('/src/actors.ts')

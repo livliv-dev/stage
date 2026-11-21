@@ -159,7 +159,19 @@ export type Talk = {
   triggers: AudienceRule[]
   /** what the console's main button starts: set by the template the stage came from (templates.ts); unset, 持续聊天 */
   start?: StartKind
+  /** what the stage is for (the start page's goals, shell/goals.ts), and how its start was last set: who watches,
+   *  how you take part */
+  goal?: Goal
+  audience?: Audience
+  you?: You
 }
+/** the start page's goals: 我来演, AI 来开播, 和角色聊天, 做一段视频 */
+export type Goal = 'perform' | 'live' | 'chat' | 'video'
+/** 谁在看: only you, or a live audience (AI 直播) */
+export type Audience = 'me' | 'live'
+/** 你参与吗: not (the characters talk among themselves), typing, holding to talk, hands-free, on camera */
+export type You = 'none' | 'type' | 'hold' | 'handsfree' | 'camera'
+const GOAL_IDS: Goal[] = ['perform', 'live', 'chat', 'video'], AUDIENCE_IDS: Audience[] = ['me', 'live'], YOU_IDS: You[] = ['none', 'type', 'hold', 'handsfree', 'camera']
 /** the sessions a template's main button can start: 持续聊天, 对谈, AI 直播 */
 export type StartKind = 'chat' | 'conversation' | 'live'
 const START_KINDS: StartKind[] = ['chat', 'conversation', 'live']
@@ -238,7 +250,8 @@ function withoutLive(i: CharacterItem): CharacterItem {
  *  from this browser's kept packages (vault.ts); one that isn't kept here says so on the stage */
 export function loadable(s: Partial<Scene> | null, keepRemote = true): Scene | null {
   if (!s || !Array.isArray(s.items)) return null
-  const value: Scene = { ...emptyScene(), ...s, id: typeof s.id === 'string' && s.id ? s.id : uid(), talk: { ...TALK, ...s.talk, depth: s.talk?.depth === 'discussion' ? 'discussion' : 'casual', proactiveSeconds: [30, 60, 120].includes(s.talk?.proactiveSeconds ?? 0) ? s.talk!.proactiveSeconds : 0, chatMinutes: [15, 30, 60, 120].includes(s.talk?.chatMinutes ?? 0) ? s.talk!.chatMinutes : 60, chatGenerations: Number.isInteger(s.talk?.chatGenerations) && s.talk!.chatGenerations! >= 1 && s.talk!.chatGenerations! <= 500 ? s.talk!.chatGenerations : 100, triggersOn: s.talk?.triggersOn === true, triggers: readAudienceRules(s.talk?.triggers ?? []) ?? [] }, items: s.items.map(normalize) }
+  const value: Scene = { ...emptyScene(), ...s, id: typeof s.id === 'string' && s.id ? s.id : uid(), talk: { ...TALK, ...s.talk, depth: s.talk?.depth === 'discussion' ? 'discussion' : 'casual', proactiveSeconds: [30, 60, 120].includes(s.talk?.proactiveSeconds ?? 0) ? s.talk!.proactiveSeconds : 0, chatMinutes: [15, 30, 60, 120].includes(s.talk?.chatMinutes ?? 0) ? s.talk!.chatMinutes : 60, chatGenerations: Number.isInteger(s.talk?.chatGenerations) && s.talk!.chatGenerations! >= 1 && s.talk!.chatGenerations! <= 500 ? s.talk!.chatGenerations : 100, triggersOn: s.talk?.triggersOn === true, triggers: readAudienceRules(s.talk?.triggers ?? []) ?? [],
+    goal: GOAL_IDS.includes(s.talk?.goal as Goal) ? s.talk!.goal : undefined, audience: AUDIENCE_IDS.includes(s.talk?.audience as Audience) ? s.talk!.audience : undefined, you: YOU_IDS.includes(s.talk?.you as You) ? s.talk!.you : undefined }, items: s.items.map(normalize) }
   if (value.talk.start !== undefined && !START_KINDS.includes(value.talk.start)) delete value.talk.start
   return keepRemote ? value : persistentScene(value)
 }

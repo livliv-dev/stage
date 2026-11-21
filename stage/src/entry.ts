@@ -73,7 +73,7 @@ function onStage(pick: Pick, there: CharacterItem | undefined, as: LinkedAs, liv
   if (own) store.switchScene(own.id)
   else {
     if (store.get().items.some((i) => !i.hidden)) store.addScene(true)
-    store.set({ name: as === 'face' ? tr("开播 · {0}", pick.name) : `${tr("AI 直播")} · ${pick.name}`, background: features.shell ? 'transparent' : GREEN, backgroundAsset: undefined })
+    store.set({ name: as === 'face' ? tr("开播 · {0}", pick.name) : `${tr("AI 来开播")} · ${pick.name}`, background: features.shell ? 'transparent' : GREEN, backgroundAsset: undefined })
   }
   // big, in the middle, standing on the bottom edge (in its own shot, where you put it last time)
   const s = store.get(), h = Math.round(Math.min(s.height * 0.94, s.width * 0.9 * 1.5)), w = Math.round(h * 2 / 3)

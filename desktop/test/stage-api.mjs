@@ -35,7 +35,7 @@ try {
   await page.evaluate(() => { navigator.clipboard.writeText = async (value) => { window.copiedStageExample = value } })
   await page.getByRole('button', { name: '复制动作示例', exact: true }).click(); assert.ok((await page.evaluate(() => window.copiedStageExample)).includes('Authorization: Bearer ' + credentials.token))
   await page.locator('.settings-head button[data-close]').click()
-  await page.getByRole('button', { name: '模板', exact: true }).click(); await page.getByRole('button', { name: /^双人对谈/ }).click()
+  await page.getByRole('button', { name: '模板', exact: true }).click(); await page.locator('.topbar .dropdown').getByRole('button', { name: /^双人聊天/ }).click()
   let value = await wait(state, (s) => s.characters.length === 2 && s.characters.every((c) => c.status === 'ready'), 'avatars not ready')
   const initialScene = value.scene.id
   await page.evaluate(() => { window.initialNativeCanvas = document.querySelector('canvas.character') })
@@ -66,7 +66,8 @@ try {
   const pending = await command({ do: 'mic', character: target.id }); assert.equal(pending.status, 202); assert.equal(pending.body.pending, 'microphone')
   await wait(state, (s) => s.characters[1].input === 'error', 'microphone failure not observable')
   await command({ do: 'mic', character: target.id }); await wait(state, (s) => s.characters[1].input === 'idle', 'microphone recovery not observable')
-  await page.getByRole('button', { name: 'AI 模型', exact: true }).click(); await page.locator('.popover.model').getByRole('button', { name: '看演示', exact: true }).click(); await wait(state, (s) => s.conversation.running, 'demo conversation did not start')
+  // the demo: the start page (the stage name's menu) and its 看演示
+  await page.locator('.scene-switcher > button').click(); await page.locator('.shot-start').click(); await page.locator('.start-page .welcome-demo').click(); await wait(state, (s) => s.conversation.running, 'demo conversation did not start')
   assert.equal((await command({ do: 'ai-pause', on: true })).status, 200); assert.equal((await state()).conversation.paused, true)
   await command({ do: 'ai-pause', on: false }); assert.equal((await state()).conversation.paused, false)
   await command({ do: 'ai-stop' }); assert.equal((await state()).conversation.running, false)
@@ -110,9 +111,9 @@ try {
     await page.getByRole('button', { name: '展开舞台内容', exact: true }).click(); await page.locator('.cast').waitFor()
     for (const locale of ['zh-Hans', 'zh-Hant', 'en', 'ja']) {
       await page.locator('.topbar button:has(svg.lucide-settings)').click(); await page.locator('.language-select').selectOption(locale); await page.locator('.settings-head button[data-close]').click()
-      await page.setViewportSize({ width: 1100, height: 760 }); await page.locator('.model-btn').click(); await page.locator('.demo-launch').waitFor()
-      assert.equal(await page.locator('.popover.model').evaluate((e) => e.scrollWidth > e.clientWidth), false)
-      await page.screenshot({ path: join(artifacts, 'demo-' + locale + '.png') }); await page.locator('.popover.model button[data-close]').click()
+      await page.setViewportSize({ width: 1100, height: 760 }); await page.locator('.scene-switcher > button').click(); await page.locator('.shot-start').click(); await page.locator('.start-page .welcome-demo').waitFor()
+      assert.equal(await page.locator('.start-page').evaluate((e) => e.scrollWidth > e.clientWidth), false)
+      await page.screenshot({ path: join(artifacts, 'demo-' + locale + '.png') }); await page.locator('.start-page button[data-close]').click()
     }
     await page.locator('.topbar button:has(svg.lucide-settings)').click(); await page.locator('.language-select').selectOption('zh-Hans'); await page.locator('.settings-head button[data-close]').click()
     await page.setViewportSize({ width: 1440, height: 900 }); await page.screenshot({ path: join(artifacts, 'packaged-workspace.png') })

@@ -273,7 +273,7 @@ function Tag({ c, s, stageH, near }: { c: CharacterItem; s: number; stageH: numb
   const lines = LINES.find((l) => l.id === c.lines)
   const driver = c.driver === 'auto' ? null : DRIVERS.find((d) => d.kind === c.driver)
   return (
-    <span className={`tag${speaking ? ' speaking' : ''}${yours ? ' yours' : ''}${c.locked ? ' locked' : ''}${near || yours || thinking || away ? '' : ' quiet'}`}
+    <span className={`tag${speaking ? ' speaking' : ''}${yours ? ' yours' : ''}${c.locked ? ' locked' : ''}${near || yours || thinking || away ? '' : ' quiet'}${near && !(yours || thinking || away) ? ' near' : ''}`}
       style={{ left: (c.x + c.w / 2) * s, top: Math.min(c.y + c.h, stageH) * s - 10, ['--who' as string]: c.color }}>
       <i />{c.name}
       {yours ? <em>{tr("轮到你了")}</em> : thinking ? <em>{tr("在想…")}</em> : speaking ? <em>{tr("在说")}</em> : away ? <em>{tr("暂离")}</em> : <><em>{tr(lines?.label ?? '')}</em>{driver && <em>{tr(driver.label ?? '')}</em>}</>}

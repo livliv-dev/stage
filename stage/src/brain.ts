@@ -231,7 +231,7 @@ class DemoBrain implements Brain {
     return r
   }
 }
-export const NO_DEMO = '演示是两段准备好的对话：放上「双人对谈」或「三人闲聊」模板再开始'
+export const NO_DEMO = '演示是两段准备好的对话：放上「双人聊天」或「三人闲聊」模板再开始'
 
 export async function decideExternalAction(config: BrainConfig, me: CharacterItem, request: ExternalActionRequest, signal: AbortSignal): Promise<ExternalActionDecision | null> {
   if (config.kind !== 'openai') throw new Error(tr('游戏动作决策需要使用自己的模型接口'))

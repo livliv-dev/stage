@@ -12,7 +12,7 @@ async function fetchFile(url: string, signal: AbortSignal, limit: number) {
   const reader = response.body!.getReader(), parts: Uint8Array[] = []
   let size = 0
   try {
-    for (;;) { const { value, done } = await reader.read(); if (done) break; size += value.byteLength; if (size > limit) { await reader.cancel(); throw new Error(tr("联播角色不能超过 64 MB")) } parts.push(value) }
+    for (;;) { const { value, done } = await reader.read(); if (done) break; size += value.byteLength; if (size > limit) { await reader.cancel(); throw new Error(tr("好友联播角色不能超过 64 MB")) } parts.push(value) }
   } finally { reader.releaseLock() }
   return new Blob(parts as BlobPart[], { type: response.headers.get('content-type') || '' })
 }
@@ -29,7 +29,7 @@ export async function packageFor(character: CharacterItem, signal: AbortSignal):
       const paths = resourcePaths(raw), base = new URL('.', url)
       files = new Map([['model.json', json]])
       let size = json.size
-      if (paths.length >= MAX_FILES) throw new Error(tr("这个角色的文件数量超出联播限制"))
+      if (paths.length >= MAX_FILES) throw new Error(tr("这个角色的文件数量超出好友联播限制"))
       for (const path of paths) {
         const target = resourceUrl(path, base); target.search = url.search
         const blob = await fetchFile(target.href, signal, MAX_MODEL_BYTES - size)
@@ -40,14 +40,14 @@ export async function packageFor(character: CharacterItem, signal: AbortSignal):
   // LAN HTTP pages expose getRandomValues, but not the secure-context-only randomUUID.
   const id = [...crypto.getRandomValues(new Uint8Array(16))].map((byte) => byte.toString(16).padStart(2, '0')).join('')
   const manifest: ModelManifest = { id, name: character.name, format: formatOf(character.model), mirror: character.mirror, color: character.color, files: [...files].map(([path, blob]) => ({ path, size: blob.size, type: blob.type })) }
-  if (!readManifest(manifest) || new TextEncoder().encode(JSON.stringify(manifest)).length > WIRE_TEXT) throw new Error(tr("这个角色超出联播限制（64 MB、512 个文件）"))
+  if (!readManifest(manifest) || new TextEncoder().encode(JSON.stringify(manifest)).length > WIRE_TEXT) throw new Error(tr("这个角色超出好友联播限制（64 MB、512 个文件）"))
   return { manifest, files }
 }
 function drained(channel: RTCDataChannel, signal: AbortSignal) {
   if (channel.bufferedAmount < 512 * 1024) return Promise.resolve()
   return new Promise<void>((resolve, reject) => {
     const clean = () => { channel.removeEventListener('bufferedamountlow', ready); channel.removeEventListener('close', closed); signal.removeEventListener('abort', aborted) }
-    const ready = () => { clean(); resolve() }, closed = () => { clean(); reject(new Error(tr("联播连接已关闭"))) }, aborted = () => { clean(); reject(signal.reason) }
+    const ready = () => { clean(); resolve() }, closed = () => { clean(); reject(new Error(tr("好友联播连接已关闭"))) }, aborted = () => { clean(); reject(signal.reason) }
     channel.addEventListener('bufferedamountlow', ready, { once: true }); channel.addEventListener('close', closed, { once: true }); signal.addEventListener('abort', aborted, { once: true })
   })
 }

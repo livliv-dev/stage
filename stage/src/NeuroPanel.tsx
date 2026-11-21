@@ -19,7 +19,8 @@ export function NeuroPanel({ characters, onStart }: { characters: NeuroCharacter
   }, [neuro])
   const character = characters.find((entry) => entry.id === selected) ?? characters[0]
   const requestedPort = Number(port), validPort = port.trim() !== '' && Number.isInteger(requestedPort) && requestedPort >= 0 && requestedPort <= 65535
-  if (!neuro) return null
+  // the web: where it is in the desktop app
+  if (!neuro) return <section className="neuro-panel"><h3>{tr('游戏互动')} <span className="desk-tag">{tr('桌面版')}</span></h3><p className="hint">{tr('连接支持 Neuro SDK 的游戏，让角色参与互动。')}</p></section>
   const toggle = async () => {
     setBusy(true); setError('')
     try {

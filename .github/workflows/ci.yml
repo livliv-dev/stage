@@ -47,7 +47,7 @@ jobs:
           - name: conversation
             suites: chat memory demo-history lifecycle privacy start points app-livliv
           - name: voice
-            suites: handsfree voice-setup realtime journey
+            suites: handsfree voice-setup realtime journey goals
           - name: editor
             suites: browser settings ux shots projects mixer profiles
           - name: live
