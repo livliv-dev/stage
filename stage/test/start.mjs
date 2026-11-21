@@ -122,14 +122,17 @@ try {
   await options.waitFor()
   assert.deepEqual(await options.locator('.option-row').nth(1).locator('.seg button').allInnerTexts(), ['只有我', '直播间'])
   assert.deepEqual(await options.locator('.option-row').nth(2).locator('.seg button').allInnerTexts(), ['不参与', '打字', '按住说', '免按键', '我也上镜'])
-  // limits follow who watches: a chat 60 minutes, a 直播间 its own 30 (a minute at the least), as its panel had
-  const minutes = options.locator('.option-row.limits select')
-  assert.equal(await minutes.inputValue(), '60')
+  // the button follows the start, and the limits follow who watches: the characters among themselves count lines
+  // (开始), a 直播间 has its own 30 minutes, a minute at the least (开播), a chat 60 (开始聊天)
+  const minutes = options.locator('.option-row.limits select'), button = page.locator('.console .start-button')
+  assert.equal((await button.innerText()).trim(), '开始'); assert.equal(await minutes.count(), 0)
   await options.locator('.option-row').nth(1).getByRole('button', { name: '直播间', exact: true }).click()
+  assert.equal((await button.innerText()).trim(), '开播')
   assert.equal(await minutes.inputValue(), '30'); assert.deepEqual(await minutes.locator('option').evaluateAll((all) => all.map((o) => o.value)), ['1', '15', '30', '60', '120'])
-  assert.equal((await page.locator('.console .start-button').innerText()).trim(), '开播', 'the button follows the start: a 直播间 is 开播')
   await options.locator('.option-row').nth(1).getByRole('button', { name: '只有我', exact: true }).click()
-  assert.equal((await page.locator('.console .start-button').innerText()).trim(), '开始')
+  await options.locator('.option-row').nth(2).getByRole('button', { name: '打字', exact: true }).click()
+  assert.equal((await button.innerText()).trim(), '开始聊天'); assert.equal(await minutes.inputValue(), '60')
+  await options.locator('.option-row').nth(2).getByRole('button', { name: '不参与', exact: true }).click()
   await options.locator('button[data-close]').click(); await options.waitFor({ state: 'detached' })
 
   // the demo's end: 用你的模型重来一遍 opens the checklist with the model of one's own; a detour into 连接 and 保存
