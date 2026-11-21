@@ -1,8 +1,9 @@
 // API keys and the sign-in in LivLiv Stage, kept encrypted by the system: those saved the old way (in the page's
 // storage) move to the app's encrypted file as it starts, each removed from the page's storage once written; the file
 // holds none in plain text; requests still carry the key to its own provider and nowhere else; a save whose write fails
-// keeps its plain copy, which moves on the next start; a key the app can't decrypt any more is reported; nothing logs
-// them; a corrupted file starts the app with no keys.
+// keeps its plain copy, which moves on the next start; signing out and clearing a key stick even when the delete fails
+// to write (the old ones never come back from the file, and are deleted on a later start); a key the app can't decrypt
+// any more is reported; nothing logs them; a corrupted file starts the app with no keys.
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -101,6 +102,28 @@ try {
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('livliv-stage:brain')).key === undefined)
   assert.equal(await page.evaluate(() => window.__stage.brain().key), SECOND, 'moved on the next start')
   assert.ok(!(await readFile(join(artifacts, 'profile', 'keys.json'), 'utf8')).includes(SECOND))
+
+  // signed out and the key cleared while the delete fails to write: after a restart neither comes back from the file
+  await mkdir(join(artifacts, 'profile', 'keys.json.tmp'))
+  await page.evaluate(async () => { await window.__stage.keys.logout(); const b = window.__stage.brain(); window.__stage.keys.saveBrain({ ...b, key: '' }) })
+  await new Promise((resolve) => setTimeout(resolve, 1500))
+  assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('livliv-stage:keys-cleared')).sort()), ['livliv-stage:brain', 'livliv-stage:session'], 'not deleted yet: marked cleared')
+  await app.close(); me.length = 0
+  page = await open(origin)
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+  assert.equal(await page.evaluate(() => window.__stage.brain().key), '', 'the cleared key stays cleared')
+  assert.ok(!me.includes(`Bearer ${TOKEN}`), 'not signed in again from the file')
+  await app.close()
+  // writing works again: deleted on this start, and the marks go
+  await rm(join(artifacts, 'profile', 'keys.json.tmp'), { recursive: true })
+  page = await open(origin)
+  await page.waitForFunction(() => localStorage.getItem('livliv-stage:keys-cleared') === null)
+  assert.equal(await page.evaluate(() => window.__stage.brain().key), '')
+  await app.close(); me.length = 0
+  page = await open(origin)
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+  assert.ok(!me.includes(`Bearer ${TOKEN}`), 'deleted from the file')
+  assert.equal(await page.evaluate(() => window.__stage.brain().key), '')
   await app.close()
 
   // a key the app can't decrypt any more (the system's keychain changed): reported, so the settings ask for it again

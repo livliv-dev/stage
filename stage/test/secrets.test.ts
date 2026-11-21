@@ -116,3 +116,45 @@ test('no store (a browser, or no system encryption): everything stays in the pag
   assert.equal(storage.items.get('livliv-stage:session'), 'app.t')
   assert.equal(lostKey('livliv-stage:brain'), false)
 })
+
+test('signed out while the delete fails to write: not signed in again after a restart, and the delete is tried again', async () => {
+  const v = vault({ 'livliv-stage:session': 'tok-1' }), storage = page()
+  assert.equal(readSecret('livliv-stage:session', storage), 'tok-1')
+  v.state.failing = true
+  await writeSecret('livliv-stage:session', '', storage)
+  assert.equal(v.kept['livliv-stage:session'], 'tok-1', 'the app\'s file still has it')
+  assert.equal(readSecret('livliv-stage:session', storage), '')
+  // a restart: the store read afresh from the file, which still holds the old sign-in
+  setKeyVault(undefined)
+  const again = vault({ ...v.kept }); again.state.failing = true
+  assert.equal(readSecret('livliv-stage:session', storage), '', 'cleared here: the old one is never read back')
+  await migrateKeys(storage)
+  assert.equal(readSecret('livliv-stage:session', storage), '', 'the delete failed again: still cleared')
+  again.state.failing = false
+  await migrateKeys(storage)
+  assert.deepEqual(again.kept, {}, 'deleted on a start where writing works')
+  assert.equal(storage.items.has('livliv-stage:keys-cleared'), false, 'and the mark is gone')
+})
+
+test('an API key cleared while the delete fails stays cleared; a new key saved after it counts', async () => {
+  const v = vault({ 'livliv-stage:brain': 'sk-old' }), storage = page({ 'livliv-stage:brain': JSON.stringify(brain) })
+  v.state.failing = true
+  await writeKeyed('livliv-stage:brain', { ...brain, key: '' }, storage)
+  setKeyVault(undefined)
+  const again = vault({ ...v.kept }); again.state.failing = true
+  assert.deepEqual(JSON.parse(readKeyed('livliv-stage:brain', storage)!), brain, 'no key comes back from the file')
+  assert.equal(await writeKeyed('livliv-stage:brain', { ...brain, key: 'sk-new' }, storage), false, 'the new one isn\'t written either')
+  assert.equal(JSON.parse(readKeyed('livliv-stage:brain', storage)!).key, 'sk-new', 'the page\'s copy counts')
+  assert.equal(storage.items.has('livliv-stage:keys-cleared'), false, 'the clear no longer applies')
+  again.state.failing = false
+  await migrateKeys(storage)
+  assert.equal(again.kept['livliv-stage:brain'], 'sk-new')
+  assert.deepEqual(JSON.parse(storage.items.get('livliv-stage:brain')!), brain)
+})
+
+test('a clear that is written takes its mark off at once', async () => {
+  const v = vault({ 'livliv-stage:speech': 'speech-old' }), storage = page({ 'livliv-stage:speech': JSON.stringify({ provider: 'openai', model: 'tts' }) })
+  await writeKeyed('livliv-stage:speech', { provider: 'openai', key: '', model: 'tts' }, storage)
+  assert.deepEqual(v.kept, {})
+  assert.equal(storage.items.has('livliv-stage:keys-cleared'), false)
+})
