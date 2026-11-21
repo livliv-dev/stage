@@ -131,3 +131,21 @@ test('long cards are cut at a sentence end, and the result says so', () => {
   assert.ok(r.card.persona.length <= 4000 && r.card.persona.endsWith('character.'))
   assert.equal(r.card.examples.length, 12)
 })
+
+test('a crafted card reads quickly: long fields are cut before anything reads them', () => {
+  const huge = 'a'.repeat(1_000_000)
+  const card = {
+    spec: 'chara_card_v3', spec_version: '3.0',
+    data: {
+      name: 'Slow', description: `(OOC: ${huge}`, personality: `*${huge}`,
+      first_mes: `((OOC: ${huge}`, mes_example: Array.from({ length: 2000 }, () => `{{char}}: (OOC: ${'b'.repeat(500)}`).join('\n'),
+    },
+  }
+  const started = performance.now()
+  const r = readCharacterCard(json(card))
+  const took = performance.now() - started
+  assert.ok(r.ok)
+  assert.equal(r.trimmed, true)
+  assert.ok(took < 1000, `read in ${Math.round(took)} ms`)
+})
+

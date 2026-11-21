@@ -28,7 +28,8 @@ export const CARD_BYTES = 16 * 1024 * 1024
 const LIMIT = { name: 60, persona: 4000, style: 1500, greeting: 400, example: 300, examples: 12 }
 
 type Data = Record<string, unknown>
-const text = (v: unknown) => (typeof v === 'string' ? v.replace(/\r\n?/g, '\n').trim() : '')
+/** a field's text, cut to `max` characters before anything else reads it (a crafted card can't make the reading slow) */
+const text = (v: unknown, max = 4 * LIMIT.persona) => (typeof v === 'string' ? v.slice(0, max).replace(/\r\n?/g, '\n').trim() : '')
 const object = (v: unknown): v is Data => !!v && typeof v === 'object' && !Array.isArray(v)
 const filled = (v: unknown) => (Array.isArray(v) ? v.length > 0 : object(v) ? Object.keys(v).length > 0 : !!text(v))
 
@@ -65,9 +66,11 @@ export function readCardJson(raw: unknown): CardRead {
     data = raw
   } else return { ok: false, error: 'not-a-card' }
 
-  const cardName = text(data.name)
+  const cardName = text(data.name, 4 * LIMIT.name)
   if (!cardName) return { ok: false, error: 'no-name' }
-  let trimmed = false
+  // a field longer than it is read at is cut, and the result says so
+  let trimmed = [['name', 4 * LIMIT.name], ['description', 4 * LIMIT.persona], ['personality', 4 * LIMIT.persona], ['first_mes', 4 * LIMIT.greeting], ['mes_example', 4 * LIMIT.example * LIMIT.examples]]
+    .some(([key, max]) => typeof data[key] === 'string' && (data[key] as string).length > (max as number))
   const cut = (value: string, max: number) => {
     if (value.length <= max) return value
     trimmed = true
@@ -75,13 +78,14 @@ export function readCardJson(raw: unknown): CardRead {
     return (end > max / 2 ? head.slice(0, end + 1) : head).trim()
   }
   const description = text(data.description), personality = text(data.personality)
-  const user = userWord(`${description}\n${personality}\n${text(data.first_mes)}`)
-  const fill = macros(text(data.nickname) || cardName, user)
+  const first = text(data.first_mes, 4 * LIMIT.greeting)
+  const user = userWord(`${description}\n${personality}\n${first}`)
+  const fill = macros(text(data.nickname, 4 * LIMIT.name) || cardName, user)
   const name = cut(cardName, LIMIT.name)
   const persona = cut(fill(description || personality), LIMIT.persona)
   const style = description && personality ? cut(fill(personality), LIMIT.style) : ''
-  const greeting = cut(spoken(fill(text(data.first_mes))), LIMIT.greeting)
-  const all = exampleLines(text(data.mes_example), cardName, fill)
+  const greeting = cut(spoken(fill(first)), LIMIT.greeting)
+  const all = exampleLines(text(data.mes_example, 4 * LIMIT.example * LIMIT.examples), cardName, fill)
   if (all.length > LIMIT.examples) trimmed = true
   const examples = all.slice(0, LIMIT.examples).map((line) => cut(line, LIMIT.example))
 
@@ -118,7 +122,7 @@ const macros = (character: string, user: string) => (value: string) => {
 }
 /** what is said: *actions* and (OOC) notes left out, spaces tidied */
 function spoken(value: string) {
-  return value.replace(/\*[^*\n]*\*/g, ' ').replace(/\(\(?\s*OOC:[^)]*\)\)?/gi, ' ').replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{2,}/g, '\n').trim()
+  return value.replace(/\*[^*\n]{0,400}\*/g, ' ').replace(/\(\(?\s{0,4}OOC:[^)]{0,400}\)\)?/gi, ' ').replace(/[ \t]+/g, ' ').replace(/ *\n */g, '\n').replace(/\n{2,}/g, '\n').trim()
 }
 /** the character's lines in an example dialogue (`{{char}}: …` or `<name>: …`; a line without a speaker continues the
  *  one before), each as said */
