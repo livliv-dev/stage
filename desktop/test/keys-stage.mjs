@@ -82,6 +82,7 @@ try {
   assert.equal(await page.evaluate(() => window.__stage.brain().key), '')
   assert.deepEqual(errors, [])
   assert.ok(!logs.some((line) => line.includes(KEY) || line.includes(SPEECH)), 'no key in any log')
+  assert.ok(!logs.some((line) => /safeStorage.*deprecated/.test(line)), 'the system encryption as Electron now offers it')
   console.log(JSON.stringify({ ok: true, requests: auth.length, artifacts }))
 } finally {
   await app?.close(); server.close()

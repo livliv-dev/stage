@@ -37,7 +37,8 @@ export function registerIpc(deps: IpcDeps) {
     e.returnValue = trusted(e) ? { api: 1, version: VERSION, platform: process.platform, role, stageEditor: APP === 'stage' && e.sender === mainContents() } : null
   })
   // the API keys, kept encrypted (secrets.ts): read once as the editor starts, written as they are saved; synchronous,
-  // so a key saved is kept before the page goes on. The Stage editor only; never logged
+  // because the page reads its settings as it loads (the file is written after, and before the app quits). The Stage
+  // editor only; never logged
   ipcMain.on('livliv:secrets', (e, op, name, value) => {
     const store = deps.secrets
     if (!store || !trusted(e) || APP !== 'stage' || e.sender !== mainContents()) { e.returnValue = op === 'all' ? null : false; return }

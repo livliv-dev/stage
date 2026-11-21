@@ -62,6 +62,9 @@ const secrets = APP === 'stage' ? secretsStore({
   read: () => { try { return readFileSync(keysFile(), 'utf8') } catch { return null } },
   write: (text) => { const file = keysFile(), next = file + '.tmp'; writeFileSync(next, text, { mode: 0o600 }); renameSync(next, file) },
 }) : null
+// the keys open before the editor first loads (it reads them as it starts); every way of opening it waits for them
+const keysOpen = secrets ? app.whenReady().then(() => secrets.open()).catch(() => false) : Promise.resolve(false)
+const openEditor = APP === 'stage' ? () => { void keysOpen.then(() => openMain()) } : openMain
 let api: LocalApi | null = null
 let apiError: string | null = null
 let apiQueue = Promise.resolve()
@@ -118,7 +121,7 @@ function stageArg(argv: string[]) {
 
 function startStage() {
   if (STAGE_BUILT) serveStage(STAGE_DIR, LIVLIV_API, () => api?.port ?? null)
-  openMain()
+  openEditor()
   syncHotkeys()
   void syncLocalApi()
   void motionInput?.configure(settings().trackingInput)
@@ -134,7 +137,7 @@ if (APP === 'stage') {
 }
 if (!app.requestSingleInstanceLock()) app.quit()
 else {
-  app.on('second-instance', (_e, argv) => { if (APP === 'stage' || !stageArg(argv)) openMain() })
+  app.on('second-instance', (_e, argv) => { if (APP === 'stage' || !stageArg(argv)) openEditor() })
   app.whenReady().then(() => {
     hardenSession()
     saveDownloads()
@@ -177,8 +180,14 @@ else {
     if (!stageArg(process.argv) || process.argv.includes('--main')) openMain()
     console.log(`[livliv] ${VERSION} on ${APP_ORIGIN}${DEV ? ' (development)' : ''}`)
   })
-  app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) openMain() })
+  app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) openEditor() })
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
+  // a key just saved is written before the app goes
+  app.on('before-quit', (event) => {
+    if (!secrets?.pending()) return
+    event.preventDefault()
+    void secrets.flush().finally(() => app.quit())
+  })
   let closingGame = false, gameClosed = false
   app.on('before-quit', (event) => {
     if (gameClosed || !airiGames?.needsClose()) return
