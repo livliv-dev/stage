@@ -29,7 +29,7 @@ export function LivePanel({ onClose }: { onClose: () => void }) {
   const cast = participants(scene).filter((c) => c.lines === 'ai')
   const active = state.running && state.mode === 'live'
   const { needsAiri } = liveGame(setup), game = setup.game
-  const textOnly = cast.some((c) => voiceRoute(c, speech) === 'none')
+  const textOnly = cast.some((c) => !c.muted && voiceRoute(c, speech) === 'none')
   // AIRI or not: the one rule (brains/select.ts); a game or a window asks for it whatever the switch says
   const engine = chooseEngine(model, cast, { kind: 'live', textOnly, needsAiri, voice: cast[0] && voiceRoute(cast[0], speech) }, features)
   const compatibleModel = airiFits(engine), airiVoiceReady = engine.reason !== 'livliv-voice'
@@ -75,7 +75,7 @@ export function LivePanel({ onClose }: { onClose: () => void }) {
         <option value="factorio">Factorio / Autorio</option>
       </select></label>}
       {needsAiri && !compatibleModel && <p className="hint">{tr('内置 AIRI 需要一个本地 AI 角色和流式模型接口')}</p>}
-      {needsAiri && !airiVoiceReady && <p className="hint">{tr('内置 AIRI 支持自配语音接口、系统朗读或仅字幕')}</p>}
+      {needsAiri && !airiVoiceReady && <p className="hint">{tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕')}</p>}
       {game === 'minecraft' && <div>
         <p className="hint">{tr('先启动 Airicraft 并进入 Minecraft 世界。')}</p>
         <label className="switch"><span>{tr('发送 Minecraft 画面给模型')}</span><input type="checkbox" checked={setup.minecraftVision} onChange={(e) => liveSetup.set({ minecraftVision: e.target.checked, ...(e.target.checked ? { windowId: '' } : {}) })} /><i /></label>

@@ -87,8 +87,8 @@ try {
   const templates = {}
   // a template's start: the characters talking among themselves (双人聊天, 三人闲聊) is 和角色聊天 with you not joining,
   // the same conversation as before, nothing recorded
-  for (const [label, expected] of [['AI 来开播', { text: '开播', kind: 'live', out: true }], ['双人聊天', { text: '开始聊天', kind: 'conversation' }],
-    ['你和 AI 搭档', { text: '开始聊天', kind: 'chat' }], ['三人闲聊', { text: '开始聊天', kind: 'conversation' }], ['面捕出镜', null], ['空白舞台', null]]) {
+  for (const [label, expected] of [['AI 来开播', { text: '开播', kind: 'live', out: true }], ['双人聊天', { text: '开始', kind: 'conversation' }],
+    ['你和 AI 搭档', { text: '开始聊天', kind: 'chat' }], ['三人闲聊', { text: '开始', kind: 'conversation' }], ['面捕出镜', null], ['空白舞台', null]]) {
     await page.locator('.topbar').getByRole('button', { name: '模板' }).click()
     await page.locator('.topbar .dropdown .item').filter({ hasText: label }).click()
     await page.waitForFunction((name) => window.__stage.store.get().name === name, label === '空白舞台' ? '未命名舞台' : label)
@@ -122,6 +122,14 @@ try {
   await options.waitFor()
   assert.deepEqual(await options.locator('.option-row').nth(1).locator('.seg button').allInnerTexts(), ['只有我', '直播间'])
   assert.deepEqual(await options.locator('.option-row').nth(2).locator('.seg button').allInnerTexts(), ['不参与', '打字', '按住说', '免按键', '我也上镜'])
+  // limits follow who watches: a chat 60 minutes, a 直播间 its own 30 (a minute at the least), as its panel had
+  const minutes = options.locator('.option-row.limits select')
+  assert.equal(await minutes.inputValue(), '60')
+  await options.locator('.option-row').nth(1).getByRole('button', { name: '直播间', exact: true }).click()
+  assert.equal(await minutes.inputValue(), '30'); assert.deepEqual(await minutes.locator('option').evaluateAll((all) => all.map((o) => o.value)), ['1', '15', '30', '60', '120'])
+  assert.equal((await page.locator('.console .start-button').innerText()).trim(), '开播', 'the button follows the start: a 直播间 is 开播')
+  await options.locator('.option-row').nth(1).getByRole('button', { name: '只有我', exact: true }).click()
+  assert.equal((await page.locator('.console .start-button').innerText()).trim(), '开始')
   await options.locator('button[data-close]').click(); await options.waitFor({ state: 'detached' })
 
   // the demo's end: 用你的模型重来一遍 opens the checklist with the model of one's own; a detour into 连接 and 保存
@@ -149,8 +157,9 @@ try {
   await settings.waitFor({ state: 'detached' }); await checklist.waitFor()
   assert.equal(await page.evaluate(async () => (await import('/src/brain.ts')).loadBrainConfig().kind), 'openai')
   assert.deepEqual(await page.evaluate(() => window.__stage.store.get().items.filter((i) => i.kind === 'character').map((c) => c.id)), demoCast, 'the same characters stay')
-  assert.equal((await checklist.locator('footer .primary').innerText()).trim(), '开始聊天', 'ready to start the three with the model just saved')
-  assert.equal((await main.innerText()).trim(), '开始聊天')
+  // the characters among themselves, you not joining: 开始
+  assert.equal((await checklist.locator('footer .primary').innerText()).trim(), '开始', 'ready to start the three with the model just saved')
+  assert.equal((await main.innerText()).trim(), '开始')
   assert.equal((await conv()).running, false)
   // closing the form (Esc: the form in front, not the list behind it) comes back too
   await checklist.locator('li.check').filter({ hasText: '文字模型' }).getByRole('button', { name: '去设置' }).click()
@@ -158,7 +167,7 @@ try {
   await page.keyboard.press('Escape')
   await settings.waitFor({ state: 'detached' }); await checklist.waitFor()
   await checklist.locator('footer .primary').click(); assert.equal(await started(), 'conversation', 'the three talk among themselves'); await stop()
-  report.demoOwnModel = 'demo end → 用你的模型重来一遍 → checklist → 连接 → 保存 / Esc → the checklist again → the same three, 开始聊天'
+  report.demoOwnModel = 'demo end → 用你的模型重来一遍 → checklist → 连接 → 保存 / Esc → the checklist again → the same three, 开始'
 
   // the start options keep what was set (the limits live there), whatever opens and closes around them
   await page.locator('.topbar').getByRole('button', { name: '模板' }).click()

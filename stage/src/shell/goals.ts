@@ -10,11 +10,11 @@ import type { Audience, CharacterItem, Goal, Talk, You } from '../scene'
 export type { Audience, Goal, You }
 export type StartOptions = { audience: Audience; you: You }
 
-export const GOALS: readonly { id: Goal; label: string; hint: string; big: boolean; button: string | null }[] = [
-  { id: 'perform', label: '我来演', hint: '用你的脸和声音演角色，可以加一个 AI 搭档', big: true, button: null },
-  { id: 'live', label: 'AI 来开播', hint: 'AI 角色自己开播，回应直播间', big: true, button: '开播' },
-  { id: 'chat', label: '和角色聊天', hint: '打字或说话，和角色聊', big: false, button: '开始聊天' },
-  { id: 'video', label: '做一段视频', hint: '让几个角色聊一段，录下来', big: false, button: '开录' },
+export const GOALS: readonly { id: Goal; label: string; hint: string; big: boolean }[] = [
+  { id: 'perform', label: '我来演', hint: '用你的脸和声音演角色，可以加一个 AI 搭档', big: true },
+  { id: 'live', label: 'AI 来开播', hint: 'AI 角色自己开播，回应直播间', big: true },
+  { id: 'chat', label: '和角色聊天', hint: '打字或说话，和角色聊', big: false },
+  { id: 'video', label: '做一段视频', hint: '让几个角色聊一段，录下来', big: false },
 ]
 
 /** where a goal starts from, when the stage has none of your characters yet: one of the templates */
@@ -28,10 +28,13 @@ export function goalOptions(goal: Goal, partner: boolean): StartOptions {
   return { audience: 'me', you: 'none' }
 }
 
-/** the start button's words: by the goal; 我来演 has none (its action is 输出到 OBS) unless it has an AI partner */
-export function startLabel(goal: Goal, partner: boolean): string | null {
-  if (goal === 'perform') return partner ? '开播' : null
-  return GOALS.find((g) => g.id === goal)!.button
+/** the start button's words, by what the start does: 开录 records (做一段视频), 开播 goes to a 直播间, 开始聊天 when you
+ *  take part, 开始 when the characters talk among themselves; 我来演 alone has none (its action is 输出到 OBS) */
+export function startLabel(goal: Goal, partner: boolean, options: StartOptions = goalOptions(goal, partner)): string | null {
+  if (goal === 'perform' && !partner) return null
+  if (goal === 'video') return '开录'
+  if (options.audience === 'live') return '开播'
+  return options.you === 'none' ? '开始' : '开始聊天'
 }
 
 export const AUDIENCES: readonly { id: Audience; label: string; hint: string }[] = [

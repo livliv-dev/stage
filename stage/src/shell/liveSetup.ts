@@ -1,10 +1,13 @@
-// 直播间's own settings, beside the start options: what the characters do while no chat comes in, and in the desktop
-// app a game (Minecraft through Airicraft, Factorio through Autorio) or a game window the model sees. Kept for this
-// window; the start (shell/start.ts) reads them.
+// 直播间's own settings, beside the start options: its limits (30 minutes and 100 lines unless changed, as its panel
+// had), what the characters do while no chat comes in, and in the desktop app a game (Minecraft through Airicraft,
+// Factorio through Autorio) or a game window the model sees. Kept for this window; the start (shell/start.ts) reads
+// them.
 import { useSyncExternalStore } from 'react'
 import { validGamePort, type AiriGameConfig } from '../../../desktop/src/airiGameProtocol'
 
 export type LiveSetup = {
+  minutes: number
+  maxGenerations: number
   /** with no chat coming in: wait quietly (0), or say something every 30, 60 or 120 seconds */
   warmupSeconds: 0 | 30 | 60 | 120
   game: AiriGameConfig['game'] | 'window'
@@ -15,7 +18,7 @@ export type LiveSetup = {
   windowId: string
 }
 
-let state: LiveSetup = { warmupSeconds: 0, game: 'window', minecraftVision: false, eventsPort: '8080', rconPort: '24180', windowId: '' }
+let state: LiveSetup = { minutes: 30, maxGenerations: 100, warmupSeconds: 0, game: 'window', minecraftVision: false, eventsPort: '8080', rconPort: '24180', windowId: '' }
 const listeners = new Set<() => void>()
 
 export const liveSetup = {

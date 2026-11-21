@@ -237,11 +237,9 @@ try {
   await page.locator('.status-line .st-tag', { hasText: 'AIRI' }).waitFor()
   assert.equal(await page.evaluate(() => window.__stage.conversation().engine), 'airi')
   assert.equal(await page.evaluate(() => window.__stage.conversation().scope), 'private')
-  // what you type in the console while a session runs; before one, the console has no line to type in, and a first
-  // line goes to the same talk.say the old idle field called
+  // what you type in the console: before a start, 和角色聊天's first line (it starts the chat); while one runs, a line
   const ownerSays = async (text, reply) => {
-    if (await page.getByLabel('你说的话').count()) { await page.getByLabel('你说的话').fill(text); await page.getByLabel('你说的话').press('Enter') }
-    else await page.evaluate((text) => window.__stage.talk.say(text), text)
+    await page.getByLabel('你说的话').fill(text); await page.getByLabel('你说的话').press('Enter')
     await page.waitForFunction((text) => window.__stage.conversation().lines.some((line) => line.text === text), reply)
     await page.waitForFunction(() => window.__stage.conversation().waitingInput)
   }

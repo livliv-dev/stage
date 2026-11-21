@@ -208,6 +208,14 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "对话记录已删除，请重新开始实时通话": {"zh-Hans":"对话记录已删除，请重新开始实时通话","zh-Hant":"對話記錄已刪除，請重新開始即時通話","en":"The conversation was deleted. Start a new realtime call.","ja":"会話記録が削除されました。通話を開始し直してください。"},
   "记忆已更新，请重新开始实时通话": {"zh-Hans":"记忆已更新，请重新开始实时通话","zh-Hant":"記憶已更新，請重新開始即時通話","en":"Memory changed. Start a new realtime call.","ja":"記憶が更新されました。通話を開始し直してください。"},
   "可选：弹幕可以触发角色的表情和动作": {"zh-Hans":"可选：弹幕可以触发角色的表情和动作","zh-Hant":"可選：彈幕可以觸發角色的表情和動作","en":"Optional: chat can trigger your character's expressions and moves","ja":"任意：コメントでキャラクターの表情や動きを動かせます"},
+  "内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕": {"zh-Hans":"内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕","zh-Hant":"內建 AIRI 支援自訂語音介面和系統朗讀；靜音的角色只出字幕","en":"Built-in AIRI works with your own speech API or system speech; a muted character shows subtitles only","ja":"内蔵 AIRI は独自の音声 API とシステム音声に対応します。ミュートしたキャラクターは字幕だけになります"},
+  "角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕": {"zh-Hans":"角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕","zh-Hant":"角色還沒有聲音：在角色卡「人設和聲音」裡選一個，或者把它靜音，只出字幕","en":"This character has no voice yet: pick one on its card under Persona and voice, or mute it to show subtitles only","ja":"このキャラクターにはまだ声がありません：カードの「人物設定と声」で選ぶか、ミュートして字幕だけにしてください"},
+  "AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕": {"zh-Hans":"AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕","zh-Hant":"AI 角色還沒有聲音：在角色卡「人設和聲音」裡選一個，或者把它靜音，只出字幕","en":"An AI character has no voice yet: pick one on its card under Persona and voice, or mute it to show subtitles only","ja":"AI キャラクターにまだ声がありません：カードの「人物設定と声」で選ぶか、ミュートして字幕だけにしてください"},
+  "更多": {"zh-Hans":"更多","zh-Hant":"更多","en":"More","ja":"その他"},
+  "撤销": {"zh-Hans":"撤销","zh-Hant":"復原","en":"Undo","ja":"元に戻す"},
+  "重做": {"zh-Hans":"重做","zh-Hant":"重做","en":"Redo","ja":"やり直す"},
+  "等你接纳": {"zh-Hans":"等你接纳","zh-Hant":"等你接納","en":"Waiting for you to accept","ja":"あなたの承認待ち"},
+  "用积分识别语音时，请点按钮开始": {"zh-Hans":"用积分识别语音时，请点按钮开始","zh-Hant":"用積分辨識語音時，請點按鈕開始","en":"Speech recognition paid with points starts only from the button","ja":"ポイントで音声認識するときは、ボタンから開始してください"},
   "单角色会话优先使用 AIRI": {"zh-Hans":"单角色会话优先使用 AIRI","zh-Hant":"單角色對話優先使用 AIRI","en":"Prefer AIRI for single-character sessions","ja":"1人のキャラクターとの会話では AIRI を優先する"},
   "可以聊天，连接游戏或发送画面需要流式输出。": {"zh-Hans":"可以聊天，连接游戏或发送画面需要流式输出。","zh-Hant":"可以聊天，連線遊戲或傳送畫面需要串流輸出。","en":"Chat is available. Connecting a game or sending frames requires streaming.","ja":"会話は利用できます。ゲーム接続や画面送信にはストリーミングが必要です。"},
   "游戏连接": {"zh-Hans":"游戏连接","zh-Hant":"遊戲連線","en":"Game connection","ja":"ゲーム接続"},
@@ -265,7 +273,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "请先在 AIRI 开启游戏直播": {"zh-Hans":"请先在 AIRI 开启游戏直播","zh-Hant":"請先在 AIRI 開啟遊戲直播","en":"Start a game stream with AIRI first.","ja":"先に AIRI のゲーム配信を開始してください。"},
   "游戏连接已关闭或会话已暂停": {"zh-Hans":"游戏连接已关闭或会话已暂停","zh-Hant":"遊戲連線已關閉或對話已暫停","en":"The game connection closed or the session is paused.","ja":"ゲームとの接続が切断されたか、会話が一時停止中です。"},
   "AIRI 没有选出适合的游戏动作": {"zh-Hans":"AIRI 没有选出适合的游戏动作","zh-Hant":"AIRI 沒有選出適合的遊戲動作","en":"AIRI did not choose a game action.","ja":"AIRI はゲーム操作を選択できませんでした。"},
-  "内置 AIRI 支持自配语音接口、系统朗读或仅字幕": {"zh-Hans":"内置 AIRI 支持自配语音接口、系统朗读或仅字幕","zh-Hant":"內建 AIRI 支援自訂語音介面、系統朗讀或僅字幕","en":"For built-in AIRI, use your own speech API, system speech, or captions only.","ja":"内蔵 AIRI では独自の音声 API、システム音声、または字幕のみを選べます。"},
   "刷新窗口列表": {"zh-Hans":"刷新窗口列表","zh-Hant":"重新整理視窗清單","en":"Refresh windows","ja":"ウィンドウ一覧を更新"},
   "选择游戏窗口": {"zh-Hans":"选择游戏窗口","zh-Hant":"選擇遊戲視窗","en":"Choose game window","ja":"ゲームウィンドウを選ぶ"},
   "游戏画面": {"zh-Hans":"游戏画面","zh-Hant":"遊戲畫面","en":"Game view","ja":"ゲーム画面"},
@@ -3452,12 +3459,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Me",
     "ja": "自分"
   },
-  "角色还没有声音，请设置声音或选择仅字幕": {
-    "zh-Hans": "角色还没有声音，请设置声音或选择仅字幕",
-    "zh-Hant": "角色還沒有聲音，請設置聲音或選擇僅字幕",
-    "en": "Set up a voice or choose captions only",
-    "ja": "音声を設定するか「字幕のみ」を選んでください"
-  },
   "弹幕 · {0}": {
     "zh-Hans": "弹幕 · {0}",
     "zh-Hant": "彈幕 · {0}",
@@ -3475,12 +3476,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "先新增一個「AI 來演」的角色",
     "en": "Add an AI-controlled avatar first",
     "ja": "先に「AIで操作」のキャラクターを追加してください"
-  },
-  "AI 角色还没有声音，请在设置里接上声音，或选择「仅字幕」": {
-    "zh-Hans": "AI 角色还没有声音，请在设置里接上声音，或选择「仅字幕」",
-    "zh-Hant": "AI 角色還沒有聲音，請在設置里接上聲音，或選擇「僅字幕」",
-    "en": "Set up AI voices or choose captions only",
-    "ja": "AIの音声を設定するか「字幕のみ」を選んでください"
   },
   "已达到本次时长上限": {
     "zh-Hans": "已达到本次时长上限",

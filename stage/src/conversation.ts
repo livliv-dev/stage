@@ -464,7 +464,7 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
   const bySentence = state.mode === 'chat' && cfg.kind !== 'livliv' && voiceRoute(me) !== 'livliv'
   const take = bySentence ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, recorded)
   signal.throwIfAborted()
-  if (liveOptions && !liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音，请设置声音或选择仅字幕"))
+  if (liveOptions && !liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕"))
   return { r: { ...reply, memoryIds, memoryRevision: context.revision }, take, chat, memoryRevision: context.revision, bySentence }
 }
 
@@ -551,7 +551,7 @@ async function playAiriTurn(me: CharacterItem, model: ModelConfig, chat: Chat | 
     const feeling = cue?.feeling
     const emotion = asEmotion(feeling)
     const aloud = !textOnly && !actor.item.muted
-    if (aloud && voiceRoute(actor.item) === 'livliv') throw new Error(tr('内置 AIRI 支持自配语音接口、系统朗读或仅字幕'))
+    if (aloud && voiceRoute(actor.item) === 'livliv') throw new Error(tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕'))
     const take = await actor.prepare(text, emotion, aloud, signal)
     signal.throwIfAborted()
     if (aloud && take.mute) throw new VoiceFailed(actor.voiceError || tr('声音播放失败，请检查声音设置'))
@@ -784,10 +784,11 @@ async function runLive(options: LiveOptions) {
   const gameHost = desktop?.airiGame, gameConfig = options.airi?.game
   if (gameConfig && !gameHost) { set({ error: tr('当前桌面版本不支持 AIRI 游戏') }); return }
   if (choice?.reason === 'livliv-voice') {
-    set({ error: tr('内置 AIRI 支持自配语音接口、系统朗读或仅字幕') }); return
+    set({ error: tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕') }); return
   }
   const airiModel = choice?.engine === 'airi' && config.kind === 'openai' ? config : null
-  if (!options.textOnly && cast.some((c) => voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音，请在设置里接上声音，或选择「仅字幕」") }); return }
+  // a muted character speaks no line aloud: only the ones that speak need a voice, else the session is subtitles only
+  if (!options.textOnly && cast.some((c) => !c.muted && voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕") }); return }
   const c = new AbortController(); ctrl = c
   dropAhead(); viewers.clear(); queue.length = 0; externalQueue.length = 0; dialogue.clear(); activeEvent = null
   liveOptions = options

@@ -29,6 +29,11 @@ test('the start button is named by the goal; 我来演 alone has none', () => {
   assert.equal(startLabel('perform', false), null)
   assert.equal(startLabel('perform', true), '开播')
   assert.deepEqual((['live', 'chat', 'video'] as const).map((goal) => startLabel(goal, false)), ['开播', '开始聊天', '开录'])
+  // by what the start does: a 直播间 is 开播, your part 开始聊天, the characters among themselves 开始, a recording 开录
+  assert.equal(startLabel('live', false, { audience: 'me', you: 'none' }), '开始')
+  assert.equal(startLabel('chat', false, { audience: 'live', you: 'type' }), '开播')
+  assert.equal(startLabel('perform', true, { audience: 'me', you: 'camera' }), '开始聊天')
+  assert.equal(startLabel('video', false, { audience: 'live', you: 'none' }), '开录')
 })
 
 test("a stage's goal: the one picked, else its template's start", () => {

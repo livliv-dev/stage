@@ -1,7 +1,7 @@
-// The one start: a goal and its options, run as one of today's sessions (shell/goals.ts says which).
+// The one start: a goal and its options, run as one of today's sessions (shell/goals.ts says which, and
+// shell/startCalls.ts with which arguments).
 import { talk } from '../conversation'
 import { loadBrainConfig } from '../brain'
-import { chooseEngine, engineReason } from '../brains/select'
 import { features } from '../core/platform'
 import { tr } from '../i18n'
 import { asrReady, activeSpeech, voiceRoute } from '../voiceApi'
@@ -9,38 +9,32 @@ import { accountNow } from '../livliv'
 import { participants, store, type Goal } from '../scene'
 import { rec } from '../recording'
 import { setHandsFree } from '../ptt'
-import { startPlan, type StartOptions, type StartPlan } from './goals'
-import { liveGame, liveSetup } from './liveSetup'
+import { startPlan, type StartOptions, type StartPlan, type StartStage } from './goals'
+import { liveSetup } from './liveSetup'
+import { startCalls, type StartInput } from './startCalls'
+
+const stageNow = (): StartStage => ({ cast: participants(store.get()), hear: asrReady(activeSpeech()) || accountNow().status === 'in', demo: loadBrainConfig().kind === 'demo' })
 
 /** what the stage offers a start now */
-export function planNow(goal: Goal, options: StartOptions): StartPlan {
-  const cast = participants(store.get())
-  return startPlan(goal, options, { cast, hear: asrReady(activeSpeech()) || accountNow().status === 'in', demo: loadBrainConfig().kind === 'demo' })
+export const planNow = (goal: Goal, options: StartOptions): StartPlan => startPlan(goal, options, stageNow())
+
+/** what a start would be given now */
+export function startInput(goal: Goal, options: StartOptions, firstLine = ''): StartInput {
+  const ai = participants(store.get()).filter((c) => c.lines === 'ai' && !c.remote).map((c) => ({ id: c.id, remote: c.remote, muted: c.muted, voice: voiceRoute(c) }))
+  return { goal, options, firstLine, stage: stageNow(), ai, brain: loadBrainConfig(), features, live: liveSetup.get() }
 }
 
 /** starts it; an error in words when it can't. A first line (和角色聊天's, typed before the start) starts the chat with
  *  that line as your first message */
 export async function startGoal(goal: Goal, options: StartOptions, firstLine = '') {
-  const plan = planNow(goal, options)
-  if ('blocked' in plan) throw new Error(tr(plan.blocked))
-  const t = store.get().talk, ai = participants(store.get()).filter((c) => c.lines === 'ai' && !c.remote)
-  // subtitles only when a character has no voice (muted or not): the 直播间 session asks it of every character
-  const textOnly = ai.some((c) => voiceRoute(c) === 'none')
-  // 直播间: AIRI when the rule picks it (brains/select.ts), which a game or a game window asks for
-  let airi: { windowId: string; game?: ReturnType<typeof liveGame>['game'] } | undefined
-  if (plan.session === 'live') {
-    const setup = liveSetup.get(), { needsAiri, game, windowId, portsReady } = liveGame(setup)
-    const engine = chooseEngine(loadBrainConfig(), ai, { kind: 'live', textOnly, needsAiri, voice: ai[0] && voiceRoute(ai[0]) }, features)
-    if (needsAiri && engine.engine !== 'airi') throw new Error(tr('游戏需要内置 AIRI：{0}', engineReason(engine, ai.length)))
-    if (!portsReady) throw new Error(tr('两个端口应连接同一个运行 Autorio 的存档。'))
-    if (engine.engine === 'airi') airi = { windowId, game }
-  }
-  // a recording that starts the characters talking (录制's 同时开始对话) is the conversation's start
-  if (plan.record) await rec.start({ mic: false, talk: plan.session === 'conversation' })
-  if (plan.session === 'conversation') { if (!plan.record) talk.start() }
-  else if (plan.session === 'chat') { if (firstLine.trim()) await talk.say(firstLine, { chat: true }); else await talk.startChat() }
-  else talk.startLive({ minutes: t.chatMinutes ?? 60, maxGenerations: t.chatGenerations ?? 100, warmupSeconds: liveSetup.get().warmupSeconds, textOnly, ...(airi ? { airi } : {}) })
-  if (plan.handsFree) await setHandsFree(true)
+  const calls = startCalls(startInput(goal, options, firstLine))
+  if ('blocked' in calls) throw new Error(tr(calls.blocked, ...(calls.args ?? [])))
+  if (calls.record) await rec.start(calls.record)
+  const call = calls.call
+  if (call?.kind === 'conversation') talk.start()
+  else if (call?.kind === 'chat') { if (call.firstLine) await talk.say(call.firstLine, { chat: true }); else await talk.startChat() }
+  else if (call?.kind === 'live') talk.startLive(call.options)
+  if (calls.handsFree) await setHandsFree(true)
 }
 
 /** 和角色聊天 started by you: the console's field takes your first line, not a topic */
@@ -48,3 +42,7 @@ export const firstLineStart = (goal: Goal, options: StartOptions) => goal === 'c
 
 /** what a start would turn on that makes it public: a 直播间, a recording */
 export const startGoesOut = (goal: Goal, options: StartOptions) => options.audience === 'live' || goal === 'video'
+
+/** speech recognition a start would pay for with points: holding to talk or hands-free with no recognition API of
+ *  one's own (it goes through livliv.ai's, which charges each utterance). Space starts nothing that pays */
+export const paidHearing = (options: StartOptions) => (options.you === 'hold' || options.you === 'handsfree') && !asrReady(activeSpeech())

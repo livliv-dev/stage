@@ -51,6 +51,7 @@
 .popover.checklist footer .hint { font-size: 12px; color: var(--fg-3); }
 
 .popover.start-options .option-row { padding: 10px 0; border-top: 1px solid var(--line); }
+.popover.start-options .option-topic { padding: 2px 0 10px; }
 .popover.start-options .option-row:first-of-type { border-top: 0; padding-top: 2px; }
 .popover.start-options h3 { font-size: 13px; font-weight: 600; margin: 0 0 6px; }
 .popover.start-options .who { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 0; }
@@ -138,9 +139,12 @@
   .start-rows > span { padding: 0 6px; max-width: none; }
   .console.next .say-bar { flex-wrap: wrap; border-radius: 18px; }
   .console.next .say-bar input { flex-basis: 100%; }
+  .popover.live-settings, .popover.record { left: 8px; right: 8px; width: auto; top: 60px; bottom: auto; max-height: calc(100dvh - var(--console-h, 130px) - 90px); overflow-y: auto; }
 }
 
-/* 请朋友上台, at the foot of the cast; the friend's panel opens beside the left column */
+/* 请朋友上台, at the foot of the cast, with 好友联播's state; the friend's panel opens beside the left column */
+.friend-state { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.friend-state:empty { display: none; }
 .cast-friend { position: absolute; left: 8px; right: 8px; bottom: 8px; justify-content: flex-start; border-radius: 10px; font-size: 13px; color: var(--fg-2); }
 .cast-friend.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 /* beside the left column on a wide window; a narrow one keeps the card's own place, inside the window */
@@ -152,8 +156,14 @@
 .app.narrow.selected .panel { display: block; position: absolute; left: 8px; right: 8px; top: 60px; bottom: calc(var(--console-h, 130px) + 22px); width: auto; z-index: var(--z-pop); }
 .app.narrow .topbar { gap: 4px; padding-inline: 8px; }
 .app.narrow .topbar .mark { width: 74px; }
-.app.narrow .topbar .seg.mode, .app.narrow .topbar .right > .sep, .app.narrow .topbar .right > button.icon:not([title="设置"]):not(:has(svg.lucide-settings)), .app.narrow .topbar .menu-anchor:not(.scene-switcher) { display: none; }
-.app.narrow .topbar .name { width: 116px; min-width: 0; flex: none; }
+.app.narrow .topbar .seg.mode, .app.narrow .topbar .right > .sep, .app.narrow .topbar .right > button.icon:not([title="设置"]):not(:has(svg.lucide-settings)), .app.narrow .topbar .menu-anchor:not(.scene-switcher):not(.narrow-menu) { display: none; }
+/* the phone's menu: the cast, 请朋友上台, undo, the mixer and the project, which the narrow top bar has no room for */
+.narrow-menu .icon { position: relative; }
+.narrow-menu .icon .friend-state { position: absolute; top: -4px; right: -4px; }
+.narrow-menu .dropdown { right: 0; left: auto; min-width: 200px; }
+.narrow-menu .item b { display: flex; align-items: center; gap: 6px; }
+.app.narrow.cast-open .cast { display: flex; left: 8px; right: 8px; top: 60px; bottom: calc(var(--console-h, 130px) + 22px); width: auto; z-index: var(--z-pop); }
+.app.narrow .topbar .name { width: 88px; min-width: 0; flex: none; }
 .app.narrow .topbar .scene-switcher > button { flex: none; }
 /* 录制 keeps its dot and its title; the word gives its room to the stage name */
 .app.narrow .topbar .rec:not(.live) { font-size: 0; gap: 0; padding: 0; width: 32px; justify-content: center; }

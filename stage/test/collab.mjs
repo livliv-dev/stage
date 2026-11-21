@@ -86,7 +86,10 @@ try {
   for (const [index, page] of [guest, third].entries()) {
     await page.getByRole('button', { name: '加入好友联播', exact: true }).click(); await page.getByLabel('朋友的邀请码', { exact: true }).fill(invite); await page.getByRole('button', { name: '分享并申请加入' }).click(); await page.getByText('等待房主接纳', { exact: true }).waitFor()
     assert.equal(await page.locator('.room-members').count(), 0)
+    // the host sees the request where 好友联播 is entered: 请朋友上台 counts who waits, by the room's dot
+    await host.locator('.cast-friend .room-count').filter({ hasText: '1' }).waitFor(); assert.equal(await host.locator('.cast-friend .live-dot.on').count(), 1)
     await host.locator('.collab-pending .room-member').filter({ hasText: index ? 'Third' : 'Guest' }).getByRole('button', { name: '接纳', exact: true }).click()
+    await host.locator('.cast-friend .room-count').waitFor({ state: 'detached' })
     for (const target of pages.slice(0, index + 2)) await target.waitForFunction((count) => window.__stage.actors.size === count && [...window.__stage.actors.values()].every((actor) => actor.status === 'ready'), index + 2, { timeout: 30000 })
     if (index === 0) await host.evaluate(async () => { const { record } = await import('/src/tape.ts'); window.testTake = await record(false) })
   }

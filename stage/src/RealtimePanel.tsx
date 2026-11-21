@@ -32,6 +32,8 @@ export function RealtimePanel({ onClose, onSettings }: { onClose: () => void; on
         <button className="link" onClick={onSettings}>{tr('去「设置 → 连接」')}</button>
       </div> : <button className="link" onClick={onSettings}>{tr('去「设置 → 连接」')}</button>}
       {active ? <p className="live-status" role="status">{tr(conversation.scope === 'public' ? '公开记忆' : '私聊')} · {tr((microphone.muted || !microphone.volume) && state.phase === 'listening' ? '麦克风已静音' : label)}</p> : <fieldset className="realtime-fields" disabled={conversation.running}>
+        {/* what the call is about: it takes the topic when it starts */}
+        <label className="field"><span>{tr('话题')}</span><input value={scene.topic} placeholder={tr('话题，比如：周末去哪儿玩')} onChange={(event) => store.set({ topic: event.target.value })} /></label>
         <label className="field"><span>{tr('通话角色')}</span><select aria-label={tr('通话角色')} value={target?.id ?? ''} onChange={(event) => setCharacter(event.target.value)}>{cast.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
         <label className="field"><span>{tr('接话方式')}</span><select aria-label={tr('接话方式')} value={settings.semantic ? 'semantic' : 'fast'} onChange={(event) => setSettings({ ...settings, semantic: event.target.value === 'semantic' })}><option value="semantic">{tr('理解说完后接话')}</option><option value="fast">{tr('停顿后快速接话')}</option></select></label>
         {!settings.semantic && <label className="field"><span>{tr('停顿时间')}</span><select aria-label={tr('停顿时间')} value={settings.silence} onChange={(event) => setSettings({ ...settings, silence: +event.target.value })}>{[300, 450, 700].map((value) => <option key={value} value={value}>{value} ms</option>)}</select></label>}

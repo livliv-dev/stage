@@ -11,13 +11,13 @@ import { AudiencePanel } from '../AudiencePanel'
 import { participants, store, useScene, ORDERS, type Goal } from '../scene'
 import { CONTROLS, controlOf, controlSettings } from '../workflow'
 import { AUDIENCES, YOUS, optionsOf, startLabel, youHint, type StartOptions } from './goals'
-import { planNow } from './start'
+import { firstLineStart, planNow } from './start'
 import { liveSetup, useLiveSetup } from './liveSetup'
 
 export function StartButton({ goal, partner, onStart }: { goal: Goal; partner: boolean; onStart: () => void }) {
-  const { scene } = useScene(), conv = useConversation(), label = startLabel(goal, partner)
+  const { scene } = useScene(), conv = useConversation(), options = optionsOf(scene.talk, goal, partner), label = startLabel(goal, partner, options)
   if (!label) return null
-  const plan = planNow(goal, optionsOf(scene.talk, goal, partner))
+  const plan = planNow(goal, options)
   return <button className="primary start-button" disabled={conv.running || 'blocked' in plan} title={'blocked' in plan ? tr(plan.blocked) : undefined} onClick={onStart}><Play size={14} />{tr(label)}</button>
 }
 
@@ -41,10 +41,12 @@ export function StartOptionsCard({ goal, partner, onClose }: { goal: Goal; partn
   const cast = participants(scene).filter((c) => !c.remote), ai = cast.filter((c) => c.lines === 'ai').length
   const plan = planNow(goal, options)
   const reason = (you: StartOptions['you']) => { const p = planNow(goal, { ...options, you }); return 'blocked' in p && /语音识别|我来演/.test(p.blocked) ? p.blocked : '' }
-  const lines = options.audience === 'me' && options.you === 'none'
+  const lines = options.audience === 'me' && options.you === 'none', toRoom = options.audience === 'live'
   const limitRef = useRef<HTMLInputElement>(null)
   return <div className="card popover start-options" role="dialog" aria-label={tr('开始选项')} onPointerDown={(e) => e.stopPropagation()}>
     <header><span className="title">{tr('开始选项')}</span><button className="icon" data-close="true" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button></header>
+    {/* the console's field takes your first line here: the topic is set in the options */}
+    {firstLineStart(goal, options) && <section className="option-topic"><label className="field"><span>{tr('话题')}</span><input value={scene.topic} placeholder={tr('话题，比如：周末去哪儿玩')} onChange={(e) => store.set({ topic: e.target.value })} /></label></section>}
     <section className="option-row">
       <h3>{tr('谁上场')}</h3>
       {!cast.length && <p className="hint">{tr('舞台上还没有角色')}</p>}
@@ -64,9 +66,11 @@ export function StartOptionsCard({ goal, partner, onClose }: { goal: Goal; partn
     </section>
     <section className="option-row limits">
       <h3>{tr('上限')}</h3>
-      {!lines && <label className="field"><span>{tr('时长')}</span><select value={t.chatMinutes ?? 60} disabled={conv.running} onChange={(e) => store.setTalk({ chatMinutes: +e.target.value })}>{[15, 30, 60, 120].map((m) => <option key={m} value={m}>{tr('{0} 分钟', m)}</option>)}</select></label>}
-      <label className="field"><span>{tr('最多几句')}</span><input ref={limitRef} type="number" min={1} max={lines ? 60 : 500} disabled={conv.running} value={lines ? conv.limit : t.chatGenerations ?? 100}
-        onChange={(e) => { const n = +e.target.value; if (!Number.isInteger(n) || n < 1) return; if (lines) talk.setLimit(n); else if (n <= 500) store.setTalk({ chatGenerations: n }) }} /></label>
+      {/* a 直播间 keeps its own limits (30 minutes unless changed, a minute at the least); a chat its own (60) */}
+      {toRoom ? <label className="field"><span>{tr('时长')}</span><select value={live.minutes} disabled={conv.running} onChange={(e) => liveSetup.set({ minutes: +e.target.value })}>{[1, 15, 30, 60, 120].map((m) => <option key={m} value={m}>{tr('{0} 分钟', m)}</option>)}</select></label>
+        : !lines && <label className="field"><span>{tr('时长')}</span><select value={t.chatMinutes ?? 60} disabled={conv.running} onChange={(e) => store.setTalk({ chatMinutes: +e.target.value })}>{[15, 30, 60, 120].map((m) => <option key={m} value={m}>{tr('{0} 分钟', m)}</option>)}</select></label>}
+      <label className="field"><span>{tr('最多几句')}</span><input ref={limitRef} type="number" min={1} max={lines ? 60 : 500} disabled={conv.running} value={toRoom ? live.maxGenerations : lines ? conv.limit : t.chatGenerations ?? 100}
+        onChange={(e) => { const n = +e.target.value; if (!Number.isInteger(n) || n < 1) return; if (toRoom) { if (n <= 500) liveSetup.set({ maxGenerations: n }) } else if (lines) talk.setLimit(n); else if (n <= 500) store.setTalk({ chatGenerations: n }) }} /></label>
     </section>
     <details className="advanced"><summary>{tr('更多：语言、节奏、谁先说')}</summary>
       <label className="field"><span>{tr('说什么语言')}</span><select value={t.language} onChange={(e) => store.setTalk({ language: e.target.value as typeof t.language })}><option value="auto">{tr('跟话题一样')}</option><option value="zh">{tr('中文')}</option><option value="en">English</option><option value="ja">{tr('日本語')}</option></select></label>

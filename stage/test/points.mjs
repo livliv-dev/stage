@@ -168,6 +168,22 @@ try {
   ])
   assert.equal(background.lines.at(-1).text, '最近的对话19')
   assert.equal(background.lines.at(-1).me, true, 'real character lines retain their attribution')
+  // Space with 免按键 and no recognition API of one's own: what you say would be recognised through livliv.ai, which
+  // charges each utterance; from a key it starts nothing (the button does)
+  {
+    await page.evaluate(() => window.__stage.talk.stop())
+    await patchAll({ ids, patch: 'system' })
+    await page.evaluate(async () => {
+      (await import('/src/brain.ts')).saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' })
+      window.__stage.store.setTalk({ goal: 'chat', audience: 'me', you: 'handsfree' })
+    })
+    await page.evaluate(() => document.activeElement?.blur?.()); await page.keyboard.press('Space')
+    await page.locator('.toast').filter({ hasText: '用积分识别语音' }).waitFor()
+    await page.waitForTimeout(1000)
+    assert.equal((await conv()).running, false, 'Space starts no session with recognition paid in points')
+    assert.equal(await page.locator('.handsfree-status').count(), 0, 'hands-free stays off')
+    await page.evaluate(() => window.__stage.store.setTalk({ you: 'type' }))
+  }
   console.log(JSON.stringify({ talk: talkLine, textOnly, system, muted, say: said.length }))
 } catch (e) {
   console.error(e); process.exitCode = 1

@@ -1,5 +1,6 @@
 // The console under the stage. Before a start: the topic (和角色聊天 started by you: your first line, which Enter or the
-// button sends as the chat's start), the start's three rows and its button; after the demo,
+// button sends as the chat's start, and the topic in the start options), the start's three rows and its button; while
+// one runs, the topic stays above what you say; after the demo,
 // watching it again or 用你的模型重来一遍 (the checklist). Once started: what you say (as whom, typed, held to talk, or
 // hands-free while that is on), 跳过这句, 暂停, 结束, the transcript and the memory. Under both, the status line.
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -65,6 +66,8 @@ export function Console({ goal, partner, checks, optionsOpen, onOptions, onCheck
   </div>
   const closed = inRealtime && (realtime.phase === 'connecting' || conv.paused)
   return <div className="console next running" ref={measure} onPointerDown={(e) => e.stopPropagation()}>
+    {/* the topic stays at hand: the next line is made with it (a call takes it when it starts) */}
+    {!inRealtime && <div className="talkbar run-bar topic-bar"><input className="topic" value={scene.topic} placeholder={tr('话题，比如：周末去哪儿玩')} aria-label={tr('话题')} onChange={(e) => store.set({ topic: e.target.value })} /></div>}
     <div className={`talkbar say-bar${conv.waiting ? ' waiting' : ''}`}>
       {(yours.length > 0 || conv.mode === 'conversation') && <select className="as" value={as} aria-label={tr('以谁的身份说')} disabled={!!conv.waiting} onChange={(e) => talk.setAs(e.target.value)}>
         {yours.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}<option value="narrator">{tr('旁白')}</option>

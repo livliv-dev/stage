@@ -65,7 +65,7 @@ async function testItem(id: CheckId, signal: AbortSignal): Promise<string> {
     const a = ai.map((c) => actors.get(c.id)).find((x) => x?.status === 'ready')
     if (!a) throw new Error(tr('角色载入后可试听。'))
     const take = await a.prepare(tr('你好，我是{0}。', a.item.name), 'happy', true, signal)
-    if (take.mute) throw new Error(a.voiceError || tr('角色还没有声音，请设置声音或选择仅字幕'))
+    if (take.mute) throw new Error(a.voiceError || tr('角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕'))
     await a.perform(take, 'happy', 'nod', signal)
     return tr('{0} 说完了', a.item.name)
   }

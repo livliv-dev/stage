@@ -52,7 +52,7 @@ LivLiv 官方 AI 保留既有积分对话与角色声音接口。客户端在原
 
 ## 与实时通话的衔接
 
-可选的 WebRTC 实时/双工语音已接入百炼与 OpenAI，使用同一份档案、公开范围、摘要和记忆，配置与验证见 [实时语音说明](realtime-voice.md)。传输由独立声路处理，不在 Neuro 模块实现。普通识别/TTS 与 Realtime 都需要向会话层报告：用户开始发言、已经播放的内容、角色发声、整轮完成及中断。
+可选的 WebRTC 实时/双工语音已接入百炼与 OpenAI，使用同一份档案、公开范围、摘要和记忆，配置与验证见 [实时通话说明](realtime-voice.md)。传输由独立声路处理，不在 Neuro 模块实现。普通识别/TTS 与 Realtime 都需要向会话层报告：用户开始发言、已经播放的内容、角色发声、整轮完成及中断。
 
 本轮提供 `talk.hearing()`、`talk.onSpeech()` 及完整的轮次取消路径。`onSpeech` 的 `final:false` 表示句段/播放状态变化，整轮结束才发送 `final:true`，并保留 `cancelled`。Realtime 已接入同一份档案、公开范围、摘要和记忆；未播放的完整转录不会存为已说内容。录制和联播仍应经过 Actor/Player 的既有声路。
 
