@@ -198,9 +198,10 @@ export default function App() {
   // after the demo, the same characters with a model of one's own: they talk among themselves (和角色聊天, you only
   // watching), and the checklist says what is still needed
   const ownModel = () => { playDemo(false); store.setTalk({ goal: 'chat', audience: 'me', you: 'none' }); setPop('checklist') }
-  // the 直播间 card opened from the checklist (its 游戏 or 直播间弹幕) goes back there when closed
-  const [roomBack, setRoomBack] = useState<Pop>(null)
-  useEffect(() => { if (pop !== 'live') setRoomBack(null) }, [pop])
+  // a card opened from the checklist (the 直播间 card for its 游戏 or 直播间弹幕, the start options for Twitch) goes
+  // back there when closed
+  const [detourBack, setDetourBack] = useState<Pop>(null)
+  useEffect(() => { if (pop !== 'live' && pop !== 'start-options') setDetourBack(null) }, [pop])
   // a phone: the cast as a sheet, opened from the top bar's menu
   const [castOpen, setCastOpen] = useState(false)
   const selectedId = store.selected()
@@ -212,10 +213,10 @@ export default function App() {
     else if (target === 'connect:realtime') openModels('realtime', false, 'checklist')
     // 实时通话 set up: its own card, where the call starts
     else if (target === 'realtime') { if (checks.find((c) => c.id === 'realtime')?.state === 'ok') setPop('realtime'); else openModels('realtime', false, 'checklist') }
-    else if (target === 'live-room') { setRoomBack('checklist'); setPop('live') }
+    else if (target === 'live-room') { setDetourBack('checklist'); setPop('live') }
     else if (target === 'character:who') { select('me'); showCardPage('who') }
     else if (target === 'character:voice') { select('ai'); showCardPage('persona') }
-    else if (target === 'options') setPop('start-options')
+    else if (target === 'options') { setDetourBack('checklist'); setPop('start-options') }
     else { setSettingsTab('general'); setPop('settings') }
   }
   useShortcuts({
@@ -254,10 +255,10 @@ export default function App() {
             onModel={() => openModels('chat')} onVoice={() => fix('character:voice')} onRoom={() => toggle('live')} onRealtime={() => toggle('realtime')}
             onLog={() => { setLog((on) => !on || logView === 'memory'); setLogView('history') }} onMemory={() => { setLogView('memory'); setLog(true) }} />}
         {pop === 'checklist' && <Checklist goal={goal} partner={partner} startLabel={startLabel(goal, partner, optionsOf(scene.talk, goal, partner))} onStart={startNow} onFix={fix} onClose={() => setPop(null)} />}
-        {pop === 'start-options' && <StartOptionsCard goal={goal} partner={partner} onClose={() => setPop(null)} />}
+        {pop === 'start-options' && <StartOptionsCard goal={goal} partner={partner} onClose={() => setPop(detourBack)} />}
         {kept('mixer') && <Kept on={pop === 'mixer'}><MixerPanel onClose={() => setPop(null)} onSettings={() => openModels('speech', false, 'mixer')} /></Kept>}
         {kept('collab') && <Kept on={pop === 'collab'}><CollabPanel onClose={() => setPop(null)} onSettings={() => openModels('speech', false, 'collab')} /></Kept>}
-        {kept('live') && <Kept on={pop === 'live'}><LivePanel onClose={() => setPop(roomBack)} /></Kept>}
+        {kept('live') && <Kept on={pop === 'live'}><LivePanel onClose={() => setPop(detourBack)} /></Kept>}
         {pop === 'realtime' && <RealtimePanel onClose={() => setPop(null)} onSettings={() => openModels('realtime', false, 'realtime')} />}
         {log && <Transcript view={logView} setView={setLogView} onClose={() => setLog(false)} right={bare ? 80 : 324} />}
         {pop === 'add' && <AddCharacter left={228} onClose={() => setPop(null)} onSignIn={() => { setSettingsTab('account'); setPop('settings') }} />}
