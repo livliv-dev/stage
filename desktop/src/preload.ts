@@ -9,6 +9,7 @@
 //   window.clickThrough(mode) / alwaysOnTop(on) / minimize() / close() / menu() / dragStart() / dragEnd()
 //   window.openStage('/live/<id>?…')     opens a stage window
 //   onCommand(cb) -> unsubscribe        a stage's commands (hotkeys, local endpoint), as CmdBody
+//   secrets.all() / set(name, key)       the API keys, encrypted by the system (the Stage editor only; secrets.ts)
 //   voicebox.profiles() / speak(id, line, language) / transcribe(id, wav, language) / cancel(id)   Voicebox on this
 //                                        computer (the Stage editor only; results, never thrown: voicebox.ts)
 import type { MotionEvent, MotionSettings, MotionState } from './trackingProtocol'
@@ -73,6 +74,11 @@ if (info) {
         },
       },
       tracking: { get: (): Promise<MotionState> => invoke('livliv:tracking', 'get'), set: (settings: MotionSettings): Promise<MotionState> => invoke('livliv:tracking', 'set', settings) },
+      // the API keys, kept encrypted by the system (secrets.ts): all, once as the page starts (null: no system encryption)
+      secrets: {
+        all: (): Record<string, string> | null => ipcRenderer.sendSync('livliv:secrets', 'all'),
+        set: (name: string, value: string): boolean => ipcRenderer.sendSync('livliv:secrets', 'set', name, value),
+      },
       voicebox: {
         profiles: (): Promise<VoiceboxResult<VoiceboxProfile[]>> => invoke('livliv:voicebox', 'profiles'),
         speak: (id: string, line: { profile: string; text: string }, language: string): Promise<VoiceboxResult<ArrayBuffer>> => invoke('livliv:voicebox', 'speak', id, line, language),

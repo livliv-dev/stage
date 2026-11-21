@@ -15,6 +15,7 @@ import type { Emotion, StreamingVoice } from './core/lines'
 import { modelId, signedIn } from './livliv'
 import type { CharacterItem } from './scene'
 import { features } from './core/platform'
+import { readKeyed, writeKeyed } from './core/secrets'
 import { asrReady, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speechProviderOf, speechReady, VOICEBOX_SPEECH, type SpeechApi, type SpeechProvider } from './speechProviders'
 export { asrReady, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speechProviderOf, speechReady, VOICEBOX_SPEECH, type SpeechApi, type SpeechProvider }
 import { defaultProfile, detectVoicebox, onVoicebox, voiceboxHere, voiceboxReady, voiceboxSpeak, voiceboxState, voiceboxTranscribe } from './voicebox'
@@ -27,14 +28,14 @@ export const SPEECH_HERE = SPEECH_PROVIDERS.filter((p) => (p.id !== 'voicebox' |
 
 const KEY = 'livliv-stage:speech'
 function load(): SpeechApi {
-  try { return { ...SPEECH_UNSET, ...JSON.parse(localStorage.getItem(KEY) || 'null') } } catch { return SPEECH_UNSET }
+  try { return { ...SPEECH_UNSET, ...JSON.parse(readKeyed(KEY) || 'null') } } catch { return SPEECH_UNSET }
 }
 let config = load()
 const subs = new Set<() => void>()
 export const loadSpeech = () => config
 export function saveSpeech(s: SpeechApi) {
   config = s
-  try { localStorage.setItem(KEY, JSON.stringify(s)) } catch { /* private mode */ }
+  try { writeKeyed(KEY, s) } catch { /* private mode */ }
   subs.forEach((f) => f())
 }
 export const useSpeech = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => config)

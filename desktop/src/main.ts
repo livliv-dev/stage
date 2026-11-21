@@ -5,7 +5,7 @@
 // (stageApp.ts). Global commands go to the editor; the site shell keeps its separate live windows, endpoint and tray.
 import { randomBytes } from 'node:crypto'
 import { join } from 'node:path'
-import { app, BrowserWindow, globalShortcut, Menu, type MenuItemConstructorOptions } from 'electron'
+import { app, BrowserWindow, globalShortcut, Menu, safeStorage, type MenuItemConstructorOptions } from 'electron'
 import { parseDo } from './commands'
 import { APP, APP_ORIGIN, DEV, flag, LIVLIV_API, ORIGINS, STAGE_BUILT, STAGE_DIR, VERSION, WEBGL_CONTEXTS } from './config'
 import { applyHotkeys, defaultBindings, hotkeyState, stageBindings } from './hotkeys'
@@ -26,6 +26,8 @@ import { NeuroHost } from './neuroHost'
 import { CollabHost } from './collabHost'
 import { AiriGameHost } from './airiGameHost'
 import { VOICEBOX_URL, voiceboxClient } from './voicebox'
+import { secretsStore } from './secrets'
+import { readFileSync, renameSync, writeFileSync } from 'node:fs'
 
 // ---------------------------------------------------------------- global hotkeys
 
@@ -53,6 +55,13 @@ const collab = APP === 'stage' ? new CollabHost({ editor: mainContents }) : null
 const airiGames = APP === 'stage' ? new AiriGameHost(process.env.AIRICRAFT_BRIDGE_STATE_FILE || join(app.getPath('home'), '.airicraft', 'bridge-state.json')) : null
 // Voicebox where it listens (a test points it at a stand-in, in development)
 const voicebox = APP === 'stage' ? voiceboxClient({ fetch, base: (DEV && process.env.VOICEBOX_URL) || VOICEBOX_URL }) : null
+// the API keys, encrypted by the system, in the app's own folder (written whole, readable by this user only)
+const keysFile = () => join(app.getPath('userData'), 'keys.json')
+const secrets = APP === 'stage' ? secretsStore({
+  encryption: safeStorage,
+  read: () => { try { return readFileSync(keysFile(), 'utf8') } catch { return null } },
+  write: (text) => { const file = keysFile(), next = file + '.tmp'; writeFileSync(next, text, { mode: 0o600 }); renameSync(next, file) },
+}) : null
 let api: LocalApi | null = null
 let apiError: string | null = null
 let apiQueue = Promise.resolve()
@@ -135,6 +144,7 @@ else {
       ...(neuro ? { neuro } : {}),
       ...(airiGames ? { airiGames } : {}),
       ...(voicebox ? { voicebox } : {}),
+      ...(secrets ? { secrets } : {}),
       ...(motionInput ? { tracking: { get: () => motionInput.state(), set: async (value) => { update((s) => { s.trackingInput = value }); return motionInput.configure(value) } } } : {}),
       capabilities: () => (APP === 'stage' ? ['global-hotkeys', ...(api ? ['local-commands'] : [])] : capabilities()),
       ...(APP === 'stage' ? { stageApi: { get: stageApiState, set: async (enabled: boolean) => { update((s) => { s.stageApi.enabled = enabled }); await syncLocalApi(); return stageApiState() }, rotate: () => { update((s) => { s.token = randomBytes(16).toString('hex') }); return stageApiState() } } } : {}),

@@ -32,6 +32,9 @@ export type Desktop = {
     onState(callback: (state: NeuroState) => void): () => void
   }
   tracking?: { get(): Promise<MotionState>; set(settings: MotionSettings): Promise<MotionState> }
+  /** the API keys, encrypted by the system (the Stage editor; desktop/src/secrets.ts): all of them (null without system
+   *  encryption), and one saved. Absent in older desktop builds */
+  secrets?: { all(): Record<string, string> | null; set(name: string, value: string): boolean }
   /** Voicebox on this computer (the Stage editor; desktop/src/voicebox.ts): absent in older desktop builds */
   voicebox?: {
     profiles(): Promise<VoiceboxResult<VoiceboxProfile[]>>

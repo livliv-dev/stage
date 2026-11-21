@@ -29,6 +29,7 @@
     "test:stage-collab": "npm run build && npm run stage:web && node test/collab-stage.mjs",
     "stage:web-dev": "cd ../stage && NODE_ENV=development node node_modules/vite/bin/vite.js build --outDir dist-dev --emptyOutDir",
     "test:airi-stage": "npm run build && npm run stage:web-dev && STAGE_TEST_RESOURCES=\"$PWD/../stage/dist-dev\" node test/airi-stage.mjs",
+    "test:keys-stage": "npm run build && npm run stage:web-dev && STAGE_TEST_RESOURCES=\"$PWD/../stage/dist-dev\" node test/keys-stage.mjs",
     "test:voicebox-stage": "npm run build && npm run stage:web-dev && STAGE_TEST_RESOURCES=\"$PWD/../stage/dist-dev\" node test/voicebox-stage.mjs",
     "test:airi-native-games": "npm run build && npm run stage:web-dev && STAGE_TEST_RESOURCES=\"$PWD/../stage/dist-dev\" node test/airi-native-games.mjs",
     "test:handsfree-stage": "npm run build && npm run stage:web && node test/handsfree-stage.mjs",

@@ -16,6 +16,7 @@ import { readCollabConfig, type CollabConfig, type CollabState } from './collabP
 import type { AiriGameHost } from './airiGameHost'
 import { readAiriGameConfig } from './airiGameProtocol'
 import type { VoiceboxClient } from './voicebox'
+import type { SecretsStore } from './secrets'
 
 export type IpcDeps = {
   collab?: { state(): CollabState; start(config: CollabConfig): Promise<CollabState>; close(): Promise<CollabState> }
@@ -24,6 +25,7 @@ export type IpcDeps = {
   stageApi?: { get(): StageApiState; set(enabled: boolean): Promise<StageApiState>; rotate(): StageApiState }
   airiGames?: AiriGameHost
   voicebox?: VoiceboxClient
+  secrets?: SecretsStore
   capabilities: () => string[]
   local: () => { port: number; commandUrl: string } | null
   hotkeys: { list: () => HotkeyState[]; set: (b: Binding[] | null) => HotkeyState[]; enabled: () => boolean; enable: (on: boolean) => HotkeyState[] }
@@ -33,6 +35,14 @@ export function registerIpc(deps: IpcDeps) {
   ipcMain.on('livliv:info', (e) => {
     const role = stageOf(BrowserWindow.fromWebContents(e.sender)) ? 'stage' : 'main'
     e.returnValue = trusted(e) ? { api: 1, version: VERSION, platform: process.platform, role, stageEditor: APP === 'stage' && e.sender === mainContents() } : null
+  })
+  // the API keys, kept encrypted (secrets.ts): read once as the editor starts, written as they are saved; synchronous,
+  // so a key saved is kept before the page goes on. The Stage editor only; never logged
+  ipcMain.on('livliv:secrets', (e, op, name, value) => {
+    const store = deps.secrets
+    if (!store || !trusted(e) || APP !== 'stage' || e.sender !== mainContents()) { e.returnValue = op === 'all' ? null : false; return }
+    try { e.returnValue = op === 'all' ? store.all() : op === 'set' ? store.set(name, value) : false }
+    catch { e.returnValue = op === 'all' ? null : false }
   })
   // a stage page that takes commands (it says so on load): only those count as delivered, as the server counts stages
   ipcMain.on('livliv:listening', (e, n) => {
