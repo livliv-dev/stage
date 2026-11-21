@@ -33,7 +33,7 @@ try {
   await page.locator('.settings-head button[data-close]').click(); await page.getByRole('button', { name: '模板', exact: true }).click(); await page.locator('.topbar .dropdown').getByRole('button', { name: /^双人聊天/ }).click()
   const cast = (await wait(state, (s) => s.characters.length === 2 && s.characters.every((c) => c.status === 'ready'), 'characters did not load')).characters, id = cast[0].id
   const avatar = async () => (await state()).characters.find((c) => c.id === id)
-  await page.locator('.actor-select').first().click(); await page.locator('details.advanced > summary').filter({ hasText: '动作与更多设置' }).click(); await page.getByRole('button', { name: '手机 / OSC', exact: true }).click()
+  await page.locator('.actor-select').first().click(); await page.locator('.card-pages button', { hasText: '谁来演' }).click(); await page.getByRole('button', { name: '手机 / OSC', exact: true }).click()
   const panel = page.locator('.panel .network-panel'), port = await freePort()
   await panel.getByLabel('接收端口', { exact: true }).fill(String(port)); await panel.getByRole('button', { name: '开始接收', exact: true }).click()
   await wait(() => page.evaluate(() => window.livlivDesktop.tracking.get()), (s) => s.listening && s.settings.port === port, 'UDP did not open')
