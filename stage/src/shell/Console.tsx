@@ -1,6 +1,6 @@
 // The console under the stage. Before a start: the topic, the start's three rows and its button. Once started: what
 // you say (typed, or held to talk), 跳过这句, 暂停, 结束. Under both, the status line.
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { LoaderCircle, MessagesSquare, Mic, Pause, Play, Send, SkipForward, Square } from 'lucide-react'
 import { tr } from '../i18n'
 import { talk, useConversation } from '../conversation'
@@ -23,8 +23,9 @@ export function Console({ goal, partner, checks, optionsOpen, onOptions, onCheck
   const yours = participants(scene).filter((c) => c.lines === 'me')
   const as = conv.waiting ?? (yours.some((c) => c.id === conv.as) || conv.as === 'narrator' ? conv.as : yours[0]?.id ?? 'narrator')
   const send = async () => { const text = mine; if (await talk.say(text) !== false) setMine((now) => now === text ? '' : now) }
+  const measure = useConsoleHeight()
   const status = <StatusLine partner={partner} checks={checks} onModel={onModel} onVoice={onVoice} onAudience={onOptions} onChecklist={onChecklist} />
-  if (!conv.running) return <div className="console next" onPointerDown={(e) => e.stopPropagation()}>
+  if (!conv.running) return <div className="console next" ref={measure} onPointerDown={(e) => e.stopPropagation()}>
     <div className="talkbar run-bar">
       <input className="topic" value={scene.topic} placeholder={tr('话题，比如：周末去哪儿玩')} aria-label={tr('话题')} onChange={(e) => store.set({ topic: e.target.value })} />
       <StartRows partner={partner} open={optionsOpen} onToggle={onOptions} />
@@ -35,7 +36,7 @@ export function Console({ goal, partner, checks, optionsOpen, onOptions, onCheck
     {conv.error && <p className="talk-err">{conv.error}</p>}
     {conv.storageError && <p className="talk-err" role="alert">{conv.storageError}</p>}
   </div>
-  return <div className="console next running" onPointerDown={(e) => e.stopPropagation()}>
+  return <div className="console next running" ref={measure} onPointerDown={(e) => e.stopPropagation()}>
     <div className={`talkbar say-bar${conv.waiting ? ' waiting' : ''}`}>
       {(yours.length > 0 || conv.mode === 'conversation') && <select className="as" value={as} aria-label={tr('以谁的身份说')} disabled={!!conv.waiting} onChange={(e) => talk.setAs(e.target.value)}>
         {yours.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}<option value="narrator">{tr('旁白')}</option>
@@ -55,4 +56,15 @@ export function Console({ goal, partner, checks, optionsOpen, onOptions, onCheck
     {status}
     {(conv.error || ptt.error) && <p className="talk-err">{conv.error || ptt.error}</p>}
   </div>
+}
+
+/** the console's height as --console-h, for what sits above it on a phone: the character sheet and the cards */
+function useConsoleHeight() {
+  const watch = useRef<ResizeObserver | null>(null)
+  return useCallback((el: HTMLDivElement | null) => {
+    watch.current?.disconnect(); watch.current = null
+    if (!el || typeof ResizeObserver === 'undefined') return
+    watch.current = new ResizeObserver(() => document.documentElement.style.setProperty('--console-h', `${Math.ceil(el.getBoundingClientRect().height)}px`))
+    watch.current.observe(el)
+  }, [])
 }

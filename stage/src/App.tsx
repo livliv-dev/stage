@@ -222,6 +222,8 @@ export default function App() {
       store.set({ name: tr(GOALS.find((g) => g.id === next)!.label) })
     }
     store.setTalk({ goal: next, ...goalOptions(next, withPartner) })
+    // on a phone the character sheet would cover the stage the list is about
+    if (narrow) store.select(null)
     setPop('checklist')
   }
   const startNow = () => { setPop(null); void startGoal(goal, optionsOf(scene.talk, partner)).catch((error: Error) => say(error.message)) }

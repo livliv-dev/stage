@@ -121,7 +121,10 @@
   .goal-tile.big .goal-main { padding-bottom: 36px; }
   .start-page.card { padding: 18px 14px 12px; }
   .start-overlay { place-items: start center; padding-top: 12px; overflow-y: auto; }
-  .popover.checklist, .popover.start-options { left: 8px; right: 8px; width: auto; bottom: 150px; max-height: calc(100dvh - 220px); }
+  .popover.checklist, .popover.start-options { left: 8px; right: 8px; width: auto; bottom: calc(var(--console-h, 130px) + 22px); max-height: calc(100dvh - var(--console-h, 130px) - 86px); }
+  /* one row of tags that scrolls sideways, so the console keeps its height */
+  .console.next .status-line { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .console.next .status-line > * { flex: none; }
   .console.next { left: 8px; right: 8px; }
   .console.next .run-bar { flex-wrap: wrap; border-radius: 18px; }
   .console.next .run-bar .topic { flex-basis: 100%; }
@@ -139,13 +142,16 @@
 
 /* ---------------------------------------------------------------- the editor on a phone or a narrow window */
 .app.narrow .rail, .app.narrow .cast, .app.narrow .sidebar-toggle, .app.narrow .panel { display: none; }
-.app.narrow.selected .panel { display: block; position: absolute; left: 8px; right: 8px; top: 60px; bottom: 150px; width: auto; z-index: var(--z-pop); }
+.app.narrow.selected .panel { display: block; position: absolute; left: 8px; right: 8px; top: 60px; bottom: calc(var(--console-h, 130px) + 22px); width: auto; z-index: var(--z-pop); }
 .app.narrow .topbar { gap: 4px; padding-inline: 8px; }
 .app.narrow .topbar .mark { width: 74px; }
 .app.narrow .topbar .seg.mode, .app.narrow .topbar .right > .sep, .app.narrow .topbar .right > button.icon:not([title="设置"]):not(:has(svg.lucide-settings)), .app.narrow .topbar .menu-anchor:not(.scene-switcher) { display: none; }
-.app.narrow .topbar .name { width: 110px; }
+.app.narrow .topbar .name { width: 78px; min-width: 0; flex: none; }
+.app.narrow .topbar .scene-switcher > button { flex: none; }
+/* 录制 keeps its dot and its title; the word gives its room to the stage name */
+.app.narrow .topbar .rec:not(.live) { font-size: 0; gap: 0; padding: 0; width: 32px; justify-content: center; }
 .app.narrow .topbar .output-button { padding-inline: 10px; }
 .app.narrow .console { left: 8px; right: 8px; }
-.app.narrow .popover.settings { left: 8px; right: 8px; top: 56px; width: auto; max-height: calc(100dvh - 64px); }
+.app.narrow .popover.settings { left: 8px; right: 8px; top: 56px; width: auto; max-width: none; max-height: calc(100dvh - 64px); transform: none; translate: none; }
 .app.narrow .start-overlay { inset: 56px 0 0; background: var(--bg); }
 .app.narrow .popover.collab-panel { left: 8px; right: 8px; width: auto; top: 60px; }
