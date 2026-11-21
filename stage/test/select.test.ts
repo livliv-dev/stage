@@ -67,5 +67,5 @@ test('every reason has words for the status line', () => {
     assert.ok(text && !text.includes('{0}'), reason)
   }
   assert.equal(engineReason({ engine: 'airi', reason: 'airi' }, 1), '由 Project AIRI 驱动')
-  assert.equal(engineReason({ engine: 'standard', reason: 'cast' }, 2), '2 个 AI 角色，用标准引擎')
+  assert.equal(engineReason({ engine: 'standard', reason: 'cast' }, 2), '2 个 AI 角色')
 })

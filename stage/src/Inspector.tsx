@@ -30,6 +30,8 @@ import { CONTROLS, controlOf, controlSettings } from './workflow'
 import { keysOf, MOVE_KEYS } from './characterKeys'
 import { modeOf } from './control'
 import { readReactionSettings, type ReactionFeeling } from './reactions'
+import { uiNext } from './shell/next'
+import { showCardPage, useCardPage } from './shell/cardPage'
 
 const settingsLabel = (item?: Item) => tr(item ? ({ character: '角色设置', subtitle: '字幕设置', text: '文字设置', image: '图片设置' })[item.kind] : '舞台设置')
 
@@ -203,6 +205,7 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
   const tracked = c.driver === 'face' || c.driver === 'replay'
   const speech = useActiveSpeech(), route = voiceRoute(c, speech)
   const talkMotion = voiced && !tracked && (route === 'api' || route === 'livliv')
+  const page = useCardPage()
   if (c.remote) return <Section title={tr("联播角色")}>
     <p className="hint">{tr("由 {0} 控制", c.remote.person)}</p>
     <label className="field"><span>{tr("角色名称")}</span><input value={c.name} onChange={(event) => patch({ name: event.target.value })} /></label>
@@ -211,16 +214,12 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
     <Switch label={tr("左右翻转")} on={c.mirror} set={(mirror) => patch({ mirror })} />
     <Switch label={tr("投影")} on={c.shadow} set={(shadow) => patch({ shadow })} />
   </Section>
-  return <>
-    <Section title={tr("谁来控制")}>
+  const control = <Section title={tr("谁来控制")}>
       <Seg value={controlOf(c)} options={CONTROLS} set={(control) => { patch(controlSettings(control)); if (control === 'me') talk.setAs(c.id) }} />
       <p className="hint">{tr(CONTROLS.find((x) => x.id === controlOf(c))?.hint ?? '')}</p>
       <Switch label={tr("静音角色声音")} on={c.muted} set={(muted) => patch({ muted })} />
     </Section>
-    {c.lines === 'me' && <DevicePanel character={c} />}
-    {voiced && <VoiceSection c={c} patch={patch} onAccount={onAccount} onVoice={onVoice} />}
-    <details className="advanced"><summary>{tr("外观")}</summary>
-    <Section title={tr("外观")}>
+  const looks = <Section title={tr("外观")}>
       <label className="field"><span>{tr("名字")}</span><input value={c.name} onChange={(e) => patch({ name: e.target.value })} /></label>
       <div className="field"><span>{tr("字幕颜色")}</span>
         <div className="row">
@@ -231,9 +230,8 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
       <Switch label={tr("投影")} on={c.shadow} set={(shadow) => patch({ shadow })} hint={tr("身后一层柔和的影子，浅色背景上更立体")} />
       <AvatarView c={c} patch={patch} />
       {!hasBubble && <button className="link" onClick={() => store.add(bubbleFor(c))}>{tr("给它加一个字幕气泡")}</button>}
-    </Section></details>
-    {c.lines === 'ai' && <details className="advanced persona-settings" key={`persona:${c.id}`}><summary>{tr('人设与风格')}</summary>
-      <Section title={tr('人设与风格')}>
+    </Section>
+  const persona = <Section title={tr('人设与风格')}>
         <label className="field spaced"><span>{tr("人设")}</span>
           {/* its example lines go with the card as written */}
           <textarea rows={3} value={c.persona} placeholder={tr("她是谁、怎么说话，一两句就够")} onChange={(e) => patch({ persona: e.target.value, examples: undefined })} />
@@ -246,14 +244,10 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
         <div className="field"><span>{tr("每句多长")}</span><Seg value={c.length} options={LENGTHS} set={(length) => patch({ length })} /></div>
         <Slider label={tr("发言频率")} value={c.chatty} min={0.3} max={2} step={0.1} show={c.chatty < 0.8 ? tr("少") : c.chatty > 1.3 ? tr("多") : tr("一般")} set={(chatty) => patch({ chatty })} />
       </Section>
-    </details>}
-    {c.lines === 'ai' && <ReactionSection key={`reactions:${c.id}`} c={c} patch={patch} />}
-    {c.lines === 'me' && <Section title={tr('台词')}>
+  const lines = c.lines === 'me' && <Section title={tr('台词')}>
       <Switch label={tr("用角色的声音念出来")} on={c.readAloud} set={(readAloud) => patch({ readAloud })} hint={tr("关掉：你自己对着麦克风说，控制台打的字只当字幕")} />
-    </Section>}
-    <TrackingPanel c={c} patch={patch} />
-    <details className="advanced"><summary>{tr("动作与更多设置")}</summary>
-    <Section title={tr("动作由什么驱动")}>
+    </Section>
+  const drive = <Section title={tr("动作由什么驱动")}>
       <div className="driver-choices"><Seg value={c.driver} options={DRIVERS.map((d) => ({ id: d.kind, label: d.label, hint: d.hint, disabled: d.kind === 'network' && !motionSupported() }))} set={(driver) => patch({ driver })} /></div>
       {tracked && <>
         <Slider commit label={tr("面捕平滑")} value={c.smooth} min={0} max={1} step={0.05} show={(value) => value < 0.35 ? tr("灵敏") : value > 0.65 ? tr("稳") : tr("适中")} set={(smooth) => patch({ smooth })} />
@@ -269,7 +263,7 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
       </>}
       {c.driver === 'mic' && <Slider label={tr("麦克风灵敏度")} value={c.micGain} min={0.3} max={3} step={0.1} show={`${c.micGain.toFixed(1)}×`} set={(micGain) => patch({ micGain })} />}
     </Section>
-    <Section title={tr("动作")}>
+  const motion = <Section title={tr("动作")}>
       {c.driver !== 'pointer' && <Switch label={tr("待机动作")} on={c.tuning.idle} set={(idle) => patch({ tuning: { ...c.tuning, idle } })} />}
       {talkMotion && <Switch label={tr("说话时轻跳")} on={c.tuning.bounce} set={(bounce) => patch({ tuning: { ...c.tuning, bounce } })} />}
       <Slider label={tr('肩膀与身体摆动')} value={c.tuning.bodyMotion} min={0} max={1} step={0.05} show={`${Math.round(c.tuning.bodyMotion * 100)}%`} set={(bodyMotion) => patch({ tuning: { ...c.tuning, bodyMotion } })} />
@@ -277,8 +271,7 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
       {talkMotion && <Slider label={tr("说话时的动作")} value={c.talk} min={0} max={1.5} step={0.05} show={`${Math.round(c.talk * 100)}%`} set={(t) => patch({ talk: t })} />}
       {!tracked && c.driver !== 'pointer' && c.tuning.idle && <div className="field"><span>{tr("眼神")}</span><Seg value={c.gaze} options={GAZES} set={(gaze) => patch({ gaze })} /></div>}
     </Section>
-    </details>
-    {a?.status === 'ready' && <Section title={a.format === 'png' ? tr("动作") : tr("表情与动作")}>
+  const expressions = a?.status === 'ready' && <Section title={a.format === 'png' ? tr("动作") : tr("表情与动作")}>
       {a.format !== 'png' && <Slider label={tr("表情强度")} value={c.tuning.expressionStrength} min={0} max={1} step={.05} show={`${Math.round(c.tuning.expressionStrength * 100)}%`} set={(expressionStrength) => patch({ tuning: { ...c.tuning, expressionStrength } })} />}
       {a.format !== 'png' && <div className="chips">
         {a.player.expressions.map((x) => <button key={x.id} className={a.expression === x.id ? 'on' : ''} onClick={() => a.setExpression(x.id)}>{nameOf(x)}{keys.get(x.id) && <kbd>{keys.get(x.id)}</kbd>}</button>)}
@@ -303,7 +296,35 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
           </label>
         })}
       </details>}
-    </Section>}
+    </Section>
+  const voice = voiced && <VoiceSection c={c} patch={patch} onAccount={onAccount} onVoice={onVoice} />
+  const reactions = c.lines === 'ai' && <ReactionSection key={`reactions:${c.id}`} c={c} patch={patch} />
+  // the card in pages (身体 / 谁来演 / 人设和声音): voice only here, who plays it with what moves it in sight
+  if (uiNext) return <>
+    <div className="seg card-pages" role="tablist" aria-label={tr('角色卡')}>{([['body', '身体'], ['who', '谁来演'], ['persona', '人设和声音']] as const).map(([id, label]) =>
+      <button key={id} role="tab" aria-selected={page === id} className={page === id ? 'on' : ''} onClick={() => showCardPage(id)}>{tr(label)}</button>)}</div>
+    {page === 'body' && <>{looks}{expressions}{motion}</>}
+    {page === 'who' && <>{control}{c.lines === 'me' && <DevicePanel character={c} />}{drive}<TrackingPanel c={c} patch={patch} />{lines}</>}
+    {page === 'persona' && <>{c.lines === 'ai' ? persona : <p className="hint card-note">{tr('人设只在「AI 来演」时用到。')}</p>}{voice}{reactions}
+      {!voiced && <p className="hint card-note">{tr('这个角色不出声：「只展示」，或者你自己说话。')}</p>}</>}
+  </>
+  return <>
+    {control}
+    {c.lines === 'me' && <DevicePanel character={c} />}
+    {voice}
+    <details className="advanced"><summary>{tr("外观")}</summary>
+    {looks}</details>
+    {c.lines === 'ai' && <details className="advanced persona-settings" key={`persona:${c.id}`}><summary>{tr('人设与风格')}</summary>
+      {persona}
+    </details>}
+    {reactions}
+    {lines}
+    <TrackingPanel c={c} patch={patch} />
+    <details className="advanced"><summary>{tr("动作与更多设置")}</summary>
+    {drive}
+    {motion}
+    </details>
+    {expressions}
   </>
 }
 

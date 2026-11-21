@@ -46,17 +46,17 @@ export function chooseEngine(brain: BrainConfig, cast: readonly Pick<CharacterIt
 /** AIRI could run this cast with this model (whatever the switch, the character asked for or the voice say) */
 export const airiFits = (choice: EngineChoice) => !['web', 'model', 'none', 'cast', 'remote'].includes(choice.reason)
 
-/** the reason in words, for the status line */
+/** the reason in a few words, for the status line: what made it the standard engine (引擎：标准 · <reason>) */
 export function engineReason(choice: EngineChoice, cast: number): string {
   switch (choice.reason) {
     case 'airi': return tr('由 Project AIRI 驱动')
-    case 'web': return tr('AIRI 只在桌面版里，用标准引擎')
-    case 'model': return tr('AIRI 需要自己的 OpenAI 兼容模型，用标准引擎')
-    case 'none': return tr('舞台上还没有 AI 角色')
-    case 'cast': return tr('{0} 个 AI 角色，用标准引擎', cast)
-    case 'remote': return tr('好友联播的角色，用标准引擎')
-    case 'off': return tr('AIRI 已在模型设置里关闭，用标准引擎')
-    case 'target': return tr('选中的角色不是这位 AI 角色，用标准引擎')
-    case 'livliv-voice': return tr('LivLiv 声音按句计费，用标准引擎')
+    case 'web': return tr('网页版')
+    case 'model': return tr('不是 OpenAI 兼容模型')
+    case 'none': return tr('没有 AI 角色')
+    case 'cast': return tr('{0} 个 AI 角色', cast)
+    case 'remote': return tr('好友联播的角色')
+    case 'off': return tr('AIRI 已关闭')
+    case 'target': return tr('选中的不是这位角色')
+    case 'livliv-voice': return tr('LivLiv 声音')
   }
 }

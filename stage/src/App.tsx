@@ -5,14 +5,12 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Bot, Captions, Check, ChevronDown, CircleHelp, CircleAlert, ExternalLink, FolderOpen, Image as ImageIcon, LayoutTemplate, LoaderCircle, Lock, MessagesSquare, Mic,
-  FileBox, Plus, RefreshCw, SlidersHorizontal, Volume2, VolumeX,
+  Bot, Captions, Check, ChevronDown, CircleHelp, CircleAlert, ExternalLink, FolderOpen, Image as ImageIcon, LayoutTemplate, LoaderCircle, MessagesSquare, Mic,
+  FileBox, Plus, SlidersHorizontal, Users, Volume2, VolumeX,
   MonitorPlay, Pencil, Pause, Play, Radio, Redo2, RotateCcw, Save, Send, SkipForward, Square, StepForward, Settings, Sparkles, Type, Undo2, UserPlus, X,
 } from 'lucide-react'
-import { brainReady, listModels, loadBrainConfig, playDemo, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveBrainConfig, savedBrain, testModel, useBrainConfig, type BrainConfig, type ModelConfig } from './brain'
+import { brainReady, loadBrainConfig, playDemo, providerOf, useBrainConfig, type BrainConfig } from './brain'
 import { conversation, talk, useConversation } from './conversation'
-import { testAiriModel } from './airiEngine'
-import { chooseEngine } from './brains/select'
 import { Panel, PanelTab, TalkSettings } from './Inspector'
 import { byId, fromFiles, fromKept, fromPngs, mine as accountCharacters, samples, type Pick } from './library'
 import { PNG_SLOTS, type PngSlot } from './bodies/png'
@@ -30,14 +28,12 @@ import { CollabPanel } from './CollabPanel'
 import { useRoom } from './collab/session'
 import { connectDesktop } from './desktop'
 import { ROOM, useCrowded } from './contexts'
-import { ageGate, cancelConnect, checkConnect, openConnect, refresh, setAge, useAccount } from './livliv'
+import { ageGate, checkConnect, refresh, setAge, useAccount } from './livliv'
 import { rec, takeLimit, useRecording } from './recording'
 import { cancel as pttCancel, clearError as pttClear, holdKey, press as pttPress, release as pttRelease, setHandsFree, usePtt } from './ptt'
-import { activeSpeech, asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, useActiveSpeech, transcribeApi, useSpeech, voiceRoute, type SpeechApi } from './voiceApi'
-import { wav16k } from './audio'
+import { asrReady, useActiveSpeech, voiceRoute } from './voiceApi'
 import { buildTemplate, TEMPLATES, type TemplateId } from './templates'
 import { demoFor } from './demo'
-import { controlSettings } from './workflow'
 import { actors, onActors } from './actors'
 import { imageGeometry, moveImage } from './attachments'
 import { propSource } from './propGeometry'
@@ -56,6 +52,19 @@ import { small } from './host'
 import { features } from './core/platform'
 import { linkedAs, linkedId, openLinked } from './entry'
 import { PhoneIntro, SiteWelcome } from './SiteIntro'
+import { beginDemo, ensureTrio } from './shell/demoStart'
+import { ModelForm, SpeechForm } from './shell/ConnectForms'
+import { uiNext } from './shell/next'
+import { StartPage } from './shell/StartPage'
+import { Checklist, type Fix } from './shell/Checklist'
+import { StartOptionsCard } from './shell/StartBar'
+import { Console } from './shell/Console'
+import { Connections, SETTINGS_INDEX, type ConnectSection } from './shell/Connections'
+import { useChecks } from './shell/useChecks'
+import { GOAL_TEMPLATE, GOALS, goalOptions, optionsOf, startLabel } from './shell/goals'
+import { startGoal } from './shell/start'
+import { showCardPage } from './shell/cardPage'
+import type { Goal } from './scene'
 import { connectCharacterKeys } from './characterKeys'
 import { faceCharacter } from './control'
 import { connectOutputFeed } from './outputFeed'
@@ -64,43 +73,16 @@ import { MemoryPanel } from './MemoryPanel'
 import { memory, type StoredSession } from './memory'
 import { connectNeuro } from './neuroBridge'
 import './chat.css'
+import './shell/shell.css'
 
 type SettingsTab = 'general' | 'ai' | 'hotkeys' | 'account'
 type ModelTab = 'chat' | 'speech' | 'realtime'
 
-type Pop = null | 'add' | 'settings' | 'templates' | 'help' | 'record' | 'model' | 'talk' | 'output' | 'live' | 'realtime' | 'collab' | 'scenes' | 'mixer' | 'audience'
+type Pop = null | 'add' | 'settings' | 'templates' | 'help' | 'record' | 'model' | 'talk' | 'output' | 'live' | 'realtime' | 'collab' | 'scenes' | 'mixer' | 'audience' | 'checklist' | 'start-options' | 'start'
 
 const COACHED = 'livliv-stage:coached', FOLDED = 'livliv-stage:panel-folded'
 /** the source (the public repository's address: set when it is published) */
 const coached = () => { try { return !!localStorage.getItem(COACHED) } catch { return true } }
-
-/** the demo's three on the stage (as they stand in it), unless they already are */
-let building: Promise<void> | null = null
-function ensureTrio() {
-  const current = characters(store.get()).filter((item) => !item.hidden)
-  if (current.length === 3 && !current.some((item) => item.remote) && demoFor(current)?.script.template === 'trio') return Promise.resolve()
-  return building ??= buildTemplate('trio').then((next) => {
-    next.name = tr('三人对谈演示')
-    pttCancel(); talk.detach(); store.replace(next); store.select(characters(next)[0]?.id ?? null)
-  }).finally(() => { building = null })
-}
-
-async function beginDemo(done?: () => void) {
-  await ensureTrio()
-  const demo = demoFor(characters(store.get()))!
-  const cast = new Map(Object.values(demo.who).map((item) => [item.id, { ...item,
-    y: item.y === store.get().height - item.h ? item.y + Math.round(store.get().height * 0.022) : item.y }])), captionSize = 32
-  store.set({ topic: demo.script.topic, items: store.get().items.map((item) => {
-    if (item.kind === 'subtitle') {
-      const speaker = cast.get(item.of)
-      return { ...item, showName: true, typewriter: false, linger: .8, size: captionSize,
-        y: item.style === 'bubble' && speaker ? Math.max(0, speaker.y - item.h - captionSize) : item.y }
-    }
-    return item.kind === 'character' && cast.has(item.id) ? { ...item, ...controlSettings('ai'), muted: false,
-      y: cast.get(item.id)!.y } : item
-  }) }); store.select(null)
-  pttCancel(); talk.detach(); playDemo(true); done?.(); talk.start()
-}
 
 /** what the main start button begins while nothing runs: the console's (editing: what the stage's template set,
  *  else 持续聊天), or the show controls' (show mode). Space begins the same one (useShortcuts) */
@@ -184,6 +166,8 @@ export default function App() {
   // on the site, signing in or out happens on its own pages, maybe in another tab: asked again when this one is back
   useEffect(() => { if (!(features.host === 'site')) return; const again = () => void refresh(); addEventListener('focus', again); return () => removeEventListener('focus', again) }, [])
   useEffect(() => { if (phone && mode !== 'show') store.setMode('show') }, [phone, mode])
+  // the redesign: the site's first visit opens the start page (it takes the welcome card's place)
+  useEffect(() => { if (uiNext && welcome) setPop('start') }, [])  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(connectDesktop, [])
   useEffect(() => connectNeuro({ event: talk.externalEvent, dialogue: talk.externalDialogue, decide: talk.decideExternalAction, subscribeSpeech: talk.onSpeech }), [])
   const profilesKey = participants(scene).filter((character) => character.lines === 'ai' && !character.remote).map((character) => character.profileId ?? character.id).sort().join(',')
@@ -220,9 +204,40 @@ export default function App() {
     live: () => toggle('live'),
   })
   const show = mode === 'show'
+  // the redesign on a phone or a narrow window: the stage full width, the console under it, cards over it
+  const narrow = useNarrow() && uiNext
+  // the redesign (?ui=next): what the stage is for, whether you play with an AI partner, and its 准备清单
+  const ai = participants(scene).filter((c) => c.lines === 'ai' && !c.remote)
+  const goal: Goal = scene.talk.goal ?? (scene.talk.start === 'live' ? 'live' : scene.talk.start === 'conversation' ? 'video' : hasAI ? 'chat' : 'perform')
+  const partner = goal === 'perform' && ai.length > 0
+  const checks = useChecks(goal, partner)
+  // a goal picked: its stage (the template, unless your own characters are there) and its 准备清单
+  const pickGoal = async (next: Goal, withPartner: boolean) => {
+    const cast = participants(store.get()).filter((c) => !c.remote)
+    // the demo's characters alone are no stage of yours: the goal's template takes their place
+    const demo = demoFor(cast), demoCast = !!demo && Object.keys(demo.who).length === cast.length
+    if (!cast.length || demoCast) {
+      await template(next === 'perform' && withPartner ? 'cohost' : GOAL_TEMPLATE[next])
+      // the stage is named by what it is for
+      store.set({ name: tr(GOALS.find((g) => g.id === next)!.label) })
+    }
+    store.setTalk({ goal: next, ...goalOptions(next, withPartner) })
+    setPop('checklist')
+  }
+  const startNow = () => { setPop(null); void startGoal(goal, optionsOf(scene.talk, partner)).catch((error: Error) => say(error.message)) }
+  const fix = (target: Fix) => {
+    const select = (who: 'ai' | 'me') => { const c = participants(store.get()).find((x) => x.lines === who && !x.remote) ?? participants(store.get())[0]; if (c) store.select(c.id); setBare(false) }
+    if (target === 'connect:model') openModels('chat', false, 'checklist')
+    else if (target === 'connect:speech') openModels('speech', false, 'checklist')
+    else if (target === 'connect:realtime') openModels('realtime', false, 'checklist')
+    else if (target === 'character:who') { select('me'); showCardPage('who') }
+    else if (target === 'character:voice') { select('ai'); showCardPage('persona') }
+    else if (target === 'options') setPop('start-options')
+    else { setSettingsTab('general'); setPop('settings') }
+  }
   // the stage's room: the same whatever is open (only ⌘\ changes it)
   // a phone: the stage above the intro card at the bottom
-  const insets: Insets = show ? (phone ? { top: 12, right: 8, bottom: 360, left: 8 } : { top: 0, right: 0, bottom: 0, left: 0 }) : { top: 56, right: bare ? 80 : 312, bottom: hasAI ? 124 : 76, left: leftFolded ? 80 : 220 }
+  const insets: Insets = narrow && !show ? { top: 56, right: 8, bottom: 150, left: 8 } : show ? (phone ? { top: 12, right: 8, bottom: 360, left: 8 } : { top: 0, right: 0, bottom: 0, left: 0 }) : { top: 56, right: bare ? 80 : 312, bottom: hasAI ? 124 : 76, left: leftFolded ? 80 : 220 }
   const template = async (id: TemplateId) => {
     setPop(null)
     // no question first: it can be undone, and the note says how
@@ -233,24 +248,30 @@ export default function App() {
     } catch (e) { say((e as Error).message) }
   }
   return (
-    <div className={`app ${mode}${bare ? ' panels-folded' : ''}${hasAI ? '' : ' solo-mode'}${leftFolded ? ' tools-folded' : ''}`} onPointerDown={() => setMenu(null)}>
-      <Stage insets={insets} onMenu={setMenu} zoom={zoom} setZoom={setZoom} empty={<Empty onTemplate={template} onAdd={() => setPop('add')} />} />
+    <div className={`app ${mode}${bare ? ' panels-folded' : ''}${hasAI ? '' : ' solo-mode'}${leftFolded ? ' tools-folded' : ''}${uiNext ? ' next' : ''}${narrow ? ' narrow' : ''}${store.selected() ? ' selected' : ''}`} onPointerDown={() => setMenu(null)}>
+      <Stage insets={insets} onMenu={setMenu} zoom={zoom} setZoom={setZoom} empty={narrow ? null : uiNext ? <StartPage onGoal={(g, p) => void pickGoal(g, p)} onTemplate={template} onAdd={() => setPop('add')} /> : <Empty onTemplate={template} onAdd={() => setPop('add')} />} />
       {show ? (phone ? <PhoneIntro onDemo={() => beginDemo()} /> : <ShowControls />) : <>
-        <TopBar pop={pop} toggle={toggle} onTemplate={template} say={say} />
+        <TopBar pop={pop} toggle={toggle} onTemplate={template} say={say} onStartPage={() => setPop('start')} />
         <CrowdNotice insets={insets} />
         <Rail pop={pop} toggle={toggle} folded={leftFolded} onFold={foldLeft} />
+        {uiNext && ((pop === 'start' && scene.items.length > 0) || (narrow && !scene.items.length && !pop)) && <div className="start-overlay"><StartPage onGoal={(g, p) => void pickGoal(g, p)} onTemplate={template} onAdd={() => setPop('add')} onClose={() => setPop(null)} /></div>}
         {bare ? <PanelTab onOpen={() => setBare(false)} /> : <Panel onFold={() => setBare(true)} onAccount={openAccount} onVoice={(id) => { openModels('speech'); setVoiceSetup(id) }} />}
-        {welcome && !pop && <SiteWelcome onClose={() => setWelcome(false)}
+        {welcome && !uiNext && !pop && <SiteWelcome onClose={() => setWelcome(false)}
           onDemo={async () => { await beginDemo(); setWelcome(false) }}
           onCamera={() => { setWelcome(false); void template('solo') }}
           onModel={() => { setWelcome(false); setForStart(false); setPop('model') }}
           onCharacter={() => { setWelcome(false); setPop('add') }} />}
-        {!leftFolded && <Cast guide={goLive ? <GoLiveGuide id={goLive} onClose={() => setGoLive(null)} /> : coach && !welcome && !pop && scene.items.length > 0 ? <Checklist
+        {!leftFolded && <Cast onFriend={uiNext && features.collab ? () => toggle('collab') : undefined} friendOn={pop === 'collab'} guide={goLive ? <GoLiveGuide id={goLive} onClose={() => setGoLive(null)} /> : coach && !uiNext && !welcome && !pop && scene.items.length > 0 ? <CoachList
           done={() => { setCoach(false); try { localStorage.setItem(COACHED, '1') } catch { /* private mode */ } }}
           onModel={openOwnModel} onVoice={() => openModels('speech')}
           onCharacter={() => { setBare(false); store.select(characters(store.get())[0]?.id ?? null) }} onOutput={() => setPop('output')} /> : null} />}
-        <TalkBar log={log} setLog={(on) => { setLog(on || logView === 'memory'); setLogView('history') }} onMemory={() => { setLogView('memory'); setLog(true) }} model={pop === 'model'} toggleModel={() => { setForStart(false); toggle('model') }}
-          rules={pop === 'talk'} toggleRules={() => toggle('talk')} onLive={() => toggle('live')} onRealtime={() => toggle('realtime')} onOwnModel={openOwnModel} />
+        {uiNext ? goal === 'perform' && !partner ? <><SoloStatus />{pop !== 'checklist' && scene.items.some((i) => i.kind === 'character') && <button className="st-tag solo-checks" onClick={() => setPop('checklist')}>{tr('准备清单')}</button>}</>
+          : <Console goal={goal} partner={partner} checks={checks} optionsOpen={pop === 'start-options'} onOptions={() => toggle('start-options')} onChecklist={() => toggle('checklist')} onStart={startNow}
+            onModel={() => openModels('chat')} onVoice={() => fix('character:voice')} onLog={() => { setLog((on) => !on || logView === 'memory'); setLogView('history') }} onMemory={() => { setLogView('memory'); setLog(true) }} />
+        : <TalkBar log={log} setLog={(on) => { setLog(on || logView === 'memory'); setLogView('history') }} onMemory={() => { setLogView('memory'); setLog(true) }} model={pop === 'model'} toggleModel={() => { setForStart(false); toggle('model') }}
+          rules={pop === 'talk'} toggleRules={() => toggle('talk')} onLive={() => toggle('live')} onRealtime={() => toggle('realtime')} onOwnModel={openOwnModel} />}
+        {uiNext && pop === 'checklist' && <Checklist goal={goal} partner={partner} startLabel={startLabel(goal, partner)} onStart={startNow} onFix={fix} onClose={() => setPop(null)} />}
+        {uiNext && pop === 'start-options' && <StartOptionsCard goal={goal} partner={partner} onClose={() => setPop(null)} />}
         {pop === 'audience' && <AudiencePopover onClose={() => setPop(null)} />}
         {kept('mixer') && <Kept on={pop === 'mixer'}><MixerPanel onClose={() => setPop(null)} onSettings={() => openModels('speech', false, 'mixer')} /></Kept>}
         {kept('collab') && <Kept on={pop === 'collab'}><CollabPanel onClose={() => setPop(null)} onSettings={() => openModels('speech', false, 'collab')} /></Kept>}
@@ -329,6 +350,14 @@ function useShortcuts(keys: Keys) {
   }, [])
 }
 
+/** a phone or a narrow window (the redesign lays the editor out for it) */
+function useNarrow() {
+  const query = '(max-width: 760px)'
+  const [narrow, setNarrow] = useState(() => typeof matchMedia === 'function' && matchMedia(query).matches)
+  useEffect(() => { const list = matchMedia(query), change = () => setNarrow(list.matches); list.addEventListener('change', change); return () => list.removeEventListener('change', change) }, [])
+  return narrow
+}
+
 /** a panel kept as it was while a settings form it opened is in front (App: back) */
 function Kept({ on, children }: { on: boolean; children: ReactNode }) {
   return <div className="kept-panel" style={{ display: on ? 'contents' : 'none' }}>{children}</div>
@@ -336,7 +365,7 @@ function Kept({ on, children }: { on: boolean; children: ReactNode }) {
 
 // ---------------------------------------------------------------- top
 
-function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) => void; onTemplate: (id: TemplateId) => void; say: (s: string) => void }) {
+function TopBar({ pop, toggle, onTemplate, say, onStartPage }: { pop: Pop; toggle: (p: Pop) => void; onTemplate: (id: TemplateId) => void; say: (s: string) => void; onStartPage: () => void }) {
   const { scene, canUndo, canRedo } = useScene()
   const collab = useRoom()
   const conv = useConversation()
@@ -366,14 +395,14 @@ function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) =
     <header className="topbar" onPointerDown={(e) => e.stopPropagation()}>
       <div className="left">
         <img className="mark" src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" />
-        <div className="menu-anchor scene-switcher"><input className="name" value={scene.name} aria-label={tr("舞台名字")} onChange={(e) => store.set({ name: e.target.value })} /><button className={pop === "scenes" ? "icon on" : "icon"} title={tr("切换镜头")} aria-expanded={pop === "scenes"} onClick={() => toggle("scenes")}><ChevronDown size={15} /></button>{pop === "scenes" && <ScenesMenu close={() => toggle(null)} />}</div>
+        <div className="menu-anchor scene-switcher"><input className="name" value={scene.name} aria-label={tr("舞台名字")} onChange={(e) => store.set({ name: e.target.value })} /><button className={pop === "scenes" ? "icon on" : "icon"} title={tr("切换镜头")} aria-expanded={pop === "scenes"} onClick={() => toggle("scenes")}><ChevronDown size={15} /></button>{pop === "scenes" && <ScenesMenu close={() => toggle(null)} onStartPage={uiNext ? () => { toggle(null); onStartPage() } : undefined} />}</div>
       </div>
       <div className="seg mode">
         <button className="on" title={tr("编辑")} aria-label={tr("编辑")}><Pencil size={13} /><span className="mode-label">{tr("编辑")}</span></button>
         <button onClick={() => store.setMode('show')} title={tr("只留画面（Esc 回来）")} aria-label={tr("预览")}><Play size={13} /><span className="mode-label">{tr("预览")}</span></button>
       </div>
       <div className="right">
-        {features.desktopConsole && <button className={'stream-entry' + (pop === 'live' ? ' on' : '')} aria-expanded={pop === 'live'}
+        {features.desktopConsole && !uiNext && <button className={'stream-entry' + (pop === 'live' ? ' on' : '')} aria-expanded={pop === 'live'}
           title={tr('游戏直播与观众弹幕')} onClick={() => toggle('live')}><Radio size={16} />{tr('直播')}{conv.running && conv.mode === 'live' && <i className="live-dot on" />}</button>}
         <button className="icon" title={tr("撤销（⌘Z）")} disabled={!canUndo} onClick={store.undo}><Undo2 size={16} /></button>
         <button className="icon" title={tr("重做（⇧⌘Z）")} disabled={!canRedo} onClick={store.redo}><Redo2 size={16} /></button>
@@ -386,8 +415,8 @@ function TopBar({ pop, toggle, onTemplate, say }: { pop: Pop; toggle: (p: Pop) =
             </div>
           )}
         </div>
-        {features.collab && <button className={pop === 'collab' ? 'on collab-button' : 'collab-button'} onClick={() => toggle('collab')}><UserPlus size={15} />{tr("联播")}{collab.phase === 'on' && <i className="live-dot on" />}{collab.pending.length > 0 && <span className="room-count">{collab.pending.length}</span>}</button>}
-        {!features.desktopConsole && <button className={pop === 'audience' ? 'icon on' : 'icon'} title={tr('观众弹幕')} onClick={() => toggle('audience')}><MessagesSquare size={16} /></button>}
+        {features.collab && !uiNext && <button className={pop === 'collab' ? 'on collab-button' : 'collab-button'} onClick={() => toggle('collab')}><UserPlus size={15} />{tr("联播")}{collab.phase === 'on' && <i className="live-dot on" />}{collab.pending.length > 0 && <span className="room-count">{collab.pending.length}</span>}</button>}
+        {!features.desktopConsole && !uiNext && <button className={pop === 'audience' ? 'icon on' : 'icon'} title={tr('观众弹幕')} onClick={() => toggle('audience')}><MessagesSquare size={16} /></button>}
         <button className={pop === 'mixer' ? 'icon on' : 'icon'} title={tr('调音台')} onClick={() => toggle('mixer')}><Volume2 size={16} /></button>
         <RecordButton on={pop === 'record'} toggle={() => toggle('record')} />
         <button className="primary output-button" onClick={() => toggle('output')}><MonitorPlay size={15} />{tr("输出到 OBS")}</button>
@@ -599,7 +628,7 @@ function CrowdNotice({ insets }: { insets: Insets }) {
 
 /** who is in the conversation, in the order they'd speak, and what each is doing. A click: this one speaks next (or,
  *  one you play, the console speaks as it); a right click takes it off the stage or back */
-function Cast({ guide }: { guide: ReactNode }) {
+function Cast({ guide, onFriend, friendOn }: { guide: ReactNode; onFriend?: () => void; friendOn?: boolean }) {
   const { scene, selected } = useScene(), conv = useConversation()
   const cast = scene.items.filter((i) => i.kind === 'character')
   return <aside className="cast card" onPointerDown={(e) => e.stopPropagation()} aria-label={tr("角色列表")}>
@@ -619,6 +648,8 @@ function Cast({ guide }: { guide: ReactNode }) {
       })}
     </div>
     </div>
+    {/* 好友联播 is a way onto the stage: a friend's character comes on as one of the cast */}
+    {onFriend && <button className={`cast-friend${friendOn ? ' on' : ''}`} onClick={onFriend}><Users size={15} />{tr('请朋友上台')}</button>}
     {guide && <div className="cast-guide">{guide}</div>}
   </aside>
 }
@@ -847,7 +878,7 @@ function Help({ onClose }: { onClose: () => void }) {
 }
 
 /** the first time: three steps that tick themselves as they are done */
-function Checklist({ done, onModel, onVoice, onCharacter, onOutput }: { done: () => void; onModel: () => void; onVoice: () => void; onCharacter: () => void; onOutput: () => void }) {
+function CoachList({ done, onModel, onVoice, onCharacter, onOutput }: { done: () => void; onModel: () => void; onVoice: () => void; onCharacter: () => void; onOutput: () => void }) {
   const { scene } = useScene(), conv = useConversation(), brain = useBrainConfig(), speech = useActiveSpeech()
   useAccount()
   const cs = characters(scene).filter((c) => !c.remote), ai = cs.some((c) => c.lines === 'ai')
@@ -1016,179 +1047,6 @@ function ModelButton({ on, onClick }: { on: boolean; onClick: () => void }) {
   )
 }
 
-/** where the AI characters' lines come from: your own model (a preset, or any OpenAI-compatible API), LivLiv's points
- *  on livliv.ai, or the demo (one more option in the row). onPick: what is chosen now, saved or not. own: opened to
- *  leave the demo, so the demo isn't the one chosen */
-function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, onContinue }: { forStart?: boolean; own?: boolean; done?: () => void; demoDone?: () => void; onPick?: (kind: 'demo' | 'livliv' | 'openai') => void; onAccount: () => void; onContinue?: () => void }) {
-  const cur = useBrainConfig(), { scene } = useScene()
-  const demoAvailable = demoFor(participants(scene))?.script.template === 'trio'
-  const [demo, setDemo] = useState(!own && cur.kind === 'demo')
-  // livliv.ai/stage: LivLiv's points instead of a key of one's own (the site writes and voices the lines)
-  // LivLiv's points (the site writes and voices the lines): on livliv.ai/stage and in the desktop app
-  const [points, setPoints] = useState(features.points && (cur.kind === 'livliv' || !previousModelConfig().provider || (cur.kind === 'demo' && savedBrain().kind === 'livliv')))
-  const account = useAccount()
-  useEffect(() => { onPick?.(demo ? 'demo' : points ? 'livliv' : 'openai') }, [demo, points])  // eslint-disable-line react-hooks/exhaustive-deps
-  const [d, setD] = useState<ModelConfig>(() => (previousModelConfig().provider ? previousModelConfig() : { kind: 'openai', provider: PROVIDERS_HERE[0].id, base: PROVIDERS_HERE[0].base, key: '', model: '' }))
-  const [models, setModels] = useState<string[]>([])
-  const [st, setSt] = useState<{ busy?: 'list' | 'test' | 'demo'; ok?: number; batch?: boolean; err?: string }>({})
-  const request = useRef<AbortController | null>(null)
-  useEffect(() => () => { request.current?.abort() }, [])
-  const change = (patch: Partial<ModelConfig>) => { request.current?.abort(); request.current = null; setSt({}); setModels([]); setD((value) => ({ ...value, ...patch })) }
-  const p = providerOf(d)
-  const choose = (id: string) => {
-    request.current?.abort(); request.current = null
-    const q = PROVIDERS.find((x) => x.id === id)!
-    setDemo(false); setPoints(false); setModels([]); setSt({})
-    setD((x) => ({ ...x, provider: id, base: q.base || (x.provider === 'custom' ? x.base : ''), key: x.provider === id ? x.key : '', model: x.provider === id ? x.model : '' }))
-  }
-  const fetchModels = async (c = d) => {
-    if (!c.base || (!c.key && !providerOf(c).noKey)) return
-    request.current?.abort(); const controller = new AbortController(); request.current = controller
-    setSt({ busy: 'list' })
-    try {
-      const list = await listModels(c, controller.signal)
-      if (controller.signal.aborted || request.current !== controller) return
-      setModels(list); setSt({})
-      if (list[0]) setD((value) => value.model ? value : { ...value, model: list[0] })
-    } catch (error) { if (!controller.signal.aborted && request.current === controller) setSt({ err: (error as Error).message }) }
-  }
-  const test = async () => {
-    request.current?.abort(); const controller = new AbortController(); request.current = controller
-    setSt({ busy: 'test' })
-    try {
-      const airi = chooseEngine(d, participants(scene).filter((character) => character.lines === 'ai'), { kind: 'test' }, features).engine === 'airi'
-      const result = airi ? await testAiriModel(d, controller.signal) : { seconds: await testModel(d, controller.signal), batch: false }
-      if (!controller.signal.aborted && request.current === controller) setSt({ ok: result.seconds, batch: result.batch })
-    }
-    catch (error) { if (!controller.signal.aborted && request.current === controller) setSt({ err: (error as Error).message }) }
-  }
-  const save = async (playDemo = demo) => {
-    request.current?.abort(); request.current = null
-    try {
-      if (playDemo) { setSt({ busy: 'demo' }); await beginDemo(demoDone ?? done) }
-      else { if (cur.kind === 'demo') talk.stop(); saveBrainConfig(points ? { kind: 'livliv' } : d); done?.(); if (forStart) onContinue?.() }
-      setSt({})
-    } catch (error) { setSt({ err: (error as Error).message }) }
-  }
-  return <div className="model-form">
-    <div className="demo-launch"><div><b>{tr('三人对谈演示')}</b><span>{tr('无需密钥')}</span></div><button title={demoAvailable ? undefined : tr('打开演示舞台')} disabled={st.busy === 'demo'} onClick={() => void save(true)}>{st.busy === 'demo' ? <LoaderCircle size={14} className="spin" /> : <Play size={14} />}{tr('看演示')}</button></div>
-    <div className="providers">
-      {features.points && <button className={!demo && points ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(false); setPoints(true); setSt({}); if (account.status !== 'in') onAccount() }}>livliv.ai</button>}
-      {PROVIDERS_HERE.map((q) => <button key={q.id} className={!demo && !points && d.provider === q.id ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
-      {/* the three's prepared conversation in their recorded voices: no key, no model */}
-      <button className={`demo${demo ? ' on' : ''}`} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(true); setSt({}) }}>{tr("演示")}</button>
-    </div>
-    {demo ? null : points ? <>
-      <p className="hint">{tr("无需密钥。消耗 livliv.ai 积分，每句台词 {0} 积分，只能用于 LivLiv 的角色。", account.linePoints)}</p>
-      {/* signing in: the site's page on livliv.ai, a connect code in the desktop app (shown here while it waits) */}
-      {account.connect ? <div className="connect-wait">
-        <p className="hint"><LoaderCircle className="spin" size={12} /> {tr("在浏览器完成登录")} · <strong className="num">{account.connect.code}</strong></p>
-        <div className="row"><button onClick={openConnect}><ExternalLink size={14} />{tr("再打开网页")}</button><button onClick={cancelConnect}>{tr("取消")}</button></div>
-      </div> : account.status === 'out' && <button disabled={account.closed} onClick={onAccount}><ExternalLink size={14} />{tr("登录 livliv.ai")}</button>}
-      {account.status === 'out' && account.error && !account.closed && <p className="hint error" role="alert">{tr(account.error ?? '')}</p>}
-    </> : features.host === 'site' && <p className="hint">{tr("网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。")}</p>}
-    {!demo && !points && <>
-      {(p.id === 'custom' || p.id === 'ollama') && <label className="field"><span>{tr("接口地址")}</span>
-        <input value={d.base} placeholder="https://…/v1" onChange={(e) => change({ base: e.target.value, model: '' })} onBlur={() => void fetchModels()} /></label>}
-      {!p.noKey && <label className="field"><span>{tr("密钥")}<span className="lock" title={tr("只存在这台电脑上")}><Lock size={11} /></span>{p.keyUrl && <a className="get" href={p.keyUrl} target="_blank" rel="noreferrer">{tr("获取")}<ExternalLink size={11} /></a>}</span>
-        <input type="password" value={d.key} placeholder="sk-…" autoComplete="off" onChange={(e) => change({ key: e.target.value })} onBlur={() => void fetchModels()} /></label>}
-      <label className="field"><span>{tr("模型")}</span>
-        <div className="row model-pick">
-          <input list="model-list" value={d.model} placeholder={st.busy === 'list' ? tr("正在拿模型列表…") : tr("模型名")} onChange={(e) => change({ model: e.target.value })} />
-          <button className="icon" title={tr("从接口拿模型列表")} disabled={!d.base} onClick={() => void fetchModels()}>{st.busy === 'list' ? <LoaderCircle size={14} className="spin" /> : <RefreshCw size={14} />}</button>
-        </div>
-        <datalist id="model-list">{models.map((m) => <option key={m} value={m} />)}</datalist>
-      </label>
-      {features.airi && <label className="switch"><span>{tr('单角色会话优先使用 AIRI')}</span><input type="checkbox" checked={d.airi !== false} onChange={(e) => change({ airi: e.target.checked })} /><i /></label>}
-    </>}
-    {st.err && <p className="hint error" role="alert">{st.err}</p>}
-    {st.batch && <p className="hint" role="status">{tr('可以聊天，连接游戏或发送画面需要流式输出。')}</p>}
-    <div className="row end">
-      {!demo && !points && <button disabled={!brainReady(d) || st.busy === 'test'} onClick={() => void test()}>
-        {st.busy === 'test' ? <LoaderCircle size={14} className="spin" /> : st.ok !== undefined ? <Check size={14} /> : null}
-        {st.ok !== undefined ? tr("{0} 秒", st.ok.toFixed(1)) : tr("测试")}
-      </button>}
-      <button className="primary" disabled={st.busy === 'demo' || (!demo && (points ? account.status !== 'in' : !brainReady(d)))} onClick={() => void save()}>
-        {forStart || demo ? <>{st.busy === 'demo' ? <LoaderCircle size={14} className="spin" /> : <Play size={14} />}{demo ? tr("看演示") : tr("开始")}</> : tr("保存")}</button>
-    </div>
-  </div>
-}
-
-/** your speech API: the characters' voices (OpenAI-compatible /audio/speech) and push to talk (/audio/transcriptions);
- *  测试 says a line and, with a recognition model, hears it back */
-function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; onDone: () => void }) {
-  const cur = useSpeech(), chat = useBrainConfig()
-  const first = (id: string): SpeechApi => { const q = SPEECH_PROVIDERS.find((x) => x.id === id)!; return { ...SPEECH_UNSET, provider: id, base: q.base, model: q.model, asr: q.asr, voice: '' } }
-  // none chosen: it follows the model's key where that speaks too
-  const ofModel = speechOfModel(chat)
-  const [mode, setMode] = useState<'follow' | 'off' | 'own'>(forCharacter ? 'own' : !cur.provider ? (ofModel ? 'follow' : 'off') : cur.provider === 'off' ? 'off' : 'own')
-  const modeEdited = useRef(!!forCharacter)
-  useEffect(() => { if (!modeEdited.current && !cur.provider) setMode(ofModel ? 'follow' : 'off'); else if (mode === 'follow' && !ofModel) setMode('off') }, [cur.provider, ofModel?.provider, ofModel?.base, ofModel?.key, mode])
-  const off = mode !== 'own'
-  const [d, setD] = useState<SpeechApi>(() => (cur.provider && cur.provider !== 'off' ? cur : first('qwen')))
-  const [voices, setVoices] = useState<string[]>([])
-  const [st, setSt] = useState<{ busy?: boolean; ok?: string; err?: string }>({})
-  const p = speechProviderOf(d)
-  // the voices it offers, once the address and key have stopped changing
-  useEffect(() => {
-    if (off || !/^https?:\/\/[^/]+/.test(d.base) || (!d.key && !p.noKey)) return
-    const t = setTimeout(() => void listVoices(d).then(setVoices), 600)
-    return () => clearTimeout(t)
-  }, [off, d.provider, d.base, d.key])  // eslint-disable-line react-hooks/exhaustive-deps
-  const choose = (id: string) => { modeEdited.current = true; setMode('own'); setSt({}); setD((x) => ({ ...first(id), key: x.provider === id ? x.key : '', base: id === 'custom' && x.provider === 'custom' ? x.base : first(id).base })) }
-  // the AI model's key, where it is the same service
-  const sameKey = !!ofModel && ofModel.provider === d.provider && ofModel.base.replace(/\/+$/, '') === d.base.replace(/\/+$/, '') && d.key !== ofModel.key
-  const save = () => {
-    saveSpeech(mode === 'follow' ? SPEECH_UNSET : mode === 'off' ? SPEECH_OFF : d)
-    if (forCharacter) {
-      const character = store.get().items.find((item) => item.id === forCharacter)
-      if (character?.kind === 'character' && !character.remote && speechReady(activeSpeech())) store.patch(character.id, { voice: { ...character.voice, source: 'api' } })
-      onDone()
-    }
-  }
-  const test = async () => {
-    setSt({ busy: true })
-    try {
-      const blob = await speakApi(d, tr("你好，这是 LivLiv Stage 的声音测试。"), d.voice, 'happy', 1)
-      const url = URL.createObjectURL(blob)
-      await new Audio(url).play().finally(() => setTimeout(() => URL.revokeObjectURL(url), 30_000))
-      if (!asrReady(d)) { setSt({ ok: tr("能说") }); return }
-      const buf = await new OfflineAudioContext(1, 1, 48000).decodeAudioData(await blob.arrayBuffer())
-      setSt({ ok: tr("听到：{0}", await transcribeApi(d, await wav16k(buf.getChannelData(0), buf.sampleRate))) })
-    } catch (e) { setSt({ err: (e as Error).message }) }
-  }
-  return <div className="model-form">
-    <div className="providers">
-      {ofModel && <button className={mode === 'follow' ? 'on' : ''} title={tr("用 AI 模型的密钥，不用再填")} onClick={() => { modeEdited.current = true; setMode('follow'); setSt({}) }}>{tr("跟模型一样")}</button>}
-      {SPEECH_HERE.map((q) => <button key={q.id} className={!off && d.provider === q.id ? 'on' : ''} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
-      <button className={`demo${mode === 'off' ? ' on' : ''}`} title={tr("没有语音接口：角色用 LivLiv 的声音，没有就只出字幕")} onClick={() => { modeEdited.current = true; setMode('off'); setSt({}) }}>{tr("不用")}</button>
-    </div>
-    {forCharacter && mode !== 'off' && <p className="hint">{tr('保存后，此角色会使用你的语音接口。')}</p>}
-    {!off && <>
-      {(p.id === 'custom' || p.id === 'kokoro') && <label className="field"><span>{tr("接口地址")}</span>
-        <input value={d.base} placeholder="https://…/v1" onChange={(e) => setD({ ...d, base: e.target.value })} /></label>}
-      {!p.noKey && <label className="field"><span>{tr("密钥")}<span className="lock" title={tr("只存在这台电脑上")}><Lock size={11} /></span>
-        {sameKey && <button type="button" className="link get" onClick={() => setD({ ...d, key: (chat as ModelConfig).key })}>{tr("用 AI 模型的密钥")}</button>}
-        {!sameKey && p.keyUrl && <a className="get" href={p.keyUrl} target="_blank" rel="noreferrer">{tr("获取")}<ExternalLink size={11} /></a>}</span>
-        <input type="password" value={d.key} placeholder="sk-…" autoComplete="off" onChange={(e) => setD({ ...d, key: e.target.value })} /></label>}
-      <div className="row two">
-        <label className="field"><span>{tr("语音模型")}</span><input value={d.model} onChange={(e) => setD({ ...d, model: e.target.value })} /></label>
-        <label className="field"><span>{tr("默认音色")}</span><input list="speech-voices" value={d.voice} placeholder={tr('按角色自动分配')} onChange={(e) => setD({ ...d, voice: e.target.value })} /></label>
-      </div>
-      <datalist id="speech-voices">{voices.map((v) => <option key={v} value={v} />)}</datalist>
-      <label className="field"><span>{tr("识别模型")}</span><input value={d.asr} placeholder={tr("按住说话用")} onChange={(e) => setD({ ...d, asr: e.target.value })} /></label>
-      {st.err && <p className="hint error">{st.err}</p>}
-    </>}
-    <div className="row end">
-      {!off && <button disabled={!speechReady(d) || st.busy} onClick={() => void test()} title={st.ok}>
-        {st.busy ? <LoaderCircle size={14} className="spin" /> : st.ok ? <Check size={14} /> : null}
-        <span className="ellipsis">{st.ok ?? tr("测试")}</span>
-      </button>}
-      <button className="primary" disabled={!off && !speechReady(d)} onClick={save}>{tr("保存")}</button>
-    </div>
-  </div>
-}
-
 /** the model card over the console */
 function ModelCard({ forStart, own, onClose, onAccount, onContinue, onSettings }: { forStart: boolean; own?: boolean; onClose: () => void; onAccount: () => void; onContinue: () => void; onSettings: () => void }) {
   return (
@@ -1206,14 +1064,21 @@ function SettingsCard({ onClose, onAdd, initialTab, initialModel, forStart, retu
   const [tab, setTab] = useState<SettingsTab>(initialTab)
   const [modelTab, setModelTab] = useState<ModelTab>(initialModel)
   useEffect(() => { if (tab === 'account') void checkConnect() }, [tab])
+  // the redesign: providers and keys on one page (连接), and a search over every setting
+  const [query, setQuery] = useState(''), [focus, setFocus] = useState<ConnectSection>(initialModel === 'chat' ? 'model' : initialModel)
+  const found = query.trim() ? SETTINGS_INDEX.filter((entry) => `${tr(entry.label)} ${entry.label} ${entry.words}`.toLowerCase().includes(query.trim().toLowerCase())) : null
   return (
     <div className="card popover settings" onPointerDown={(e) => e.stopPropagation()}>
       <div className="settings-head"><header><span className="title">{tr("设置")}</span><button className="icon" data-close="true" aria-label={tr("关闭")} onClick={onClose}><X size={16} /></button></header>
-      <div className="settings-tabs seg">{([{ id: 'general', label: tr("通用") }, { id: 'ai', label: tr("模型与声音") }, { id: 'hotkeys', label: tr("全局热键") }, { id: 'account', label: tr("livliv.ai 帐号") }] as const).map((t) => <button className={`${tab === t.id ? 'on ' : ''}${t.id === 'account' ? 'account-tab' : ''}`} key={t.id} onClick={() => setTab(t.id)}>{t.id === 'account' && <Sparkles size={13} />}{t.label}</button>)}</div>
+      {uiNext && <input className="settings-search" type="search" value={query} placeholder={tr('搜索设置')} aria-label={tr('搜索设置')} onChange={(e) => setQuery(e.target.value)} />}
+      <div className="settings-tabs seg">{([{ id: 'general', label: tr("通用") }, { id: 'ai', label: uiNext ? tr('连接') : tr("模型与声音") }, { id: 'hotkeys', label: tr("全局热键") }, { id: 'account', label: tr("livliv.ai 帐号") }] as const).map((t) => <button className={`${tab === t.id ? 'on ' : ''}${t.id === 'account' ? 'account-tab' : ''}`} key={t.id} onClick={() => setTab(t.id)}>{t.id === 'account' && <Sparkles size={13} />}{t.label}</button>)}</div>
       </div><div className="settings-body">
+      {found && <div className="settings-found">{found.length ? found.map((entry) => <button key={entry.label} className="item" onClick={() => { setTab(entry.tab); if (entry.section) setFocus(entry.section); setQuery('') }}><b>{tr(entry.label)}</b><span>{tr(({ general: '通用', ai: '连接', hotkeys: '全局热键', account: 'livliv.ai 帐号' } as const)[entry.tab])}</span></button>) : <p className="hint">{tr('没有找到')}</p>}</div>}
+      {!found && <>
       {tab === 'general' && <GeneralPanel onResetLayout={onResetLayout} />}
       {tab === 'hotkeys' && <HotkeysPanel />}
-      {tab === 'ai' && <div className="model-settings">
+      {tab === 'ai' && uiNext && <Connections key={focus} focus={focus} forStart={forStart} onAccount={() => setTab('account')} onContinue={onContinue} onDone={forStart || returns ? onClose : undefined} />}
+      {tab === 'ai' && !uiNext && <div className="model-settings">
         <div className="seg model-tabs" aria-label={tr('模型用途')}>{([{ id: 'chat', label: '文字对话' }, { id: 'speech', label: '配音与识别' }, { id: 'realtime', label: '实时语音' }] as const).map((entry) => <button key={entry.id} className={modelTab === entry.id ? 'on' : ''} aria-pressed={modelTab === entry.id} onClick={() => setModelTab(entry.id)}>{tr(entry.label)}</button>)}</div>
         {modelTab === 'chat' && <section>
         <h3>{tr('文字对话')}</h3><p className="hint model-purpose">{tr('用于持续聊天、对谈和 AI 直播。')}</p>
@@ -1229,6 +1094,7 @@ function SettingsCard({ onClose, onAdd, initialTab, initialModel, forStart, retu
       </section>}
       </div>}
       {tab === 'account' && <AccountPanel onAdd={onAdd} />}
+      </>}
       </div>
     </div>
   )
