@@ -183,7 +183,7 @@ try {
   await realtimeItem.getByRole('button', { name: '去设置', exact: true }).click()
   const modelSettings = page.locator('.settings .connections'), realtimeModel = modelSettings.locator('.realtime-model-form')
   assert.equal(await modelSettings.locator('[data-section="realtime"] button.fold').getAttribute('aria-expanded'), 'true')
-  await realtimeModel.getByRole('combobox', { name: '实时语音服务', exact: true }).selectOption('openai')
+  await realtimeModel.getByRole('combobox', { name: '实时通话服务', exact: true }).selectOption('openai')
   await realtimeModel.getByRole('textbox', { name: '密钥', exact: true }).fill('fixture-realtime-key')
   await realtimeModel.getByRole('textbox', { name: '模型', exact: true }).fill('fixture-realtime-model')
   await realtimeModel.getByRole('textbox', { name: '实时音色', exact: true }).fill('fixture-voice')
@@ -193,7 +193,7 @@ try {
   assert.equal(await page.locator('.settings').count(), 0)
   await realtimeItem.getByRole('button', { name: '去设置', exact: true }).click()
   await page.locator('.realtime-model-summary').getByText(/fixture-realtime-model/).waitFor()
-  await page.locator('.realtime-settings').getByText('实时语音服务', { exact: true }).waitFor()
+  await page.locator('.realtime-settings').getByText('实时通话服务', { exact: true }).waitFor()
   assert.equal(await page.locator('.realtime-settings input[type=password]').count(), 0)
   assert.equal(await page.evaluate(() => window.uxMediaRequests), 0)
   assert.deepEqual(await page.evaluate(() => [localStorage.getItem('livliv-stage:brain'), localStorage.getItem('livliv-stage:speech')]), originalModels)
@@ -214,7 +214,7 @@ try {
   // closed: back in the realtime panel too
   await page.locator('.settings').getByRole('button', { name: '关闭', exact: true }).click()
   await page.locator('.realtime-model-summary').getByText(/fixture-realtime-model/).waitFor()
-  assert.equal(await page.locator('.realtime-settings').getByRole('button', { name: '开始实时语音', exact: true }).isEnabled(), true)
+  assert.equal(await page.locator('.realtime-settings').getByRole('button', { name: '开始实时通话', exact: true }).isEnabled(), true)
   await page.locator('.realtime-settings').getByRole('button', { name: '关闭', exact: true }).click()
   // the other ways to start (a 直播间): the start options, from the keyboard too; Esc closes them
   await page.locator('.popover.checklist [data-close]').click({ timeout: 2000 }).catch(() => {})

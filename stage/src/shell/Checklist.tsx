@@ -26,7 +26,7 @@ export function Checklist({ goal, partner, startLabel, onStart, onFix, onClose }
   const title = GOALS.find((g) => g.id === goal)!.label
   return <div className="card popover checklist" role="dialog" aria-label={tr('准备清单')} onPointerDown={(e) => e.stopPropagation()}>
     <header><span className="title">{tr(title)}{partner && <small>{tr('和 AI 搭档')}</small>}</span><span className="hint num">{tr('准备 {0}/{1}', ready, of)}</span><button className="icon" data-close="true" aria-label={tr('收起')} onClick={onClose}><X size={16} /></button></header>
-    <ol className="checks">{checks.map((check) => <CheckRow key={check.id} check={check} onFix={FIX[check.id] ? () => onFix(FIX[check.id]!) : undefined} test={TESTS.includes(check.id)} />)}</ol>
+    <ol className="checks">{checks.map((check) => { const fix = check.id === 'twitch' && goal === 'perform' && !partner ? 'live-room' : FIX[check.id]; return <CheckRow key={check.id} check={check} onFix={fix ? () => onFix(fix) : undefined} test={TESTS.includes(check.id)} /> })}</ol>
     <footer className="row end">
       {startLabel ? <button className="primary" disabled={conv.running} onClick={onStart}>{tr(startLabel)}</button> : <span className="hint">{tr('准备好后点上方的「输出到 OBS」')}</span>}
     </footer>

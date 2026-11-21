@@ -99,7 +99,7 @@ export function LivePanel({ onClose }: { onClose: () => void }) {
         {visionError && <p className="hint error" role="alert">{visionError}</p>}
       </div>}
     </section>}
-    {!features.airi && !active && <p className="hint">{tr('开播前的时长、句数和 Twitch 在开始按钮旁的选项里。')}</p>}
+    {!features.airi && !active && cast.length > 0 && <p className="hint">{tr('开播前的时长、句数和 Twitch 在开始按钮旁的选项里。')}</p>}
     {state.running && !active && <p className="hint">{tr('请先停止当前会话')}</p>}
     {active && state.game && <section className="section airi-game-status">
       <h3>{state.game.name === 'minecraft' ? 'Minecraft' : 'Factorio'}</h3>
@@ -112,7 +112,8 @@ export function LivePanel({ onClose }: { onClose: () => void }) {
         <button disabled={state.paused || !instruction.trim()} onClick={() => void sendTask()}>{tr('执行')}</button>
       </div>}
     </section>}
-    {active && <AudiencePanel />}
+    {/* the viewers' messages: while live, and for a stage you perform alone (no start options there) */}
+    {(active || !cast.length) && <AudiencePanel />}
     {active && <section className="section">
       <h3>{tr("本次会话")}</h3>
       <p className="live-status" role="status">{status}</p>

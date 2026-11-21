@@ -50,6 +50,9 @@ export function Console({ goal, partner, checks, optionsOpen, onOptions, onCheck
       </>}
       <button className="icon" title={tr('对话记录')} aria-label={tr('对话记录')} onClick={onLog}><MessagesSquare size={16} />{conv.lines.length > 0 && <em>{conv.lines.length}</em>}</button>
     </div>
+    {/* push to talk (the ` key) before a start: what it is doing, and a way to end it */}
+    {ptt.phase !== 'idle' && <p className="handsfree-status" role="status">{tr(ptt.phase === 'listening' ? '正在听…' : ptt.phase === 'opening' ? '正在打开麦克风…' : '正在识别…')}
+      <button onClick={ptt.phase === 'listening' ? () => void pttRelease() : pttCancel}>{tr(ptt.phase === 'listening' ? '结束语音输入' : '取消')}</button></p>}
     {status}
     {errors}
   </div>

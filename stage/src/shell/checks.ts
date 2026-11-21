@@ -46,7 +46,9 @@ export function checklist(goal: Goal, c: CheckContext): Check[] {
     : { id: 'camera', label: '摄像头', state: 'todo', detail: '先放一个「我来演」的角色' }
   const microphone: Check = { id: 'microphone', label: '麦克风', state: c.microphone ? 'ok' : 'optional', detail: c.microphone ? '已打开' : '可选：口型跟着你的声音' }
   const phone: Check = { id: 'phone', label: '手机或 VMC 面捕', state: c.phone.here ? c.phone.on ? 'ok' : 'optional' : 'off', detail: c.phone.here ? c.phone.on ? '已连接' : '可选' : '桌面版接收手机和 VMC 的面捕', desktop: true }
-  if (goal === 'perform') return [camera, microphone, phone, ...(c.partner ? [{ ...modelCheck(c), label: 'AI 搭档的文字模型' }, { ...voiceCheck(c), label: 'AI 搭档的声音' }] : [])]
+  // 我来演 alone: viewers' messages can still move your character (弹幕动作), from the 直播间 card
+  const chat: Check = { id: 'twitch', label: '直播间弹幕', state: c.twitch.status === 'on' ? 'ok' : c.twitch.status === 'error' ? 'todo' : 'optional', detail: c.twitch.status === 'on' ? `Twitch：${c.twitch.channel}` : c.twitch.status === 'error' ? '连接失败' : '可选：弹幕可以触发角色的表情和动作' }
+  if (goal === 'perform') return c.partner ? [camera, microphone, phone, { ...modelCheck(c), label: 'AI 搭档的文字模型' }, { ...voiceCheck(c), label: 'AI 搭档的声音' }] : [camera, microphone, phone, chat]
   if (goal === 'live') {
     const game: Check = !c.game.here ? { id: 'game', label: '游戏', state: 'off', detail: '桌面版可以让角色玩 Minecraft 或 Factorio', desktop: true }
       : { id: 'game', label: '游戏', state: c.game.engine.engine === 'airi' ? 'optional' : 'off', detail: c.game.engine.engine === 'airi' ? '可选：Minecraft（Airicraft）或 Factorio（Autorio）' : c.game.reason, desktop: true }

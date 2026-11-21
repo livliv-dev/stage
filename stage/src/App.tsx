@@ -236,7 +236,7 @@ export default function App() {
         {((pop === 'start' && scene.items.length > 0) || (narrow && !scene.items.length && !pop)) && <div className="start-overlay"><StartPage onGoal={(g, p) => void pickGoal(g, p)} onTemplate={template} onAdd={() => setPop('add')} onClose={() => setPop(null)} /></div>}
         {bare ? <PanelTab onOpen={() => setBare(false)} /> : <Panel onFold={() => setBare(true)} onAccount={openAccount} onVoice={(id) => { openModels('speech'); setVoiceSetup(id) }} />}
         {!leftFolded && <Cast onFriend={features.collab ? () => toggle('collab') : undefined} friendOn={pop === 'collab'} guide={goLive ? <GoLiveGuide id={goLive} onClose={() => setGoLive(null)} /> : null} />}
-        {goal === 'perform' && !partner ? <><SoloStatus />{pop !== 'checklist' && scene.items.some((i) => i.kind === 'character') && <button className="st-tag solo-checks" onClick={() => setPop('checklist')}>{tr('准备清单')}</button>}</>
+        {(goal === 'perform' && !partner) || !ai.length ? <><SoloStatus />{pop !== 'checklist' && scene.items.some((i) => i.kind === 'character') && <button className="st-tag solo-checks" onClick={() => setPop('checklist')}>{tr('准备清单')}</button>}</>
           : <Console goal={goal} partner={partner} checks={checks} optionsOpen={pop === 'start-options'} onOptions={() => toggle('start-options')} onChecklist={() => toggle('checklist')} onStart={startNow} onOwnModel={ownModel}
             onModel={() => openModels('chat')} onVoice={() => fix('character:voice')} onRoom={() => toggle('live')} onRealtime={() => toggle('realtime')}
             onLog={() => { setLog((on) => !on || logView === 'memory'); setLogView('history') }} onMemory={() => { setLogView('memory'); setLog(true) }} />}

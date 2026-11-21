@@ -1059,8 +1059,8 @@ export const talk = {
       offRealtimeHistory = memory.subscribe(() => {
         void Promise.all([memoryUnchanged(memory, character.profileId ?? character.id, scope, context.revision), memory.session(sessionId)]).then(([unchanged, saved]) => {
           if (!mine()) return
-          if (!saved) session.end('', tr('对话记录已删除，请重新开始实时语音'))
-          else if (!unchanged) session.end('', tr('记忆已更新，请重新开始实时语音'))
+          if (!saved) session.end('', tr('对话记录已删除，请重新开始实时通话'))
+          else if (!unchanged) session.end('', tr('记忆已更新，请重新开始实时通话'))
         }, (error: unknown) => { if (mine()) session.end(tr('对话未保存：{0}', error instanceof Error ? error.message : String(error))) })
       })
       return session

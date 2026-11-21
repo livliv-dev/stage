@@ -56,7 +56,7 @@ export function offerRequest(options: RealtimeOptions, sdp: string, signal: Abor
     headers.set('Content-Type', 'application/sdp'); body = sdp
   }
   const target = new URL(url)
-  if (!['https:', 'http:'].includes(target.protocol) || target.username || target.password) throw new Error('实时语音接口地址无效')
+  if (!['https:', 'http:'].includes(target.protocol) || target.username || target.password) throw new Error('实时通话接口地址无效')
   return { url, init: { method: 'POST', headers, body, signal } satisfies RequestInit }
 }
 
@@ -101,13 +101,13 @@ export class RealtimeConnection {
       pc.onconnectionstatechange = () => {
         if (this.closed) return
         if (pc.connectionState === 'connected') this.configure()
-        else if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) this.fail(new Error('实时语音连接已断开，请重新开始'))
+        else if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) this.fail(new Error('实时通话连接已断开，请重新开始'))
       }
       const microphone = await this.deps.microphone()
       if (this.closed) { microphone.getTracks().forEach((track) => track.stop()); return }
       this.microphone = microphone
       for (const track of microphone.getAudioTracks()) track.onended = () => this.fail(new Error('麦克风已断开，请重新开始'))
-      this.timer = setTimeout(() => this.fail(new Error('实时语音连接超时，请检查接口地址和网络')), 25_000)
+      this.timer = setTimeout(() => this.fail(new Error('实时通话连接超时，请检查接口地址和网络')), 25_000)
       await pc.setLocalDescription(await pc.createOffer())
       if (this.closed) return
       await this.gatherIce(pc)
@@ -122,7 +122,7 @@ export class RealtimeConnection {
       }
       const sdp = (await response.text()).trim().replace(/\r?\n/g, '\r\n') + '\r\n'
       if (this.closed) return
-      if (!sdp.startsWith('v=0\r\n')) throw new Error('实时语音接口没有返回有效连接信息')
+      if (!sdp.startsWith('v=0\r\n')) throw new Error('实时通话接口没有返回有效连接信息')
       await pc.setRemoteDescription({ type: 'answer', sdp })
     } catch (error) { if (!this.closed) this.fail(error instanceof Error ? error : new Error(String(error))) }
   }
@@ -149,12 +149,12 @@ export class RealtimeConnection {
       if (this.closed) return
       try {
         const event: unknown = JSON.parse(data)
-        if (!event || typeof event !== 'object' || !('type' in event) || typeof event.type !== 'string') throw new Error('实时语音事件无效')
+        if (!event || typeof event !== 'object' || !('type' in event) || typeof event.type !== 'string') throw new Error('实时通话事件无效')
         this.receive(event as ModelEvent, channel)
-      } catch (error) { this.fail(error instanceof Error ? error : new Error('实时语音事件无效')) }
+      } catch (error) { this.fail(error instanceof Error ? error : new Error('实时通话事件无效')) }
     }
-    channel.onclose = () => { this.channels.delete(channel); if (!this.closed && channel === this.channel) this.fail(new Error('实时语音连接已断开，请重新开始')) }
-    channel.onerror = () => { if (!this.closed) this.fail(new Error('实时语音连接已断开，请重新开始')) }
+    channel.onclose = () => { this.channels.delete(channel); if (!this.closed && channel === this.channel) this.fail(new Error('实时通话连接已断开，请重新开始')) }
+    channel.onerror = () => { if (!this.closed) this.fail(new Error('实时通话连接已断开，请重新开始')) }
   }
 
   private receive(event: ModelEvent, channel: RTCDataChannel) {
@@ -170,9 +170,9 @@ export class RealtimeConnection {
         this.handlers.requestRejected?.(error!.event_id as string, 'busy'); return
       }
       if (error?.code === 'COMMON_ERROR' && typeof error.message === 'string' && /\bInternalError\./.test(error.message)) {
-        this.fail(new Error('实时语音服务暂时出错，请稍后重新开始')); return
+        this.fail(new Error('实时通话服务暂时出错，请稍后重新开始')); return
       }
-      this.fail(new Error('实时语音服务拒绝了请求，请检查模型、音色和权限')); return
+      this.fail(new Error('实时通话服务拒绝了请求，请检查模型、音色和权限')); return
     }
     if (event.type === 'session.created') { this.created = true; this.channel = channel; this.configure() }
     if (event.type === 'session.updated' && this.configured && !this.ready) {

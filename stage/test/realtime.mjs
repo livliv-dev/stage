@@ -117,7 +117,7 @@ try {
   await callRow.getByRole('button', { name: '去设置', exact: true }).click()
   const panel = page.locator('.realtime-settings')
   const modelSettings = page.locator('.settings'), modelForm = modelSettings.locator('.realtime-model-form')
-  await modelForm.getByLabel('实时语音服务', { exact: true }).selectOption(provider)
+  await modelForm.getByLabel('实时通话服务', { exact: true }).selectOption(provider)
   await modelForm.getByLabel('接口地址', { exact: true }).fill(origin + '/fixture-realtime' + (provider === 'openai' ? '/v1' : ''))
   await modelForm.getByLabel('密钥', { exact: true }).fill('fixture-only')
   // saved from the checklist: back there, the row ready; it now opens the call's card
@@ -139,7 +139,7 @@ try {
     window.__reactionEvents = []
     Actor.prototype.react = function(cue, planned) { const applied = react.call(this, cue, planned); if (applied) window.__reactionEvents.push(cue); return applied }
   })
-  await panel.getByRole('button', { name: '开始实时语音', exact: true }).click()
+  await panel.getByRole('button', { name: '开始实时通话', exact: true }).click()
   await page.evaluate(async () => { window.__realtimeModule = await import('/src/realtime.ts') })
   try {
     await page.waitForFunction(() => ['listening', 'error'].includes(window.__realtimeModule.realtimeState().phase))
@@ -313,7 +313,7 @@ try {
   // the scope comes from the console's tag
   assert.equal(await page.evaluate(() => window.__stage.talk.setScope('private')), true)
   await page.locator('.console .scope-tag').filter({ hasText: '私聊' }).waitFor()
-  await panel.getByRole('button', { name: '开始实时语音', exact: true }).click()
+  await panel.getByRole('button', { name: '开始实时通话', exact: true }).click()
   await page.waitForFunction(() => window.__realtimeModule.realtimeState().phase === 'listening')
   const privateSeed = await page.evaluate(() => window.__voiceFixture.clientEvents.filter((event) => event.type === 'conversation.item.create').at(-1).item.content[0].text)
   assert.ok(privateSeed.includes('private-fixture-secret') && privateSeed.includes('public-fixture-fact') && privateSeed.includes('earlier-summary-fixture') && privateSeed.includes('earlier turn 4'), 'same archive, recap and all accessible memories seed a private call')
@@ -323,14 +323,14 @@ try {
   assert.ok(await page.evaluate(() => window.__stage.conversation().ended.includes('记忆已更新')))
   await page.evaluate(async () => { window.__voiceFixture.peer.close(); await window.__voiceFixture.context.close() })
   // an output comes on during a private call: the provider holds private context, so the call ends
-  await panel.getByRole('button', { name: '开始实时语音', exact: true }).click()
+  await panel.getByRole('button', { name: '开始实时通话', exact: true }).click()
   await page.waitForFunction(() => window.__realtimeModule.realtimeState().phase === 'listening' && window.__stage.conversation().scope === 'private')
   await page.evaluate(() => { const output = window.__outputProbe = new BroadcastChannel('livliv-stage'); output.postMessage({ t: 'hello' }) })
   await page.waitForFunction(() => !window.__stage.conversation().running && window.__stage.conversation().ended.includes('私聊通话已结束'))
   await page.evaluate(async () => { window.__outputProbe.postMessage({ t: 'bye' }); window.__outputProbe.close(); window.__voiceFixture.peer.close(); await window.__voiceFixture.context.close() })
   await page.waitForFunction(() => !window.__stage.conversation().output)
   assert.equal(await page.evaluate(() => window.__stage.talk.setScope('public')), true)
-  await panel.getByRole('button', { name: '开始实时语音', exact: true }).click()
+  await panel.getByRole('button', { name: '开始实时通话', exact: true }).click()
   await page.waitForFunction(() => window.__realtimeModule.realtimeState().phase === 'listening')
   assert.equal(await page.evaluate(() => window.__stage.talk.externalEvent({ id: 'wrong-character', character: 'another-character', source: 'fixture', message: 'do not redirect this event', reply: 'always' })), false)
   const publicSeed = await page.evaluate(() => window.__voiceFixture.clientEvents.filter((event) => event.type === 'conversation.item.create').at(-1).item.content[0].text)
@@ -344,7 +344,7 @@ try {
     window.__historyOpen = chatHistory.open
     chatHistory.open = async () => { throw new Error('fixture storage unavailable') }
   })
-  await panel.getByRole('button', { name: '开始实时语音', exact: true }).click()
+  await panel.getByRole('button', { name: '开始实时通话', exact: true }).click()
   await page.waitForFunction(() => !window.__stage.conversation().running && window.__stage.conversation().error.includes('fixture storage unavailable'))
   assert.ok((await panel.innerText()).includes('fixture storage unavailable'), 'archive initialization failures stay visible after cleanup')
   await page.evaluate(async () => { const { chatHistory } = await import('/src/chatHistory.ts'); chatHistory.open = window.__historyOpen })

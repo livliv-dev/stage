@@ -19,7 +19,7 @@ export function RealtimeModelForm({ onSaved }: { onSaved?: () => void } = {}) {
     catch (cause) { setSaved(false); setError(tr('设置未保存：{0}', (cause as Error).message)) }
   }
   return <div className="model-form realtime-model-form">
-    <label className="field"><span>{tr('实时语音服务')}</span><select aria-label={tr('实时语音服务')} value={settings.provider} onChange={(event) => {
+    <label className="field"><span>{tr('实时通话服务')}</span><select aria-label={tr('实时通话服务')} value={settings.provider} onChange={(event) => {
       const next = realtimeDefaults(event.target.value === 'openai' ? 'openai' : 'qwen')
       change({ ...next, semantic: settings.semantic, silence: settings.silence, minutes: settings.minutes })
     }}><option value="qwen">{tr('阿里云百炼')}</option><option value="openai">OpenAI Realtime</option></select></label>
