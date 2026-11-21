@@ -197,7 +197,7 @@ try {
   assert.equal(await page.locator('.realtime-settings input[type=password]').count(), 0)
   assert.equal(await page.evaluate(() => window.uxMediaRequests), 0)
   assert.deepEqual(await page.evaluate(() => [localStorage.getItem('livliv-stage:brain'), localStorage.getItem('livliv-stage:speech')]), originalModels)
-  await page.locator('.realtime-settings').getByRole('button', { name: '设置模型与声音', exact: true }).click()
+  await page.locator('.realtime-settings').getByRole('button', { name: '去「设置 → 连接」', exact: true }).click()
   // one page: the voices and recognition, the text model and the realtime call
   await modelSettings.locator('[data-section="speech"]').getByRole('button', { name: 'OpenAI', exact: true }).click()
   await modelSettings.locator('[data-section="speech"]').getByText('识别模型', { exact: true }).waitFor()

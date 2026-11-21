@@ -32,13 +32,14 @@ try {
   })
   await page.waitForFunction(() => window.__stage.actors.get('stella')?.status === 'ready')
   await page.evaluate(() => { const a = window.__stage.actors.get('stella'), act = a.player.act.bind(a.player); window.moves = []; a.player.act = (id) => { window.moves.push(id); return act(id) } })
-  // the audience (Twitch, its actions) is in the start options once 谁在看 is a 直播间: the stage's goal becomes AI 来开播
-  // from the start page (reopened from the stage name's menu); its characters stay
-  await page.getByRole('button', { name: '切换镜头', exact: true }).click(); await page.locator('.shot-start').click()
-  await page.locator('.start-overlay .goal-tile', { hasText: 'AI 来开播' }).locator('.goal-main').click()
-  await page.locator('.popover.checklist [data-close]').click()
+  // a stage without an AI character: its 准备清单 has 直播间弹幕, which opens the 直播间 card with Twitch and its actions
+  const room = async () => {
+    await page.locator('.solo-checks').click()
+    await page.locator('.popover.checklist .check', { hasText: '直播间弹幕' }).getByRole('button', { name: '去设置', exact: true }).click()
+    await page.locator('.live-settings .audience-panel').waitFor()
+  }
+  await room()
   assert.equal(await page.evaluate(() => window.__stage.store.get().items.map((i) => i.id).join()), 'stella')
-  await page.locator('.console .start-rows').click()
   await page.locator('.audience-actions > summary').click()
   await page.getByRole('button', { name: '添加弹幕动作', exact: true }).click()
   const message = (text) => page.evaluate(async (text) => (await import('/src/danmaku.ts')).simulate('Viewer', text), text)
@@ -101,7 +102,7 @@ try {
   await page.evaluate(() => window.__stage.store.switchScene(window.__stage.store.project().scenes[0].id))
   await page.reload(); await page.waitForFunction(() => window.__stage.actors.get('stella')?.status === 'ready')
   assert.equal(await page.evaluate(() => window.__stage.store.get().talk.triggers.length), 1)
-  await page.locator('.console .start-rows').click()
+  await room()
   await page.locator('.audience-actions > summary').click()
   report.locales = []
   await page.setViewportSize({ width: 1100, height: 700 })
