@@ -22,15 +22,12 @@ import { chance } from './chance'
 import { castKey, NeedModel, played, TURN_INTERRUPTED, voices, VoiceFailed } from './context'
 import { holds, inbox, someViewer, speechHeld, wake, YOURS } from './inbox'
 import { checkMemory, memoryIdsOf } from './memoryGate'
-import { across, freePick as pickFree, nextSpeaker as speakerAfter } from './order'
+import { across, nextSpeaker as speakerAfter } from './order'
 import { cut, deliver, takeCutting, tellSpeech, type LineSpeech } from './performance'
 import { current, order, type Run } from './run'
 import { conversation, set } from './state'
 import { untilFree, waitWhile } from './wake'
 import { bySentence as sentenceBySentence, streamable } from './voicing'
-
-/** one of `pool`, the chattier and the longer quiet the likelier (sessions/order.ts) */
-export const freePick = (pool: CharacterItem[]) => pickFree(pool, conversation().lines, chance)
 
 /** who speaks next by the stage's talk order (sessions/order.ts); a character picked by hand goes once */
 export function nextSpeaker(): CharacterItem | null {
@@ -308,10 +305,3 @@ async function bySentences(run: Run, me: CharacterItem, r: Utterance & Pick<Line
     offset += text.length
   }
 }
-
-/** a 对谈 turn: a clip that won't play keeps its subtitle (the character shows the voice error) and the talk goes on,
- *  as it always did; the turn was already counted, so a voice that keeps failing still ends at the turn limit */
-export async function talkOn(run: Run, who: CharacterItem, signal: AbortSignal) {
-  try { await speakTurn(run, who, signal) } catch (e) { if (!(e instanceof VoiceFailed) || signal.aborted) throw e }
-}
-

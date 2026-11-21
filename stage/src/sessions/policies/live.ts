@@ -1,199 +1,76 @@
 import { tr } from '../../i18n'
-// The 直播间 (AI 来开播): the AI characters answer viewers' messages (one at a time, a few seconds apart), external and
-// game events, and you; with no chat they wait quietly or speak up now and then (warm-up). It is public, runs within
-// its minutes and generations, rides out a failed turn (tried again twice), and on AIRI can play a game: connected at
-// the start, its events become lines to answer, its window or frame goes to the model.
-import { actors } from '../../actors'
-import { brainReady, loadBrainConfig } from '../../brain'
-import { makeEngine } from '../../brains/engines'
-import { airiFits, chooseEngine } from '../../brains/select'
-import { features } from '../../core/platform'
-import { desktop } from '../../desktopBridge'
-import { hush } from '../../speech'
-import { isBlocked, type Chat } from '../../danmaku'
-import { participants, store, uid } from '../../scene'
-import { voiceRoute } from '../../voiceApi'
-import { airiGameError, airiGameText } from '../../airiEngine'
-import type { ExternalEvent } from '../../externalEvents'
-import type { AiriGameConfig, AiriGameConnection } from '../../../../desktop/src/airiGameProtocol'
-import { bindAiri } from '../airiBinding'
-import { deadline, GenerationLimit, LIVE_FAILURES, RETRY_SECONDS, spent, type LiveOptions } from '../budget'
+// The 直播间 (AI 来开播): the AI characters answer viewers' messages (one at a time, at least six seconds apart),
+// external and game events, and you; with no chat they wait quietly or speak up now and then (warm-up). It is public,
+// runs within its minutes (every voice silenced when they are up) and generations, and rides out a failed turn (tried
+// again after 5 s, then 15 s; it stops at the third in a row). On AIRI it can play a game: a game playing when the
+// generations are spent keeps it open until the game is done.
+import type { Chat } from '../../danmaku'
+import { GenerationLimit, LIVE_FAILURES, RETRY_SECONDS, type LiveOptions } from '../budget'
+import { chance } from '../chance'
 import { clock } from '../clock'
-import { castKey, NeedModel, voices, VoiceFailed } from '../context'
-import { EVENTS, holds, inbox, turnHeld, wake, YOURS } from '../inbox'
-import { consumeInput } from '../input'
-import { looks } from '../performance'
-import { openHistory } from '../record'
-import { begin, current, finish, lastBegun, order, Run } from '../run'
-import { runSession, type Policy } from '../runner'
-import { dropAhead, followLines, freePick, speakTurn } from '../speak'
-import { conversation, set } from '../state'
-import { sleep, waitWhile } from '../wake'
+import { NeedModel, VoiceFailed } from '../errors'
+import { freePick } from '../order'
+import { order, type Run } from '../run'
+import type { Env, Policy } from '../runner'
 
-export const gameName = (game: AiriGameConfig['game']) => game === 'minecraft' ? 'Minecraft' : 'Factorio'
-
-/** starts a 直播间 with these options (limits already in bounds); `event` hands a game's events to the session */
-export function startLive(options: LiveOptions, event: (event: ExternalEvent) => boolean) {
-  const config = loadBrainConfig()
-  if (!brainReady(config) || config.kind === 'demo') { set({ error: tr("直播间需要接上模型，演示只能在「只有我」里看"), needModel: true, modelIntent: 'live' }); return }
-  const cast = participants(store.get()).filter((c) => c.lines === 'ai')
-  if (!cast.length) { set({ error: tr("先添加一个「AI 来演」的角色") }); return }
-  // the start asked for AIRI: the one rule (brains/select.ts), a game or a window asking for it whatever the switch says
-  const choice = options.airi ? chooseEngine(config, cast, { kind: 'live', needsAiri: true, textOnly: options.textOnly, voice: voiceRoute(cast[0]) }, features) : null
-  if (choice && !airiFits(choice)) {
-    set({ error: tr('内置 AIRI 需要一个本地 AI 角色和流式模型接口') }); return
-  }
-  const gameHost = desktop?.airiGame, gameConfig = options.airi?.game
-  if (gameConfig && !gameHost) { set({ error: tr('当前桌面版本不支持 AIRI 游戏') }); return }
-  if (choice?.reason === 'livliv-voice') {
-    set({ error: tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕') }); return
-  }
-  const airiModel = choice?.engine === 'airi' && config.kind === 'openai' ? config : null
-  // a muted character speaks no line aloud: only the ones that speak need a voice, else the session is subtitles only
-  if (!options.textOnly && cast.some((c) => !c.muted && voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕") }); return }
-  const run = new Run('live'), c = run.controller
-  dropAhead(lastBegun()); begin(run); followLines(run)
-  run.brain = config; run.engine = makeEngine(config, airiModel)
-  inbox.clearViewers(); inbox.drop(YOURS); inbox.drop(EVENTS); holds.dialogue.clear()
-  run.liveOptions = options
-  run.boundProfiles = castKey()
-  const offAiriCast = airiModel ? bindAiri(run, airiModel, cast[0], options.airi?.windowId) : undefined
-  const engine = run.airi
-  const until = clock.now() + options.minutes * 60_000
-  set({ running: true, mode: 'live', paused: false, waitingAudience: true, turns: 0, generations: 0, generationLimit: options.maxGenerations, until, retryAt: 0, ended: '', error: '',
-    engine: engine ? 'airi' : undefined, game: gameConfig ? { name: gameConfig.game, status: 'connecting', text: '' } : undefined,
-    scope: 'public', sessionId: '', lines: [], speaking: null,
-  }, false)
-  const stopClock = deadline(until, () => {
-    if (current() !== run || c.signal.aborted) return
-    set({ ended: tr("已达到本次时长上限") }); c.abort(); hush(); actors.forEach((a) => a.silence())
-  })
-  return runSession(live(run, options, { cast, engine, gameHost, gameConfig, stopClock, offAiriCast, event }), c)
+/** what the start sets up: the record and cast (and a game) opened, and closed; the AIRI binding it runs on (a game
+ *  or a window makes a failed turn end it); how an error reads */
+export type LiveSetup = {
+  options: LiveOptions
+  until: number
+  open: Policy['open']
+  close(): Promise<void>
+  airi: Run['airi']
+  game: boolean
+  describe(error: unknown): string
 }
 
-type Setup = {
-  cast: ReturnType<typeof participants>
-  engine: Run['airi']
-  gameHost: NonNullable<typeof desktop>['airiGame'] | undefined
-  gameConfig: AiriGameConfig | undefined
-  stopClock: () => void
-  offAiriCast: (() => void) | undefined
-  event: (event: ExternalEvent) => boolean
-}
-
-function live(run: Run, options: LiveOptions, { cast, engine, gameHost, gameConfig, stopClock, offAiriCast, event }: Setup): Policy {
-  const c = run.controller
-  let lastReply = clock.now() - 6000, failures = 0, replyToOwner = false
+export function livePolicy(run: Run, env: Env, setup: LiveSetup): Policy {
+  const { options } = setup
+  let lastReply = clock.now() - 6000, failures = 0, replyToOwner = false, turnsBefore = 0
+  /** a viewer's message whose answer failed: answered when it is tried again */
   let retryChat: Chat | null = null
-  let attached: AiriGameConnection | undefined
-  let offGame: (() => void) | undefined
-  const gameId = gameConfig ? crypto.randomUUID() : undefined
-  let closingGame: Promise<void> | undefined
-  const closeGame = () => {
-    if (!gameId || !gameHost) return
-    closingGame ??= gameHost.stop(gameId).catch((error: unknown) => {
-      console.warn('[AIRI game close]', error)
-      if (current() === run || (!current() && conversation().mode === 'live')) set({ error: airiGameError(error) })
-    })
-  }
-  c.signal.addEventListener('abort', closeGame, { once: true })
+  const answered = () => { retryChat = null; replyToOwner = false; run.event = null }
   return {
-    async open() {
-      await openHistory('public', c.signal)
-      // The template may have just mounted; use the same loading window as conversation mode.
-      for (let i = 0; i < 60 && cast.some((x) => !actors.get(x.id) || actors.get(x.id)?.status === 'loading'); i++) await sleep(250, c.signal)
-      if (cast.some((x) => actors.get(x.id)?.status !== 'ready')) throw new Error(tr("有 AI 角色尚未载入，请检查角色列表"))
-      if (engine && gameHost && gameConfig && gameId) {
-        c.signal.throwIfAborted()
-        attached = await gameHost.connect(gameId, gameConfig)
-        c.signal.throwIfAborted()
-        engine.game = attached
-        offGame = gameHost.onEvent((game) => {
-          if (run.airi !== engine || c.signal.aborted || game.connection !== engine.game?.id) return
-          const text = airiGameText(game)
-          if (game.status === 'disconnected') {
-            engine.game = undefined
-            set({ game: { name: gameConfig.game, status: 'offline', text } })
-          } else if (game.status === 'done' || game.status === 'failed') {
-            set({ game: { name: gameConfig.game, status: 'ready', text } })
-          } else if (game.status === 'unknown') {
-            set({ game: { name: gameConfig.game, status: 'playing', text } })
-          }
-          event({ id: uid(), source: gameName(gameConfig.game), message: text, character: engine.actorId,
-            reply: game.status === 'chat' || game.status === 'done' || game.status === 'failed' ? 'maybe' : 'never' })
-        })
-        set({ game: { name: gameConfig.game, status: 'ready', text: '' } })
-      }
-    },
-    async step() {
-      if (spent({ generations: conversation().generations, generationLimit: options.maxGenerations })) {
-        if (conversation().game?.status === 'playing' || conversation().game?.status === 'submitting') { await wake.wait(c.signal); return true }
-        return false
-      }
-      await waitWhile(turnHeld, wake, c.signal)
-      while (inbox.has(YOURS)) { await consumeInput(run, c.signal); replyToOwner = true }
-      c.signal.throwIfAborted()
-      if (turnHeld()) return true
+    kind: 'live', open: setup.open, close: setup.close, waitsWhileHeld: true,
+    limits: { until: setup.until, timeUp: 'silence', generations: { whileSpent: () => ['playing', 'submitting'].includes(env.state().game?.status ?? '') } },
+    heard(n) { if (n) replyToOwner = true },
+    next() {
       const now = clock.now(), cooldown = lastReply + 6000 - now
-      if (cooldown > 0 && !replyToOwner) { await wake.wait(c.signal, cooldown); return true }
+      if (cooldown > 0 && !replyToOwner) return { wait: true, ms: cooldown }
       const warmupAt = options.warmupSeconds ? lastReply + options.warmupSeconds * 1000 : Infinity
-      if (retryChat && isBlocked(retryChat.user)) retryChat = null
-      if (!replyToOwner && !retryChat && !run.event && !inbox.has(EVENTS) && !inbox.viewerWaiting(now, isBlocked) && now < warmupAt) {
-        set({ waitingAudience: true })
-        await wake.wait(c.signal, Number.isFinite(warmupAt) ? warmupAt - now : undefined)
-        return true
+      if (retryChat && env.blocked(retryChat.user)) retryChat = null
+      if (!replyToOwner && !retryChat && !run.event && !env.inbox.has(['external', 'game']) && !env.inbox.viewerWaiting(now, env.blocked) && now < warmupAt) {
+        env.set({ waitingAudience: true })
+        return { wait: true, ms: Number.isFinite(warmupAt) ? warmupAt - now : undefined }
       }
-      run.event ??= !replyToOwner && !retryChat ? inbox.take(EVENTS)?.event ?? null : null
-      const chat: Chat | null = run.event || (options.airi && replyToOwner) ? null : retryChat ?? inbox.takeViewer(now, isBlocked)
-      const pool = voices().filter((x) => x.lines === 'ai')
-      const who = run.event?.character ? pool.find((x) => x.id === run.event!.character) : pool.find((x) => x.id === order.forced) ?? freePick(pool.filter((x) => pool.length === 1 || x.id !== order.lastTurn))
+      run.event ??= !replyToOwner && !retryChat ? env.inbox.take(['external', 'game'])?.event ?? null : null
+      const chat: Chat | null = run.event || (options.airi && replyToOwner) ? null : retryChat ?? env.inbox.takeViewer(now, env.blocked)
+      const pool = env.cast().filter((x) => x.lines === 'ai')
+      const who = run.event?.character ? pool.find((x) => x.id === run.event!.character)
+        : pool.find((x) => x.id === order.forced) ?? freePick(pool.filter((x) => pool.length === 1 || x.id !== order.lastTurn), env.state().lines, chance)
       order.forced = null
       if (!who) throw new Error(tr("舞台上没有已就绪的 AI 角色"))
-      set({ waitingAudience: false })
-      const turnsBefore = conversation().turns
-      try {
-        const beforeInput = holds.epoch
-        const completed = await speakTurn(run, who, c.signal, chat, replyToOwner)
-        if (!completed) {
-          if (beforeInput !== holds.epoch) { retryChat = null; replyToOwner = false; run.event = null }
-          else retryChat = chat
-          return true
-        }
-        retryChat = null; replyToOwner = false; run.event = null
-      } catch (e) {
-        if ((engine && (gameConfig || engine.windowId)) || e instanceof NeedModel || e instanceof GenerationLimit || c.signal.aborted) throw e
-        // A streamed reply may already have delivered a sentence. Retry only the input that is still unanswered.
-        if (engine ? conversation().turns !== turnsBefore : e instanceof VoiceFailed) { retryChat = null; replyToOwner = false; run.event = null }
-        else retryChat = chat
-        if (++failures >= LIVE_FAILURES) throw e
-        const ms = RETRY_SECONDS[failures - 1] * 1000
-        set({ thinking: null, waitingAudience: true, error: (e as Error).message, retryAt: clock.now() + ms })
-        await sleep(ms, c.signal)
-        set({ retryAt: 0 })
-        return true
-      }
-      c.signal.throwIfAborted()
-      failures = 0
-      lastReply = clock.now(); set({ waitingAudience: true, error: '' })
-      return true
+      env.set({ waitingAudience: false })
+      turnsBefore = env.state().turns
+      return { speak: who, viewer: chat, replyToOwner }
     },
-    done() { set({ ended: tr("已达到本次生成次数上限") }) },
-    failed(e) {
-      if (e instanceof GenerationLimit) set({ ended: tr('已达到本次生成次数上限') })
-      else if (e instanceof NeedModel) set({ needModel: true, modelIntent: 'live' })
-      else if (!c.signal.aborted) set({ error: gameConfig ? airiGameError(e) : (e as Error).message, ended: failures >= LIVE_FAILURES ? tr("连续出错 {0} 次，已停止", LIVE_FAILURES) : tr("会话因错误停止") })
+    after({ said, input }, turn) {
+      if (said || input) answered()
+      else retryChat = turn.viewer ?? null
     },
-    async close() {
-      stopClock()
-      offGame?.()
-      c.signal.removeEventListener('abort', closeGame)
-      closeGame()
-      await closingGame
-      offAiriCast?.()
-      if (finish(run)) {
-        run.liveOptions = null; run.airi = null; run.event = null; hush(); actors.forEach((a) => a.silence())
-        set({ running: false, paused: false, thinking: null, speaking: null, waiting: null, waitingAudience: false, retryAt: 0, engine: undefined, game: undefined }); looks(null, null)
-      }
+    settled() { failures = 0; lastReply = clock.now(); env.set({ waitingAudience: true, error: '' }) },
+    failedTurn(error, turn) {
+      if ((setup.airi && (setup.game || setup.airi.windowId)) || error instanceof NeedModel || error instanceof GenerationLimit) return null
+      // A streamed reply may already have delivered a sentence. Retry only the input that is still unanswered.
+      if (setup.airi ? env.state().turns !== turnsBefore : error instanceof VoiceFailed) answered()
+      else retryChat = turn.viewer ?? null
+      if (++failures >= LIVE_FAILURES) return null
+      return RETRY_SECONDS[failures - 1] * 1000
+    },
+    ended: {
+      limit: tr("已达到本次生成次数上限"), needModel: 'live',
+      failure: (error) => ({ error: setup.describe(error), ended: failures >= LIVE_FAILURES ? tr("连续出错 {0} 次，已停止", LIVE_FAILURES) : tr("会话因错误停止") }),
     },
   }
 }
