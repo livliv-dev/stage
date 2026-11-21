@@ -7,12 +7,9 @@
 /** where Voicebox listens */
 export const VOICEBOX_URL = 'http://127.0.0.1:17493'
 
-/** a voice in Voicebox: a preset (Kokoro, Qwen CustomVoice), one cloned from a recording, or one designed from words;
- *  `engine` is what makes it (the profile's own engine, else Voicebox's default for its kind) */
-export type VoiceboxProfile = { id: string; name: string; language: string; kind: 'preset' | 'cloned' | 'designed' | 'other'; engine: string }
-/** why Voicebox couldn't do it */
-export type VoiceboxFailure = 'not-running' | 'no-profiles' | 'downloading' | 'failed'
-export type VoiceboxResult<T> = { ok: true; value: T } | { ok: false; error: VoiceboxFailure; detail: string }
+// what the editor and this side say about it (profiles, results): the shared protocol package
+import type { VoiceboxFailure, VoiceboxProfile, VoiceboxResult } from '#protocol/voicebox'
+export type { VoiceboxFailure, VoiceboxProfile, VoiceboxResult }
 
 const KINDS = new Set(['preset', 'cloned', 'designed'])
 /** the profile's engine: its own default, its preset's, else Voicebox's (a designed voice: VoiceDesign; else Qwen3-TTS) */

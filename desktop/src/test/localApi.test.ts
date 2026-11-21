@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { request } from 'node:http'
 import { after, before, test } from 'node:test'
-import type { CmdBody } from '../commands'
+import type { CmdBody } from '#protocol/commands'
 import { startLocalApi, type LocalApi } from '../localApi'
 
 const TOKEN = 'a'.repeat(32)

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { createNeuroServer, type ForceRequest, type Json, type NeuroEvent, type NeuroServer, type NeuroServerOptions, type NeuroSession } from '@livliv-dev/neuro-bridge'
-import { readNeuroAnswer, type ExternalSelection, type NeuroCharacter, type NeuroConfig, type NeuroMessage, type NeuroSpeech, type NeuroState } from './neuroProtocol'
+import { readNeuroAnswer, type ExternalSelection, type NeuroCharacter, type NeuroConfig, type NeuroMessage, type NeuroSpeech, type NeuroState } from '#protocol/neuro'
 
 type Editor = {
   readonly id: number

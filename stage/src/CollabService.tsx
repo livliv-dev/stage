@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { LoaderCircle } from 'lucide-react'
 import { desktop } from './desktopBridge'
 import { tr } from './i18n'
-import type { CollabState } from '../../desktop/src/collabProtocol'
+import type { CollabState } from '../../protocol/src/collab'
 
 const OFF: CollabState = { enabled: false, port: null, network: true, localUrl: null, urls: [], error: null }
 const errors = { 'port-in-use': '好友联播端口已被占用，请更换端口或设为 0 自动选择。', 'permission-denied': '系统不允许监听此端口，请更换端口。', 'start-failed': '本机好友联播服务启动失败，请重试。' } as const

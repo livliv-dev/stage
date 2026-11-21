@@ -3,7 +3,7 @@
 // its Whisper counting as your own recognition (no points for hearing you).
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import type { VoiceboxProfile } from '../../desktop/src/voicebox'
+import type { VoiceboxProfile } from '../../protocol/src/voicebox'
 import { checklist, type CheckContext } from '../src/shell/checks'
 import { asrReady, speechReady, VOICEBOX_SPEECH } from '../src/speechProviders'
 import { defaultProfile, detectVoicebox, lineLanguage, openProfiles, setVoiceboxBridge, voiceboxError, voiceboxReady, voiceboxSpeak, voiceboxState, voiceboxTranscribe } from '../src/voicebox'

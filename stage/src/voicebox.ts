@@ -5,7 +5,7 @@ import { tr } from './i18n'
 // one you cloned in Voicebox; what you say can be heard by its Whisper too. The calls go through the desktop app
 // (desktop/src/voicebox.ts): Voicebox lets no other page call it, so the web doesn't offer it.
 import { useSyncExternalStore } from 'react'
-import type { VoiceboxFailure, VoiceboxProfile } from '../../desktop/src/voicebox'
+import type { VoiceboxFailure, VoiceboxProfile } from '../../protocol/src/voicebox'
 
 export type { VoiceboxProfile }
 

@@ -12,22 +12,24 @@
 //   secrets.all() / set(name, key)       the API keys, encrypted by the system (the Stage editor only; secrets.ts)
 //   voicebox.profiles() / speak(id, line, language) / transcribe(id, wav, language) / cancel(id)   Voicebox on this
 //                                        computer (the Stage editor only; results, never thrown: voicebox.ts)
-import type { MotionEvent, MotionSettings, MotionState } from './trackingProtocol'
-import type { StageApiState, StageControlRequest } from './stageCommands'
-import type { NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } from './neuroProtocol'
-import type { CollabConfig, CollabState } from './collabProtocol'
-import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameMessage, AiriGameSnapshot } from './airiGameProtocol'
-import type { ExternalSelection } from './neuroProtocol'
-import type { VoiceboxProfile, VoiceboxResult } from './voicebox'
+// The page's side and this one share one description of all this, the protocol package's DesktopApi: what is given here
+// is checked against it. Types only, so this file still loads nothing but Electron.
+import type { MotionEvent, MotionSettings, MotionState } from '#protocol/tracking'
+import type { StageApiState, StageControlRequest } from '#protocol/stageCommands'
+import type { NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } from '#protocol/neuro'
+import type { CollabConfig, CollabState } from '#protocol/collab'
+import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameMessage, AiriGameSnapshot } from '#protocol/airiGame'
+import type { ExternalSelection } from '#protocol/neuro'
+import type { VoiceboxProfile, VoiceboxResult } from '#protocol/voicebox'
+import type { DesktopApi, DesktopInfo } from '#protocol/bridge'
+import type { CmdBody } from '#protocol/commands'
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
-type Info = { api: 1; version: string; platform: string; role: 'main' | 'stage'; stageEditor: boolean }
-
-const info = ipcRenderer.sendSync('livliv:info') as Info | null
+const info = ipcRenderer.sendSync('livliv:info') as DesktopInfo | null
 if (info) {
   const invoke = (channel: string, ...args: unknown[]) => ipcRenderer.invoke(channel, ...args)
   const win = (op: string, arg?: unknown) => invoke('livliv:window', op, arg)
-  contextBridge.exposeInMainWorld('livlivDesktop', {
+  const api = {
     ...info,
     ...(info.stageEditor ? {
       vision: {
@@ -119,9 +121,9 @@ if (info) {
       dragEnd: () => win('dragEnd'),
       openStage: (path: unknown) => win('openStage', path),
     },
-    onCommand: (cb: (cmd: unknown) => void) => {
+    onCommand: (cb: (cmd: CmdBody) => void) => {
       if (typeof cb !== 'function') return () => {}
-      const f = (_e: IpcRendererEvent, cmd: unknown) => cb(cmd)
+      const f = (_e: IpcRendererEvent, cmd: CmdBody) => cb(cmd)
       ipcRenderer.on('livliv:command', f)
       ipcRenderer.send('livliv:listening', ipcRenderer.listenerCount('livliv:command'))
       return () => {
@@ -129,5 +131,6 @@ if (info) {
         ipcRenderer.send('livliv:listening', ipcRenderer.listenerCount('livliv:command'))
       }
     },
-  })
+  } satisfies DesktopApi
+  contextBridge.exposeInMainWorld('livlivDesktop', api)
 }

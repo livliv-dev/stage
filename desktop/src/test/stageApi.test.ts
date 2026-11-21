@@ -3,7 +3,7 @@ import { after, before, test } from 'node:test'
 import { request } from 'node:http'
 import { connect } from 'node:net'
 import { startLocalApi, type LocalApi } from '../localApi'
-import { readStageCommand, readStageResult, type StageCommand, type StageResult } from '../stageCommands'
+import { readStageCommand, readStageResult, type StageCommand, type StageResult } from '#protocol/stageCommands'
 
 const token = 'stage-test-only-token', commands: StageCommand[] = []
 let api: LocalApi

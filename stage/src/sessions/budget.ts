@@ -1,7 +1,7 @@
 // What a session may spend: model calls (generations) and time. 持续聊天, AI 直播 and a realtime call count every
 // generation against their limit and end there; 对谈 ends after its lines (turnLimit); every timed session ends at its
 // minutes (deadline). Limits from settings and the start options are kept within bounds here.
-import type { AiriGameConfig } from '../../../desktop/src/airiGameProtocol'
+import type { AiriGameConfig } from '../../../protocol/src/airiGame'
 import { clock } from './clock'
 
 /** the session made all the model calls it may */

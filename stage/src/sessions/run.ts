@@ -8,7 +8,7 @@ import type { Chat } from '../danmaku'
 import type { ExternalEvent } from '../externalEvents'
 import type { CharacterItem } from '../scene'
 import type { Line } from '../core/lines'
-import type { AiriGameConnection } from '../../../desktop/src/airiGameProtocol'
+import type { AiriGameConnection } from '../../../protocol/src/airiGame'
 import type { LiveOptions } from './budget'
 
 /** a realtime call's controls: its own connection, told what the session does */

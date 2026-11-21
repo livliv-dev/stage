@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { defaultParams } from '@livliv-dev/player'
-import { defaultMotionSettings, type MotionEvent, type MotionFrame, type MotionSettings, type MotionState } from '../../desktop/src/trackingProtocol'
+import { defaultMotionSettings, type MotionEvent, type MotionFrame, type MotionSettings, type MotionState } from '../../protocol/src/tracking'
 import { desktop } from './desktopBridge'
 import { features } from './core/platform'
 import type { InputPose } from './inputTracking'

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check, Copy, LoaderCircle, RefreshCw } from 'lucide-react'
-import type { StageApiState } from '../../desktop/src/stageCommands'
+import type { StageApiState } from '../../protocol/src/stageCommands'
 import { desktop } from './desktop'
 import { tr } from './i18n'
 

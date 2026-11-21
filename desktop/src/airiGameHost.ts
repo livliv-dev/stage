@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import { open } from 'node:fs/promises'
 import { basename } from 'node:path'
-import type { ExternalAction, ExternalSelection } from './neuroProtocol'
-import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameFrame, AiriGameMessage, AiriGameSnapshot } from './airiGameProtocol'
-import { validGamePort } from './airiGameProtocol'
+import type { ExternalAction, ExternalSelection } from '#protocol/neuro'
+import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameFrame, AiriGameMessage, AiriGameSnapshot } from '#protocol/airiGame'
+import { validGamePort } from '#protocol/airiGame'
 
 const minecraftResources = ['WOOD_LOGS', 'DIRT', 'COBBLESTONE', 'COAL', 'RAW_IRON', 'RAW_COPPER', 'RAW_GOLD', 'DIAMOND', 'EMERALD', 'REDSTONE', 'LAPIS_LAZULI', 'QUARTZ']
 const quantity = { type: 'integer', minimum: 1, maximum: 32 }

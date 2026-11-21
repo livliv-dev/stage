@@ -6,7 +6,7 @@
 import { randomBytes } from 'node:crypto'
 import { join } from 'node:path'
 import { app, BrowserWindow, globalShortcut, Menu, safeStorage, type MenuItemConstructorOptions } from 'electron'
-import { parseDo } from './commands'
+import { parseDo } from '#protocol/commands'
 import { APP, APP_ORIGIN, DEV, flag, LIVLIV_API, ORIGINS, STAGE_BUILT, STAGE_DIR, VERSION, WEBGL_CONTEXTS } from './config'
 import { applyHotkeys, defaultBindings, hotkeyState, stageBindings } from './hotkeys'
 import { registerIpc } from './ipc'

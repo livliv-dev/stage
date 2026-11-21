@@ -20,6 +20,10 @@ exports.default = async (ctx) => {
   const stage = join(res, 'stage'), repo = join(__dirname, '..', '..', 'stage')
   const asar = require('@electron/asar'), archive = join(res, 'app.asar')
   for (const file of ['node_modules/livliv-stage-collab/server.mjs', 'node_modules/livliv-stage-collab/protocol.mjs', 'node_modules/ws/lib/websocket-server.js']) asar.extractFile(archive, file)
+  // the shared protocol package, compiled into the app's own output and reached as #protocol/*
+  const pkg = JSON.parse(asar.extractFile(archive, 'package.json').toString())
+  if (pkg.imports?.['#protocol/*'] !== './dist/protocol/*.js') throw new Error('the app\'s package.json lost its #protocol/* imports')
+  for (const module of ['bridge', 'commands', 'stageCommands', 'tracking', 'neuro', 'airiGame', 'collab', 'voicebox']) asar.extractFile(archive, `dist/protocol/${module}.js`)
   const want = readdirSync(join(repo, 'public', 'characters')).sort().join()
   const got = readdirSync(join(stage, 'characters')).sort().join()
   if (want !== got) throw new Error(`characters in the app differ from stage/public/characters:\n${got}`)

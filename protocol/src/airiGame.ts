@@ -1,4 +1,4 @@
-import type { ExternalAction } from './neuroProtocol'
+import type { ExternalAction } from './neuro'
 
 export type AiriGameConfig =
   | { game: 'minecraft'; vision: boolean }

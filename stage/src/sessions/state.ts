@@ -8,7 +8,7 @@ import { chatHistory } from '../chatHistory'
 import { isOutput } from '../link'
 import type { Line } from '../core/lines'
 import type { MemoryScope } from '../memory'
-import type { AiriGameConfig } from '../../../desktop/src/airiGameProtocol'
+import type { AiriGameConfig } from '../../../protocol/src/airiGame'
 
 export type ConvState = {
   running: boolean

@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { test } from 'node:test'
 import type { ForceRequest, NeuroServer, NeuroServerOptions, NeuroSession } from '@livliv-dev/neuro-bridge'
 import { NeuroHost } from '../neuroHost'
-import { readNeuroAnswer, readNeuroConfig, type NeuroMessage, type NeuroState } from '../neuroProtocol'
+import { readNeuroAnswer, readNeuroConfig, type NeuroMessage, type NeuroState } from '#protocol/neuro'
 
 class Editor extends EventEmitter {
   id = 1

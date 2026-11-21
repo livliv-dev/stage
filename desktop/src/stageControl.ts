@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { ipcMain, type WebContents } from 'electron'
 import { trusted } from './security'
 import type { StageApiDeps } from './stageApi'
-import { readStageResult, type StageControlRequest } from './stageCommands'
+import { readStageResult, type StageControlRequest } from '#protocol/stageCommands'
 
 /** Requests are tied to one editor; another window cannot acknowledge or execute its requests. */
 export function stageControl(editor: () => WebContents | null): StageApiDeps {

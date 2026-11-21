@@ -5,7 +5,7 @@ import type { ExternalActionDecision, ExternalActionRequest, ExternalEvent } fro
 import type { MemoryRecord, MemoryScope } from './memory'
 import type { ReactionCue } from './reactions'
 import type { CharacterItem, Talk } from './scene'
-import type { AiriGameFrame, AiriGameMessage } from '../../desktop/src/airiGameProtocol'
+import type { AiriGameFrame, AiriGameMessage } from '../../protocol/src/airiGame'
 import { aiFetch } from './brain'
 import { airiIdentity, personaOf, type PersonaSpec } from './brains/persona'
 import { parseAiriMarkers } from './airiMarkers'

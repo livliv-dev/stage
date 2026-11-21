@@ -4,7 +4,7 @@ import { createServer } from 'node:net'
 import { test } from 'node:test'
 import { createRequire } from 'node:module'
 import { CollabHost } from '../collabHost'
-import { readCollabConfig } from '../collabProtocol'
+import { readCollabConfig } from '#protocol/collab'
 
 class Editor extends EventEmitter {
   destroyed = false

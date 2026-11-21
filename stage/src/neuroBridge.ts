@@ -1,5 +1,5 @@
 import { desktop } from './desktopBridge'
-import type { ExternalDecision, ExternalSelection } from '../../desktop/src/neuroProtocol'
+import type { ExternalDecision, ExternalSelection } from '../../protocol/src/neuro'
 
 type Host = {
   event(input: { id: string; source: string; message: string; reply: 'never' | 'maybe' | 'always'; character?: string }): boolean
