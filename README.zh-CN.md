@@ -68,7 +68,7 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # 桌面版（sta
 浏览器测试是 [stage/package.json](stage/package.json) 里的 `test:*` 脚本。每个 PR 都会在 GitHub Actions 上跑这些测试。
 AI 聊天和记忆见 [docs/ai-conversations.md](docs/ai-conversations.md)，实时通话见 [docs/realtime-voice.md](docs/realtime-voice.md)，
 Neuro SDK 桥接见 [neuro/README.md](neuro/README.md)，本机控制接口见 [docs/stage-api.md](docs/stage-api.md)，好友联播见 [collab/README.md](collab/README.md)。
-模型密钥只存在浏览器或应用里，请求直接发给服务商。欢迎贡献：[CONTRIBUTING.md](CONTRIBUTING.md)。
+模型密钥只存在浏览器或应用里，请求直接发给服务商；桌面版用系统加密保存密钥和 LivLiv 登录（钥匙串、DPAPI 或 Linux 密钥环），写好后从页面存储中移走。欢迎贡献：[CONTRIBUTING.md](CONTRIBUTING.md)。
 安全问题：[SECURITY.md](SECURITY.md)。
 
 ## 许可

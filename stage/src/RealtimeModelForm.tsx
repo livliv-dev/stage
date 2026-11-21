@@ -3,6 +3,7 @@ import { Check } from 'lucide-react'
 import { useBrainConfig } from './brain'
 import { useConversation } from './conversation'
 import { tr } from './i18n'
+import { lostKey } from './core/secrets'
 import { loadRealtime, realtimeCredentials, realtimeDefaults, saveRealtime, type RealtimeSettings } from './realtime'
 import { useSpeech } from './voiceApi'
 
@@ -27,6 +28,7 @@ export function RealtimeModelForm({ onSaved }: { onSaved?: () => void } = {}) {
     {settings.provider === 'qwen' && <p className="hint">{tr('千问 3.8 实时模型需要百炼工作空间的专属域名。')}</p>}
     <label className="field"><span>{tr('模型')}</span><input aria-label={tr('模型')} value={settings.model} onChange={(event) => change({ model: event.target.value })} /></label>
     <label className="field"><span>{tr('密钥')}</span><input aria-label={tr('密钥')} type="password" autoComplete="off" value={settings.key} placeholder={effective.key ? tr('复用已配置的密钥') : tr('填写该服务的 API 密钥')} onChange={(event) => change({ key: event.target.value })} /></label>
+    {!settings.key && lostKey('livliv-stage:realtime') && <p className="hint error">{tr('这台电脑上保存的密钥读不出来了，请重新填写')}</p>}
     <label className="field"><span>{tr('实时音色')}</span><input aria-label={tr('实时音色')} value={settings.voice} onChange={(event) => change({ voice: event.target.value })} /></label>
     <p className="hint">{tr('通话音色单独设置，需选择实时模型支持的音色。')}</p>
     {conversation.running && conversation.mode === 'realtime' && <p className="hint">{tr('更改将在下次通话生效。')}</p>}

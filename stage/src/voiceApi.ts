@@ -37,7 +37,7 @@ const subs = new Set<() => void>()
 export const loadSpeech = () => config
 export function saveSpeech(s: SpeechApi) {
   config = s
-  try { writeKeyed(KEY, s) } catch { /* private mode */ }
+  try { void writeKeyed(KEY, s) } catch { /* private mode */ }
   subs.forEach((f) => f())
 }
 export const useSpeech = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => config)

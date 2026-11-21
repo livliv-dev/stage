@@ -41,8 +41,9 @@ export type DesktopApi = DesktopInfo & {
     onState(callback: (state: NeuroState) => void): () => void
   }
   tracking?: { get(): Promise<MotionState>; set(settings: MotionSettings): Promise<MotionState> }
-  /** the API keys, encrypted by the system: all of them (null without system encryption), and one saved */
-  secrets?: { all(): Record<string, string> | null; set(name: string, value: string): boolean }
+  /** the API keys and the sign-in, encrypted by the system: all of them and those it could no longer decrypt (null
+   *  without system encryption), and one saved (true once it is written) */
+  secrets?: { all(): { keys: Record<string, string>; lost: string[] } | null; set(name: string, value: string): Promise<boolean> }
   /** Voicebox on this computer: results, never thrown */
   voicebox?: {
     profiles(): Promise<VoiceboxResult<VoiceboxProfile[]>>

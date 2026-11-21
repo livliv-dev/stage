@@ -68,7 +68,7 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # デスクトッ
 ブラウザのテストは [stage/package.json](stage/package.json) の `test:*` スクリプトです。プルリクエストごとに GitHub Actions がこれらを実行します。
 AI チャットと記憶は [docs/ai-conversations.md](docs/ai-conversations.md)、リアルタイム通話は [docs/realtime-voice.md](docs/realtime-voice.md)、
 Neuro SDK ブリッジは [neuro/README.md](neuro/README.md)、ローカル制御 API は [docs/stage-api.md](docs/stage-api.md)、フレンドコラボは [collab/README.md](collab/README.md) にあります。
-モデルの API キーはブラウザかアプリの中にだけ保存され、サービスへ直接送られます。コントリビュートは [CONTRIBUTING.md](CONTRIBUTING.md)、
+モデルの API キーはブラウザかアプリの中にだけ保存され、サービスへ直接送られます。デスクトップ版はキーと LivLiv のログインをシステムの暗号化（キーチェーン、DPAPI、Linux のキーリング）で保存し、書き込めたらページのストレージから移します。コントリビュートは [CONTRIBUTING.md](CONTRIBUTING.md)、
 セキュリティの報告は [SECURITY.md](SECURITY.md) へ。
 
 ## ライセンス

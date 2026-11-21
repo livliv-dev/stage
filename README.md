@@ -70,7 +70,9 @@ the browser checks are the `test:*` scripts in [stage/package.json](stage/packag
 AI chat and memory: [docs/ai-conversations.md](docs/ai-conversations.md), real-time voice:
 [docs/realtime-voice.md](docs/realtime-voice.md), built-in AIRI ([docs/airi.md](docs/airi.md)), the Neuro SDK bridge: [neuro/README.md](neuro/README.md), the local control API:
 [docs/stage-api.md](docs/stage-api.md), friend collab: [collab/README.md](collab/README.md).
-Model keys stay in the browser or the app and go straight to the provider. Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
+Model keys stay in the browser or the app and go straight to the provider; the desktop app keeps them, and its
+LivLiv sign-in, encrypted by the system (Keychain, DPAPI or a Linux keyring) and removes them from the page's storage
+once they are written there. Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
 Security reports: [SECURITY.md](SECURITY.md).
 
 ## License

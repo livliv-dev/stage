@@ -35,7 +35,7 @@ export function loadRealtime(): RealtimeSettings {
   } catch { return realtimeDefaults() }
 }
 export function saveRealtime(settings: RealtimeSettings) {
-  writeKeyed(KEY, settings)
+  void writeKeyed(KEY, settings)
 }
 export function realtimeCredentials(settings: RealtimeSettings) {
   const current = loadBrainConfig(), model = current.kind === 'openai' ? current : previousModelConfig(), speech = loadSpeech()

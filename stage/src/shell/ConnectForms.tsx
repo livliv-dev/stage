@@ -15,6 +15,7 @@ import { participants, store, useScene } from '../scene'
 import { activeSpeech, asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, transcribeApi, useSpeech, VOICEBOX_SPEECH, type SpeechApi } from '../voiceApi'
 import { detectVoicebox, OPEN_ENGINES, useVoicebox, VOICEBOX_SITE, voiceboxError, voiceboxHere, voiceboxReady } from '../voicebox'
 import { wav16k } from '../audio'
+import { lostKey } from '../core/secrets'
 import { beginDemo } from './demoStart'
 
 /** where the AI characters' lines come from: your own model (a preset, or any OpenAI-compatible API), LivLiv's points
@@ -93,6 +94,7 @@ export function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, on
         <input value={d.base} placeholder="https://…/v1" onChange={(e) => change({ base: e.target.value, model: '' })} onBlur={() => void fetchModels()} /></label>}
       {!p.noKey && <label className="field"><span>{tr("密钥")}<span className="lock" title={tr("只存在这台电脑上")}><Lock size={11} /></span>{p.keyUrl && <a className="get" href={p.keyUrl} target="_blank" rel="noreferrer">{tr("获取")}<ExternalLink size={11} /></a>}</span>
         <input type="password" value={d.key} placeholder="sk-…" autoComplete="off" onChange={(e) => change({ key: e.target.value })} onBlur={() => void fetchModels()} /></label>}
+      {!p.noKey && !d.key && (lostKey('livliv-stage:brain') || lostKey('livliv-stage:brain-api')) && <p className="hint error">{tr('这台电脑上保存的密钥读不出来了，请重新填写')}</p>}
       <label className="field"><span>{tr("模型")}</span>
         <div className="row model-pick">
           <input list="model-list" value={d.model} placeholder={st.busy === 'list' ? tr("正在拿模型列表…") : tr("模型名")} onChange={(e) => change({ model: e.target.value })} />
@@ -196,6 +198,7 @@ export function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; on
         {sameKey && <button type="button" className="link get" onClick={() => setD({ ...d, key: (chat as ModelConfig).key })}>{tr("用 AI 模型的密钥")}</button>}
         {!sameKey && p.keyUrl && <a className="get" href={p.keyUrl} target="_blank" rel="noreferrer">{tr("获取")}<ExternalLink size={11} /></a>}</span>
         <input type="password" value={d.key} placeholder="sk-…" autoComplete="off" onChange={(e) => setD({ ...d, key: e.target.value })} /></label>}
+      {!d.key && lostKey('livliv-stage:speech') && <p className="hint error">{tr('这台电脑上保存的密钥读不出来了，请重新填写')}</p>}
       <div className="row two">
         <label className="field"><span>{tr("语音模型")}</span><input value={d.model} onChange={(e) => setD({ ...d, model: e.target.value })} /></label>
         <label className="field"><span>{tr("默认音色")}</span><input list="speech-voices" value={d.voice} placeholder={tr('按角色自动分配')} onChange={(e) => setD({ ...d, voice: e.target.value })} /></label>

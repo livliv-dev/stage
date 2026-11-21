@@ -97,7 +97,7 @@ export const previousModelConfig = (): ModelConfig => (saved.kind === 'openai' ?
 export const savedBrain = () => saved
 export function saveBrainConfig(c: ModelConfig | LivLivConfig) {
   saved = config = c
-  try { writeKeyed(KEY, c) } catch { /* private mode */ }
+  try { void writeKeyed(KEY, c) } catch { /* private mode */ }
   subs.forEach((f) => f())
 }
 // the desktop app: signing in (with a connect code) while nothing has been chosen yet makes LivLiv the AI's model, as

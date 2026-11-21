@@ -36,14 +36,13 @@ export function registerIpc(deps: IpcDeps) {
     const role = stageOf(BrowserWindow.fromWebContents(e.sender)) ? 'stage' : 'main'
     e.returnValue = trusted(e) ? { api: 1, version: VERSION, platform: process.platform, role, stageEditor: APP === 'stage' && e.sender === mainContents() } : null
   })
-  // the API keys, kept encrypted (secrets.ts): read once as the editor starts, written as they are saved; synchronous,
-  // because the page reads its settings as it loads (the file is written after, and before the app quits). The Stage
-  // editor only; never logged
-  ipcMain.on('livliv:secrets', (e, op, name, value) => {
-    const store = deps.secrets
-    if (!store || !trusted(e) || APP !== 'stage' || e.sender !== mainContents()) { e.returnValue = op === 'all' ? null : false; return }
-    try { e.returnValue = op === 'all' ? store.all() : op === 'set' ? store.set(name, value) : false }
-    catch { e.returnValue = op === 'all' ? null : false }
+  // the API keys and the sign-in, kept encrypted (secrets.ts): read once as the editor starts, synchronously, because
+  // the page reads its settings as it loads; a save answers once the file is written. The Stage editor only; never
+  // logged
+  const editor = (e: { sender: WebContents }) => !!deps.secrets && APP === 'stage' && e.sender === mainContents()
+  ipcMain.on('livliv:secrets', (e) => {
+    if (!trusted(e) || !editor(e)) { e.returnValue = null; return }
+    try { e.returnValue = deps.secrets!.all() } catch { e.returnValue = null }
   })
   // a stage page that takes commands (it says so on load): only those count as delivered, as the server counts stages
   ipcMain.on('livliv:listening', (e, n) => {
@@ -55,6 +54,10 @@ export function registerIpc(deps: IpcDeps) {
       if (!trusted(e)) throw new Error('not allowed')
       return f(e, ...args)
     })
+  handle('livliv:secrets-set', async (event, name, value) => {
+    if (!editor(event)) return false
+    try { return await deps.secrets!.set(name, value) } catch { return false }
+  })
   handle('livliv:request', (event, op, id) => {
     if (op === 'begin') return beginRequest(event.sender)
     if (op === 'cancel') return cancelRequest(event.sender.id, id)

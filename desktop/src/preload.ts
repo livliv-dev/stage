@@ -9,7 +9,8 @@
 //   window.clickThrough(mode) / alwaysOnTop(on) / minimize() / close() / menu() / dragStart() / dragEnd()
 //   window.openStage('/live/<id>?…')     opens a stage window
 //   onCommand(cb) -> unsubscribe        a stage's commands (hotkeys, local endpoint), as CmdBody
-//   secrets.all() / set(name, key)       the API keys, encrypted by the system (the Stage editor only; secrets.ts)
+//   secrets.all() / set(name, key)       the API keys and sign-in, encrypted by the system; a save answers once written
+//                                        (the Stage editor only; secrets.ts)
 //   voicebox.profiles() / speak(id, line, language) / transcribe(id, wav, language) / cancel(id)   Voicebox on this
 //                                        computer (the Stage editor only; results, never thrown: voicebox.ts)
 // The page's side and this one share one description of all this, the protocol package's DesktopApi: what is given here
@@ -76,10 +77,11 @@ if (info) {
         },
       },
       tracking: { get: (): Promise<MotionState> => invoke('livliv:tracking', 'get'), set: (settings: MotionSettings): Promise<MotionState> => invoke('livliv:tracking', 'set', settings) },
-      // the API keys, kept encrypted by the system (secrets.ts): all, once as the page starts (null: no system encryption)
+      // the API keys and sign-in, kept encrypted by the system (secrets.ts): all, once as the page starts (null: no system
+      // encryption); a save answers true once it is written
       secrets: {
-        all: (): Record<string, string> | null => ipcRenderer.sendSync('livliv:secrets', 'all'),
-        set: (name: string, value: string): boolean => ipcRenderer.sendSync('livliv:secrets', 'set', name, value),
+        all: (): { keys: Record<string, string>; lost: string[] } | null => ipcRenderer.sendSync('livliv:secrets', 'all'),
+        set: (name: string, value: string): Promise<boolean> => invoke('livliv:secrets-set', name, value),
       },
       voicebox: {
         profiles: (): Promise<VoiceboxResult<VoiceboxProfile[]>> => invoke('livliv:voicebox', 'profiles'),

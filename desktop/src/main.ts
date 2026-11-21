@@ -59,6 +59,7 @@ const voicebox = APP === 'stage' ? voiceboxClient({ fetch, base: (DEV && process
 const keysFile = () => join(app.getPath('userData'), 'keys.json')
 const secrets = APP === 'stage' ? secretsStore({
   encryption: safeStorage,
+  platform: process.platform,
   read: () => { try { return readFileSync(keysFile(), 'utf8') } catch { return null } },
   write: (text) => { const file = keysFile(), next = file + '.tmp'; writeFileSync(next, text, { mode: 0o600 }); renameSync(next, file) },
 }) : null

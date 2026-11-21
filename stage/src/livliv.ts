@@ -15,6 +15,7 @@ import type { CharacterItem } from './scene'
 import { SAMPLES } from './samples'
 import { signInUrl } from './host'
 import { features } from './core/platform'
+import { lostKey, readSecret, writeSecret } from './core/secrets'
 
 /** connect: a code waiting for its approval on the site (shown here, the same on the page). recordSeconds,
  *  recordMark: on livliv.ai/stage, how long a recording may run and whether it carries the LivLiv mark (the plan's, as
@@ -43,9 +44,10 @@ async function answer(r: Response) {
 }
 // the session the site gave this app (connect), on this computer. On livliv.ai/stage the site's own cookie is the
 // session: no token is kept or sent there
+// (in the desktop app, kept encrypted by the system with the API keys: core/secrets.ts)
 const TOKEN = 'livliv-stage:session'
-const token = () => { if (features.host === 'site') return ''; try { return localStorage.getItem(TOKEN) || '' } catch { return '' } }
-const keep = (t: string) => { try { if (t) localStorage.setItem(TOKEN, t); else localStorage.removeItem(TOKEN) } catch { /* private mode: the cookie still works */ } }
+const token = () => { if (features.host === 'site') return ''; try { return readSecret(TOKEN) } catch { return '' } }
+const keep = (t: string) => { try { void writeSecret(TOKEN, t) } catch { /* private mode: the cookie still works */ } }
 
 /** a request to LivLiv's API, as this app's session */
 export function api(url: string, init: RequestInit = {}) {
@@ -60,7 +62,8 @@ const post = (url: string, body: unknown, signal?: AbortSignal) =>
 let refreshVersion = 0
 export async function refresh() {
   const version = ++refreshVersion, session = token()
-  if (features.shell && !token()) { set({ status: 'out', email: '', points: 0 }); return }  // no account here: LivLiv isn't asked
+  // no account here: LivLiv isn't asked (a sign-in the app could no longer decrypt: sign in again)
+  if (features.shell && !token()) { set({ status: 'out', email: '', points: 0, ...(lostKey(TOKEN) ? { error: tr('这台电脑上保存的登录读不出来了，请重新登录') } : {}) }); return }
   try {
     const me = await answer(await api('/api/me'))
     if (version !== refreshVersion || token() !== session) return
