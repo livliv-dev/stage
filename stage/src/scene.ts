@@ -65,9 +65,10 @@ export type CharacterItem = Box & {
   reactions?: ReactionSettings
   relationship?: string
   stance?: string
-  /** from a sample's card: how it talks, example lines (the prompt's, Chinese only), a line about it for the others'
-   *  prompts, the name the card was written with (a rename shows through), its gender for picking a voice */
-  style?: string; examples?: string[]; tagline?: string; cardName?: string; gender?: 'f' | 'm'
+  /** from a sample's card, or one imported (characterCard.ts): how it talks, example lines (the prompt's, when the
+   *  reply is in their language), a line about it for the others' prompts, the name the card was written with (a rename
+   *  shows through), its gender for picking a voice, its first message (the line it opens with when nothing was said) */
+  style?: string; examples?: string[]; tagline?: string; cardName?: string; gender?: 'f' | 'm'; greeting?: string
   driver: DriverKind
   lines: LinesBy
   /** a line you type is said in the character's voice (off: you speak for real, it only shows the words) */

@@ -14,6 +14,7 @@ import { tr } from './i18n'
 import { useSyncExternalStore } from 'react'
 import { desktopFetch } from './request'
 import { features } from './core/platform'
+import { readKeyed, writeKeyed } from './core/secrets'
 import { hasSession, modelId, onAccount, signedIn, stageLine } from './livliv'
 import { demoReply } from './demo'
 import { LENGTHS, type CharacterItem, type Talk } from './scene'
@@ -74,10 +75,10 @@ const UNSET: ModelConfig = { kind: 'openai', provider: '', base: '', key: '', mo
 const DEMO: BrainConfig = { kind: 'demo' }
 function load(): ModelConfig | LivLivConfig {
   try {
-    let c = JSON.parse(localStorage.getItem(KEY) || 'null')
+    let c = JSON.parse(readKeyed(KEY) || 'null')
     if (c?.kind === 'livliv' && features.points) return { kind: 'livliv' }
     // earlier versions saved the demo in the model's place, and the model set up before it apart
-    if (c?.kind === 'demo') c = JSON.parse(localStorage.getItem(LAST_MODEL) || 'null')
+    if (c?.kind === 'demo') c = JSON.parse(readKeyed(LAST_MODEL) || 'null')
     if (c?.kind === 'openai' && typeof c.base === 'string') return { ...UNSET, ...c, provider: c.provider ?? (PROVIDERS.find((p) => p.base === c.base)?.id ?? 'custom') }
   } catch { /* none saved */ }
   // nothing chosen yet: on livliv.ai, LivLiv (the site's own, by its sign-in: someone signed in goes straight to AI
@@ -96,7 +97,7 @@ export const previousModelConfig = (): ModelConfig => (saved.kind === 'openai' ?
 export const savedBrain = () => saved
 export function saveBrainConfig(c: ModelConfig | LivLivConfig) {
   saved = config = c
-  try { localStorage.setItem(KEY, JSON.stringify(c)) } catch { /* private mode */ }
+  try { void writeKeyed(KEY, c) } catch { /* private mode */ }
   subs.forEach((f) => f())
 }
 // the desktop app: signing in (with a connect code) while nothing has been chosen yet makes LivLiv the AI's model, as
@@ -269,7 +270,7 @@ export function prompt(a: Ask) {
   const chars = (LENGTHS.find((l) => l.id === a.me.length)?.chars ?? 60) * (a.depth === 'discussion' ? 3 : 1), said = spoken(a)
   return [
     // who it is, this turn (brains/persona.ts)
-    ...brainPersona(a.persona ?? personaOf(a.me, a.language, a.scope ?? 'public'), said),
+    ...brainPersona(a.persona ?? personaOf(a.me, a.language, a.scope ?? 'public'), said, !a.lines.length && !a.summary),
     people.length ? `同框的还有：${people.join('；')}。` : '',
     a.layout.length > 1 ? `舞台上从左到右站着：${a.layout.join('、')}（你是「${a.me.name}」）。需要时可以用方位称呼别人（左边的、旁边的）。` : '',
     a.topic ? `今天的话题：${a.topic}` : '没有固定话题，随便聊。',

@@ -3,7 +3,7 @@
 // Factorio through Autorio) or a game window the model sees. Kept for this window; the start (shell/start.ts) reads
 // them.
 import { useSyncExternalStore } from 'react'
-import { validGamePort, type AiriGameConfig } from '../../../desktop/src/airiGameProtocol'
+import { validGamePort, type AiriGameConfig } from '../../../protocol/src/airiGame'
 
 export type LiveSetup = {
   minutes: number

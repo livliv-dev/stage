@@ -10,7 +10,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { serveStageApi, type StageApiDeps } from './stageApi'
-import { parseDo, type CmdBody } from './commands'
+import { parseDo, type CmdBody } from '#protocol/commands'
 
 export type LocalApiDeps = {
   stage?: StageApiDeps

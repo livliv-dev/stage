@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { after, test } from 'node:test'
-import type { ExternalDecision, NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } from '../../desktop/src/neuroProtocol'
+import type { ExternalDecision, NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } from '../../protocol/src/neuro'
 
 const messages = new Set<(message: NeuroMessage) => void>(), states = new Set<(state: NeuroState) => void>()
 const answers: { id: string; value: NeuroAnswer }[] = [], speech: NeuroSpeech[] = [], settings: NeuroConfig[] = []

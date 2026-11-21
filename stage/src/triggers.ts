@@ -1,4 +1,4 @@
-import { ACTION_IDS, type ActionId } from '../../desktop/src/commands'
+import { ACTION_IDS, type ActionId } from '../../protocol/src/commands'
 
 export type AudienceEffect = { do: 'act'; id: Exclude<ActionId, 'away'> } | { do: 'expr'; id: string; seconds: number }
 export type AudienceRule = { id: string; enabled: boolean; keyword: string; match: 'exact' | 'contains'; character: string; effect: AudienceEffect; cooldown: number }

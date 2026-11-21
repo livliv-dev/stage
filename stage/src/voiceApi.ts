@@ -5,6 +5,8 @@ import { tr } from './i18n'
 // like a LivLiv one: the mouth follows the sound, a recording takes it in.
 // A model key from Bailian or SiliconFlow speaks and transcribes too, with nothing more to fill in (activeSpeech), each character in a
 // voice of its own (apiVoice).
+// In the desktop app, Voicebox running on this computer (voicebox.ts) is a voice too, free and local, and the one used
+// when no other is set.
 // Which voice a character speaks in (voiceRoute): the one chosen for it if it can be had, else your API, LivLiv's
 // voice (signed in, a LivLiv character), else none: its lines show as subtitles. The system's voice only if chosen.
 import { useSyncExternalStore } from 'react'
@@ -13,49 +15,29 @@ import type { Emotion, StreamingVoice } from './core/lines'
 import { modelId, signedIn } from './livliv'
 import type { CharacterItem } from './scene'
 import { features } from './core/platform'
+import { readKeyed, writeKeyed } from './core/secrets'
+import { current } from './sessions/run'
+import { voiceNow } from './sessions/spend'
+import { asrReady, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speechProviderOf, speechReady, VOICEBOX_SPEECH, type SpeechApi, type SpeechProvider, type VoiceRoute } from './speechProviders'
+export { asrReady, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speechProviderOf, speechReady, VOICEBOX_SPEECH, type SpeechApi, type SpeechProvider }
+import { defaultProfile, detectVoicebox, onVoicebox, voiceboxHere, voiceboxReady, voiceboxSpeak, voiceboxState, voiceboxTranscribe } from './voicebox'
 
-export type SpeechApi = { provider: string; base: string; key: string; model: string; voice: string; asr: string }
-/** tone: the model takes a speaking style (OpenAI's instructions); voicesPath: the API lists its voices there */
-export type SpeechProvider = { id: string; label: string; base: string; model: string; asr: string; voices?: string[]; voicesPath?: string; noKey?: boolean; keyUrl?: string; tone?: boolean
-  /** gives a WAV as it is made: a line starts being heard with its first piece (speakLive) */
-  live?: boolean
-  /** its voices that sound like a woman / a man, the best first: who gets which (apiVoice) */
-  women?: string[]; men?: string[] }
 const QWEN_FEATURED: Record<string, string> = { d03ft: 'longanlingxi_v3.1', k01: 'longanhuan_v3.1', v04: 'longanlang_v3.1' }
-const COSY = ['alex', 'anna', 'bella', 'benjamin', 'charles', 'claire', 'david', 'diana'].map((v) => `FunAudioLLM/CosyVoice2-0.5B:${v}`)
-export const SPEECH_PROVIDERS: SpeechProvider[] = [
-  { id: 'qwen', label: '阿里云百炼', base: 'https://dashscope.aliyuncs.com/api/v1', model: 'qwen-audio-3.1-tts-flash', asr: 'qwen-audio-3.0-asr-flash', tone: true,
-    voices: ['longanhuan_v3.1', 'longanlingxi_v3.1', 'longanlang_v3.1', 'longhan_v3.1', 'longyuan_v3.1', 'longanzhi_v3.1'], keyUrl: 'https://bailian.console.aliyun.com/',
-    women: ['longanhuan_v3.1', 'longyuan_v3.1'], men: ['longhan_v3.1', 'longanzhi_v3.1'] },
-  { id: 'openai', label: 'OpenAI', live: true, base: 'https://api.openai.com/v1', model: 'gpt-4o-mini-tts', asr: 'gpt-4o-mini-transcribe', tone: true,
-    voices: ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx', 'sage', 'shimmer', 'verse'], keyUrl: 'https://platform.openai.com/api-keys',
-    women: ['coral', 'nova', 'shimmer', 'sage'], men: ['ash', 'onyx', 'echo', 'verse'] },
-  { id: 'siliconflow', label: '硅基流动', base: 'https://api.siliconflow.cn/v1', model: 'FunAudioLLM/CosyVoice2-0.5B', asr: 'FunAudioLLM/SenseVoiceSmall',
-    voices: COSY, keyUrl: 'https://cloud.siliconflow.cn/account/ak',
-    women: ['anna', 'bella', 'claire', 'diana'].map((v) => `FunAudioLLM/CosyVoice2-0.5B:${v}`), men: ['alex', 'benjamin', 'charles', 'david'].map((v) => `FunAudioLLM/CosyVoice2-0.5B:${v}`) },
-  { id: 'kokoro', label: 'Kokoro', base: 'http://localhost:8880/v1', model: 'kokoro', asr: '', voicesPath: '/audio/voices', noKey: true },
-  { id: 'custom', label: '其他', base: '', model: 'tts-1', asr: 'whisper-1', voicesPath: '/audio/voices' },
-]
 /** the ones offered: on livliv.ai/stage only those a web page can call straight (Kokoro runs on your computer, any
- *  other service is unknown); the desktop app reaches all */
-export const SPEECH_HERE = features.host === 'site' ? SPEECH_PROVIDERS.filter((p) => !['kokoro', 'custom'].includes(p.id)) : SPEECH_PROVIDERS
-export const speechProviderOf = (s: SpeechApi) => SPEECH_PROVIDERS.find((p) => p.id === s.provider) ?? SPEECH_PROVIDERS.at(-1)!
-export const speechReady = (s: SpeechApi) => !!s.base && !!s.model && (!!s.key || s.provider === 'custom' || !!speechProviderOf(s).noKey)
-export const asrReady = (s: SpeechApi) => !!s.base && !!s.asr && (!!s.key || s.provider === 'custom' || !!speechProviderOf(s).noKey)
+ *  other service is unknown); Voicebox only in the desktop app, which calls it for the page; the desktop app reaches
+ *  all */
+export const SPEECH_HERE = SPEECH_PROVIDERS.filter((p) => (p.id !== 'voicebox' || voiceboxHere()) && (features.host !== 'site' || !['kokoro', 'custom'].includes(p.id)))
 
 const KEY = 'livliv-stage:speech'
-export const SPEECH_UNSET: SpeechApi = { provider: '', base: '', key: '', model: '', voice: '', asr: '' }
-/** chosen in settings: no speech API, not even the model key's */
-export const SPEECH_OFF: SpeechApi = { ...SPEECH_UNSET, provider: 'off' }
 function load(): SpeechApi {
-  try { return { ...SPEECH_UNSET, ...JSON.parse(localStorage.getItem(KEY) || 'null') } } catch { return SPEECH_UNSET }
+  try { return { ...SPEECH_UNSET, ...JSON.parse(readKeyed(KEY) || 'null') } } catch { return SPEECH_UNSET }
 }
 let config = load()
 const subs = new Set<() => void>()
 export const loadSpeech = () => config
 export function saveSpeech(s: SpeechApi) {
   config = s
-  try { localStorage.setItem(KEY, JSON.stringify(s)) } catch { /* private mode */ }
+  try { void writeKeyed(KEY, s) } catch { /* private mode */ }
   subs.forEach((f) => f())
 }
 export const useSpeech = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => config)
@@ -68,16 +50,26 @@ export function speechOfModel(c: BrainConfig = loadBrainConfig()): SpeechApi | n
   const p = SPEECH_PROVIDERS.find((q) => q.id === b.provider && q.women && q.id !== 'openai')
   return p ? { provider: p.id, base: p.id === 'qwen' ? b.base.replace(/\/compatible-mode\/v1\/?$/, '/api/v1') : b.base, key: b.key, model: p.model, voice: '', asr: p.asr } : null
 }
-/** the speech API in use: the one set in settings; none set, the one that comes with the model's key */
-export const activeSpeech = (s = config, b: BrainConfig = loadBrainConfig()): SpeechApi => (s.provider ? s : speechOfModel(b) ?? s)
+/** the speech API in use: the one set in settings; none set, the one that comes with the model's key, else Voicebox
+ *  when it is running on this computer */
+export const activeSpeech = (s = config, b: BrainConfig = loadBrainConfig()): SpeechApi => (s.provider ? s : speechOfModel(b) ?? (voiceboxReady() ? VOICEBOX_SPEECH : s))
 export function useActiveSpeech() {
   const s = useSpeech(), b = useBrainConfig()
+  useSyncExternalStore(onVoicebox, voiceboxState)
   return activeSpeech(s, b)
 }
 
 /** a character's voice of this API: its own choice, the default set for the API, else one nobody else on the stage
  *  has: the next free woman's or man's voice by its gender, either in turn when it isn't known */
 export function apiVoice(c: CharacterItem, s: SpeechApi, cast: CharacterItem[]): string {
+  // Voicebox: a profile it lists (a voice chosen for another API is no profile of its), else its open voices with their
+  // model in turn, among the characters with none of their own
+  if (s.provider === 'voicebox') {
+    const listed = (id: string) => !!id && voiceboxState().profiles.some((p) => p.id === id)
+    if (listed(c.voice.api)) return c.voice.api
+    if (listed(s.voice)) return s.voice
+    return defaultProfile(cast.filter((x) => x.lines === 'ai' && !listed(x.voice.api)).findIndex((x) => x.id === c.id))
+  }
   if (c.voice.api) return c.voice.api
   if (s.voice) return s.voice
   // Keep the featured cast's voices consistent with the demo, even when reordered or used solo.
@@ -97,6 +89,7 @@ const TONE: Partial<Record<Emotion, string>> = { happy: '语气开心、轻快�
 
 /** a line in `voice` (or the API's default one) as MP3 */
 export async function speakApi(s: SpeechApi, text: string, voice: string, emotion: Emotion, rate: number, signal?: AbortSignal): Promise<Blob> {
+  if (s.provider === 'voicebox') return voiceboxSpeak(voice || s.voice || defaultProfile(0), text, signal)
   if (s.provider === 'qwen') {
     const r = await aiFetch(endpoint(s, '/services/audio/tts/SpeechSynthesizer'), {
       method: 'POST', signal, headers: { 'Content-Type': 'application/json', ...auth(s) },
@@ -189,6 +182,7 @@ export async function speakLive(s: SpeechApi, text: string, voice: string, emoti
 
 /** what was said in a recording (a WAV) */
 export async function transcribeApi(s: SpeechApi, wav: Blob, signal?: AbortSignal): Promise<string> {
+  if (s.provider === 'voicebox') return voiceboxTranscribe(wav, signal)
   if (s.provider === 'qwen') {
     const bytes = new Uint8Array(await wav.arrayBuffer())
     signal?.throwIfAborted()
@@ -219,6 +213,7 @@ export async function transcribeApi(s: SpeechApi, wav: Blob, signal?: AbortSigna
 
 /** the voices to pick from: the preset's, or what the API lists (its /audio/voices: names, or objects with an id) */
 export async function listVoices(s: SpeechApi, signal?: AbortSignal): Promise<string[]> {
+  if (s.provider === 'voicebox') return (await detectVoicebox()).profiles.map((p) => p.id)
   const p = speechProviderOf(s)
   if (p.voices) return p.voices
   if (!p.voicesPath || !s.base) return []
@@ -230,7 +225,10 @@ export async function listVoices(s: SpeechApi, signal?: AbortSignal): Promise<st
   } catch { return [] }
 }
 
-export type VoiceRoute = 'livliv' | 'api' | 'system' | 'none'
+export type { VoiceRoute }
+/** a character's voice for a line of the session running: never LivLiv's for points because its own went away
+ *  (sessions/spend.ts) */
+export const sessionRoute = (c: CharacterItem, s = activeSpeech()): VoiceRoute => voiceNow(c.id, voiceRoute(c, s), c.voice.source === 'livliv', current()?.spend)
 /** where a character's voice comes from now: its choice if it can be had, else your API, LivLiv's, else none */
 export function voiceRoute(c: CharacterItem, s = activeSpeech()): VoiceRoute {
   const livliv = !!modelId(c) && signedIn(), api = speechReady(s), want = c.voice.source

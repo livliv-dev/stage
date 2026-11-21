@@ -17,6 +17,7 @@ import { VoicePicker } from './VoicePicker'
 import { demoVoice } from './demo'
 import { useBrainConfig } from './brain'
 import { apiVoice, listVoices, speechProviderOf, speechReady, useActiveSpeech, voiceRoute } from './voiceApi'
+import { detectVoicebox, OPEN_ENGINES, profileName, useVoicebox, voiceboxError, voiceboxHere } from './voicebox'
 import { DevicePanel } from './DevicePanel'
 import { TrackingPanel } from './TrackingPanel'
 import { NetworkPanel } from './NetworkPanel'
@@ -30,6 +31,7 @@ import { keysOf, MOVE_KEYS } from './characterKeys'
 import { modeOf } from './control'
 import { readReactionSettings, type ReactionFeeling } from './reactions'
 import { showCardPage, useCardPage } from './shell/cardPage'
+import { CardImport } from './CardImport'
 
 const settingsLabel = (item?: Item) => tr(item ? ({ character: '角色设置', subtitle: '字幕设置', text: '文字设置', image: '图片设置' })[item.kind] : '舞台设置')
 
@@ -110,6 +112,9 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
   const route = voiceRoute(c, speech), livliv = route === 'livliv'
   const [apiVoices, setApiVoices] = useState<string[]>([])
   useEffect(() => { if (route === 'api') void listVoices(speech).then(setApiVoices) }, [route, speech])
+  // Voicebox's voices are its profiles: looked for again as the page opens
+  const voicebox = useVoicebox(), onVoicebox = speech.provider === 'voicebox'
+  useEffect(() => { if (voiceboxHere()) void detectVoicebox() }, [])
   const test = async () => {
     if (preview.current) { preview.current.abort(); return }
     if (!a || a.status !== 'ready' || conversation.running) return
@@ -139,6 +144,14 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
       ]} />
       {livliv ? <>
         {officialPicker}
+      </> : route === 'api' && onVoicebox ? <>
+        <label className="field spaced"><span>{tr("Voicebox 的声音")}</span>
+          <select value={v.api} onChange={(e) => patch({ voice: { ...v, api: e.target.value } })}>
+            <option value="">{tr("默认（{0}）", profileName(apiVoice({ ...c, voice: { ...v, api: '' } }, speech, participants(store.get()))) || tr("还没有声音"))}</option>
+            {voicebox.profiles.map((p) => <option key={p.id} value={p.id}>{p.name} · {tr(p.kind === 'preset' ? '预设' : p.kind === 'cloned' ? '克隆' : p.kind === 'designed' ? '设计' : '其他')}{OPEN_ENGINES.has(p.engine) ? '' : ` · ${p.engine}`}{p.ready ? '' : ` · ${tr('模型未下载')}`}</option>)}
+          </select>
+        </label>
+        <p className="hint">{voicebox.error ? voiceboxError(voicebox.error, voicebox.detail) : tr("声音在 Voicebox 里添加：预设，或用你的录音克隆。")}</p>
       </> : route === 'api' ? <>
         <label className="field spaced"><span>{tr("音色")}</span>
           <input list={`api-voices-${c.id}`} value={v.api} placeholder={tr("默认（{0}）", apiVoice(c, speech, participants(store.get())).split(':').at(-1) || tr("接口的"))} onChange={(e) => patch({ voice: { ...v, api: e.target.value } })} />
@@ -230,12 +243,16 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
       {!hasBubble && <button className="link" onClick={() => store.add(bubbleFor(c))}>{tr("给它加一个字幕气泡")}</button>}
     </Section>
   const persona = <Section title={tr('人设与风格')}>
+        <CardImport key={c.id} c={c} patch={patch} />
         <label className="field spaced"><span>{tr("人设")}</span>
           {/* its example lines go with the card as written */}
           <textarea rows={3} value={c.persona} placeholder={tr("她是谁、怎么说话，一两句就够")} onChange={(e) => patch({ persona: e.target.value, examples: undefined })} />
         </label>
         {c.style !== undefined && <label className="field"><span>{tr("说话风格")}</span>
           <textarea rows={3} value={c.style} onChange={(e) => patch({ style: e.target.value, examples: undefined })} />
+        </label>}
+        {c.greeting !== undefined && <label className="field"><span>{tr('开场白')}</span>
+          <textarea rows={2} maxLength={400} value={c.greeting} placeholder={tr('没人说话时，它开口的第一句')} onChange={(e) => patch({ greeting: e.target.value })} />
         </label>}
         <label className="field"><span>{tr('关系设定')}</span><textarea rows={2} maxLength={2000} value={c.relationship ?? ''} placeholder={tr('与操作者和观众是什么关系')} onChange={(event) => patch({ relationship: event.target.value })} /></label>
         <label className="field"><span>{tr('立场与兴趣')}</span><textarea rows={2} maxLength={2000} value={c.stance ?? ''} placeholder={tr('角色坚持的观点、感兴趣的事')} onChange={(event) => patch({ stance: event.target.value })} /></label>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check, Copy, RefreshCw } from 'lucide-react'
-import { defaultMotionSettings, lanIP, readMotionSettings, type MotionSettings } from '../../desktop/src/trackingProtocol'
+import { defaultMotionSettings, lanIP, readMotionSettings, type MotionSettings } from '../../protocol/src/tracking'
 import { actors, onActors } from './actors'
 import { configureMotion, currentMotion, motionError, motionSupported, refreshMotion, useMotion } from './networkTracking'
 import { store, type CharacterItem } from './scene'

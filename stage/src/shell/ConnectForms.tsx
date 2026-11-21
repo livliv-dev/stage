@@ -12,8 +12,10 @@ import { features } from '../core/platform'
 import { demoFor } from '../demo'
 import { cancelConnect, openConnect, useAccount } from '../livliv'
 import { participants, store, useScene } from '../scene'
-import { activeSpeech, asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, transcribeApi, useSpeech, type SpeechApi } from '../voiceApi'
+import { activeSpeech, asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, transcribeApi, useSpeech, VOICEBOX_SPEECH, type SpeechApi } from '../voiceApi'
+import { detectVoicebox, OPEN_ENGINES, useVoicebox, VOICEBOX_SITE, voiceboxError, voiceboxHere, voiceboxReady } from '../voicebox'
 import { wav16k } from '../audio'
+import { lostKey } from '../core/secrets'
 import { beginDemo } from './demoStart'
 
 /** where the AI characters' lines come from: your own model (a preset, or any OpenAI-compatible API), LivLiv's points
@@ -92,6 +94,7 @@ export function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, on
         <input value={d.base} placeholder="https://…/v1" onChange={(e) => change({ base: e.target.value, model: '' })} onBlur={() => void fetchModels()} /></label>}
       {!p.noKey && <label className="field"><span>{tr("密钥")}<span className="lock" title={tr("只存在这台电脑上")}><Lock size={11} /></span>{p.keyUrl && <a className="get" href={p.keyUrl} target="_blank" rel="noreferrer">{tr("获取")}<ExternalLink size={11} /></a>}</span>
         <input type="password" value={d.key} placeholder="sk-…" autoComplete="off" onChange={(e) => change({ key: e.target.value })} onBlur={() => void fetchModels()} /></label>}
+      {!p.noKey && !d.key && (lostKey('livliv-stage:brain') || lostKey('livliv-stage:brain-api')) && <p className="hint error">{tr('这台电脑上保存的密钥读不出来了，请重新填写')}</p>}
       <label className="field"><span>{tr("模型")}</span>
         <div className="row model-pick">
           <input list="model-list" value={d.model} placeholder={st.busy === 'list' ? tr("正在拿模型列表…") : tr("模型名")} onChange={(e) => change({ model: e.target.value })} />
@@ -122,21 +125,30 @@ export function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; on
   const first = (id: string): SpeechApi => { const q = SPEECH_PROVIDERS.find((x) => x.id === id)!; return { ...SPEECH_UNSET, provider: id, base: q.base, model: q.model, asr: q.asr, voice: '' } }
   // none chosen: it follows the model's key where that speaks too
   const ofModel = speechOfModel(chat)
-  const [mode, setMode] = useState<'follow' | 'off' | 'own'>(forCharacter ? 'own' : !cur.provider ? (ofModel ? 'follow' : 'off') : cur.provider === 'off' ? 'off' : 'own')
+  // none set and Voicebox running on this computer: that is the voice in use, shown as chosen
+  const voicebox = useVoicebox(), voiceboxInUse = !cur.provider && !ofModel && voiceboxReady()
+  useEffect(() => { if (voiceboxHere()) void detectVoicebox() }, [])
+  const [mode, setMode] = useState<'follow' | 'off' | 'own'>(forCharacter ? 'own' : !cur.provider ? (ofModel ? 'follow' : voiceboxInUse ? 'own' : 'off') : cur.provider === 'off' ? 'off' : 'own')
   const modeEdited = useRef(!!forCharacter)
-  useEffect(() => { if (!modeEdited.current && !cur.provider) setMode(ofModel ? 'follow' : 'off'); else if (mode === 'follow' && !ofModel) setMode('off') }, [cur.provider, ofModel?.provider, ofModel?.base, ofModel?.key, mode])
+  const [d, setD] = useState<SpeechApi>(() => (cur.provider && cur.provider !== 'off' ? cur : voiceboxInUse ? VOICEBOX_SPEECH : first('qwen')))
+  useEffect(() => {
+    if (!modeEdited.current && !cur.provider) {
+      if (ofModel) setMode('follow')
+      else if (voiceboxInUse) { setMode('own'); setD(VOICEBOX_SPEECH) }
+      else setMode('off')
+    } else if (mode === 'follow' && !ofModel) setMode('off')
+  }, [cur.provider, ofModel?.provider, ofModel?.base, ofModel?.key, mode, voiceboxInUse])
   const off = mode !== 'own'
-  const [d, setD] = useState<SpeechApi>(() => (cur.provider && cur.provider !== 'off' ? cur : first('qwen')))
   const [voices, setVoices] = useState<string[]>([])
   const [st, setSt] = useState<{ busy?: boolean; ok?: string; err?: string }>({})
   const p = speechProviderOf(d)
   // the voices it offers, once the address and key have stopped changing
   useEffect(() => {
-    if (off || !/^https?:\/\/[^/]+/.test(d.base) || (!d.key && !p.noKey)) return
+    if (off || d.provider === 'voicebox' || !/^https?:\/\/[^/]+/.test(d.base) || (!d.key && !p.noKey)) return
     const t = setTimeout(() => void listVoices(d).then(setVoices), 600)
     return () => clearTimeout(t)
   }, [off, d.provider, d.base, d.key])  // eslint-disable-line react-hooks/exhaustive-deps
-  const choose = (id: string) => { modeEdited.current = true; setMode('own'); setSt({}); setD((x) => ({ ...first(id), key: x.provider === id ? x.key : '', base: id === 'custom' && x.provider === 'custom' ? x.base : first(id).base })) }
+  const choose = (id: string) => { modeEdited.current = true; setMode('own'); setSt({}); if (id === 'voicebox') void detectVoicebox(); setD((x) => ({ ...first(id), key: x.provider === id ? x.key : '', base: id === 'custom' && x.provider === 'custom' ? x.base : first(id).base })) }
   // the AI model's key, where it is the same service
   const sameKey = !!ofModel && ofModel.provider === d.provider && ofModel.base.replace(/\/+$/, '') === d.base.replace(/\/+$/, '') && d.key !== ofModel.key
   const save = () => {
@@ -165,13 +177,28 @@ export function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; on
       <button className={`demo${mode === 'off' ? ' on' : ''}`} title={tr("没有语音接口：角色用 LivLiv 的声音，没有就只出字幕")} onClick={() => { modeEdited.current = true; setMode('off'); setSt({}) }}>{tr("不用")}</button>
     </div>
     {forCharacter && mode !== 'off' && <p className="hint">{tr('保存后，此角色会使用你的语音接口。')}</p>}
-    {!off && <>
+    {!off && p.id === 'voicebox' && <>
+      <p className={`hint${voicebox.error ? ' error' : ''}`}>
+        {voicebox.checking ? tr('正在查找本机的 Voicebox…') : voicebox.status === 'on' ? tr('Voicebox 在运行：{0} 个声音，免费，在本机', voicebox.profiles.length)
+          : voiceboxError(voicebox.error ?? 'not-running', voicebox.detail)}
+        {voicebox.status !== 'on' && !voicebox.checking && <> <a href={VOICEBOX_SITE} target="_blank" rel="noreferrer">{tr('下载 Voicebox')}<ExternalLink size={11} /></a></>}
+      </p>
+      <label className="field"><span>{tr("默认声音")}</span>
+        <select value={d.voice} onChange={(e) => setD({ ...d, voice: e.target.value })}>
+          <option value="">{tr('按角色分配')}</option>
+          {voicebox.profiles.map((v) => <option key={v.id} value={v.id}>{v.name}{OPEN_ENGINES.has(v.engine) ? '' : ` · ${v.engine}`}</option>)}
+        </select></label>
+      <label className="switch"><span>{tr('也用它听你说话（Whisper，本机，免费）')}</span><input type="checkbox" checked={!!d.asr} onChange={(e) => setD({ ...d, asr: e.target.checked ? 'whisper' : '' })} /><i /></label>
+      {st.err && <p className="hint error">{st.err}</p>}
+    </>}
+    {!off && p.id !== 'voicebox' && <>
       {(p.id === 'custom' || p.id === 'kokoro') && <label className="field"><span>{tr("接口地址")}</span>
         <input value={d.base} placeholder="https://…/v1" onChange={(e) => setD({ ...d, base: e.target.value })} /></label>}
       {!p.noKey && <label className="field"><span>{tr("密钥")}<span className="lock" title={tr("只存在这台电脑上")}><Lock size={11} /></span>
         {sameKey && <button type="button" className="link get" onClick={() => setD({ ...d, key: (chat as ModelConfig).key })}>{tr("用 AI 模型的密钥")}</button>}
         {!sameKey && p.keyUrl && <a className="get" href={p.keyUrl} target="_blank" rel="noreferrer">{tr("获取")}<ExternalLink size={11} /></a>}</span>
         <input type="password" value={d.key} placeholder="sk-…" autoComplete="off" onChange={(e) => setD({ ...d, key: e.target.value })} /></label>}
+      {!d.key && lostKey('livliv-stage:speech') && <p className="hint error">{tr('这台电脑上保存的密钥读不出来了，请重新填写')}</p>}
       <div className="row two">
         <label className="field"><span>{tr("语音模型")}</span><input value={d.model} onChange={(e) => setD({ ...d, model: e.target.value })} /></label>
         <label className="field"><span>{tr("默认音色")}</span><input list="speech-voices" value={d.voice} placeholder={tr('按角色自动分配')} onChange={(e) => setD({ ...d, voice: e.target.value })} /></label>

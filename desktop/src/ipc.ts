@@ -8,13 +8,15 @@ import { beginRequest, cancelRequest } from './requests'
 import type { Binding } from './settings'
 import { dragEnd, dragStart, openStage, popupMenu, setAlwaysOnTop, setClickMode, stageOf } from './stages'
 import { mainContents } from './mainWindow'
-import type { StageApiState } from './stageCommands'
-import { readMotionSettings, type MotionSettings, type MotionState } from './trackingProtocol'
+import type { StageApiState } from '#protocol/stageCommands'
+import { readMotionSettings, type MotionSettings, type MotionState } from '#protocol/tracking'
 import { stageFromPath } from './urls'
-import { readNeuroAnswer, readNeuroConfig, type NeuroConfig, type NeuroSpeech, type NeuroState } from './neuroProtocol'
-import { readCollabConfig, type CollabConfig, type CollabState } from './collabProtocol'
+import { readNeuroAnswer, readNeuroConfig, type NeuroConfig, type NeuroSpeech, type NeuroState } from '#protocol/neuro'
+import { readCollabConfig, type CollabConfig, type CollabState } from '#protocol/collab'
 import type { AiriGameHost } from './airiGameHost'
-import { readAiriGameConfig } from './airiGameProtocol'
+import { readAiriGameConfig } from '#protocol/airiGame'
+import type { VoiceboxClient } from './voicebox'
+import type { SecretsStore } from './secrets'
 
 export type IpcDeps = {
   collab?: { state(): CollabState; start(config: CollabConfig): Promise<CollabState>; close(): Promise<CollabState> }
@@ -22,6 +24,8 @@ export type IpcDeps = {
   tracking?: { get(): MotionState; set(settings: MotionSettings): Promise<MotionState> }
   stageApi?: { get(): StageApiState; set(enabled: boolean): Promise<StageApiState>; rotate(): StageApiState }
   airiGames?: AiriGameHost
+  voicebox?: VoiceboxClient
+  secrets?: SecretsStore
   capabilities: () => string[]
   local: () => { port: number; commandUrl: string } | null
   hotkeys: { list: () => HotkeyState[]; set: (b: Binding[] | null) => HotkeyState[]; enabled: () => boolean; enable: (on: boolean) => HotkeyState[] }
@@ -31,6 +35,14 @@ export function registerIpc(deps: IpcDeps) {
   ipcMain.on('livliv:info', (e) => {
     const role = stageOf(BrowserWindow.fromWebContents(e.sender)) ? 'stage' : 'main'
     e.returnValue = trusted(e) ? { api: 1, version: VERSION, platform: process.platform, role, stageEditor: APP === 'stage' && e.sender === mainContents() } : null
+  })
+  // the API keys and the sign-in, kept encrypted (secrets.ts): read once as the editor starts, synchronously, because
+  // the page reads its settings as it loads; a save answers once the file is written. The Stage editor only; never
+  // logged
+  const editor = (e: { sender: WebContents }) => !!deps.secrets && APP === 'stage' && e.sender === mainContents()
+  ipcMain.on('livliv:secrets', (e) => {
+    if (!trusted(e) || !editor(e)) { e.returnValue = null; return }
+    try { e.returnValue = deps.secrets!.all() } catch { e.returnValue = null }
   })
   // a stage page that takes commands (it says so on load): only those count as delivered, as the server counts stages
   ipcMain.on('livliv:listening', (e, n) => {
@@ -42,6 +54,10 @@ export function registerIpc(deps: IpcDeps) {
       if (!trusted(e)) throw new Error('not allowed')
       return f(e, ...args)
     })
+  handle('livliv:secrets-set', async (event, name, value) => {
+    if (!editor(event)) return false
+    try { return await deps.secrets!.set(name, value) } catch { return false }
+  })
   handle('livliv:request', (event, op, id) => {
     if (op === 'begin') return beginRequest(event.sender)
     if (op === 'cancel') return cancelRequest(event.sender.id, id)
@@ -82,6 +98,35 @@ export function registerIpc(deps: IpcDeps) {
       if (answer?.ok && answer.action) return games.execute(value, answer.action)
     }
     throw new Error('Invalid AIRI game operation')
+  })
+  // Voicebox on this computer (voicebox.ts): its profiles, a line said, what you said heard. A line can be given up
+  // (cancel, by the id the page chose); the editor's lines only
+  const voiceboxCalls = new Map<string, AbortController>()
+  handle('livliv:voicebox', async (event, op, id, value, language) => {
+    const voicebox = deps.voicebox
+    if (!voicebox || APP !== 'stage' || event.sender !== mainContents()) throw new Error('Stage editor only')
+    if (op === 'profiles') return voicebox.profiles()
+    if (typeof id !== 'string' || !/^[\w-]{1,64}$/.test(id)) throw new Error('Invalid Voicebox call')
+    if (op === 'cancel') { voiceboxCalls.get(id)?.abort(); voiceboxCalls.delete(id); return null }
+    const lang = typeof language === 'string' && /^[a-z]{2}$/.test(language) ? language : undefined
+    const controller = new AbortController()
+    voiceboxCalls.set(id, controller)
+    try {
+      if (op === 'speak') {
+        const line = value as { profile?: unknown; text?: unknown; size?: unknown }
+        if (!line || typeof line.profile !== 'string' || line.profile.length > 200 || typeof line.text !== 'string' || !line.text || line.text.length > 5000) throw new Error('Invalid Voicebox line')
+        const size = typeof line.size === 'string' && /^(1\.7B|0\.6B|1B|3B)$/.test(line.size) ? line.size : undefined
+        return await voicebox.speak(line.profile, line.text, lang ?? 'en', controller.signal, size)
+      }
+      if (op === 'transcribe') {
+        if (!(value instanceof ArrayBuffer) || value.byteLength > 25_000_000) throw new Error('Invalid recording')
+        return await voicebox.transcribe(value, lang, controller.signal)
+      }
+      throw new Error('Invalid Voicebox operation')
+    } catch (error) {
+      if (controller.signal.aborted) return { ok: false, error: 'failed', detail: 'cancelled' }
+      throw error
+    } finally { voiceboxCalls.delete(id) }
   })
   handle('livliv:vision', async (event, op, sourceId) => {
     if (APP !== 'stage' || event.sender !== mainContents()) throw new Error('Stage editor only')

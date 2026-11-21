@@ -9,21 +9,28 @@
 //   window.clickThrough(mode) / alwaysOnTop(on) / minimize() / close() / menu() / dragStart() / dragEnd()
 //   window.openStage('/live/<id>?…')     opens a stage window
 //   onCommand(cb) -> unsubscribe        a stage's commands (hotkeys, local endpoint), as CmdBody
-import type { MotionEvent, MotionSettings, MotionState } from './trackingProtocol'
-import type { StageApiState, StageControlRequest } from './stageCommands'
-import type { NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } from './neuroProtocol'
-import type { CollabConfig, CollabState } from './collabProtocol'
-import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameMessage, AiriGameSnapshot } from './airiGameProtocol'
-import type { ExternalSelection } from './neuroProtocol'
+//   secrets.all() / set(name, key)       the API keys and sign-in, encrypted by the system; a save answers once written
+//                                        (the Stage editor only; secrets.ts)
+//   voicebox.profiles() / speak(id, line, language) / transcribe(id, wav, language) / cancel(id)   Voicebox on this
+//                                        computer (the Stage editor only; results, never thrown: voicebox.ts)
+// The page's side and this one share one description of all this, the protocol package's DesktopApi: what is given here
+// is checked against it. Types only, so this file still loads nothing but Electron.
+import type { MotionEvent, MotionSettings, MotionState } from '#protocol/tracking'
+import type { StageApiState, StageControlRequest } from '#protocol/stageCommands'
+import type { NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } from '#protocol/neuro'
+import type { CollabConfig, CollabState } from '#protocol/collab'
+import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameMessage, AiriGameSnapshot } from '#protocol/airiGame'
+import type { ExternalSelection } from '#protocol/neuro'
+import type { VoiceboxProfile, VoiceboxResult } from '#protocol/voicebox'
+import type { DesktopApi, DesktopInfo } from '#protocol/bridge'
+import type { CmdBody } from '#protocol/commands'
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
-type Info = { api: 1; version: string; platform: string; role: 'main' | 'stage'; stageEditor: boolean }
-
-const info = ipcRenderer.sendSync('livliv:info') as Info | null
+const info = ipcRenderer.sendSync('livliv:info') as DesktopInfo | null
 if (info) {
   const invoke = (channel: string, ...args: unknown[]) => ipcRenderer.invoke(channel, ...args)
   const win = (op: string, arg?: unknown) => invoke('livliv:window', op, arg)
-  contextBridge.exposeInMainWorld('livlivDesktop', {
+  const api = {
     ...info,
     ...(info.stageEditor ? {
       vision: {
@@ -70,6 +77,18 @@ if (info) {
         },
       },
       tracking: { get: (): Promise<MotionState> => invoke('livliv:tracking', 'get'), set: (settings: MotionSettings): Promise<MotionState> => invoke('livliv:tracking', 'set', settings) },
+      // the API keys and sign-in, kept encrypted by the system (secrets.ts): all, once as the page starts (null: no system
+      // encryption); a save answers true once it is written
+      secrets: {
+        all: (): { keys: Record<string, string>; lost: string[] } | null => ipcRenderer.sendSync('livliv:secrets', 'all'),
+        set: (name: string, value: string): Promise<boolean> => invoke('livliv:secrets-set', name, value),
+      },
+      voicebox: {
+        profiles: (): Promise<VoiceboxResult<VoiceboxProfile[]>> => invoke('livliv:voicebox', 'profiles'),
+        speak: (id: string, line: { profile: string; text: string; size?: string }, language: string): Promise<VoiceboxResult<ArrayBuffer>> => invoke('livliv:voicebox', 'speak', id, line, language),
+        transcribe: (id: string, wav: ArrayBuffer, language?: string): Promise<VoiceboxResult<string>> => invoke('livliv:voicebox', 'transcribe', id, wav, language),
+        cancel: (id: string): Promise<null> => invoke('livliv:voicebox', 'cancel', id),
+      },
       onMotion: (callback: (event: MotionEvent) => void) => {
         const listener = (_event: IpcRendererEvent, value: MotionEvent) => callback(value)
         ipcRenderer.on('livliv:motion', listener)
@@ -104,9 +123,9 @@ if (info) {
       dragEnd: () => win('dragEnd'),
       openStage: (path: unknown) => win('openStage', path),
     },
-    onCommand: (cb: (cmd: unknown) => void) => {
+    onCommand: (cb: (cmd: CmdBody) => void) => {
       if (typeof cb !== 'function') return () => {}
-      const f = (_e: IpcRendererEvent, cmd: unknown) => cb(cmd)
+      const f = (_e: IpcRendererEvent, cmd: CmdBody) => cb(cmd)
       ipcRenderer.on('livliv:command', f)
       ipcRenderer.send('livliv:listening', ipcRenderer.listenerCount('livliv:command'))
       return () => {
@@ -114,5 +133,6 @@ if (info) {
         ipcRenderer.send('livliv:listening', ipcRenderer.listenerCount('livliv:command'))
       }
     },
-  })
+  } satisfies DesktopApi
+  contextBridge.exposeInMainWorld('livlivDesktop', api)
 }

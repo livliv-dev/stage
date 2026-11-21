@@ -5,8 +5,8 @@
 // (stageApp.ts). Global commands go to the editor; the site shell keeps its separate live windows, endpoint and tray.
 import { randomBytes } from 'node:crypto'
 import { join } from 'node:path'
-import { app, BrowserWindow, globalShortcut, Menu, type MenuItemConstructorOptions } from 'electron'
-import { parseDo } from './commands'
+import { app, BrowserWindow, globalShortcut, Menu, safeStorage, type MenuItemConstructorOptions } from 'electron'
+import { parseDo } from '#protocol/commands'
 import { APP, APP_ORIGIN, DEV, flag, LIVLIV_API, ORIGINS, STAGE_BUILT, STAGE_DIR, VERSION, WEBGL_CONTEXTS } from './config'
 import { applyHotkeys, defaultBindings, hotkeyState, stageBindings } from './hotkeys'
 import { registerIpc } from './ipc'
@@ -25,6 +25,9 @@ import { stageFromPath } from './urls'
 import { NeuroHost } from './neuroHost'
 import { CollabHost } from './collabHost'
 import { AiriGameHost } from './airiGameHost'
+import { VOICEBOX_URL, voiceboxClient } from './voicebox'
+import { secretsStore } from './secrets'
+import { readFileSync, renameSync, writeFileSync } from 'node:fs'
 
 // ---------------------------------------------------------------- global hotkeys
 
@@ -50,6 +53,19 @@ const control = APP === 'stage' ? stageControl(mainContents) : undefined
 const neuro = APP === 'stage' ? new NeuroHost({ editor: mainContents }) : null
 const collab = APP === 'stage' ? new CollabHost({ editor: mainContents }) : null
 const airiGames = APP === 'stage' ? new AiriGameHost(process.env.AIRICRAFT_BRIDGE_STATE_FILE || join(app.getPath('home'), '.airicraft', 'bridge-state.json')) : null
+// Voicebox where it listens (a test points it at a stand-in, in development)
+const voicebox = APP === 'stage' ? voiceboxClient({ fetch, base: (DEV && process.env.VOICEBOX_URL) || VOICEBOX_URL }) : null
+// the API keys, encrypted by the system, in the app's own folder (written whole, readable by this user only)
+const keysFile = () => join(app.getPath('userData'), 'keys.json')
+const secrets = APP === 'stage' ? secretsStore({
+  encryption: safeStorage,
+  platform: process.platform,
+  read: () => { try { return readFileSync(keysFile(), 'utf8') } catch { return null } },
+  write: (text) => { const file = keysFile(), next = file + '.tmp'; writeFileSync(next, text, { mode: 0o600 }); renameSync(next, file) },
+}) : null
+// the keys open before the editor first loads (it reads them as it starts); every way of opening it waits for them
+const keysOpen = secrets ? app.whenReady().then(() => secrets.open()).catch(() => false) : Promise.resolve(false)
+const openEditor = APP === 'stage' ? () => { void keysOpen.then(() => openMain()) } : openMain
 let api: LocalApi | null = null
 let apiError: string | null = null
 let apiQueue = Promise.resolve()
@@ -106,7 +122,7 @@ function stageArg(argv: string[]) {
 
 function startStage() {
   if (STAGE_BUILT) serveStage(STAGE_DIR, LIVLIV_API, () => api?.port ?? null)
-  openMain()
+  openEditor()
   syncHotkeys()
   void syncLocalApi()
   void motionInput?.configure(settings().trackingInput)
@@ -122,7 +138,7 @@ if (APP === 'stage') {
 }
 if (!app.requestSingleInstanceLock()) app.quit()
 else {
-  app.on('second-instance', (_e, argv) => { if (APP === 'stage' || !stageArg(argv)) openMain() })
+  app.on('second-instance', (_e, argv) => { if (APP === 'stage' || !stageArg(argv)) openEditor() })
   app.whenReady().then(() => {
     hardenSession()
     saveDownloads()
@@ -131,6 +147,8 @@ else {
       ...(collab ? { collab } : {}),
       ...(neuro ? { neuro } : {}),
       ...(airiGames ? { airiGames } : {}),
+      ...(voicebox ? { voicebox } : {}),
+      ...(secrets ? { secrets } : {}),
       ...(motionInput ? { tracking: { get: () => motionInput.state(), set: async (value) => { update((s) => { s.trackingInput = value }); return motionInput.configure(value) } } } : {}),
       capabilities: () => (APP === 'stage' ? ['global-hotkeys', ...(api ? ['local-commands'] : [])] : capabilities()),
       ...(APP === 'stage' ? { stageApi: { get: stageApiState, set: async (enabled: boolean) => { update((s) => { s.stageApi.enabled = enabled }); await syncLocalApi(); return stageApiState() }, rotate: () => { update((s) => { s.token = randomBytes(16).toString('hex') }); return stageApiState() } } } : {}),
@@ -163,8 +181,14 @@ else {
     if (!stageArg(process.argv) || process.argv.includes('--main')) openMain()
     console.log(`[livliv] ${VERSION} on ${APP_ORIGIN}${DEV ? ' (development)' : ''}`)
   })
-  app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) openMain() })
+  app.on('activate', () => { if (!BrowserWindow.getAllWindows().length) openEditor() })
   app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
+  // a key just saved is written before the app goes
+  app.on('before-quit', (event) => {
+    if (!secrets?.pending()) return
+    event.preventDefault()
+    void secrets.flush().finally(() => app.quit())
+  })
   let closingGame = false, gameClosed = false
   app.on('before-quit', (event) => {
     if (gameClosed || !airiGames?.needsClose()) return

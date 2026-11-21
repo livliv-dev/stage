@@ -10,11 +10,13 @@ import { useAccount } from '../livliv'
 import { currentMotion } from '../networkTracking'
 import { loadRealtime, realtimeCredentials } from '../realtime'
 import { participants, useScene, type Goal } from '../scene'
-import { asrReady, useActiveSpeech, voiceRoute } from '../voiceApi'
+import { apiVoice, asrReady, useActiveSpeech, voiceRoute } from '../voiceApi'
+import { profileName, useVoicebox, voiceboxHere, voiceboxReady } from '../voicebox'
 import { checklist, type Check, type CheckContext } from './checks'
 
 export function useChecks(goal: Goal, partner: boolean): Check[] {
   const { scene } = useScene(), brain = useBrainConfig(), speech = useActiveSpeech(), account = useAccount(), chat = useChat(), devices = useInputs()
+  const voicebox = useVoicebox()
   const [, redraw] = useState(0)
   useEffect(() => { const timer = setInterval(() => redraw((n) => n + 1), 700); return () => clearInterval(timer) }, [])
   const cast = participants(scene).filter((c) => !c.remote), ai = cast.filter((c) => c.lines === 'ai'), me = cast.find((c) => c.lines === 'me')
@@ -29,6 +31,10 @@ export function useChecks(goal: Goal, partner: boolean): Check[] {
     twitch: { status: chat.status, channel: chat.channel },
     game: { here: features.games, engine, reason: engineReason(engine, ai.length) },
     realtime: { ready: !!(realtime.key && realtime.base && realtime.model), provider: realtime.provider === 'openai' ? 'OpenAI' : '阿里云百炼' },
+    voicebox: {
+      here: voiceboxHere(), on: voicebox.status === 'on' && voiceboxReady(),
+      profile: speech.provider === 'voicebox' && ai[0] && voiceRoute(ai[0], speech) === 'api' ? profileName(apiVoice(ai[0], speech, cast)) : undefined,
+    },
   }
   return checklist(goal, context)
 }

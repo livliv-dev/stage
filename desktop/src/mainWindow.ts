@@ -4,7 +4,7 @@ import { APP, APP_ORIGIN, DEV, NAME } from './config'
 import { guard, webPreferences } from './security'
 import { openStage } from './stages'
 import { withChannel } from './urls'
-import type { CmdBody } from './commands'
+import type { CmdBody } from '#protocol/commands'
 
 let main: BrowserWindow | null = null
 export const mainContents = () => main && !main.isDestroyed() ? main.webContents : null

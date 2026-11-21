@@ -1,3 +1,4 @@
+import { readKeyed, writeKeyed } from './core/secrets'
 import { useSyncExternalStore } from 'react'
 import { aiFetch, loadBrainConfig, previousModelConfig } from './brain'
 import type { Line } from './core/lines'
@@ -23,7 +24,7 @@ export const realtimeDefaults = (provider: RealtimeProvider = 'qwen'): RealtimeS
 })
 export function loadRealtime(): RealtimeSettings {
   try {
-    const value = JSON.parse(localStorage.getItem(KEY) || 'null')
+    const value = JSON.parse(readKeyed(KEY) || 'null')
     if (!value || !['qwen', 'openai'].includes(value.provider)) return realtimeDefaults()
     const settings = realtimeDefaults(value.provider)
     for (const key of ['base', 'key', 'model', 'voice'] as const) if (typeof value[key] === 'string') settings[key] = value[key]
@@ -34,7 +35,7 @@ export function loadRealtime(): RealtimeSettings {
   } catch { return realtimeDefaults() }
 }
 export function saveRealtime(settings: RealtimeSettings) {
-  localStorage.setItem(KEY, JSON.stringify(settings))
+  void writeKeyed(KEY, settings)
 }
 export function realtimeCredentials(settings: RealtimeSettings) {
   const current = loadBrainConfig(), model = current.kind === 'openai' ? current : previousModelConfig(), speech = loadSpeech()

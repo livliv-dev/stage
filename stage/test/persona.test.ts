@@ -43,3 +43,16 @@ test('what each engine is told of the card', () => {
   assert.ok(brain.includes('人设里说的「对方」') === false && brainPersona(personaOf(kai, 'zh', 'public'), 'zh').includes('人设里说的「对方」，在这里就是同框的人。'), 'a one-line card says who 对方 is')
   assert.equal(named({ name: 'Nana' }, '小娜'), '小娜', 'no card name: as written')
 })
+
+test('an imported card\'s first message opens the talk; its example lines go in when the reply is in their language', () => {
+  const iru = card('Iru Mk2', { cardName: 'Iru', persona: 'Iru lives in your computer.', greeting: 'Hi! I\'m Iru. Ready?', examples: ['Reading your files, obviously.'] })
+  const p = personaOf(iru, 'en', 'private')
+  const opening = brainPersona(p, 'en', true), later = brainPersona(p, 'en', false)
+  assert.ok(opening.includes('还没有人说话，由你开场，就说你的开场白：Hi! I\'m Iru Mk2. Ready?'), 'said under the character\'s name now')
+  assert.ok(!later.some((line) => line.includes('开场白')), 'only while nothing has been said')
+  assert.ok(opening.some((line) => line.includes('Reading your files')), 'English example lines for an English reply')
+  assert.ok(!brainPersona(p, 'zh', true).some((line) => line.includes('只学语气')), 'not for a Chinese one')
+  assert.ok(airiIdentity(p).includes('Your first message, said when nothing has been said yet: Hi! I\'m Iru Mk2. Ready?'))
+  assert.ok(!brainPersona(personaOf(nana, 'zh', 'private'), 'zh', true).some((line) => line.includes('开场白')), 'a card without one: as before')
+  assert.ok(!airiIdentity(personaOf(nana, 'zh', 'private')).includes('first message'))
+})

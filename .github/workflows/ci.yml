@@ -47,9 +47,9 @@ jobs:
           - name: conversation
             suites: chat memory demo-history lifecycle privacy start points say-once recording-scope model-switch app-livliv
           - name: voice
-            suites: handsfree voice-setup realtime journey goals
+            suites: handsfree voice-setup realtime journey goals voicebox-dropout
           - name: editor
-            suites: browser settings ux shots projects mixer profiles
+            suites: browser settings ux shots projects mixer profiles card-import
           - name: live
             suites: audience props gamepad live collab collab-pose
           # every way a session starts, compared with its recorded behaviour (test/traces), and the persona prompts

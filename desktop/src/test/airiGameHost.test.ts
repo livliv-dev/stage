@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test, type TestContext } from 'node:test'
 import { AiriGameHost } from '../airiGameHost'
-import type { AiriGameEvent } from '../airiGameProtocol'
+import type { AiriGameEvent } from '#protocol/airiGame'
 
 async function serve(t: TestContext, handler: RequestListener) {
   const server = createServer(handler)

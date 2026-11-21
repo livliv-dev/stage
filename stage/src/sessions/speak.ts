@@ -13,7 +13,7 @@ import { desktop } from '../desktopBridge'
 import { memory } from '../memory'
 import type { Chat } from '../danmaku'
 import { participants, store, uid, type CharacterItem } from '../scene'
-import { voiceRoute } from '../voiceApi'
+import { sessionRoute } from '../voiceApi'
 import type { Line } from '../core/lines'
 import { brainEngine, type TurnRequest, type Utterance } from '../brains/engines'
 import { personaOf } from '../brains/persona'
@@ -69,7 +69,7 @@ async function makeLine(run: Run, me: CharacterItem, signal: AbortSignal, audien
   const chat = audience === undefined ? conversation().scope === 'public' ? someViewer() : null : audience
   if (conversation().mode !== 'conversation') set(spend(conversation()))
   const cfg = loadBrainConfig(), aloud = !run.liveOptions?.textOnly && !me.muted
-  const voiced = aloud && voiceRoute(me) === 'livliv'
+  const voiced = aloud && sessionRoute(me) === 'livliv'
   const sessionId = conversation().sessionId
   const context = cfg.kind === 'demo' ? { lines: conversation().lines, summary: undefined, memories: [], revision: 0 } : await chatHistory.context(me.profileId ?? me.id, conversation().lines, conversation().scope)
   signal.throwIfAborted()
@@ -89,7 +89,7 @@ async function makeLine(run: Run, me: CharacterItem, signal: AbortSignal, audien
   }
   // its voice is made while it still shows 在想 (a LivLiv voice takes about a second)
   const recorded = r.audio ?? (voiced && cfg.kind === 'livliv' ? null : undefined)
-  const bySentence = sentenceBySentence(conversation().mode, cfg.kind, voiceRoute(me))
+  const bySentence = sentenceBySentence(conversation().mode, cfg.kind, sessionRoute(me))
   const take = bySentence ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, recorded)
   signal.throwIfAborted()
   if (run.liveOptions && !run.liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕"))
@@ -186,7 +186,7 @@ async function streamedTurn(run: Run, me: CharacterItem, chat: Chat | null | und
   // each sentence's voice is made while the one before is said; the turn counts once the first is said
   const said = await sayEach(answer, signal, async (line) => {
     const aloud = !textOnly && !actor.item.muted
-    if (aloud && !streamable(voiceRoute(actor.item))) throw new Error(tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕'))
+    if (aloud && !streamable(sessionRoute(actor.item))) throw new Error(tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕'))
     const take = await actor.prepare(line.text, line.emotion, aloud, signal)
     signal.throwIfAborted()
     if (aloud && take.mute) throw new VoiceFailed(actor.voiceError || tr('声音播放失败，请检查声音设置'))
@@ -274,7 +274,7 @@ async function bySentences(run: Run, me: CharacterItem, r: Utterance & Pick<Line
     const voice = await preparedVoice
     signal.throwIfAborted()
     await checkMemory(memory, me.profileId ?? me.id, conversation().scope, memoryRevision)
-    if (voice?.mute && voiceRoute(me) !== 'none') throw new Error(actor?.voiceError || tr('声音播放失败，请检查声音设置'))
+    if (voice?.mute && sessionRoute(me) !== 'none') throw new Error(actor?.voiceError || tr('声音播放失败，请检查声音设置'))
     preparedVoice = i + 1 < segments.length ? actor?.prepare(segments[i + 1], r.emotion, true, signal) : undefined
     // A cancelled future sentence may reject before playback reaches it.
     void preparedVoice?.catch(() => {})

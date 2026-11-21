@@ -23,6 +23,7 @@
 - AI chat that remembers, in the desktop app: each character keeps its own memory, powered by [Project AIRI](https://github.com/moeru-ai/airi)
 - Game connections in the desktop app: Minecraft through [Airicraft](https://github.com/proj-airi/airicraft), Factorio through [Autorio](https://github.com/moeru-ai/airi-factorio), or any game window the character watches
 - Built-in Neuro SDK support (desktop app)
+- Free voices on your own computer with [Voicebox](https://voicebox.sh) (desktop app): found when it runs, and the characters' voice when no other is set
 - All the basics: webcam face tracking (phone apps and VMC/OSC in the desktop app), OBS output, video recording
 - 27 featured characters, ready to use. Built on [LivLiv Player](https://github.com/livliv-dev/player)
 
@@ -69,7 +70,9 @@ the browser checks are the `test:*` scripts in [stage/package.json](stage/packag
 AI chat and memory: [docs/ai-conversations.md](docs/ai-conversations.md), real-time voice:
 [docs/realtime-voice.md](docs/realtime-voice.md), built-in AIRI ([docs/airi.md](docs/airi.md)), the Neuro SDK bridge: [neuro/README.md](neuro/README.md), the local control API:
 [docs/stage-api.md](docs/stage-api.md), friend collab: [collab/README.md](collab/README.md).
-Model keys stay in the browser or the app and go straight to the provider. Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
+Model keys stay in the browser or the app and go straight to the provider; the desktop app keeps them, and its
+LivLiv sign-in, encrypted by the system (Keychain, DPAPI or a Linux keyring) and removes them from the page's storage
+once they are written there. Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
 Security reports: [SECURITY.md](SECURITY.md).
 
 ## License

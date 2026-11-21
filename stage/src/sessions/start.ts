@@ -9,11 +9,11 @@ import { chatHistory } from '../chatHistory'
 import { features } from '../core/platform'
 import { desktop } from '../desktopBridge'
 import { participants, store, uid } from '../scene'
-import { voiceRoute } from '../voiceApi'
+import { activeSpeech, asrReady, voiceRoute } from '../voiceApi'
 import { airiGameError, airiGameText } from '../airiEngine'
 import type { MemoryScope } from '../memory'
 import type { ExternalEvent } from '../externalEvents'
-import type { AiriGameConnection } from '../../../desktop/src/airiGameProtocol'
+import type { AiriGameConnection } from '../../../protocol/src/airiGame'
 import { bindAiri, preferredAiriForChat } from './airiBinding'
 import { chatLimits, type LiveOptions } from './budget'
 import { clock } from './clock'
@@ -35,6 +35,11 @@ import { gameName } from './games'
 /** a session of this kind takes over: on AIRI with this model, else on the brain set up turn by turn */
 function takeOver(kind: Run['kind'], airi: ModelConfig | null = null) {
   const run = new Run(kind)
+  // what it may spend: how you are heard and each AI character's voice, as it starts (sessions/spend.ts)
+  run.spend = {
+    hearing: asrReady(activeSpeech()) ? 'own' : 'points',
+    voices: Object.fromEntries(participants(store.get()).filter((c) => c.lines === 'ai').map((c) => [c.id, voiceRoute(c)])),
+  }
   handOver(run, stageEnv, airi)
   return run
 }

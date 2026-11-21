@@ -7,7 +7,7 @@ import type { Line, Reply } from '../../core/lines'
 import type { CharacterItem, Talk } from '../../scene'
 import type { MemoryRecord, MemoryScope } from '../../memory'
 import type { ExternalActionDecision, ExternalActionRequest, ExternalEvent } from '../../externalEvents'
-import type { AiriGameFrame } from '../../../../desktop/src/airiGameProtocol'
+import type { AiriGameFrame } from '../../../../protocol/src/airiGame'
 import type { PersonaSpec } from '../persona'
 
 /** a turn, asked of any engine */

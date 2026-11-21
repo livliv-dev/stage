@@ -1,5 +1,5 @@
-import type { StageCommand, StageResult } from '../../desktop/src/stageCommands'
-import { ACTION_IDS } from '../../desktop/src/commands'
+import type { StageCommand, StageResult } from '../../protocol/src/stageCommands'
+import { ACTION_IDS } from '../../protocol/src/commands'
 import { mixer } from './mixer'
 import { actors, type Actor } from './actors'
 import { formatOf } from './bodies'

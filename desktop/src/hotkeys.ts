@@ -8,10 +8,10 @@
 // The system tells a program only that its hotkey was pressed, never released: an expression set to show while held
 // shows for 3 s, as from the command URL.
 import { globalShortcut } from 'electron'
-import { LIVE_KEYS, parseDo } from './commands'
-import type { Binding } from './settings'
+import { LIVE_KEYS, parseDo } from '#protocol/commands'
+import type { Binding, Shortcut } from '#protocol/bridge'
 
-export type HotkeyState = Binding & { ok: boolean; why?: string }
+export type HotkeyState = Shortcut
 
 const MODS = new Set(['command', 'cmd', 'control', 'ctrl', 'commandorcontrol', 'cmdorctrl', 'alt', 'option', 'altgr', 'shift', 'super', 'meta'])
 const KEY = /^(?:[A-Z0-9]|F(?:[1-9]|1[0-9]|2[0-4])|Space|Up|Down|Left|Right|Home|End|PageUp|PageDown|Insert|Delete|num[0-9]|numadd|numsub|nummult|numdiv|numdec)$/

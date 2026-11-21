@@ -4,7 +4,7 @@
 // site's 表情 tab sets them on its characters): on and off, while the key is held (let go, or the window loses the
 // keyboard: off), or for a few seconds (pressed again: off sooner). Which character, and what each key does to it, is
 // the command path's (control.ts): the one 开播 put on the stage, else the selected one, else the first you play.
-import { ACTION_IDS } from '../../desktop/src/commands'
+import { ACTION_IDS } from '../../protocol/src/commands'
 import { actors, type Actor } from './actors'
 import { commandTarget, modeOf, performStageCommand, type KeyCommand } from './control'
 import { participants, store } from './scene'

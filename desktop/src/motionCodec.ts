@@ -1,4 +1,4 @@
-import { MOTION_LIMITS, type MotionChannel, type MotionParams } from './trackingProtocol'
+import { MOTION_LIMITS, type MotionChannel, type MotionParams } from '#protocol/tracking'
 
 export class MotionPacketError extends Error {}
 type OscArg = string | number | boolean | null

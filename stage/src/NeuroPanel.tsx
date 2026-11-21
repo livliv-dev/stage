@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { desktop } from './desktopBridge'
 import { tr } from './i18n'
-import type { NeuroCharacter, NeuroState } from '../../desktop/src/neuroProtocol'
+import type { NeuroCharacter, NeuroState } from '../../protocol/src/neuro'
 
 const OFF: NeuroState = { enabled: false, port: null, url: null, character: null, connections: [], error: null }
 export function NeuroPanel({ characters, onStart }: { characters: NeuroCharacter[]; onStart(character: string): void | Promise<void> }) {

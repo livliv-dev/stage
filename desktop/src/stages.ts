@@ -3,7 +3,7 @@
 // character moves the window (the page asks for it); never throttled in the background, and while one is
 // open the system doesn't suspend the app. The hotkeys and the local endpoint deliver their commands here.
 import { BrowserWindow, Menu, powerSaveBlocker, screen, type MenuItemConstructorOptions } from 'electron'
-import type { CmdBody } from './commands'
+import type { CmdBody } from '#protocol/commands'
 import { DEV } from './config'
 import { same } from './localApi'
 import { guard, webPreferences } from './security'
