@@ -5,6 +5,7 @@ import { tr } from '../../i18n'
 // said meanwhile. The demo goes by its script, and ends with it; a paid model stops after `limit` AI lines.
 import { actors } from '../../actors'
 import { loadBrainConfig } from '../../brain'
+import { makeEngine } from '../../brains/engines'
 import { chatHistory } from '../../chatHistory'
 import { demoPause, demoSpeaker } from '../../demo'
 import { participants, store } from '../../scene'
@@ -27,6 +28,7 @@ export function startDuet(once: boolean) {
   current()?.controller.abort()
   dropAhead(lastBegun())
   const run = new Run('conversation'); begin(run); followLines(run)
+  run.brain = loadBrainConfig(); run.engine = makeEngine(run.brain)
   run.single = once; run.boundProfiles = castKey()
   // A public conversation consumes viewer inputs and opens only the public history.
   const audience = viewersWaiting()

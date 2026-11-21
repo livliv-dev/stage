@@ -5,7 +5,7 @@ import { tr } from '../i18n'
 // voice: livliv.ai charges every /say call, so a line in it is voiced whole, one call); AIRI's reply streams and each
 // sentence is said as it comes. In a 对谈 the next line is made while this one is said (one ahead).
 import { actors, type Take } from '../actors'
-import { brainReady, loadBrainConfig, type Ask } from '../brain'
+import { brainReady, loadBrainConfig } from '../brain'
 import { chatHistory } from '../chatHistory'
 import { conversationContext, speechSegments } from '../chatContext'
 import { demoFor, demoSpeaker } from '../demo'
@@ -15,7 +15,8 @@ import type { Chat } from '../danmaku'
 import { participants, store, uid, type CharacterItem } from '../scene'
 import { voiceRoute } from '../voiceApi'
 import type { Line } from '../core/lines'
-import { engineFor, type Utterance } from '../brains/engines'
+import type { TurnRequest, Utterance } from '../brains/engines'
+import { personaOf } from '../brains/persona'
 import { counted, GenerationLimit, spend, spent, turnLimit as linesFor } from './budget'
 import { chance } from './chance'
 import { castKey, NeedModel, played, TURN_INTERRUPTED, voices, VoiceFailed } from './context'
@@ -41,35 +42,53 @@ export function nextSpeaker(): CharacterItem | null {
 /** the lines a 对谈 runs to: a prepared demo always reaches its ending, paid conversations keep the user's limit */
 export const turnLimit = () => linesFor(loadBrainConfig().kind === 'demo' ? demoFor(voices())?.script.lines.length : undefined, conversation().limit)
 
-/** a line and its voice, made ready (a model of one's own, LivLiv or the demo: the whole reply) */
+/** who the speaker shares the stage with: the other AI characters, the people (the characters you play, and you once
+ *  you have spoken as yourself), who stands where from the left, and its part in the host order */
+function castFor(me: CharacterItem): TurnRequest['cast'] {
+  const s = store.get(), t = s.talk, ai = voices().filter((c) => c.lines === 'ai')
+  const humans = played().map((h) => h.name)
+  if (conversation().lines.some((l) => l.who === 'me')) humans.push(tr("我"))
+  return {
+    others: ai.filter((c) => c.id !== me.id), humans, role: t.order === 'host' ? (me.id === (t.host ?? ai[0]?.id) ? 'host' : 'guest') : null,
+    layout: [...participants(s)].sort((a, b) => across(a) - across(b)).map((c) => c.name),
+  }
+}
+
+/** a turn as every engine is asked it: the speaker and its card, the cast, what it answers from, how to answer */
+function turnRequest(me: CharacterItem, cast: TurnRequest['cast'], context: Pick<TurnRequest['context'], 'lines' | 'summary' | 'memories' | 'viewer' | 'event' | 'replyToOwner' | 'game' | 'frame'>,
+  constraints: Pick<TurnRequest['constraints'], 'cutIn' | 'voiced' | 'allowBatch' | 'verifyMemory'>): TurnRequest {
+  const s = store.get(), { sessionId, scope, mode } = conversation()
+  return {
+    speaker: me, persona: personaOf(me, s.talk.language, scope), cast,
+    context: { sessionId, scope, topic: s.topic, mode: mode as TurnRequest['context']['mode'], ...context },
+    constraints: { language: s.talk.language, depth: s.talk.depth, ...constraints },
+  }
+}
+
+/** a line and its voice, made ready (an engine that answers whole: a model of one's own, LivLiv or the demo). The
+ *  answer is read to its end */
 async function makeLine(run: Run, me: CharacterItem, signal: AbortSignal, audience?: Chat | null) {
-  const s = store.get(), t = s.talk
+  const engine = run.engine!
   if (run.boundProfiles !== castKey()) throw new Error(tr('参与角色已改变，请重新开始会话'))
-  const ai = voices().filter((c) => c.lines === 'ai')
-  const people = played().map((h) => h.name)
-  if (conversation().lines.some((l) => l.who === 'me')) people.push(tr("我"))
-  const role = t.order === 'host' ? (me.id === (t.host ?? ai[0]?.id) ? 'host' : 'guest') : null
+  const cast = castFor(me)
   const cutIn = takeCutting()
   const chat = audience === undefined ? conversation().scope === 'public' ? someViewer() : null : audience
   if (conversation().mode !== 'conversation') set(spend(conversation()))
-  const viewer = chat ? { user: chat.user, text: chat.text } : null
-  const cfg = loadBrainConfig(), aloud = !run.liveOptions?.textOnly && !me.muted
+  const cfg = run.brain, aloud = !run.liveOptions?.textOnly && !me.muted
   const voiced = aloud && voiceRoute(me) === 'livliv'
   const sessionId = conversation().sessionId
-  const context = loadBrainConfig().kind === 'demo' ? { lines: conversation().lines, summary: undefined, memories: [], revision: 0 } : await chatHistory.context(me.profileId ?? me.id, conversation().lines, conversation().scope)
+  const context = cfg.kind === 'demo' ? { lines: conversation().lines, summary: undefined, memories: [], revision: 0 } : await chatHistory.context(me.profileId ?? me.id, conversation().lines, conversation().scope)
   signal.throwIfAborted()
   const used = conversationContext(context.lines, context.summary)
   const memoryIds = memoryIdsOf(context)
-  const ask: Ask = {
-    me, others: ai.filter((c) => c.id !== me.id), humans: people, topic: s.topic, lines: context.lines, role, cutIn, language: t.language, viewer,
-    voiced, scope: conversation().scope, depth: t.depth, summary: context.summary, memories: context.memories, event: inbox.activeEvent ? { source: inbox.activeEvent.source, message: inbox.activeEvent.message } : undefined,
-    layout: [...participants(s)].sort((a, b) => across(a) - across(b)).map((c) => c.name),
-  }
-  const answer = engineFor(cfg).reply({ kind: 'standard', ask }, signal)[Symbol.asyncIterator]()
-  const first = await answer.next()
+  const request = turnRequest(me, cast, { lines: context.lines, summary: context.summary, memories: context.memories, viewer: chat && { user: chat.user, text: chat.text },
+    event: inbox.activeEvent ?? undefined, replyToOwner: false },
+    { cutIn, voiced, allowBatch: false })
+  const answer: Utterance[] = []
+  for await (const said of engine.reply(request, signal)) answer.push(said)
   signal.throwIfAborted()
-  if (first.done) throw new Error(tr('模型没有返回可播放的回复'))
-  const r = first.value
+  const r = answer[0]
+  if (!r) throw new Error(tr('模型没有返回可播放的回复'))
   const { summary, ...reply } = r
   if (summary && used.updateSummary) {
     await chatHistory.summarize(summary, used.sourceIds, memoryIds, context.revision, sessionId, conversation().lines)
@@ -100,7 +119,7 @@ export function dropAhead(run: Run | null) {
 function makeAhead(run: Run) {
   const t = store.get().talk, last = conversation().lines.at(-1)
   if (conversation().mode !== 'conversation' || run.ahead || current() !== run || run.single || !last || inbox.queue.length || conversation().turns >= turnLimit()) return
-  const cfg = loadBrainConfig()
+  const cfg = run.brain
   if (!brainReady(cfg) || (cfg.kind !== 'demo' && t.interrupt)) return
   const who = cfg.kind === 'demo' ? demoSpeaker(voices(), conversation().lines) : nextSpeaker()
   if (!who) return
@@ -134,9 +153,10 @@ function addViewer(chat: Chat | null | undefined) {
   set({ lines: [...conversation().lines, { id: chat.id, who: 'audience', name: tr("弹幕 · {0}", chat.user), text: chat.text, emotion: 'neutral', action: 'none', to: null, human: true, audience: true }] })
 }
 
-/** a turn on AIRI: its reply streams, each sentence voiced and said as it comes (the next made ready while one plays) */
-async function airiTurn(run: Run, me: CharacterItem, chat: Chat | null | undefined, replyToOwner: boolean, signal: AbortSignal, onStart: () => void, onEnd: (cancelled: boolean) => void) {
-  const airi = run.airi
+/** a turn on an engine that streams (AIRI, bound to one character): its reply comes a sentence at a time, each voiced
+ *  and said as it comes (the next made ready while one plays); it sees the game's frame or the window when it can */
+async function streamedTurn(run: Run, me: CharacterItem, chat: Chat | null | undefined, replyToOwner: boolean, signal: AbortSignal, onStart: () => void, onEnd: (cancelled: boolean) => void) {
+  const airi = run.airi, engine = run.engine!
   const actor = actors.get(me.id), profile = me.profileId ?? me.id
   const { sessionId, scope } = conversation(), windowId = airi?.windowId, event = inbox.activeEvent
   if (!airi || airi.actorId !== me.id || !sessionId || actor?.status !== 'ready' || run.boundProfiles !== castKey()) throw new Error(tr('参与角色已改变，请重新开始会话'))
@@ -147,26 +167,21 @@ async function airiTurn(run: Run, me: CharacterItem, chat: Chat | null | undefin
     signal.throwIfAborted()
   }
   signal.throwIfAborted()
-  const snapshot = airi.game ? await desktop?.airiGame?.snapshot(airi.game.id, true) : undefined
+  const snapshot = engine.caps.tools && airi.game ? await desktop?.airiGame?.snapshot(airi.game.id, true) : undefined
   signal.throwIfAborted()
-  const frame = snapshot?.frame ?? (windowId ? await desktop?.vision?.frame(windowId) : undefined)
+  const frame = snapshot?.frame ?? (engine.caps.vision && windowId ? await desktop?.vision?.frame(windowId) : undefined)
   signal.throwIfAborted()
   if (windowId && !frame) throw new Error(tr('游戏窗口已关闭或屏幕录制权限不可用'))
-  const latest = replyToOwner ? context.lines.findLast((line) => line.human && !line.audience) : undefined
-  const input = chat ? `Viewer ${chat.user}: ${chat.text}` : latest?.text
-    ?? (conversation().mode === 'live' ? 'The livestream is quiet. Start a short conversation about the show.' : 'Start a short conversation with the user.')
-  const used = conversationContext(context.lines, context.summary)
-  const memories = context.memories.slice(0, 48)
+  const memories = engine.caps.memories ? context.memories.slice(0, engine.caps.memories) : context.memories
   const memoryIds = memoryIdsOf({ ...context, memories })
   const textOnly = run.liveOptions?.textOnly === true
   set(counted(conversation()))
   addViewer(chat)
-  const answer = engineFor(loadBrainConfig(), airi.model).reply({ kind: 'airi', turn: {
-    sessionId, scope, actor: me, model: airi.model, input, verifyMemory, allowBatch: !airi.game && !windowId, ...(frame ? { frame } : {}), ...(event ? { event } : {}),
-    lines: context.lines.filter((line) => line.id !== latest?.id && line.id !== chat?.id),
-    language: store.get().talk.language,
-    context: { topic: store.get().topic, game: snapshot?.state, summary: used.earlier, memories },
-  } }, signal)[Symbol.asyncIterator]()
+  const request = turnRequest(me, castFor(me), {
+    lines: context.lines, summary: context.summary, memories, viewer: chat ? { id: chat.id, user: chat.user, text: chat.text } : null, event: event ?? undefined, replyToOwner,
+    game: snapshot?.state, ...(frame ? { frame } : {}),
+  }, { cutIn: false, voiced: false, allowBatch: !airi.game && !windowId, verifyMemory })
+  const answer = engine.reply(request, signal)[Symbol.asyncIterator]()
   const speech: LineSpeech = {
     final: false, onStart, onEnd,
     beforeStart: () => untilFree(speechHeld, wake, signal, async () => {
@@ -208,7 +223,7 @@ export async function speakTurn(run: Run, me: CharacterItem, parent: AbortSignal
   parent.throwIfAborted()
   if (run.switching) { await run.switching; parent.throwIfAborted() }
   await waitWhile(() => inbox.dialogue.size > 0 || inbox.decisions > 0 || inbox.hearing, wake, parent)
-  const model = run.airi?.model ?? loadBrainConfig()
+  const model = run.airi?.model ?? run.brain
   const scope = conversation().scope
   if (!brainReady(model)) throw new NeedModel()
   const turn = new AbortController(), signal = AbortSignal.any([parent, turn.signal])
@@ -219,8 +234,8 @@ export async function speakTurn(run: Run, me: CharacterItem, parent: AbortSignal
   const prepared = aheadStill(run)?.who.id === me.id ? run.ahead : null
   const cancelPrepared = () => prepared?.ctl.abort(signal.reason)
   try {
-    if (run.airi) {
-      await airiTurn(run, me, audience, replyToOwner, signal, () => { spoke = true }, (cancelled) => { hadCut ||= cancelled })
+    if (run.engine!.caps.stream) {
+      await streamedTurn(run, me, audience, replyToOwner, signal, () => { spoke = true }, (cancelled) => { hadCut ||= cancelled })
       return true
     }
     if (!prepared) dropAhead(run)

@@ -24,7 +24,6 @@ import type { ExternalActionRequest, ExternalEvent } from './externalEvents'
 import { airiGameError, airiGameText } from './airiEngine'
 import { desktop } from './desktopBridge'
 import { features } from './core/platform'
-import { engineFor } from './brains/engines'
 import { counted, lineLimit, liveLimits, spent, type LiveOptions } from './sessions/budget'
 import { checkMemory } from './sessions/memoryGate'
 import { castKey, played, profiles, voices, type RealtimeControls } from './sessions/context'
@@ -167,8 +166,8 @@ export const talk = {
       signal.throwIfAborted()
       if (airi?.windowId && !frame) throw new Error(tr('游戏窗口已关闭或屏幕录制权限不可用'))
       // the engine the session runs on decides: AIRI with its tools (and the window it sees), else a model of one's own
-      const engine = engineFor(loadBrainConfig(), airi?.model)
-      if (!engine.decideAction) throw new Error(tr('游戏动作决策需要使用自己的模型接口'))
+      const engine = run.engine
+      if (!engine?.decideAction) throw new Error(tr('游戏动作决策需要使用自己的模型接口'))
       const action = await engine.decideAction(actor, request, signal, frame ?? undefined)
       signal.throwIfAborted()
       if (conversation().paused) throw new Error(tr('会话已暂停或达到生成上限'))
@@ -201,7 +200,7 @@ export const talk = {
       const frame = snapshot.frame ?? (airi.windowId ? await desktop?.vision?.frame(airi.windowId) : null)
       if (airi.windowId && !frame) throw new Error(tr('游戏窗口已关闭或屏幕录制权限不可用'))
       await stillCurrent()
-      const decision = await engineFor(loadBrainConfig(), airi.model).decideAction!(actor, {
+      const decision = await run!.engine!.decideAction!(actor, {
         character: actor.id, source: gameName(game.game), query, priority: 'medium', silent: true, actions: game.actions,
         state: JSON.stringify({ observation: snapshot.state, rememberedFacts: facts }),
       }, signal, frame ?? undefined, stillCurrent)

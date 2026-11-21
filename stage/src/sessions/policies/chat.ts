@@ -4,6 +4,7 @@ import { tr } from '../../i18n'
 // generations (sessions/budget.ts), on AIRI when the one rule says so (sessions/airiBinding.ts).
 import { actors } from '../../actors'
 import { brainReady, loadBrainConfig } from '../../brain'
+import { makeEngine } from '../../brains/engines'
 import { store } from '../../scene'
 import type { MemoryScope } from '../../memory'
 import { bindAiri, preferredAiriForChat } from '../airiBinding'
@@ -38,6 +39,7 @@ export async function startChat(chosen: MemoryScope = conversation().chatScope, 
   const preferred = preferredAiriForChat(config, target)
   const run = new Run('chat'), controller = run.controller
   dropAhead(lastBegun()); begin(run); followLines(run)
+  run.brain = config; run.engine = makeEngine(config, preferred?.model)
   run.single = true; order.forced = target ?? null; run.boundProfiles = castKey()
   inbox.external.length = 0; inbox.dialogue.clear(); inbox.activeEvent = null
   const offAiriCast = preferred ? bindAiri(run, preferred.model, preferred.actor) : undefined

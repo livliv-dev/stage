@@ -2,7 +2,8 @@
 // it as the session goes. One runs at a time; the facade (conversation.ts) reaches it through current(). The order of
 // turns (who had the last one, who you skipped, who you picked to go next) belongs to the conversation, not to one
 // session: round order goes on from the last turn, and a pick made with nothing running starts the next session.
-import type { ModelConfig } from '../brain'
+import type { BrainConfig, ModelConfig } from '../brain'
+import type { Engine } from '../brains/engines/types'
 import type { Chat } from '../danmaku'
 import type { ExternalEvent } from '../externalEvents'
 import type { CharacterItem } from '../scene'
@@ -30,6 +31,9 @@ export class Run {
   single = false
   /** the 直播间's options while one runs */
   liveOptions: LiveOptions | null = null
+  /** the brain set up when it started, and the engine it runs on (AIRI when chooseEngine chose it: brains/engines) */
+  brain: BrainConfig = { kind: 'demo' }
+  engine: Engine | null = null
   /** the session runs on AIRI (sessions/airiBinding.ts) */
   airi: AiriBinding | null = null
   /** the AI cast the session started with (its profiles): a change stops it */

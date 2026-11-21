@@ -5,6 +5,7 @@ import { tr } from '../../i18n'
 // the start, its events become lines to answer, its window or frame goes to the model.
 import { actors } from '../../actors'
 import { brainReady, loadBrainConfig } from '../../brain'
+import { makeEngine } from '../../brains/engines'
 import { airiFits, chooseEngine } from '../../brains/select'
 import { features } from '../../core/platform'
 import { desktop } from '../../desktopBridge'
@@ -52,6 +53,7 @@ export function startLive(options: LiveOptions, event: (event: ExternalEvent) =>
   if (!options.textOnly && cast.some((c) => !c.muted && voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕") }); return }
   const run = new Run('live'), c = run.controller
   dropAhead(lastBegun()); begin(run); followLines(run)
+  run.brain = config; run.engine = makeEngine(config, airiModel)
   inbox.viewers.clear(); inbox.queue.length = 0; inbox.external.length = 0; inbox.dialogue.clear(); inbox.activeEvent = null
   run.liveOptions = options
   run.boundProfiles = castKey()
