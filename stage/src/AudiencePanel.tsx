@@ -2,10 +2,9 @@ import { tr } from './i18n'
 import { AudienceActions } from './AudienceActions'
 import { useState } from 'react'
 import { blockUser, connectTwitch, disconnect, simulate, useChat } from './danmaku'
-import { store, useScene } from './scene'
 
-export function AudiencePanel({ preferences = false, heading = true }: { preferences?: boolean; heading?: boolean }) {
-  const { scene } = useScene(), chat = useChat()
+export function AudiencePanel({ heading = true }: { heading?: boolean }) {
+  const chat = useChat()
   const [channel, setChannel] = useState(chat.channel), [test, setTest] = useState('')
   const send = () => { if (test.trim()) { simulate(tr("测试观众"), test); setTest('') } }
   return <section className="section audience-panel">
@@ -17,9 +16,6 @@ export function AudiencePanel({ preferences = false, heading = true }: { prefere
     {chat.status === 'on' && <p className="hint ok">{tr("已连接 twitch.tv/")}{chat.channel} {tr("· 只读取公开聊天")}</p>}
     {chat.status === 'connecting' && <p className="hint">{chat.error || tr("正在连接…")}</p>}
     {chat.status === 'error' && <p className="hint error">{tr(chat.error ?? '')}</p>}
-    {preferences && <label className="field spaced"><span>{tr("对谈时回应弹幕")}</span><select value={scene.talk.danmaku} onChange={(e) => store.setTalk({ danmaku: +e.target.value as 0 | 1 | 2 })}>
-      <option value={0}>{tr("不回")}</option><option value={1}>{tr("偶尔")}</option><option value={2}>{tr("积极")}</option>
-    </select></label>}
     <AudienceActions />
     <details className="test-chat"><summary>{tr("试发一条弹幕")}</summary><div className="row spaced">
       <input value={test} placeholder={tr("模拟一条弹幕")} aria-label={tr("模拟一条弹幕")} onChange={(e) => setTest(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) send() }} />

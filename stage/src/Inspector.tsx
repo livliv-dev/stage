@@ -204,7 +204,7 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
   const speech = useActiveSpeech(), route = voiceRoute(c, speech)
   const talkMotion = voiced && !tracked && (route === 'api' || route === 'livliv')
   const page = useCardPage()
-  if (c.remote) return <Section title={tr("联播角色")}>
+  if (c.remote) return <Section title={tr("好友联播角色")}>
     <p className="hint">{tr("由 {0} 控制", c.remote.person)}</p>
     <label className="field"><span>{tr("角色名称")}</span><input value={c.name} onChange={(event) => patch({ name: event.target.value })} /></label>
     <Switch label={tr("显示在舞台上")} on={!c.hidden} set={(visible) => patch({ hidden: !visible })} />

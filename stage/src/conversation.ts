@@ -773,7 +773,7 @@ async function run(once: boolean) {
 
 async function runLive(options: LiveOptions) {
   const config = loadBrainConfig()
-  if (!brainReady(config) || config.kind === 'demo') { set({ error: tr("AI 主播需要接上模型；离线演示可在「对谈」里体验"), needModel: true, modelIntent: 'live' }); return }
+  if (!brainReady(config) || config.kind === 'demo') { set({ error: tr("直播间需要接上模型，演示只能在「只有我」里看"), needModel: true, modelIntent: 'live' }); return }
   const cast = participants(store.get()).filter((c) => c.lines === 'ai')
   if (!cast.length) { set({ error: tr("先添加一个「AI 来演」的角色") }); return }
   // the panel asked for AIRI: the one rule (brains/select.ts), a game or a window asking for it whatever the switch says
@@ -921,7 +921,7 @@ async function startChatSession(chosen: MemoryScope = state.chatScope, target?: 
     throw new Error(tr('请先停止当前会话'))
   }
   const config = loadBrainConfig()
-  if (!brainReady(config) || config.kind === 'demo') { set({ needModel: true, modelIntent: firstInput ? 'input' : 'chat' }); throw new Error(tr('持续聊天需要接上 AI 模型')) }
+  if (!brainReady(config) || config.kind === 'demo') { set({ needModel: true, modelIntent: firstInput ? 'input' : 'chat' }); throw new Error(tr('和角色聊天需要接上 AI 模型')) }
   if (!profiles().length) {
     const error = tr('先添加一个「AI 来演」的角色')
     set({ error }); throw new Error(error)

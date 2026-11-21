@@ -141,7 +141,7 @@ export async function record(mic: boolean, inputStatus?: (error: Error | null) =
     recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data) }
     recorder.onstart = () => { sound.at = sec() }
     recorder.onstop = () => { sound.blob = new Blob(chunks, { type: recorder.mimeType }); finish() }
-    recorder.onerror = (event) => { failure = new Error(tr("联播声音录制失败"), { cause: event }); finish() }
+    recorder.onerror = (event) => { failure = new Error(tr("好友联播声音录制失败"), { cause: event }); finish() }
     const value = { stream: source, stop: () => { if (recorder.state !== 'inactive') recorder.stop() }, done }
     // kept for stop() to wait on only once it has started: one that never started never ends
     recorder.start(1000); captures.push(value)

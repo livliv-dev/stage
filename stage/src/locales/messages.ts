@@ -17,7 +17,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "AI 搭档的文字模型": {"zh-Hans":"AI 搭档的文字模型","zh-Hant":"AI 搭檔的文字模型","en":"AI partner's text model","ja":"AI パートナーのテキストモデル"},
   "AI 来开播": {"zh-Hans":"AI 来开播","zh-Hant":"AI 來開播","en":"AI goes live","ja":"AI が配信"},
   "AI 角色自己开播，回应直播间": {"zh-Hans":"AI 角色自己开播，回应直播间","zh-Hant":"AI 角色自己開播，回應直播間","en":"Your AI character streams on its own and answers the audience","ja":"AI キャラクターが自分で配信し、視聴者に応える"},
-  "Nana、Sena 与 Kai 的三人对谈 · 不用任何设置": {"zh-Hans":"Nana、Sena 与 Kai 的三人对谈 · 不用任何设置","zh-Hant":"Nana、Sena 與 Kai 的三人對談 · 不用任何設定","en":"Nana, Sena and Kai talk · nothing to set up","ja":"Nana・Sena・Kai の三人トーク · 設定不要"},
   "Neuro 游戏": {"zh-Hans":"Neuro 游戏","zh-Hant":"Neuro 遊戲","en":"Neuro games","ja":"Neuro ゲーム"},
   "Twitch 频道": {"zh-Hans":"Twitch 频道","zh-Hant":"Twitch 頻道","en":"Twitch channel","ja":"Twitch チャンネル"},
   "{0} 分钟": {"zh-Hans":"{0} 分钟","zh-Hant":"{0} 分鐘","en":"{0} min","ja":"{0} 分"},
@@ -101,7 +100,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "用 livliv.ai 积分时，开始后才会生成台词": {"zh-Hans":"用 livliv.ai 积分时，开始后才会生成台词","zh-Hant":"用 livliv.ai 積分時，開始後才會生成台詞","en":"With livliv.ai points, lines are made once you start","ja":"livliv.ai ポイントでは、開始してから台詞を作ります"},
   "用你的脸和声音演角色，可以加一个 AI 搭档": {"zh-Hans":"用你的脸和声音演角色，可以加一个 AI 搭档","zh-Hant":"用你的臉和聲音演角色，可以加一個 AI 搭檔","en":"Play a character with your face and voice, with an AI partner if you like","ja":"顔と声でキャラを演じる。AI パートナーも追加できる"},
   "直接说，停顿后自动发送": {"zh-Hans":"直接说，停顿后自动发送","zh-Hant":"直接說，停頓後自動送出","en":"Just speak; it sends when you pause","ja":"そのまま話す。間を置くと送信"},
-  "直播间": {"zh-Hans":"直播间","zh-Hant":"直播間","en":"Live audience","ja":"配信"},
+  "直播间": {"zh-Hans":"直播间","zh-Hant":"直播間","en":"Live audience","ja":"配信の視聴者"},
   "直播间弹幕": {"zh-Hans":"直播间弹幕","zh-Hant":"直播間彈幕","en":"Audience chat","ja":"配信のコメント"},
   "直播间需要接上模型，演示只能在「只有我」里看": {"zh-Hans":"直播间需要接上模型，演示只能在「只有我」里看","zh-Hant":"直播間需要接上模型，演示只能在「只有我」裡看","en":"A live audience needs a model; the demo plays for Just me","ja":"配信にはモデルが必要です。デモは「自分だけ」で見られます"},
   "看向镜头，校准正面": {"zh-Hans":"看向镜头，校准正面","zh-Hant":"看向鏡頭，校準正面","en":"Look at the camera to calibrate","ja":"カメラを見て正面を合わせる"},
@@ -120,7 +119,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "谁上场": {"zh-Hans":"谁上场","zh-Hant":"誰上場","en":"Who takes part","ja":"誰が出る"},
   "谁在看": {"zh-Hans":"谁在看","zh-Hant":"誰在看","en":"Who watches","ja":"誰が見る"},
   "跳过这句": {"zh-Hans":"跳过这句","zh-Hant":"跳過這句","en":"Skip this line","ja":"この台詞を飛ばす"},
-  "输出开着（OBS、录制、好友联播或直播间）：只用公开记忆": {"zh-Hans":"输出开着（OBS、录制、好友联播或直播间）：只用公开记忆","zh-Hant":"輸出開著（OBS、錄製、好友聯播或直播間）：只用公開記憶","en":"An output is on (OBS, recording, friend collab or a live audience): public memory only","ja":"出力中（OBS・録画・フレンドとコラボ・配信）：公開の記憶のみ"},
+  "输出开着（OBS、录制、好友联播或直播间）：只用公开记忆": {"zh-Hans":"输出开着（OBS、录制、好友联播或直播间）：只用公开记忆","zh-Hant":"輸出開著（OBS、錄製、好友聯播或直播間）：只用公開記憶","en":"An output is on (OBS, a recording, a friend collab or a live audience): public memory only","ja":"出力中（OBS、録画、フレンドコラボ、視聴者あり）：公開の記憶だけを使います"},
   "还没有": {"zh-Hans":"还没有","zh-Hant":"還沒有","en":"nobody yet","ja":"まだいない"},
   "这个角色不出声：「只展示」，或者你自己说话。": {"zh-Hans":"这个角色不出声：「只展示」，或者你自己说话。","zh-Hant":"這個角色不出聲：「只展示」，或者你自己說話。","en":"This character makes no sound: display only, or you speak for it.","ja":"このキャラは声を出しません：表示のみ、またはあなたが話します。"},
   "连接失败": {"zh-Hans":"连接失败","zh-Hant":"連接失敗","en":"Connection failed","ja":"接続に失敗"},
@@ -131,8 +130,8 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "桌面版接收手机和 VMC 的面捕": {"zh-Hans":"桌面版接收手机和 VMC 的面捕","zh-Hant":"桌面版接收手機和 VMC 的面捕","en":"The desktop app receives phone and VMC tracking","ja":"デスクトップ版でスマホと VMC のトラッキングを受け取ります"},
   "只有一个 AI 角色：它会一个人说下去": {"zh-Hans":"只有一个 AI 角色：它会一个人说下去","zh-Hant":"只有一個 AI 角色：它會一個人說下去","en":"Only one AI character: it talks on its own","ja":"AI キャラクターは1人だけ：ひとりで話し続けます"},
   "角色回应直播间": {"zh-Hans":"角色回应直播间","zh-Hant":"角色回應直播間","en":"The characters answer the audience","ja":"キャラクターが視聴者に応える"},
-  "录视频时只用公开记忆": {"zh-Hans":"录视频时只用公开记忆","zh-Hant":"錄影片時只用公開記憶","en":"A video uses only the public memory","ja":"動画の録画中は公開メモリーだけを使います"},
-  "对直播间时只用公开记忆": {"zh-Hans":"对直播间时只用公开记忆","zh-Hant":"對直播間時只用公開記憶","en":"With a live audience, only the public memory is used","ja":"視聴者がいるときは公開メモリーだけを使います"},
+  "录视频时只用公开记忆": {"zh-Hans":"录视频时只用公开记忆","zh-Hant":"錄影片時只用公開記憶","en":"A video uses only the public memory","ja":"動画の録画中は公開の記憶だけを使います"},
+  "对直播间时只用公开记忆": {"zh-Hans":"对直播间时只用公开记忆","zh-Hant":"對直播間時只用公開記憶","en":"With a live audience, only the public memory is used","ja":"視聴者がいるときは公開の記憶だけを使います"},
   "开播前的时长、句数和 Twitch 在开始按钮旁的选项里。": {"zh-Hans":"开播前的时长、句数和 Twitch 在开始按钮旁的选项里。","zh-Hant":"開播前的時長、句數和 Twitch 在開始按鈕旁的選項裡。","en":"Time, line limits and Twitch for going live are in the options next to the start button.","ja":"配信の時間・セリフ数・Twitch は開始ボタン横のオプションにあります。"},
   "这次不说": {"zh-Hans":"这次不说","zh-Hant":"這次不說","en":"Skip my turn","ja":"今回は話さない"},
   "Twitch 频道（可选，只读弹幕，不需要登录）": {"zh-Hans":"Twitch 频道（可选，只读弹幕，不需要登录）","zh-Hant":"Twitch 頻道（可選，只讀彈幕，不需要登入）","en":"Twitch channel (optional; reads chat only, no sign-in)","ja":"Twitch チャンネル（任意。コメントを読むだけ、ログイン不要）"},
@@ -140,6 +139,55 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "角色之间聊时回应弹幕": {"zh-Hans":"角色之间聊时回应弹幕","zh-Hant":"角色之間聊時回應彈幕","en":"Answer chat while the characters talk","ja":"キャラ同士の会話中にコメントへ応える"},
   "实时通话中": {"zh-Hans":"实时通话中","zh-Hant":"即時通話中","en":"In a realtime call","ja":"リアルタイム通話中"},
   "游戏需要内置 AIRI：{0}": {"zh-Hans":"游戏需要内置 AIRI：{0}","zh-Hant":"遊戲需要內建 AIRI：{0}","en":"A game needs the built-in AIRI: {0}","ja":"ゲームには内蔵 AIRI が必要です：{0}"},
+  "Nana、Sena 与 Kai 三人聊天 · 不用任何设置": {"zh-Hans":"Nana、Sena 与 Kai 三人聊天 · 不用任何设置","zh-Hant":"Nana、Sena 與 Kai 三人聊天 · 不用任何設定","en":"Nana, Sena and Kai talk · nothing to set up","ja":"Nana・Sena・Kai の三人トーク · 設定不要"},
+  "连接好友联播服务超时，请确认服务地址、网络和防火墙设置。": {"zh-Hans":"连接好友联播服务超时，请确认服务地址、网络和防火墙设置。","zh-Hant":"連線至好友聯播服務逾時，請確認服務位址、網路和防火牆設定。","en":"The connection timed out. Check the server address, network and firewall settings.","ja":"接続がタイムアウトしました。サーバーのアドレス、ネットワーク、ファイアウォールを確認してください。"},
+  "好友联播连接方式": {"zh-Hans":"好友联播连接方式","zh-Hant":"好友聯播連線方式","en":"Friend collab connection","ja":"フレンドコラボの接続方法"},
+  "本机好友联播服务": {"zh-Hans":"本机好友联播服务","zh-Hant":"本機好友聯播服務","en":"Local friend collab server","ja":"ローカル配信サーバー"},
+  "停止服务会结束该服务上的所有好友联播。": {"zh-Hans":"停止服务会结束该服务上的所有好友联播。","zh-Hant":"停止服務會結束此服務上的所有好友聯播。","en":"Stopping the server ends all rooms hosted on it.","ja":"サーバーを停止すると、すべてのルームが終了します。"},
+  "好友联播端口已被占用，请更换端口或设为 0 自动选择。": {"zh-Hans":"好友联播端口已被占用，请更换端口或设为 0 自动选择。","zh-Hant":"好友聯播連接埠已被占用，請更換或設為 0 自動選擇。","en":"The port is in use. Choose another port or set 0 for automatic selection.","ja":"ポートが使用中です。変更するか、0で自動選択してください。"},
+  "本机好友联播服务启动失败，请重试。": {"zh-Hans":"本机好友联播服务启动失败，请重试。","zh-Hant":"本機好友聯播服務啟動失敗，請重試。","en":"The local friend collab server could not start. Try again.","ja":"ローカル配信サーバーを起動できませんでした。再試行してください。"},
+  "无法读取本机服务状态，请重新打开好友联播。": {"zh-Hans":"无法读取本机服务状态，请重新打开好友联播。","zh-Hant":"無法讀取本機服務狀態，請重新開啟好友聯播。","en":"Could not read the local server status. Reopen friend collab.","ja":"サーバーの状態を取得できません。フレンドコラボを開き直してください。"},
+  "先开始聊天，再开启免按键语音": {"zh-Hans":"先开始聊天，再开启免按键语音","zh-Hant":"先開始聊天，再開啟免按鍵語音","en":"Start a chat before turning on hands-free voice","ja":"チャットを始めてからハンズフリー音声をオンにしてください"},
+  "好友联播": {"zh-Hans":"好友联播","zh-Hant":"好友聯播","en":"Friend collab","ja":"フレンドコラボ"},
+  "聊天": {"zh-Hans":"聊天","zh-Hant":"聊天","en":"a chat","ja":"会話"},
+  "加入好友联播": {"zh-Hans":"加入好友联播","zh-Hant":"加入好友聯播","en":"Join a collab","ja":"コラボに参加"},
+  "将连接好友联播服务 {0}": {"zh-Hans":"将连接好友联播服务 {0}","zh-Hant":"將連接好友聯播服務 {0}","en":"Will connect to collab server {0}","ja":"コラボサーバー {0} に接続します"},
+  "好友联播服务": {"zh-Hans":"好友联播服务","zh-Hant":"好友聯播服務","en":"Collab server","ja":"コラボサーバー"},
+  "分享并创建好友联播": {"zh-Hans":"分享并创建好友联播","zh-Hant":"分享並創建好友聯播","en":"Share & create collab","ja":"共有してコラボを作成"},
+  "好友联播成员": {"zh-Hans":"好友联播成员","zh-Hant":"好友聯播成員","en":"Collab members","ja":"コラボ参加者"},
+  "正在连接好友联播": {"zh-Hans":"正在连接好友联播","zh-Hant":"正在連接好友聯播","en":"Connecting to collab","ja":"コラボに接続中"},
+  "结束好友联播": {"zh-Hans":"结束好友联播","zh-Hant":"結束好友聯播","en":"End collab","ja":"コラボを終了"},
+  "离开好友联播": {"zh-Hans":"离开好友联播","zh-Hant":"離開好友聯播","en":"Leave collab","ja":"コラボから退出"},
+  "好友联播角色": {"zh-Hans":"好友联播角色","zh-Hant":"好友聯播角色","en":"Friend’s avatar","ja":"コラボキャラクター"},
+  "演示是两段准备好的对话：放上「双人聊天」或「三人闲聊」模板再开始": {"zh-Hans":"演示是两段准备好的对话：放上「双人聊天」或「三人闲聊」模板再开始","zh-Hant":"演示是兩段準備好的對話：放上「雙人聊天」或「三人閒聊」範本再開始","en":"For the demo, start with Two-avatar chat or Three-avatar chat","ja":"デモは「2人で会話」または「3人で対話」のテンプレートで体験できます"},
+  "好友联播角色不能超过 64 MB": {"zh-Hans":"好友联播角色不能超过 64 MB","zh-Hant":"好友聯播角色不能超過 64 MB","en":"Collab avatars must be under 64 MB","ja":"コラボのモデルは64MB以下にしてください"},
+  "这个角色的文件数量超出好友联播限制": {"zh-Hans":"这个角色的文件数量超出好友联播限制","zh-Hant":"這個角色的檔案數量超出好友聯播限制","en":"This avatar has too many files for collab","ja":"コラボ用モデルのファイル数が上限を超えています"},
+  "这个角色超出好友联播限制（64 MB、512 个文件）": {"zh-Hans":"这个角色超出好友联播限制（64 MB、512 个文件）","zh-Hant":"這個角色超出好友聯播限制（64 MB、512 個檔案）","en":"This avatar exceeds collab limits (64 MB, 512 files)","ja":"コラボの上限（64MB・512ファイル）を超えています"},
+  "好友联播连接已关闭": {"zh-Hans":"好友联播连接已关闭","zh-Hant":"好友聯播連接已關閉","en":"Collab connection closed","ja":"コラボの接続が閉じられました"},
+  "好友联播服务地址不对": {"zh-Hans":"好友联播服务地址不对","zh-Hant":"好友聯播服務地址不對","en":"Invalid collab server address","ja":"コラボサーバーのアドレスが正しくありません"},
+  "公网好友联播服务要用 wss:// 地址": {"zh-Hans":"公网好友联播服务要用 wss:// 地址","zh-Hant":"公網好友聯播服務要用 wss:// 地址","en":"Public collab servers need a wss:// address","ja":"公開されたコラボサーバーには wss:// のアドレスが必要です"},
+  "好友联播成员信息有问题": {"zh-Hans":"好友联播成员信息有问题","zh-Hant":"好友聯播成員資訊有問題","en":"Invalid collab member data","ja":"コラボ参加者の情報が正しくありません"},
+  "好友联播成员重复": {"zh-Hans":"好友联播成员重复","zh-Hant":"好友聯播成員重復","en":"Duplicate collab members","ja":"コラボ参加者が重複しています"},
+  "好友联播服务未连接，请检查服务地址": {"zh-Hans":"好友联播服务未连接，请检查服务地址","zh-Hant":"好友聯播服務未連接，請檢查服務地址","en":"Could not connect to collab server; check its address","ja":"コラボサーバーに接続できません。アドレスを確認してください"},
+  "好友联播连接已断开": {"zh-Hans":"好友联播连接已断开","zh-Hant":"好友聯播連接已斷開","en":"Collab disconnected","ja":"コラボの接続が切れました"},
+  "好友联播服务消息有问题": {"zh-Hans":"好友联播服务消息有问题","zh-Hant":"好友聯播服務消息有問題","en":"Invalid collab server message","ja":"コラボサーバーのメッセージが正しくありません"},
+  "好友联播已结束": {"zh-Hans":"好友联播已结束","zh-Hant":"好友聯播已結束","en":"Collab ended","ja":"コラボは終了しました"},
+  "好友联播服务版本不兼容": {"zh-Hans":"好友联播服务版本不兼容","zh-Hant":"好友聯播服務版本不兼容","en":"Incompatible collab server version","ja":"コラボサーバーのバージョンが対応していません"},
+  "好友联播身份有问题": {"zh-Hans":"好友联播身份有问题","zh-Hant":"好友聯播身份有問題","en":"Could not verify your collab identity","ja":"コラボの参加者情報を確認できません"},
+  "好友联播消息过大": {"zh-Hans":"好友联播消息过大","zh-Hant":"好友聯播消息過大","en":"Collab message is too large","ja":"コラボのメッセージが大きすぎます"},
+  "好友联播消息无效": {"zh-Hans":"好友联播消息无效","zh-Hant":"好友聯播消息無效","en":"Invalid collab message","ja":"コラボのメッセージが正しくありません"},
+  "共享角色已更换，好友联播已结束": {"zh-Hans":"共享角色已更换，好友联播已结束","zh-Hant":"共享角色已更換，好友聯播已結束","en":"Shared avatar changed; collab ended","ja":"共有キャラクターが変更されたため、コラボを終了しました"},
+  "好友联播声音录制失败": {"zh-Hans":"好友联播声音录制失败","zh-Hant":"好友聯播聲音錄制失敗","en":"Could not record collab audio","ja":"コラボ音声を録音できませんでした"},
+  "双人聊天": {"zh-Hans":"双人聊天","zh-Hant":"雙人聊天","en":"Two-avatar chat","ja":"2人で会話"},
+  "房主已结束好友联播": {"zh-Hans":"房主已结束好友联播","zh-Hant":"房主已結束好友聯播","en":"The host ended the collab","ja":"ホストがコラボを終了しました"},
+  "房主已移除你的好友联播连接": {"zh-Hans":"房主已移除你的好友联播连接","zh-Hant":"房主已移除你的好友聯播連接","en":"The host removed you from the collab","ja":"ホストによってコラボから退出しました"},
+  "好友联播人数已满": {"zh-Hans":"好友联播人数已满","zh-Hant":"好友聯播人數已滿","en":"The collab is full","ja":"コラボの定員に達しました"},
+  "暂时无法创建好友联播": {"zh-Hans":"暂时无法创建好友联播","zh-Hant":"暫時無法創建好友聯播","en":"Could not create a collab right now","ja":"現在コラボを作成できません"},
+  "好友联播后在这里调整朋友的声音": {"zh-Hans":"好友联播后在这里调整朋友的声音","zh-Hant":"好友聯播後在這裡調整朋友的聲音","en":"Friends' audio appears here when connected","ja":"コラボに参加すると音声を調整できます"},
+  "Nana、Sena 与 Kai 三人聊天": {"zh-Hans":"Nana、Sena 与 Kai 三人聊天","zh-Hant":"Nana、Sena 與 Kai 三人聊天","en":"A chat with Nana, Sena & Kai","ja":"Nana・Sena・Kaiの3人トーク"},
+  "三人聊天演示": {"zh-Hans":"三人聊天演示","zh-Hant":"三人聊天演示","en":"Three-character demo","ja":"3人の会話デモ"},
+  "和角色聊天需要接上 AI 模型": {"zh-Hans":"和角色聊天需要接上 AI 模型","zh-Hant":"和角色聊天需要接上 AI 模型","en":"Connect an AI model to chat with a character","ja":"キャラと話すには AI モデルを設定してください"},
+  "桌面版可以让 Stream Deck 等本机工具控制角色。": {"zh-Hans":"桌面版可以让 Stream Deck 等本机工具控制角色。","zh-Hant":"桌面版可以讓 Stream Deck 等本機工具控制角色。","en":"In the desktop app, tools on this computer such as Stream Deck can control the characters.","ja":"デスクトップ版では Stream Deck などのローカルツールでキャラクターを操作できます。"},
   "单角色会话优先使用 AIRI": {"zh-Hans":"单角色会话优先使用 AIRI","zh-Hant":"單角色對話優先使用 AIRI","en":"Prefer AIRI for single-character sessions","ja":"1人のキャラクターとの会話では AIRI を優先する"},
   "可以聊天，连接游戏或发送画面需要流式输出。": {"zh-Hans":"可以聊天，连接游戏或发送画面需要流式输出。","zh-Hant":"可以聊天，連線遊戲或傳送畫面需要串流輸出。","en":"Chat is available. Connecting a game or sending frames requires streaming.","ja":"会話は利用できます。ゲーム接続や画面送信にはストリーミングが必要です。"},
   "游戏连接": {"zh-Hans":"游戏连接","zh-Hant":"遊戲連線","en":"Game connection","ja":"ゲーム接続"},
@@ -221,11 +269,8 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "部分偏好未恢复，请重试：{0}": {"zh-Hans":"部分偏好未恢复，请重试：{0}","zh-Hant":"部分偏好未恢復，請重試：{0}","en":"Some preferences could not be reset. Try again: {0}","ja":"一部の設定をリセットできませんでした。再試行してください：{0}"},
   "正在恢复…": {"zh-Hans":"正在恢复…","zh-Hant":"正在恢復…","en":"Resetting…","ja":"リセット中…"},
   "确认恢复": {"zh-Hans":"确认恢复","zh-Hant":"確認恢復","en":"Reset preferences","ja":"リセットする"},
-  "连接联播服务超时，请确认服务地址、网络和防火墙设置。": {"zh-Hans":"连接联播服务超时，请确认服务地址、网络和防火墙设置。","zh-Hant":"連線至聯播服務逾時，請確認服務位址、網路和防火牆設定。","en":"The connection timed out. Check the server address, network and firewall settings.","ja":"接続がタイムアウトしました。サーバーのアドレス、ネットワーク、ファイアウォールを確認してください。"},
-  "联播连接方式": {"zh-Hans":"联播连接方式","zh-Hant":"聯播連線方式","en":"Co-stream connection","ja":"コラボ配信の接続方法"},
   "本机托管": {"zh-Hans":"本机托管","zh-Hant":"本機託管","en":"Host on this computer","ja":"このパソコンでホスト"},
   "其他服务": {"zh-Hans":"其他服务","zh-Hant":"其他服務","en":"Another server","ja":"別のサーバー"},
-  "本机联播服务": {"zh-Hans":"本机联播服务","zh-Hant":"本機聯播服務","en":"Local co-stream server","ja":"ローカル配信サーバー"},
   "本机服务运行中": {"zh-Hans":"本机服务运行中","zh-Hant":"本機服務執行中","en":"Local server running","ja":"ローカルサーバー稼働中"},
   "创建时自动启动本机服务": {"zh-Hans":"创建时自动启动本机服务","zh-Hant":"建立時自動啟動本機服務","en":"Starts when you create a room","ja":"ルーム作成時に自動起動"},
   "启动服务": {"zh-Hans":"启动服务","zh-Hant":"啟動服務","en":"Start server","ja":"サーバーを起動"},
@@ -235,15 +280,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "朋友连接的地址": {"zh-Hans":"朋友连接的地址","zh-Hant":"朋友連線的位址","en":"Address for friends","ja":"友だちの接続先"},
   "朋友需连接同一网络。公网访问需要另行配置。": {"zh-Hans":"朋友需连接同一网络。公网访问需要另行配置。","zh-Hant":"朋友需連接同一網路。網際網路存取需另行設定。","en":"Friends must be on the same network. Internet access needs additional setup.","ja":"友だちは同じネットワークに接続してください。インターネット経由には別途設定が必要です。"},
   "仅本机测试，邀请码不能用于其他电脑。": {"zh-Hans":"仅本机测试，邀请码不能用于其他电脑。","zh-Hant":"僅供本機測試，邀請碼無法用於其他電腦。","en":"This computer only. The invitation will not work on another computer.","ja":"このパソコンでのテスト専用です。他のパソコンでは招待を使えません。"},
-  "停止服务会结束该服务上的所有联播。": {"zh-Hans":"停止服务会结束该服务上的所有联播。","zh-Hant":"停止服務會結束此服務上的所有聯播。","en":"Stopping the server ends all rooms hosted on it.","ja":"サーバーを停止すると、すべてのルームが終了します。"},
   "服务设置": {"zh-Hans":"服务设置","zh-Hant":"服務設定","en":"Server settings","ja":"サーバー設定"},
   "允许同一网络的朋友加入": {"zh-Hans":"允许同一网络的朋友加入","zh-Hant":"允許同一網路的朋友加入","en":"Allow friends on the same network","ja":"同じネットワークの友だちを許可"},
   "连接已有的自托管服务。": {"zh-Hans":"连接已有的自托管服务。","zh-Hant":"連線至現有的自託管服務。","en":"Connect to an existing self-hosted server.","ja":"既存のセルフホストサーバーに接続します。"},
   "网页无法启动本机服务，请使用桌面版或填写已有服务地址。": {"zh-Hans":"网页无法启动本机服务，请使用桌面版或填写已有服务地址。","zh-Hant":"網頁無法啟動本機服務，請使用桌面版或填寫現有服務位址。","en":"A web page cannot start a local server. Use the desktop app or enter an existing server address.","ja":"ブラウザーではローカルサーバーを起動できません。デスクトップ版を使うか接続先を入力してください。"},
-  "联播端口已被占用，请更换端口或设为 0 自动选择。": {"zh-Hans":"联播端口已被占用，请更换端口或设为 0 自动选择。","zh-Hant":"聯播連接埠已被占用，請更換或設為 0 自動選擇。","en":"The port is in use. Choose another port or set 0 for automatic selection.","ja":"ポートが使用中です。変更するか、0で自動選択してください。"},
   "系统不允许监听此端口，请更换端口。": {"zh-Hans":"系统不允许监听此端口，请更换端口。","zh-Hant":"系統不允許監聽此連接埠，請更換連接埠。","en":"The system does not allow this port. Choose another port.","ja":"このポートは許可されていません。別のポートを選んでください。"},
-  "本机联播服务启动失败，请重试。": {"zh-Hans":"本机联播服务启动失败，请重试。","zh-Hant":"本機聯播服務啟動失敗，請重試。","en":"The local co-stream server could not start. Try again.","ja":"ローカル配信サーバーを起動できませんでした。再試行してください。"},
-  "无法读取本机服务状态，请重新打开联播。": {"zh-Hans":"无法读取本机服务状态，请重新打开联播。","zh-Hant":"無法讀取本機服務狀態，請重新開啟聯播。","en":"Could not read the local server status. Reopen co-streaming.","ja":"サーバーの状態を取得できません。コラボ配信を開き直してください。"},
   "未找到局域网地址，请连接网络，或停止服务后选择仅本机测试。": {"zh-Hans":"未找到局域网地址，请连接网络，或停止服务后选择仅本机测试。","zh-Hant":"找不到區域網路位址，請連接網路，或停止服務後選擇僅供本機測試。","en":"No local network address found. Connect to a network, or stop the server and disable network sharing for a local test.","ja":"LANのアドレスが見つかりません。ネットワークに接続するか、サーバーを停止して本機のみのテストに切り替えてください。"},
   "停止服务失败，请重试。": {"zh-Hans":"停止服务失败，请重试。","zh-Hant":"停止服務失敗，請重試。","en":"Could not stop the server. Try again.","ja":"サーバーを停止できませんでした。再試行してください。"},
   "游戏动作决策需要使用自己的模型接口": {"zh-Hans":"游戏动作决策需要使用自己的模型接口","zh-Hant":"遊戲動作決策需要使用自己的模型介面","en":"Use your own model API for game action decisions","ja":"ゲームのアクション選択には独自のモデルAPIを設定してください"},
@@ -255,7 +296,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "模型用途": {"zh-Hans":"模型用途","zh-Hant":"模型用途","en":"Model purpose","ja":"モデルの用途"},
   "文字对话": {"zh-Hans":"文字对话","zh-Hant":"文字對話","en":"Text chat","ja":"テキスト会話"},
   "配音与识别": {"zh-Hans":"配音与识别","zh-Hant":"配音與辨識","en":"Speech & input","ja":"読み上げ・認識"},
-  "用于持续聊天、对谈和 AI 直播。": {"zh-Hans":"用于持续聊天、对谈和 AI 直播。","zh-Hant":"用於持續聊天、對談和 AI 直播。","en":"For ongoing chat, character conversations and AI livestreams.","ja":"継続チャット、キャラクター同士の会話、AI配信に使用します。"},
   "用于角色朗读、按住说话和免按键聊天。": {"zh-Hans":"用于角色朗读、按住说话和免按键聊天。","zh-Hant":"用於角色朗讀、按住說話和免按鍵聊天。","en":"For character speech, push-to-talk and hands-free chat.","ja":"キャラクターの読み上げ、プッシュトゥトーク、ハンズフリー会話に使用します。"},
   "用于直接听说、自然接话和插话。": {"zh-Hans":"用于直接听说、自然接话和插话。","zh-Hant":"用於直接聽說、自然接話和插話。","en":"For live voice conversations with turn-taking and interruptions.","ja":"自然な受け答えや割り込みに対応する音声会話に使用します。"},
   "先在设置中配置实时语音模型，再开始通话。": {"zh-Hans":"先在设置中配置实时语音模型，再开始通话。","zh-Hant":"先在設定中配置即時語音模型，再開始通話。","en":"Configure a realtime voice model in settings to start a call.","ja":"設定でリアルタイム音声モデルを設定すると通話を開始できます。"},
@@ -288,7 +328,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "免按键已开启 · 停顿后自动发送 · Esc 关闭": {"zh-Hans": "免按键已开启 · 停顿后自动发送 · Esc 关闭", "zh-Hant": "免按鍵已開啟 · 停頓後自動傳送 · Esc 關閉", "en": "Hands-free on · Pause to send · Esc to stop", "ja": "ハンズフリー入力中 · 話し終わると送信 · Escで停止"},
   "麦克风已断开，请重新选择设备": {"zh-Hans": "麦克风已断开，请重新选择设备", "zh-Hant": "麥克風已斷開，請重新選擇裝置", "en": "Microphone disconnected. Choose a device again.", "ja": "マイクが切断されました。デバイスを選び直してください"},
   "录音失败：{0}": {"zh-Hans": "录音失败：{0}", "zh-Hant": "錄音失敗：{0}", "en": "Recording failed: {0}", "ja": "録音に失敗しました：{0}"},
-  "先开始持续聊天，再开启免按键语音": {"zh-Hans": "先开始持续聊天，再开启免按键语音", "zh-Hant": "請先開始持續聊天，再開啟免按鍵語音", "en": "Start a chat before enabling hands-free voice.", "ja": "会話を開始してからハンズフリー音声を有効にしてください"},
   "请先取消麦克风静音，再开启免按键语音": {"zh-Hans": "请先取消麦克风静音，再开启免按键语音", "zh-Hant": "請先取消麥克風靜音，再開啟免按鍵語音", "en": "Unmute your microphone before enabling hands-free voice.", "ja": "マイクのミュートを解除してからハンズフリー音声を有効にしてください"},
   "麦克风已静音，免按键语音已关闭": {"zh-Hans": "麦克风已静音，免按键语音已关闭", "zh-Hant": "麥克風已靜音，免按鍵語音已關閉", "en": "Microphone muted. Hands-free voice is off.", "ja": "マイクがミュートされたため、ハンズフリー音声を停止しました"},
   "通话音色单独设置，需选择实时模型支持的音色。": {"zh-Hans": "通话音色单独设置，需选择实时模型支持的音色。", "zh-Hant": "通話音色另行設定，請選擇即時模型支援的音色。", "en": "Choose a voice supported by the realtime model. Regular speech uses a separate voice.", "ja": "通話用の声は別設定です。リアルタイムモデル対応の声を選んでください。"},
@@ -390,12 +429,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "模板",
     "en": "Templates",
     "ja": "テンプレート"
-  },
-  "联播": {
-    "zh-Hans": "联播",
-    "zh-Hant": "聯播",
-    "en": "Collab",
-    "ja": "コラボ"
   },
   "输出到 OBS": {
     "zh-Hans": "输出到 OBS",
@@ -735,18 +768,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Topic",
     "ja": "話題"
   },
-  "AI 直播": {
-    "zh-Hans": "AI 直播",
-    "zh-Hant": "AI 直播",
-    "en": "AI live",
-    "ja": "AI配信"
-  },
-  "对谈": {
-    "zh-Hans": "对谈",
-    "zh-Hant": "對談",
-    "en": "Chat",
-    "ja": "対話"
-  },
   "暂停": {
     "zh-Hans": "暂停",
     "zh-Hant": "暫停",
@@ -945,12 +966,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Clear",
     "ja": "消去"
   },
-  "开始对谈": {
-    "zh-Hans": "开始对谈",
-    "zh-Hant": "開始對談",
-    "en": "Start chat",
-    "ja": "対話を開始"
-  },
   "停止录制，做成视频": {
     "zh-Hans": "停止录制，做成视频",
     "zh-Hant": "停止錄制，做成影片",
@@ -1118,12 +1133,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "開始 AI",
     "en": "Start AI",
     "ja": "AIを開始"
-  },
-  "写个话题，或在 AI 直播中等待观众": {
-    "zh-Hans": "写个话题，或在 AI 直播中等待观众",
-    "zh-Hant": "寫個話題，或在 AI 直播中等待觀眾",
-    "en": "Choose a topic, or wait for viewers in AI live",
-    "ja": "話題を入力するか、AI配信でコメントを待ちましょう"
   },
   "选择角色": {
     "zh-Hans": "选择角色",
@@ -1611,12 +1620,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Connecting…",
     "ja": "接続中…"
   },
-  "对谈时回应弹幕": {
-    "zh-Hans": "对谈时回应弹幕",
-    "zh-Hant": "對談時回應彈幕",
-    "en": "Reply to chat during conversations",
-    "ja": "対話中にコメントへ返信"
-  },
   "不回": {
     "zh-Hans": "不回",
     "zh-Hant": "不回",
@@ -1713,12 +1716,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Couldn’t copy. Select the invite code to copy it.",
     "ja": "コピーできませんでした。招待コードを選択してコピーしてください。"
   },
-  "朋友联播": {
-    "zh-Hans": "朋友联播",
-    "zh-Hant": "朋友聯播",
-    "en": "Collab with friends",
-    "ja": "フレンドとコラボ"
-  },
   "各自演自己的角色，一起同台": {
     "zh-Hans": "各自演自己的角色，一起同台",
     "zh-Hant": "各自演自己的角色，一起同台",
@@ -1730,12 +1727,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "邀請朋友",
     "en": "Invite friends",
     "ja": "フレンドを招待"
-  },
-  "加入联播": {
-    "zh-Hans": "加入联播",
-    "zh-Hant": "加入聯播",
-    "en": "Join a collab",
-    "ja": "コラボに参加"
   },
   "你的名字": {
     "zh-Hans": "你的名字",
@@ -1815,23 +1806,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Friend’s invite code",
     "ja": "フレンドの招待コード"
   },
-  "将连接联播服务 {0}": {
-    "zh-Hans": "将连接联播服务 {0}",
-    "zh-Hant": "將連接聯播服務 {0}",
-    "en": "Will connect to collab server {0}",
-    "ja": "コラボサーバー {0} に接続します"
-  },
   "粘贴邀请码": {
     "zh-Hans": "粘贴邀请码",
     "zh-Hant": "粘貼邀請碼",
     "en": "Paste invite code",
     "ja": "招待コードを貼り付け"
-  },
-  "联播服务": {
-    "zh-Hans": "联播服务",
-    "zh-Hant": "聯播服務",
-    "en": "Collab server",
-    "ja": "コラボサーバー"
   },
   "服务地址": {
     "zh-Hans": "服务地址",
@@ -1850,12 +1829,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "所選角色檔案會分享給加入的朋友。",
     "en": "Your selected avatar’s files will be shared with participants.",
     "ja": "選んだキャラクターのファイルを参加者に共有します。"
-  },
-  "分享并创建联播": {
-    "zh-Hans": "分享并创建联播",
-    "zh-Hant": "分享並創建聯播",
-    "en": "Share & create collab",
-    "ja": "共有してコラボを作成"
   },
   "分享并申请加入": {
     "zh-Hans": "分享并申请加入",
@@ -1898,12 +1871,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "拒絕 ",
     "en": "Decline ",
     "ja": "参加を拒否："
-  },
-  "联播成员": {
-    "zh-Hans": "联播成员",
-    "zh-Hant": "聯播成員",
-    "en": "Collab members",
-    "ja": "コラボ参加者"
   },
   "你": {
     "zh-Hans": "你",
@@ -1971,29 +1938,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Waiting for the host",
     "ja": "ホストの承認を待っています"
   },
-  "正在连接联播": {
-    "zh-Hans": "正在连接联播",
-    "zh-Hant": "正在連接聯播",
-    "en": "Connecting to collab",
-    "ja": "コラボに接続中"
-  },
   "{0} / 4 人": {
     "zh-Hans": "{0} / 4 人",
     "zh-Hant": "{0} / 4 人",
     "en": "{0} / 4 people",
     "ja": "{0} / 4人"
-  },
-  "结束联播": {
-    "zh-Hans": "结束联播",
-    "zh-Hant": "結束聯播",
-    "en": "End collab",
-    "ja": "コラボを終了"
-  },
-  "离开联播": {
-    "zh-Hans": "离开联播",
-    "zh-Hant": "離開聯播",
-    "en": "Leave collab",
-    "ja": "コラボから退出"
   },
   "正在打开设备…": {
     "zh-Hans": "正在打开设备…",
@@ -2270,12 +2219,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "試聽",
     "en": "Listen",
     "ja": "試聴"
-  },
-  "联播角色": {
-    "zh-Hans": "联播角色",
-    "zh-Hant": "聯播角色",
-    "en": "Friend’s avatar",
-    "ja": "コラボキャラクター"
   },
   "由": {
     "zh-Hans": "由",
@@ -3021,12 +2964,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Stop AI",
     "ja": "AIを停止"
   },
-  "开始 AI 直播": {
-    "zh-Hans": "开始 AI 直播",
-    "zh-Hant": "開始 AI 直播",
-    "en": "Start AI live",
-    "ja": "AI配信を開始"
-  },
   "LivLiv Stage · 输出": {
     "zh-Hans": "LivLiv Stage · 输出",
     "zh-Hant": "LivLiv Stage · 輸出",
@@ -3375,41 +3312,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "This model rejected the request; try another model",
     "ja": "モデルがリクエストを受け付けません。別のモデルをお試しください"
   },
-  "演示是两段准备好的对话：放上「双人对谈」或「三人闲聊」模板再开始": {
-    "zh-Hans": "演示是两段准备好的对话：放上「双人对谈」或「三人闲聊」模板再开始",
-    "zh-Hant": "演示是兩段準備好的對話：放上「雙人對談」或「三人閒聊」模板再開始",
-    "en": "For the demo, start with Two-avatar chat or Three-avatar chat",
-    "ja": "デモは「2人で対話」または「3人で対話」のテンプレートで体験できます"
-  },
   "角色文件读取失败（": {
     "zh-Hans": "角色文件读取失败（",
     "zh-Hant": "角色檔案讀取失敗（",
     "en": "Could not load avatar file (",
     "ja": "キャラクターのファイルを読み込めません（"
-  },
-  "联播角色不能超过 64 MB": {
-    "zh-Hans": "联播角色不能超过 64 MB",
-    "zh-Hant": "聯播角色不能超過 64 MB",
-    "en": "Collab avatars must be under 64 MB",
-    "ja": "コラボのモデルは64MB以下にしてください"
-  },
-  "这个角色的文件数量超出联播限制": {
-    "zh-Hans": "这个角色的文件数量超出联播限制",
-    "zh-Hant": "這個角色的檔案數量超出聯播限制",
-    "en": "This avatar has too many files for collab",
-    "ja": "コラボ用モデルのファイル数が上限を超えています"
-  },
-  "这个角色超出联播限制（64 MB、512 个文件）": {
-    "zh-Hans": "这个角色超出联播限制（64 MB、512 个文件）",
-    "zh-Hant": "這個角色超出聯播限制（64 MB、512 個檔案）",
-    "en": "This avatar exceeds collab limits (64 MB, 512 files)",
-    "ja": "コラボの上限（64MB・512ファイル）を超えています"
-  },
-  "联播连接已关闭": {
-    "zh-Hans": "联播连接已关闭",
-    "zh-Hant": "聯播連接已關閉",
-    "en": "Collab connection closed",
-    "ja": "コラボの接続が閉じられました"
   },
   "朋友已经分享了一个角色": {
     "zh-Hans": "朋友已经分享了一个角色",
@@ -3459,18 +3366,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Microphone unavailable: ",
     "ja": "マイクを接続できません："
   },
-  "联播服务地址不对": {
-    "zh-Hans": "联播服务地址不对",
-    "zh-Hant": "聯播服務地址不對",
-    "en": "Invalid collab server address",
-    "ja": "コラボサーバーのアドレスが正しくありません"
-  },
-  "公网联播服务要用 wss:// 地址": {
-    "zh-Hans": "公网联播服务要用 wss:// 地址",
-    "zh-Hant": "公網聯播服務要用 wss:// 地址",
-    "en": "Public collab servers need a wss:// address",
-    "ja": "公開されたコラボサーバーには wss:// のアドレスが必要です"
-  },
   "邀请码不完整，请重新复制": {
     "zh-Hans": "邀请码不完整，请重新复制",
     "zh-Hant": "邀請碼不完整，請重新複製",
@@ -3501,59 +3396,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Avatar resources must stay in the model folder",
     "ja": "モデルのリソースがモデルフォルダーの外を参照しています"
   },
-  "联播成员信息有问题": {
-    "zh-Hans": "联播成员信息有问题",
-    "zh-Hant": "聯播成員資訊有問題",
-    "en": "Invalid collab member data",
-    "ja": "コラボ参加者の情報が正しくありません"
-  },
-  "联播成员重复": {
-    "zh-Hans": "联播成员重复",
-    "zh-Hant": "聯播成員重復",
-    "en": "Duplicate collab members",
-    "ja": "コラボ参加者が重複しています"
-  },
-  "联播服务未连接，请检查服务地址": {
-    "zh-Hans": "联播服务未连接，请检查服务地址",
-    "zh-Hant": "聯播服務未連接，請檢查服務地址",
-    "en": "Could not connect to collab server; check its address",
-    "ja": "コラボサーバーに接続できません。アドレスを確認してください"
-  },
-  "联播连接已断开": {
-    "zh-Hans": "联播连接已断开",
-    "zh-Hant": "聯播連接已斷開",
-    "en": "Collab disconnected",
-    "ja": "コラボの接続が切れました"
-  },
   "请选择自己的角色": {
     "zh-Hans": "请选择自己的角色",
     "zh-Hant": "請選擇自己的角色",
     "en": "Choose your own avatar",
     "ja": "自分のキャラクターを選んでください"
-  },
-  "联播服务消息有问题": {
-    "zh-Hans": "联播服务消息有问题",
-    "zh-Hant": "聯播服務消息有問題",
-    "en": "Invalid collab server message",
-    "ja": "コラボサーバーのメッセージが正しくありません"
-  },
-  "联播已结束": {
-    "zh-Hans": "联播已结束",
-    "zh-Hant": "聯播已結束",
-    "en": "Collab ended",
-    "ja": "コラボは終了しました"
-  },
-  "联播服务版本不兼容": {
-    "zh-Hans": "联播服务版本不兼容",
-    "zh-Hant": "聯播服務版本不兼容",
-    "en": "Incompatible collab server version",
-    "ja": "コラボサーバーのバージョンが対応していません"
-  },
-  "联播身份有问题": {
-    "zh-Hans": "联播身份有问题",
-    "zh-Hant": "聯播身份有問題",
-    "en": "Could not verify your collab identity",
-    "ja": "コラボの参加者情報を確認できません"
   },
   "连接候选过多": {
     "zh-Hans": "连接候选过多",
@@ -3579,18 +3426,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Invalid avatar pose received",
     "ja": "受信したキャラクターの動きが正しくありません"
   },
-  "联播消息过大": {
-    "zh-Hans": "联播消息过大",
-    "zh-Hant": "聯播消息過大",
-    "en": "Collab message is too large",
-    "ja": "コラボのメッセージが大きすぎます"
-  },
-  "联播消息无效": {
-    "zh-Hans": "联播消息无效",
-    "zh-Hant": "聯播消息無效",
-    "en": "Invalid collab message",
-    "ja": "コラボのメッセージが正しくありません"
-  },
   "角色同步已断开": {
     "zh-Hans": "角色同步已断开",
     "zh-Hant": "角色同步已斷開",
@@ -3602,12 +3437,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "角色沒有分享成功：",
     "en": "Could not share avatar: ",
     "ja": "キャラクターを共有できませんでした："
-  },
-  "共享角色已更换，联播已结束": {
-    "zh-Hans": "共享角色已更换，联播已结束",
-    "zh-Hant": "共享角色已更換，聯播已結束",
-    "en": "Shared avatar changed; collab ended",
-    "ja": "共有キャラクターが変更されたため、コラボを終了しました"
   },
   "请输入你的名字": {
     "zh-Hans": "请输入你的名字",
@@ -3644,12 +3473,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "舞台上還沒有會說話的角色：給角色選「AI」或「我來說」",
     "en": "Choose AI or You control for a avatar first",
     "ja": "キャラクターに「AIで操作」または「自分で操作」を選んでください"
-  },
-  "AI 主播需要接上模型；离线演示可在「对谈」里体验": {
-    "zh-Hans": "AI 主播需要接上模型；离线演示可在「对谈」里体验",
-    "zh-Hant": "AI 主播需要接上模型；離線演示可在「對談」里體驗",
-    "en": "AI live needs a model; try the offline demo in Chat",
-    "ja": "AI配信にはモデルの接続が必要です。「対話」でオフラインデモを試せます"
   },
   "先添加一个「AI 来演」的角色": {
     "zh-Hans": "先添加一个「AI 来演」的角色",
@@ -4137,12 +3960,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Untitled stage",
     "ja": "無題の舞台"
   },
-  "联播声音录制失败": {
-    "zh-Hans": "联播声音录制失败",
-    "zh-Hant": "聯播聲音錄制失敗",
-    "en": "Could not record collab audio",
-    "ja": "コラボ音声を録音できませんでした"
-  },
   "面捕出镜": {
     "zh-Hans": "面捕出镜",
     "zh-Hant": "面捕出鏡",
@@ -4155,23 +3972,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Stream with a camera-driven avatar and OBS",
     "ja": "カメラでアバターを動かし、OBSで配信"
   },
-  "AI 主播": {
-    "zh-Hans": "AI 主播",
-    "zh-Hant": "AI 主播",
-    "en": "AI VTuber",
-    "ja": "AI VTuber"
-  },
   "一个 AI 角色，接入模型和声音后回应观众": {
     "zh-Hans": "一个 AI 角色，接入模型和声音后回应观众",
     "zh-Hant": "一個 AI 角色，接入模型和聲音後回應觀眾",
     "en": "One AI avatar replies to viewers with your model and voice",
     "ja": "モデルと音声を接続し、AIが視聴者に応答"
-  },
-  "双人对谈": {
-    "zh-Hans": "双人对谈",
-    "zh-Hant": "雙人對談",
-    "en": "Two-avatar chat",
-    "ja": "2人で対話"
   },
   "两个 AI 角色自由聊，各自的字幕气泡": {
     "zh-Hans": "两个 AI 角色自由聊，各自的字幕气泡",
@@ -4456,35 +4261,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Controlled by {0}",
     "ja": "{0}が操作"
   },
-  "房主已结束联播": {
-    "zh-Hans": "房主已结束联播",
-    "zh-Hant": "房主已結束聯播",
-    "en": "The host ended the collab",
-    "ja": "ホストがコラボを終了しました"
-  },
-  "房主已移除你的联播连接": {
-    "zh-Hans": "房主已移除你的联播连接",
-    "zh-Hant": "房主已移除你的聯播連接",
-    "en": "The host removed you from the collab",
-    "ja": "ホストによってコラボから退出しました"
-  },
   "邀请码已失效": {
     "zh-Hans": "邀请码已失效",
     "zh-Hant": "邀請碼已失效",
     "en": "This invite is no longer valid",
     "ja": "この招待は無効になりました"
-  },
-  "联播人数已满": {
-    "zh-Hans": "联播人数已满",
-    "zh-Hant": "聯播人數已滿",
-    "en": "The collab is full",
-    "ja": "コラボの定員に達しました"
-  },
-  "暂时无法创建联播": {
-    "zh-Hans": "暂时无法创建联播",
-    "zh-Hant": "暫時無法創建聯播",
-    "en": "Could not create a collab right now",
-    "ja": "現在コラボを作成できません"
   },
   "让 {0} 接着说": {
     "zh-Hans": "让 {0} 接着说",
@@ -4648,7 +4429,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "回放": {"zh-Hans": "回放", "zh-Hant": "回放", "en": "Playback", "ja": "再生"},
   "分别调整角色": {"zh-Hans": "分别调整角色", "zh-Hant": "分別調整角色", "en": "Adjust each avatar", "ja": "キャラクター別に調整"},
   "分别调整朋友": {"zh-Hans": "分别调整朋友", "zh-Hant": "分別調整朋友", "en": "Adjust each friend", "ja": "フレンド別に調整"},
-  "联播后在这里调整朋友的声音": {"zh-Hans": "联播后在这里调整朋友的声音", "zh-Hant": "聯播後在這裡調整朋友的聲音", "en": "Friends' audio appears here when connected", "ja": "コラボに参加すると音声を調整できます"},
   "设置角色声音": {"zh-Hans": "设置角色声音", "zh-Hant": "設定角色聲音", "en": "Voice settings", "ja": "音声設定"},
   "静音 {0}": {"zh-Hans": "静音 {0}", "zh-Hant": "靜音 {0}", "en": "Mute {0}", "ja": "{0}をミュート"},
   "取消静音 {0}": {"zh-Hans": "取消静音 {0}", "zh-Hant": "取消靜音 {0}", "en": "Unmute {0}", "ja": "{0}のミュートを解除"},
@@ -4763,7 +4543,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "这个端口已在使用，请换一个或关闭占用它的应用": {"zh-Hans": "这个端口已在使用，请换一个或关闭占用它的应用", "zh-Hant": "這個連接埠已在使用，請更換或關閉使用它的應用程式", "en": "Port is in use. Choose another or close the app using it.", "ja": "使用中のポートです。変更するか、使用中のアプリを閉じてください"},
   "系统未允许接收追踪数据": {"zh-Hans": "系统未允许接收追踪数据", "zh-Hant": "系統未允許接收追蹤資料", "en": "System permission to receive tracking data was denied", "ja": "トラッキングデータ受信のシステム権限がありません"},
   "无法连接手机，请检查 IP 和 Wi-Fi": {"zh-Hans": "无法连接手机，请检查 IP 和 Wi-Fi", "zh-Hant": "無法連接手機，請檢查 IP 和 Wi-Fi", "en": "Can't reach the phone. Check its IP and Wi-Fi.", "ja": "スマホに接続できません。IPとWi-Fiを確認してください"},
-  "角色对谈演示": {"zh-Hans": "角色对谈演示", "zh-Hant": "角色對談示範", "en": "Character conversation demo", "ja": "キャラクターの会話デモ"},
   "无需密钥": {"zh-Hans": "无需密钥", "zh-Hant": "無需金鑰", "en": "No API key", "ja": "APIキー不要"},
   "打开演示舞台": {"zh-Hans": "打开演示舞台", "zh-Hant": "開啟示範舞台", "en": "Open demo stage", "ja": "デモステージを開く"},
   "范围映射": {"zh-Hans": "范围映射", "zh-Hant": "範圍映射", "en": "Range mapping", "ja": "範囲マッピング"},
@@ -4786,8 +4565,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "按角色自动分配": {"zh-Hans": "按角色自动分配", "zh-Hant": "按角色自動分配", "en": "Assign per character", "ja": "キャラごとに自動設定"},
   "声音文件读取失败（{0}）": {"zh-Hans": "声音文件读取失败（{0}）", "zh-Hant": "聲音檔案讀取失敗（{0}）", "en": "Could not load audio ({0})", "ja": "音声を読み込めません（{0}）"},
   "让角色第一次开口": {"zh-Hans": "让角色第一次开口", "zh-Hant": "讓角色第一次開口", "en": "Meet your first characters", "ja": "キャラクターに会ってみよう"},
-  "先看一段对谈，或选择你的上场方式。": {"zh-Hans": "先看一段对谈，或选择你的上场方式。", "zh-Hant": "先看一段對談，或選擇你的上場方式。", "en": "Watch a conversation or choose how to perform.", "ja": "会話デモを見るか、出演方法を選んでください。"},
-  "Sena 与 Kai 的对谈": {"zh-Hans": "Sena 与 Kai 的对谈", "zh-Hant": "Sena 與 Kai 的對談", "en": "A chat with Sena & Kai", "ja": "SenaとKaiの会話"},
   "角色声音、动作与字幕": {"zh-Hans": "角色声音、动作与字幕", "zh-Hant": "角色聲音、動作與字幕", "en": "Voices, motion and captions", "ja": "声・動き・字幕を体験"},
   "中文演示": {"zh-Hans": "中文演示", "zh-Hant": "中文示範", "en": "Chinese demo", "ja": "中国語デモ"},
   "用自己的表情和声音直播": {"zh-Hans": "用自己的表情和声音直播", "zh-Hant": "用自己的表情和聲音直播", "en": "Stream with your own face and voice", "ja": "自分の表情と声で配信"},
@@ -4810,8 +4587,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "无需配置 API": {"zh-Hans": "无需配置 API", "zh-Hant": "無需設定 API", "en": "No API setup", "ja": "API設定いらず"},
   "角色语音直接使用 livliv.ai 积分。": {"zh-Hans": "角色语音直接使用 livliv.ai 积分。", "zh-Hant": "角色語音直接使用 livliv.ai 積分。", "en": "Use livliv.ai points for character voices.", "ja": "キャラクターの音声にはlivliv.aiのポイントを利用。"},
   "语音识别接口没有返回文字": {"zh-Hans": "语音识别接口没有返回文字", "zh-Hant": "語音辨識介面沒有傳回文字", "en": "The speech recognition API returned no text", "ja": "音声認識APIからテキストが返されませんでした"},
-  "Nana、Sena 与 Kai 的三人对谈": {"zh-Hans": "Nana、Sena 与 Kai 的三人对谈", "zh-Hant": "Nana、Sena 與 Kai 的三人對談", "en": "A chat with Nana, Sena & Kai", "ja": "Nana・Sena・Kaiの3人トーク"},
-  "三人对谈演示": {"zh-Hans": "三人对谈演示", "zh-Hant": "三人對談示範", "en": "Three-character demo", "ja": "3人の会話デモ"},
   "再看一次": {"zh-Hans":"再看一次","zh-Hant":"再看一次","en":"Replay demo","ja":"もう一度見る"},
   "出错了，{0} 秒后重试": {"zh-Hans": "出错了，{0} 秒后重试", "zh-Hant": "出錯了，{0} 秒後重試", "en": "Something went wrong. Retrying in {0}s", "ja": "エラーが発生しました。{0}秒後に再試行します"},
   "连续出错 {0} 次，已停止": {"zh-Hans": "连续出错 {0} 次，已停止", "zh-Hant": "連續出錯 {0} 次，已停止", "en": "Stopped after {0} errors in a row", "ja": "{0}回続けてエラーが起きたため停止しました"},
@@ -4853,7 +4628,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "{0} 只有作者能在 Stage 里用": {"zh-Hans": "{0} 只有作者能在 Stage 里用", "zh-Hant": "{0} 只有作者能在 Stage 裡用", "en": "Only the author of {0} can use it in Stage", "ja": "{0}をStageで使えるのは作者だけです"},
   "给它加「色度键」滤镜，去掉绿色。": {"zh-Hans": "给它加「色度键」滤镜，去掉绿色。", "zh-Hant": "給它加「色度鍵」濾鏡，去掉綠色。", "en": "Add a “Chroma Key” filter to remove the green.", "ja": "「クロマキー」フィルターを追加して緑を消します。"},
   "开播 · {0}": {"zh-Hans": "开播 · {0}", "zh-Hant": "開播 · {0}", "en": "Live · {0}", "ja": "配信 · {0}"},
-  "开播": {"zh-Hans": "开播", "zh-Hant": "開播", "en": "Go live", "ja": "配信"},
+  "开播": {"zh-Hans":"开播","zh-Hant":"開播","en":"Go live","ja":"配信開始"},
   "允许使用摄像头": {"zh-Hans": "允许使用摄像头", "zh-Hant": "允許使用攝影機", "en": "Allow the camera", "ja": "カメラを許可"},
   "看向镜头，按空格": {"zh-Hans": "看向镜头，按空格", "zh-Hant": "看向鏡頭，按空格", "en": "Look into the camera and press Space", "ja": "カメラを見てスペースキー"},
   "1–9 表情 · 0 恢复 · Q–T 动作 · B 暂离": {"zh-Hans": "1–9 表情 · 0 恢复 · Q–T 动作 · B 暂离", "zh-Hant": "1–9 表情 · 0 恢復 · Q–T 動作 · B 暫離", "en": "1–9 expressions · 0 reset · Q–T moves · B away", "ja": "1–9 表情 · 0 戻す · Q–T 動き · B 離席"},
@@ -4919,9 +4694,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "Conversation storage transaction was aborted": {"zh-Hans": "对话保存操作已中止", "zh-Hant": "對話儲存作業已中止", "en": "Conversation storage transaction was aborted", "ja": "会話の保存処理が中止されました"},
   "聊天原文仍保留，可在对话记录中单独删除。": {"zh-Hans": "聊天原文仍保留，可在对话记录中单独删除。", "zh-Hant": "聊天原文仍保留，可在對話記錄中單獨刪除。", "en": "The original chat stays in the transcript. You can delete it there.", "ja": "元の会話は履歴に残ります。履歴から個別に削除できます。"},
   "用你的模型重来一遍": {"zh-Hans": "用你的模型重来一遍", "zh-Hant": "用你的模型重來一遍", "en": "Run it with your own model", "ja": "自分のモデルでもう一度"},
-  "持续聊天": {"zh-Hans": "持续聊天", "zh-Hant": "持續聊天", "en": "Continuous chat", "ja": "会話を続ける"},
   "公开记忆": {"zh-Hans": "公开记忆", "zh-Hant": "公開記憶", "en": "Public memory", "ja": "公開の記憶"},
-  "输出开着（OBS、录制、联播或直播间）：只用公开记忆": {"zh-Hans": "输出开着（OBS、录制、联播或直播间）：只用公开记忆", "zh-Hant": "輸出開著（OBS、錄製、聯播或直播間）：只用公開記憶", "en": "An output is on (OBS, a recording, a co-stream or a live audience): public memory only", "ja": "出力中（OBS、録画、コラボ配信、視聴者あり）：公開の記憶だけを使います"},
   "点一下在私聊和公开记忆之间切换": {"zh-Hans": "点一下在私聊和公开记忆之间切换", "zh-Hant": "點一下在私聊和公開記憶之間切換", "en": "Click to switch between private chat and public memory", "ja": "クリックでプライベート会話と公開の記憶を切り替え"},
   "输出已打开，还没说出的私聊输入已丢弃": {"zh-Hans": "输出已打开，还没说出的私聊输入已丢弃", "zh-Hant": "輸出已開啟，還沒說出的私聊輸入已丟棄", "en": "An output came on, so private input not yet said was dropped", "ja": "出力が始まったため、まだ話していないプライベートの入力を破棄しました"},
   "输出已打开，私聊通话已结束": {"zh-Hans": "输出已打开，私聊通话已结束", "zh-Hant": "輸出已開啟，私聊通話已結束", "en": "An output came on, so the private call ended", "ja": "出力が始まったため、プライベート通話を終了しました"},
@@ -4963,7 +4736,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "对话未保存：{0}": {"zh-Hans": "对话未保存：{0}", "zh-Hant": "對話未儲存：{0}", "en": "Conversation not saved: {0}", "ja": "会話を保存できませんでした：{0}"},
   "记忆已更新，请重新发送这一句": {"zh-Hans": "记忆已更新，请重新发送这一句", "zh-Hant": "記憶已更新，請重新傳送這一句", "en": "Memory changed. Please send your message again.", "ja": "記憶が更新されました。もう一度送信してください。"},
   "请先停止当前会话": {"zh-Hans": "请先停止当前会话", "zh-Hant": "請先停止目前會話", "en": "Stop the current conversation first", "ja": "現在の会話を停止してください"},
-  "持续聊天需要接上 AI 模型": {"zh-Hans": "持续聊天需要接上 AI 模型", "zh-Hant": "持續聊天需要接上 AI 模型", "en": "Connect an AI model for continuous chat", "ja": "会話を続けるにはAIモデルを設定してください"},
   "请先接上 AI 模型": {"zh-Hans": "请先接上 AI 模型", "zh-Hant": "請先接上 AI 模型", "en": "Connect an AI model first", "ja": "AIモデルを設定してください"},
   "模型没有返回有效的动作选择": {"zh-Hans": "模型没有返回有效的动作选择", "zh-Hant": "模型沒有回傳有效的動作選擇", "en": "The model returned an invalid action selection", "ja": "モデルのアクション選択が無効です"},
   "模型选择了不可用的动作": {"zh-Hans": "模型选择了不可用的动作", "zh-Hant": "模型選擇了不可用的動作", "en": "The model chose an unavailable action", "ja": "モデルが使用できないアクションを選びました"},
@@ -5031,8 +4803,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "围绕观点和理由继续聊，回复可以更充分。": {"zh-Hans":"围绕观点和理由继续聊，回复可以更充分。","zh-Hant":"圍繞觀點和理由繼續聊，回覆可以更充分。","en":"Explore views and reasons with fuller replies.","ja":"意見や理由を掘り下げ、詳しく話します。"},
   "主动接话": {"zh-Hans":"主动接话","zh-Hant":"主動接話","en":"Start a follow-up","ja":"自分から話しかける"},
   "使用上限 · {0} 分钟 / {1} 次": {"zh-Hans":"使用上限 · {0} 分钟 / {1} 次","zh-Hant":"使用上限 · {0} 分鐘 / {1} 次","en":"Limits · {0} minutes / {1} generations","ja":"利用上限 · {0}分 / {1}回"},
-  "对谈与直播设置": {"zh-Hans":"对谈与直播设置","zh-Hant":"對談與直播設定","en":"Dialogue and live settings","ja":"対談と配信の設定"},
-  "对谈时，你在控制台说话": {"zh-Hans":"对谈时，你在控制台说话","zh-Hant":"對談時，你在控制台說話","en":"When you speak during a dialogue","ja":"対談中にあなたが話したとき"},
   "记录与记忆": {"zh-Hans":"记录与记忆","zh-Hant":"記錄與記憶","en":"History and memory","ja":"履歴と記憶"},
   "未开始": {"zh-Hans":"未开始","zh-Hant":"尚未開始","en":"Not started","ja":"開始前"},
   "已生成 {0} / {1} 次": {"zh-Hans":"已生成 {0} / {1} 次","zh-Hant":"已生成 {0} / {1} 次","en":"Generated {0} / {1} times","ja":"生成済み {0} / {1}回"},

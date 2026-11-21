@@ -175,7 +175,7 @@ export async function setHandsFree(on: boolean) {
   if (state.automatic) return
   if (!canHear()) { set({ error: tr('在设置里接上语音识别后可用') }); return }
   const conv = conversation()
-  if (!conv.running || !['chat', 'live'].includes(conv.mode)) { set({ error: tr('先开始持续聊天，再开启免按键语音') }); return }
+  if (!conv.running || !['chat', 'live'].includes(conv.mode)) { set({ error: tr('先开始聊天，再开启免按键语音') }); return }
   if (!busGain('microphone')) { set({ error: tr('请先取消麦克风静音，再开启免按键语音') }); return }
   cancel(); set({ automatic: true, error: '' }); await arm()
 }

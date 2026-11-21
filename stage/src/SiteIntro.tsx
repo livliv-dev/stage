@@ -16,7 +16,7 @@ function DemoButton({ onDemo }: { onDemo: () => Promise<void> }) {
   return <>
     <button className="welcome-demo" disabled={busy} onClick={() => void play()}>
       <span className="welcome-cast" aria-hidden="true">{CAST.map((id) => <img key={id} src={avatar(id)} alt="" />)}</span>
-      <span className="welcome-demo-copy"><b>{tr('Nana、Sena 与 Kai 的三人对谈')}</b><span>{tr('约 20 秒，角色自己的声音、动作和字幕')}</span></span>
+      <span className="welcome-demo-copy"><b>{tr('Nana、Sena 与 Kai 三人聊天')}</b><span>{tr('约 20 秒，角色自己的声音、动作和字幕')}</span></span>
       <span className="welcome-play">{busy ? <LoaderCircle size={16} className="spin" /> : <Play size={16} />}{tr('看演示')}</span>
     </button>
     {error && <p className="hint error" role="alert">{error}</p>}

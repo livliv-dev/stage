@@ -15,7 +15,7 @@ export function ensureTrio() {
   const current = characters(store.get()).filter((item) => !item.hidden)
   if (current.length === 3 && !current.some((item) => item.remote) && demoFor(current)?.script.template === 'trio') return Promise.resolve()
   return building ??= buildTemplate('trio').then((next) => {
-    next.name = tr('三人对谈演示')
+    next.name = tr('三人聊天演示')
     pttCancel(); talk.detach(); store.replace(next); store.select(characters(next)[0]?.id ?? null)
   }).finally(() => { building = null })
 }

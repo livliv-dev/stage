@@ -71,7 +71,7 @@ export function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, on
     } catch (error) { setSt({ err: (error as Error).message }) }
   }
   return <div className="model-form">
-    {!noDemo && <div className="demo-launch"><div><b>{tr('三人对谈演示')}</b><span>{tr('无需密钥')}</span></div><button title={demoAvailable ? undefined : tr('打开演示舞台')} disabled={st.busy === 'demo'} onClick={() => void save(true)}>{st.busy === 'demo' ? <LoaderCircle size={14} className="spin" /> : <Play size={14} />}{tr('看演示')}</button></div>}
+    {!noDemo && <div className="demo-launch"><div><b>{tr('三人聊天演示')}</b><span>{tr('无需密钥')}</span></div><button title={demoAvailable ? undefined : tr('打开演示舞台')} disabled={st.busy === 'demo'} onClick={() => void save(true)}>{st.busy === 'demo' ? <LoaderCircle size={14} className="spin" /> : <Play size={14} />}{tr('看演示')}</button></div>}
     <div className="providers">
       {features.points && <button className={!demo && points ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(false); setPoints(true); setSt({}); if (account.status !== 'in') onAccount() }}>livliv.ai</button>}
       {PROVIDERS_HERE.map((q) => <button key={q.id} className={!demo && !points && d.provider === q.id ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
@@ -99,7 +99,8 @@ export function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, on
         </div>
         <datalist id="model-list">{models.map((m) => <option key={m} value={m} />)}</datalist>
       </label>
-      {features.airi && <label className="switch"><span>{tr('单角色会话优先使用 AIRI')}</span><input type="checkbox" checked={d.airi !== false} onChange={(e) => change({ airi: e.target.checked })} /><i /></label>}
+      {/* AIRI runs in the desktop app; on the web the switch is there, off, with where it works */}
+      <label className="switch"><span>{tr('单角色会话优先使用 AIRI')}{!features.airi && <span className="desk-tag">{tr('桌面版')}</span>}</span><input type="checkbox" disabled={!features.airi} checked={features.airi && d.airi !== false} onChange={(e) => change({ airi: e.target.checked })} /><i /></label>
     </>}
     {st.err && <p className="hint error" role="alert">{st.err}</p>}
     {st.batch && <p className="hint" role="status">{tr('可以聊天，连接游戏或发送画面需要流式输出。')}</p>}
