@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { MESSAGE_MAX_AGE } from '../src/audience'
 import type { Line } from '../src/core/lines'
-import { EVENTS, Inbox, YOURS, yourLine } from '../src/sessions/queue'
+import { audienceWaiting, EVENTS, Inbox, viewerNowAndThen, YOURS, yourLine } from '../src/sessions/queue'
 
 const line = (text: string): Line => ({ id: text, who: 'me', name: '我', text, emotion: 'neutral', action: 'none', to: null, human: true })
 const chat = (id: string, at = 100, user = 'Viewer', text = id) => ({ id, user, text, at })
@@ -55,4 +55,15 @@ test('sixteen events wait at most, the oldest let go; an event is shown once', (
   assert.equal(inbox.count(EVENTS), 16)
   assert.equal(inbox.take(EVENTS)?.event.id, '4')
   assert.equal(inbox.hasSeen('a'), false); inbox.seenNow('a'); assert.equal(inbox.hasSeen('a'), true)
+})
+
+test('a 对谈 answers a viewer now and then, as often as 对谈时回应弹幕 says; viewers waiting make it public', () => {
+  const inbox = new Inbox(), none = () => false
+  inbox.push({ kind: 'viewer', chat: chat('v') })
+  assert.equal(viewerNowAndThen(inbox, 0, 0, 200, none), null, 'off: never')
+  assert.equal(viewerNowAndThen(inbox, 1, 0.5, 200, none), null, '偶尔: a draw of 0.5 passes it by')
+  assert.equal(viewerNowAndThen(inbox, 2, 0.5, 200, none)?.id, 'v', '积极: taken')
+  assert.equal(audienceWaiting(inbox, 2, false, 200, none), false, 'none waiting now')
+  inbox.push({ kind: 'viewer', chat: chat('w') })
+  assert.deepEqual([audienceWaiting(inbox, 0, true, 200, none), audienceWaiting(inbox, 1, false, 200, none), audienceWaiting(new Inbox(), 1, true, 200, none)], [false, true, true])
 })

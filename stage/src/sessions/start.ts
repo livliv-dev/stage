@@ -13,7 +13,7 @@ import { voiceRoute } from '../voiceApi'
 import { airiGameError, airiGameText } from '../airiEngine'
 import type { MemoryScope } from '../memory'
 import type { ExternalEvent } from '../externalEvents'
-import type { AiriGameConfig, AiriGameConnection } from '../../../desktop/src/airiGameProtocol'
+import type { AiriGameConnection } from '../../../desktop/src/airiGameProtocol'
 import { bindAiri, preferredAiriForChat } from './airiBinding'
 import { chatLimits, type LiveOptions } from './budget'
 import { clock } from './clock'
@@ -24,23 +24,24 @@ import { chatPolicy } from './policies/chat'
 import { duetPolicy, oncePolicy } from './policies/duet'
 import { livePolicy } from './policies/live'
 import { openHistory, openRecord, sessionScope } from './record'
-import { current, finish, order, Run } from './run'
+import { current, finish, Run } from './run'
+import { pick } from './speakers'
 import { handOver, runSession } from './runner'
 import { conversation, set } from './state'
 import { sleep } from './wake'
 
-export const gameName = (game: AiriGameConfig['game']) => game === 'minecraft' ? 'Minecraft' : 'Factorio'
+import { gameName } from './games'
 
-/** a session of this kind takes over: on the brain set up, or on AIRI with this model */
-function takeOver(kind: Run['kind'], brain: Run['brain'], airi: ModelConfig | null = null) {
+/** a session of this kind takes over: on AIRI with this model, else on the brain set up turn by turn */
+function takeOver(kind: Run['kind'], airi: ModelConfig | null = null) {
   const run = new Run(kind)
-  handOver(run, stageEnv, brain, airi)
+  handOver(run, stageEnv, airi)
   return run
 }
 
 /** starts the characters talking (once: a line of yours answered once) */
 export function startDuet(once: boolean) {
-  const run = takeOver('conversation', loadBrainConfig())
+  const run = takeOver('conversation')
   run.single = once; run.boundProfiles = castKey()
   // A public conversation consumes viewer inputs and opens only the public history.
   const audience = viewersWaiting()
@@ -76,8 +77,8 @@ export async function startChat(chosen: MemoryScope = conversation().chatScope, 
     set({ error }); throw new Error(error)
   }
   const preferred = preferredAiriForChat(config, target)
-  const run = takeOver('chat', config, preferred?.model)
-  run.single = true; order.forced = target ?? null; run.boundProfiles = castKey()
+  const run = takeOver('chat', preferred?.model)
+  run.single = true; pick(target ?? null); run.boundProfiles = castKey()
   inbox.drop(EVENTS); holds.dialogue.clear()
   const offAiriCast = preferred ? bindAiri(run, preferred.model, preferred.actor) : undefined
   const unbind = () => { offAiriCast?.() }
@@ -125,7 +126,7 @@ export function startLive(options: LiveOptions, event: (event: ExternalEvent) =>
   const airiModel = choice?.engine === 'airi' && config.kind === 'openai' ? config : null
   // a muted character speaks no line aloud: only the ones that speak need a voice, else the session is subtitles only
   if (!options.textOnly && cast.some((c) => !c.muted && voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕") }); return }
-  const run = takeOver('live', config, airiModel), signal = run.signal
+  const run = takeOver('live', airiModel), signal = run.signal
   inbox.clearViewers(); inbox.drop(YOURS); inbox.drop(EVENTS); holds.dialogue.clear()
   run.liveOptions = options
   run.boundProfiles = castKey()

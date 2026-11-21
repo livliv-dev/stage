@@ -4,24 +4,17 @@ import { tr } from '../../i18n'
 // (下一句 ends it), and the conversation ends after its lines. The demo goes by its script, and ends with it. A line of
 // yours with nothing running (once) is answered once: by the character named, else one picked freely, and once more
 // for what you said meanwhile. A voice that fails keeps its subtitle and the talk goes on.
-import type { CharacterItem } from '../../scene'
 import { chance } from '../chance'
 import { clock } from '../clock'
 import { VoiceFailed } from '../errors'
-import { freePick, nextSpeaker } from '../order'
-import { order, type Run } from '../run'
+import type { Run } from '../run'
+import { byOrder, freely, takePick } from '../speakers'
 import type { Env, Policy } from '../runner'
 import { sleep } from '../wake'
 
 const voiceFailureGoesOn = (error: unknown) => error instanceof VoiceFailed ? 'on' as const : null
-const ended: Policy['ended'] = { needModel: 'conversation', failure: (error) => ({ error: (error as Error).message }) }
-
-/** who speaks next by the stage's talk order; a character picked by hand goes once */
-export function speakerByOrder(env: Env): CharacterItem | null {
-  const who = nextSpeaker(env.talk(), env.cast(), { lines: env.state().lines, lastTurn: order.lastTurn, skipped: order.skipped, forced: order.forced }, chance)
-  order.forced = null
-  return who
-}
+// at its end the stage stops showing a turn; the last line's held expression and the listeners' reactions play out
+const ended: Policy['ended'] = { needModel: 'conversation', failure: (error) => ({ error: (error as Error).message }), reset: { waiting: null }, silence: 'none' }
 
 /** 对谈: they talk until the lines are said */
 export function duetPolicy(run: Run, env: Env, open: Policy['open']): Policy {
@@ -32,7 +25,7 @@ export function duetPolicy(run: Run, env: Env, open: Policy['open']): Policy {
       // the demo goes by its script, and ends with it
       const demo = env.demo(), scripted = demo ? demo.speaker() : null
       if (scripted === undefined) return { end: true }
-      const who = scripted ?? env.ahead(run) ?? speakerByOrder(env)
+      const who = scripted ?? env.ahead(run) ?? byOrder(env.talk(), env.cast(), env.state().lines)
       if (!who) throw new Error(tr("舞台上还没有会说话的角色：给角色选「AI」或「我来说」"))
       return who.lines === 'me' ? { yours: who } : { speak: who }
     },
@@ -61,8 +54,9 @@ export function oncePolicy(env: Env, open: Policy['open']): Policy {
       const ai = env.cast().filter((x) => x.lines === 'ai'), last = env.state().lines.at(-1)
       const demo = env.demo(), scripted = demo ? demo.speaker() : null
       if (scripted === undefined) return { end: true }  // the demo said all its lines
-      const me = scripted ?? ai.find((x) => x.id === order.forced) ?? ai.find((x) => x.name === last?.to) ?? freePick(ai, env.state().lines, chance)
-      order.forced = null
+      // the one you picked, else the one your line names, else one picked freely
+      const choice = takePick()
+      const me = scripted ?? ai.find((x) => x.id === choice) ?? ai.find((x) => x.name === last?.to) ?? freely(ai, env.state().lines)
       return me ? { speak: me } : { end: true }
     },
     after() { answered = true },

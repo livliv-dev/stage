@@ -7,13 +7,13 @@ import { tr } from '../i18n'
 // closes comes from where it is started (sessions/start.ts). Everything outside the session (the stage, the record,
 // the speak path, the inbox) comes through an Env, so the loop and the policies run as well against a fake one
 // (test/runner.test.ts).
-import type { BrainConfig, ModelConfig } from '../brain'
+import type { ModelConfig } from '../brain'
 import type { Engine } from '../brains/engines/types'
 import type { Line } from '../core/lines'
 import type { Chat } from '../danmaku'
 import type { CharacterItem, Talk } from '../scene'
 import type { ConvState } from './state'
-import type { Inbox } from './queue'
+import { YOURS, type Inbox, type YourLine } from './queue'
 import { deadline, GenerationLimit, spent } from './budget'
 import { clock } from './clock'
 import { NeedModel } from './errors'
@@ -34,8 +34,8 @@ export type Outcome = { said: boolean; input: boolean }
 
 /** everything a session reads and does outside itself */
 export interface Env {
-  /** the engine a session runs on: AIRI with this model, else the brain's own (brains/engines) */
-  engine(brain: BrainConfig, airi: ModelConfig | null): Engine
+  /** the engine of a session on AIRI, with this model (brains/engines) */
+  engine(airi: ModelConfig): Engine
   /** what a line said does to the line made ahead in this session (sessions/speak.ts), and that line given up */
   follow(run: Run): void
   letGo(run: Run | null): void
@@ -55,8 +55,12 @@ export interface Env {
   epoch(): number
   /** a viewer you blocked */
   blocked(user: string): boolean
-  /** your next line taken from the inbox: said (typed) or shown (heard) */
-  consume(run: Run, signal: AbortSignal): Promise<void>
+  /** a line of yours taken from the inbox: said (typed) or shown (heard) */
+  consume(run: Run, line: YourLine, signal: AbortSignal): Promise<void>
+  /** the epoch moves on (an output came on) */
+  nextEpoch(): void
+  /** the public record opened, in place of the private one */
+  openPublic(signal: AbortSignal): Promise<void>
   /** your character's turn: your line, or null (skipped) */
   yourTurn(run: Run, who: CharacterItem, signal: AbortSignal): Promise<Line | null>
   sayYours(run: Run, line: Line, signal: AbortSignal): Promise<void>
@@ -72,8 +76,8 @@ export interface Env {
   waitingForYou(): void
   /** the turn in hand stops (time's up in a chat) */
   interrupt(run: Run): void
-  /** every voice stops (the system voice, the characters') */
-  silence(): void
+  /** voices stop: the characters' (a held expression let go), or every one, the system voice too */
+  silence(what: 'actors' | 'all'): void
   /** where everyone looks, put back */
   lookAround(): void
 }
@@ -105,19 +109,43 @@ export interface Policy {
   failedTurn?(error: unknown, turn: Speak): 'on' | number | null
   /** the pause between turns (对谈) */
   between?(signal: AbortSignal): Promise<void>
-  /** how it ends: at its limit (the message), wanting a model (the intent the model card opens with), on an error */
-  ended: { limit?: string; needModel?: ConvState['modelIntent']; failure(error: unknown): Partial<ConvState> }
+  /** how it ends: at its limit (the message), wanting a model (the intent the model card opens with), on an error; and
+   *  the stage after it: what is put back, and which voices stop (none: a line's held expression and the listeners'
+   *  reactions play out) */
+  ended: {
+    limit?: string; needModel?: ConvState['modelIntent']; failure(error: unknown): Partial<ConvState>
+    reset: Partial<ConvState>; silence: 'none' | 'actors' | 'all'
+  }
   /** its own teardown, before the stage is put back (a game closed, AIRI unbound) */
   close?(): Promise<void> | void
 }
 
-/** a session takes over: the one running stops, a line the last one made ahead is given up, and this one runs, on the
- *  brain set up (on AIRI with `airi`, when chooseEngine chose it) */
-export function handOver(run: Run, env: Env, brain: BrainConfig, airi: ModelConfig | null = null) {
+/** a session takes over: the one running stops, a line the last one made ahead is given up, and this one runs: on AIRI
+ *  with `airi`'s model when chooseEngine chose it, else each turn on the brain set up then */
+export function handOver(run: Run, env: Env, airi: ModelConfig | null = null) {
   current()?.controller.abort()
   env.letGo(lastBegun())
   begin(run); env.follow(run)
-  run.brain = brain; run.engine = env.engine(brain, airi)
+  run.engine = airi ? env.engine(airi) : null
+}
+
+/** the switch to the public record, if one is under way, done */
+async function switched(run: Run, signal: AbortSignal) {
+  if (!run.switching) return
+  await run.switching
+  signal.throwIfAborted()
+}
+
+/** an output came on while a session runs in private: your unsaid lines go (never said or remembered in public), the
+ *  turn in hand is cut and a line made ahead given up, and the session goes on in the public record, opened now (its
+ *  turns wait for it). `failed`: that record couldn't be opened */
+export function turnPublic(run: Run, env: Env, failed: (error: unknown) => void) {
+  const unsaid = env.inbox.drop(YOURS)
+  env.nextEpoch(); env.letGo(run); env.interrupt(run)
+  env.set({ scope: 'public', sessionId: '', lines: [], speaking: null, thinking: null, ...(unsaid ? { error: tr('输出已打开，还没说出的私聊输入已丢弃') } : {}) }, false)
+  run.switching = env.openPublic(run.signal).catch((error: unknown) => {
+    if (!run.signal.aborted && current() === run) failed(error)
+  }).finally(() => { run.switching = null; env.wake.wake() })
 }
 
 /** runs a session to its end */
@@ -129,7 +157,7 @@ export async function runSession(policy: Policy, run: Run, env: Env) {
     env.set({ ended: tr('已达到本次时长上限') })
     if (limits.timeUp === 'cut') env.interrupt(run)
     run.controller.abort()
-    if (limits.timeUp === 'silence') env.silence()
+    if (limits.timeUp === 'silence') env.silence('all')
   })
   const budgetSpent = () => !!limits.generations && spent(env.state())
   try {
@@ -143,7 +171,12 @@ export async function runSession(policy: Policy, run: Run, env: Env) {
       if (policy.waitsWhileHeld) await waitWhile(env.held, env.wake, signal)
       if (limits.generations?.again && budgetSpent()) break
       let heard = 0
-      while (env.inbox.has(['typed', 'transcript'])) { await env.consume(run, signal); heard++ }
+      for (;;) {
+        await switched(run, signal)
+        const line = env.inbox.take(YOURS)
+        if (!line) break
+        await env.consume(run, line, signal); heard++
+      }
       policy.heard?.(heard)
       signal.throwIfAborted()
       if (policy.waitsWhileHeld && env.held()) continue
@@ -155,6 +188,7 @@ export async function runSession(policy: Policy, run: Run, env: Env) {
         if (line) await env.sayYours(run, line, signal)
         else { order.lastTurn = next.yours.id; order.skipped = next.yours.id }
       } else {
+        await switched(run, signal)
         const before = env.epoch()
         let said: boolean
         try { said = await env.speak(run, next.speak, signal, next.viewer, next.replyToOwner) }
@@ -188,8 +222,8 @@ export async function runSession(policy: Policy, run: Run, env: Env) {
     await policy.close?.()
     if (finish(run)) {
       run.liveOptions = null; run.airi = null; run.event = null
-      env.silence()
-      env.set({ running: false, paused: false, thinking: null, speaking: null, waiting: null, waitingInput: false, waitingAudience: false, retryAt: 0, engine: undefined, game: undefined })
+      if (policy.ended.silence !== 'none') env.silence(policy.ended.silence)
+      env.set({ running: false, paused: false, thinking: null, ...policy.ended.reset })
       env.lookAround()
     }
   }

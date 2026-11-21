@@ -3,10 +3,9 @@ import { tr } from '../../i18n'
 // quiet while (proactiveSeconds), and answers an event (in public) or the character you pick: the one named in your
 // last line, else one picked freely. It runs within its time (a turn in hand is cut when it is up) and its
 // generations (sessions/budget.ts), on AIRI when the one rule says so (sessions/airiBinding.ts).
-import { chance } from '../chance'
 import { clock } from '../clock'
-import { freePick } from '../order'
-import { order, type Run } from '../run'
+import type { Run } from '../run'
+import { freely, picked, takePick } from '../speakers'
 import type { Env, Policy } from '../runner'
 
 export function chatPolicy(run: Run, env: Env, setup: { until: number; close(): void }): Policy {
@@ -21,7 +20,7 @@ export function chatPolicy(run: Run, env: Env, setup: { until: number; close(): 
     next() {
       run.event = env.state().scope === 'public' && !(run.airi && replyToOwner) ? env.inbox.take(['external', 'game'])?.event ?? null : null
       if (run.event) requested = true
-      if (order.forced) requested = true
+      if (picked()) requested = true
       if (!requested) {
         env.set({ waitingInput: true })
         env.waitingForYou()
@@ -33,9 +32,10 @@ export function chatPolicy(run: Run, env: Env, setup: { until: number; close(): 
       env.set({ waitingInput: false })
       const pool = env.cast().filter((character) => character.lines === 'ai')
       const lastHuman = [...env.state().lines].reverse().find((line) => line.human && !line.audience)
-      const speaker = pool.find((character) => character.id === (run.event?.character ?? order.forced))
-        ?? pool.find((character) => lastHuman?.text.includes(character.name)) ?? freePick(pool, env.state().lines, chance)
-      order.forced = null
+      // the event's character, else the one you picked, else the one your last line names, else one picked freely
+      const choice = takePick()
+      const speaker = pool.find((character) => character.id === (run.event?.character ?? choice))
+        ?? pool.find((character) => lastHuman?.text.includes(character.name)) ?? freely(pool, env.state().lines)
       if (!speaker) throw new Error(tr('舞台上没有已就绪的 AI 角色'))
       return { speak: speaker, viewer: null, replyToOwner }
     },
@@ -45,7 +45,10 @@ export function chatPolicy(run: Run, env: Env, setup: { until: number; close(): 
       replyToOwner &&= requested
       run.event = null; lastReply = clock.now()
     },
-    ended: { limit: tr('已达到本次生成次数上限'), failure: (error) => ({ error: error instanceof Error ? error.message : String(error) }) },
+    ended: {
+      limit: tr('已达到本次生成次数上限'), failure: (error) => ({ error: error instanceof Error ? error.message : String(error) }),
+      reset: { speaking: null, waitingInput: false, engine: undefined }, silence: 'actors',
+    },
     close: setup.close,
   }
 }

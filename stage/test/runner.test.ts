@@ -13,7 +13,7 @@ import { clock, setClock } from '../src/sessions/clock'
 import { NeedModel, VoiceFailed } from '../src/sessions/errors'
 import { Inbox } from '../src/sessions/queue'
 import { current, order, Run } from '../src/sessions/run'
-import { handOver, runSession, type Env, type Policy } from '../src/sessions/runner'
+import { handOver, runSession, turnPublic, type Env, type Policy } from '../src/sessions/runner'
 import { Wake } from '../src/sessions/wake'
 import { duetPolicy, oncePolicy } from '../src/sessions/policies/duet'
 import { chatPolicy } from '../src/sessions/policies/chat'
@@ -64,8 +64,10 @@ const yours = (text: string, to: string | null = null): Line => ({ id: text, who
 
 type Fake = Env & {
   /** what was said, in order; what else happened (errors, ends, waits); the engine, failing with what is queued; voices
-   *  that fail; your answers on your character's turns (null: skipped); the state; what holds a turn */
-  said: string[]; log: string[]; model: Engine; fail: Error[]; voiceFails: number; answers: (string | null)[]; s: ConvState; holds: { held: boolean; epoch: number }
+   *  that fail; turns cut off part way (by you: the epoch moves on; by something else: a game character talking); your
+   *  answers on your character's turns (null: skipped); the state; what holds a turn; the public record opening */
+  said: string[]; log: string[]; model: Engine; fail: Error[]; voiceFails: number; cuts: ('you' | 'other')[]; answers: (string | null)[]; s: ConvState
+  holds: { held: boolean; epoch: number }; publicOpens: () => Promise<void>
 }
 
 /** a model that answers `<NAME> <n>` (and whom it answers), failing with what is queued */
@@ -96,7 +98,7 @@ function fakeStage(cast: CharacterItem[], s: Partial<ConvState> = {}, talk: Part
     })
   }
   const env: Fake = {
-    said, log, fail, answers, voiceFails: 0, s: state, holds: { held: false, epoch: 0 }, model: fakeEngine(fail),
+    said, log, fail, answers, voiceFails: 0, cuts: [], s: state, holds: { held: false, epoch: 0 }, model: fakeEngine(fail), publicOpens: async () => {},
     engine: () => env.model, follow: () => {}, letGo: () => {},
     state: () => state,
     set(patch) {
@@ -113,18 +115,21 @@ function fakeStage(cast: CharacterItem[], s: Partial<ConvState> = {}, talk: Part
     held: () => env.holds.held || state.paused,
     epoch: () => env.holds.epoch,
     blocked: (user) => user === 'Blocked',
-    async consume() {
-      const item = env.inbox.take(['typed', 'transcript'])!
-      state.lines = [...state.lines, item.line]; said.push('you: ' + item.line.text)
-    },
+    async consume(_run, item) { state.lines = [...state.lines, item.line]; said.push('you: ' + item.line.text) },
+    nextEpoch: () => { env.holds.epoch++ },
+    openPublic: () => env.publicOpens(),
     async yourTurn(_run, who) { log.push('your turn: ' + who.name); const text = answers.shift(); return text ? line(who, text, true) : null },
     async sayYours(_run, l, signal) { said.push(`${l.name}: ${l.text}`); await deliver(l, signal) },
     async speak(run, who, signal, viewer, replyToOwner) {
       if (state.mode !== 'conversation') Object.assign(state, spend(state))
       let text = ''
-      for await (const u of run.engine!.reply({ speaker: who, context: { viewer, event: run.event ?? undefined, replyToOwner } } as never, signal)) text = u.text
+      // each turn on the model set up now (a session on AIRI keeps its own)
+      for await (const u of (run.engine ?? env.model).reply({ speaker: who, context: { viewer, event: run.event ?? undefined, replyToOwner } } as never, signal)) text = u.text
       signal.throwIfAborted()
-      state.turns++; said.push(text)
+      state.turns++
+      const cut = env.cuts.shift()
+      if (cut) { said.push('cut: ' + text); if (cut === 'you') env.holds.epoch++; return false }
+      said.push(text)
       await deliver(line(who, text), signal)
       if (env.voiceFails > 0) { env.voiceFails--; throw new VoiceFailed('no voice') }
       return true
@@ -134,7 +139,7 @@ function fakeStage(cast: CharacterItem[], s: Partial<ConvState> = {}, talk: Part
     cutting: () => false,
     waitingForYou: () => log.push('waiting for you'),
     interrupt: () => log.push('interrupted'),
-    silence: () => log.push('silenced'),
+    silence: (what) => log.push(`silenced ${what}`),
     lookAround: () => {},
   }
   return env
@@ -143,7 +148,7 @@ function fakeStage(cast: CharacterItem[], s: Partial<ConvState> = {}, talk: Part
 /** a session of `kind` on the fake stage */
 function begin(env: Fake, kind: Run['kind'], make: (run: Run) => Policy) {
   const run = new Run(kind)
-  handOver(run, env, { kind: 'openai', provider: 'custom', base: 'x', key: 'k', model: 'm' })
+  handOver(run, env)
   return { run, done: runSession(make(run), run, env) }
 }
 const opened = async () => {}
@@ -193,7 +198,7 @@ test('对谈: a voice that fails keeps the talk going; a turn with no model asks
   second.fail.push(new NeedModel())
   const session = begin(second, 'conversation', (run) => duetPolicy(run, second, opened))
   await time.run(session.done); await session.done
-  assert.deepEqual(second.log, ['needModel: conversation', 'silenced'])
+  assert.deepEqual(second.log, ['needModel: conversation'], 'and nothing silenced at the end: the stage is left as it is')
 })
 
 test('a line of yours with nothing running: the one you named answers, and once more for what you said meanwhile', async () => {
@@ -228,7 +233,7 @@ test('聊天: it speaks up once after a quiet while; at its minutes, the turn in
   const { done } = chat(env, START + 60_000)
   await time.run(done); await done
   assert.deepEqual(env.said, ['NANA 1'], 'one line of its own after 20 quiet seconds, then it waits')
-  assert.deepEqual(env.log.slice(-3), [`ended: ${tr('已达到本次时长上限')}`, 'interrupted', 'silenced'])
+  assert.deepEqual(env.log.slice(-3), [`ended: ${tr('已达到本次时长上限')}`, 'interrupted', 'silenced actors'])
 })
 
 test('聊天: held (you speaking, a game character talking), it waits; then a chat with nothing said starts with a line', async () => {
@@ -242,17 +247,69 @@ test('聊天: held (you speaking, a game character talking), it waits; then a ch
   assert.deepEqual(env.said, ['NANA 1'])
 })
 
-test('the switch to public drops your unsaid lines; the session goes on with what comes after', async () => {
+test('an output coming on: your unsaid lines dropped, the turn cut, and the session goes on once the public record is open', async () => {
   const env = fakeStage([nana], { mode: 'chat' })
-  const { done } = chat(env)
+  let opened = () => {}
+  env.publicOpens = () => new Promise<void>((resolve) => { opened = resolve })
+  const { run, done } = chat(env)
   await time.run(done, () => env.said.length === 1 && env.s.waitingInput)
-  // an output comes on while two private lines wait (the facade's goPublic)
+  // two private lines wait when an output comes on (the facade's goPublic)
   env.inbox.push({ kind: 'typed', line: yours('private one') }); env.inbox.push({ kind: 'transcript', line: yours('private two') })
-  assert.equal(env.inbox.drop(['typed', 'transcript']), 2)
-  env.s.scope = 'public'
+  const epoch = env.holds.epoch
+  turnPublic(run, env, (error) => env.log.push('failed: ' + error))
+  assert.equal(env.inbox.has(['typed', 'transcript']), false, 'never said or remembered in public')
+  assert.deepEqual([env.s.scope, env.s.lines, env.s.error], ['public', [], tr('输出已打开，还没说出的私聊输入已丢弃')])
+  assert.ok(env.log.includes('interrupted')); assert.equal(env.holds.epoch, epoch + 1)
   typed(env, 'in public')
+  await time.pass(done, 0)
+  assert.deepEqual(env.said, ['NANA 1'], 'nothing goes on until the public record is open')
+  opened()
   await time.run(done, () => env.said.length === 3 && env.s.waitingInput)
   assert.deepEqual(env.said, ['NANA 1', 'you: in public', 'NANA 2'])
+  assert.equal(run.switching, null)
+})
+
+test('聊天: a turn cut off by something else is asked again; one you cut off waits for you', async () => {
+  const env = fakeStage([nana], { mode: 'chat', lines: [earlier] })
+  const { done } = chat(env)
+  env.cuts.push('other')
+  typed(env, 'hi')
+  await time.run(done, () => env.said.length === 3 && env.s.waitingInput)
+  assert.deepEqual(env.said, ['you: hi', 'cut: NANA 1', 'NANA 2'], 'cut by a game character talking: answered again')
+  env.cuts.push('you')
+  typed(env, 'and now')
+  await time.run(done, () => env.said.length === 5 && env.s.waitingInput)
+  assert.deepEqual(env.said.slice(3), ['you: and now', 'cut: NANA 3'], 'you cut it off: it waits for what you say next')
+})
+
+test('the stage after a session ends: 对谈 leaves the last expression to play out, a chat stops the voices, a 直播间 every voice', async () => {
+  const duet = fakeStage([nana], { limit: 1 })
+  const a = begin(duet, 'conversation', (run) => duetPolicy(run, duet, opened))
+  await time.run(a.done); await a.done
+  const once = fakeStage([nana])
+  once.inbox.push({ kind: 'typed', line: yours('hi') })
+  const b = begin(once, 'conversation', () => oncePolicy(once, opened))
+  await time.run(b.done); await b.done
+  const talk = fakeStage([nana], { mode: 'chat', generationLimit: 1 })
+  const c = chat(talk)
+  await time.run(c.done); await c.done
+  const room = fakeStage([nana], { mode: 'live', scope: 'public', generationLimit: 1 })
+  room.inbox.push(viewer('v'))
+  const d = live(room)
+  await time.run(d.done); await d.done
+  assert.deepEqual([duet, once, talk, room].map((env) => env.log.filter((x) => x.startsWith('silenced'))), [[], [], ['silenced actors'], ['silenced all']])
+  assert.deepEqual([duet.s.running, once.s.running, talk.s.running, room.s.running], [false, false, false, false])
+})
+
+test('on AIRI a session keeps the engine chosen at its start; otherwise it has none of its own', () => {
+  const env = fakeStage([nana])
+  const airi = new Run('chat')
+  handOver(airi, env, { kind: 'openai', provider: 'custom', base: 'x', key: 'k', model: 'm' })
+  assert.equal(airi.engine, env.model)
+  const own = new Run('chat')
+  handOver(own, env)
+  assert.equal(own.engine, null)
+  assert.equal(airi.signal.aborted, true, 'the new session took over')
 })
 
 // ---------------------------------------------------------------- 直播间
@@ -303,6 +360,21 @@ test('直播间: a game still playing keeps it open past its generations; its ev
   assert.equal(env.s.ended, tr('已达到本次生成次数上限'))
 })
 
+test('直播间: a viewer whose answer a game character cut off is answered when it is tried again; one you cut off is not', async () => {
+  const env = fakeStage([nana], { mode: 'live', scope: 'public' })
+  env.inbox.push(viewer('q', 'Qi'))
+  env.cuts.push('other')
+  const { done } = live(env)
+  await time.run(done, () => env.said.length === 2)
+  assert.deepEqual(env.said, ['cut: NANA 1 @Qi', 'NANA 2 @Qi'])
+  env.cuts.push('you')
+  env.inbox.push(viewer('r', 'Ren')); env.wake.wake()
+  await time.run(done, () => env.said.length === 3)
+  env.inbox.push(viewer('s', 'Sun')); env.wake.wake()
+  await time.run(done, () => env.said.length === 4)
+  assert.deepEqual(env.said.slice(2), ['cut: NANA 3 @Ren', 'NANA 4 @Sun'], 'Ren counts as answered once you spoke')
+})
+
 test('a session takes over: the one running stops, and the new one runs alone, on its engine', async () => {
   const env = fakeStage([nana, kai], { limit: 50 }, { order: 'round' })
   const first = begin(env, 'conversation', (run) => duetPolicy(run, env, opened))
@@ -310,7 +382,7 @@ test('a session takes over: the one running stops, and the new one runs alone, o
   const second = begin(env, 'conversation', (run) => duetPolicy(run, env, opened))
   assert.equal(first.run.signal.aborted, true)
   assert.equal(current(), second.run)
-  assert.equal(second.run.engine, env.model)
+  assert.equal(second.run.engine, null, 'off AIRI, each turn runs on the model set up then')
   await time.run(first.done); await first.done
   assert.equal(env.s.running, true, 'the first one ending does not put the stage back under the second')
 })

@@ -4,9 +4,10 @@ import { loadBrainConfig } from '../brain'
 import { memory } from '../memory'
 import { participants, store, type CharacterItem } from '../scene'
 import type { Line } from '../core/lines'
-import { inbox, YOURS } from './inbox'
+import type { YourLine } from './inbox'
 import { deliver } from './performance'
-import { order, type Run } from './run'
+import type { Run } from './run'
+import { picked } from './speakers'
 import { conversation, set } from './state'
 
 /** your line, said by whom it is from */
@@ -17,11 +18,9 @@ async function yours(run: Run, line: Line, signal: AbortSignal, scope = conversa
 }
 export { yours as sayYours }
 
-/** the next line of yours waiting: said (typed), or shown as heard (transcribed) */
-export async function consumeInput(run: Run, signal: AbortSignal) {
-  if (run.switching) { await run.switching; signal.throwIfAborted() }
+/** a line of yours taken from the inbox: said (typed), or shown as heard (transcribed) */
+export async function consumeInput(run: Run, { line, kind }: YourLine, signal: AbortSignal) {
   const scope = conversation().scope
-  const { line, kind } = inbox.take(YOURS)!
   if (kind === 'transcript') {
     if (!conversation().lines.some((entry) => entry.id === line.id)) set({ lines: [...conversation().lines, line] })
     await rememberLine(line, undefined, scope)
@@ -32,7 +31,7 @@ export async function consumeInput(run: Run, signal: AbortSignal) {
 export async function rememberLine(line: Line, target?: CharacterItem, scope = conversation().scope) {
   const remembered = line.text.match(/^(?:请)?记住(?:这件事)?[：:，,\s]*(.+)$/s)?.[1] ?? line.text.match(/^remember\s+(.+)$/is)?.[1]
   if (!remembered || (loadBrainConfig().kind === 'demo' && conversation().mode !== 'realtime') || conversation().scope !== scope) return
-  const character = target ?? participants(store.get()).find((candidate) => candidate.id === order.forced && candidate.lines === 'ai')
+  const character = target ?? participants(store.get()).find((candidate) => candidate.id === picked() && candidate.lines === 'ai')
     ?? participants(store.get()).find((candidate) => candidate.lines === 'ai' && !candidate.remote)
   if (character) await memory.remember({ profileId: character.profileId ?? character.id, scope, text: remembered.trim(), sourceSessionId: conversation().sessionId, sourceLineIds: [line.id] })
 }

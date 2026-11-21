@@ -40,6 +40,7 @@
     "test:points": "node test/points.mjs",
     "test:say-once": "node test/say-once.mjs",
     "test:recording-scope": "node test/recording-scope.mjs",
+    "test:model-switch": "node test/model-switch.mjs",
     "test:app-livliv": "node test/app-livliv.mjs",
     "test:start": "node test/start.mjs",
     "test:privacy": "node test/privacy.mjs",

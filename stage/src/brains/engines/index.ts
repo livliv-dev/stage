@@ -1,15 +1,15 @@
-// The engine a session is given when it starts: AIRI when chooseEngine (brains/select.ts, the only place that decides)
-// chose it, with the model it runs on; else the brain set up (a model of one's own, LivLiv's points, or the demo).
-import type { BrainConfig, ModelConfig } from '../../brain'
-import { airiEngine } from './airi'
+// The engines. A session on AIRI is given AIRI's when it starts (chooseEngine in brains/select.ts decides, the only
+// place that does); every other turn runs on the brain set up at that moment (a model of one's own, LivLiv's points,
+// or the demo), so a model changed mid-session answers the next line.
+import type { BrainConfig } from '../../brain'
 import { demoEngine } from './demo'
 import { livlivEngine } from './livliv'
 import { openaiEngine } from './openai'
 import type { Engine } from './types'
 
-/** the session's engine: `airi`, the model AIRI runs on when chooseEngine chose AIRI */
-export function makeEngine(brain: BrainConfig, airi: ModelConfig | null = null): Engine {
-  if (airi) return airiEngine(airi)
+/** the engine of the brain set up */
+export function brainEngine(brain: BrainConfig): Engine {
   return brain.kind === 'openai' ? openaiEngine(brain) : brain.kind === 'livliv' ? livlivEngine() : demoEngine()
 }
+export { airiEngine } from './airi'
 export type { Engine, TurnRequest, Utterance } from './types'

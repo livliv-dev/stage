@@ -3,19 +3,18 @@
 // are the holds. A running session waits on the wake.
 import { chatState, isBlocked, onChat } from '../danmaku'
 import { store } from '../scene'
-import { Inbox } from './queue'
+import { holds } from './holds'
+import { audienceWaiting, Inbox, viewerNowAndThen } from './queue'
 import { chance } from './chance'
 import { clock } from './clock'
 import { conversation } from './state'
 import { Wake } from './wake'
 
 export { EVENTS, Inbox, YOURS, yourLine, type ChatInput, type InboxItem, type Kind, type YourLine } from './queue'
+export { holds } from './holds'
 
 export const inbox = new Inbox()
 
-/** what holds a session's line or turn back: a game character talking (its dialogue ids), game actions being decided,
- *  you speaking (push to talk, hands-free); each time you start speaking, the epoch moves on */
-export const holds = { dialogue: new Set<string>(), decisions: 0, hearing: false, epoch: 0 }
 
 /** a running session waiting is woken by a viewer's message, your line, resume, a game event or decision, the end of a
  *  game character's dialogue (sessions/wake.ts) */
@@ -27,6 +26,6 @@ export const speechHeld = () => conversation().paused || holds.dialogue.size > 0
 /** what holds a session's next turn back: those, and a game action being decided */
 export const turnHeld = () => speechHeld() || holds.decisions > 0
 /** a viewer's message, now and then (as often as the stage's talk settings say) */
-export const someViewer = () => (chance() < [0, 0.35, 0.8][store.get().talk.danmaku] ? inbox.takeViewer(clock.now(), isBlocked) : null)
+export const someViewer = () => viewerNowAndThen(inbox, store.get().talk.danmaku, chance(), clock.now(), isBlocked)
 /** a viewer's message waiting, or chat connected: a conversation that answers viewers is public */
-export const viewersWaiting = () => store.get().talk.danmaku > 0 && (chatState().status === 'on' || inbox.viewerWaiting(clock.now(), isBlocked))
+export const viewersWaiting = () => audienceWaiting(inbox, store.get().talk.danmaku, chatState().status === 'on', clock.now(), isBlocked)

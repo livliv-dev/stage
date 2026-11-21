@@ -104,3 +104,12 @@ export class Inbox {
     this.items = this.items.filter((item) => !(kinds.includes(item.kind) && extra-- > 0))
   }
 }
+
+/** how often a line answers a viewer's message waiting, by the stage's 对谈时回应弹幕 (off, 偶尔, 积极) */
+export const VIEWER_CHANCE = [0, 0.35, 0.8] as const
+/** a viewer's message, now and then: taken when the draw falls under the setting's chance */
+export const viewerNowAndThen = (inbox: Inbox, danmaku: 0 | 1 | 2, draw: number, now: number, blocked: (user: string) => boolean) =>
+  draw < VIEWER_CHANCE[danmaku] ? inbox.takeViewer(now, blocked) : null
+/** viewers waiting (or chat connected) with answering them on: a session that answers them is public */
+export const audienceWaiting = (inbox: Inbox, danmaku: 0 | 1 | 2, chatOn: boolean, now: number, blocked: (user: string) => boolean) =>
+  danmaku > 0 && (chatOn || inbox.viewerWaiting(now, blocked))

@@ -6,11 +6,10 @@ import { tr } from '../../i18n'
 // generations are spent keeps it open until the game is done.
 import type { Chat } from '../../danmaku'
 import { GenerationLimit, LIVE_FAILURES, RETRY_SECONDS, type LiveOptions } from '../budget'
-import { chance } from '../chance'
 import { clock } from '../clock'
 import { NeedModel, VoiceFailed } from '../errors'
-import { freePick } from '../order'
 import { order, type Run } from '../run'
+import { freely, takePick } from '../speakers'
 import type { Env, Policy } from '../runner'
 
 /** what the start sets up: the record and cast (and a game) opened, and closed; the AIRI binding it runs on (a game
@@ -46,10 +45,10 @@ export function livePolicy(run: Run, env: Env, setup: LiveSetup): Policy {
       }
       run.event ??= !replyToOwner && !retryChat ? env.inbox.take(['external', 'game'])?.event ?? null : null
       const chat: Chat | null = run.event || (options.airi && replyToOwner) ? null : retryChat ?? env.inbox.takeViewer(now, env.blocked)
-      const pool = env.cast().filter((x) => x.lines === 'ai')
+      // the event's character, else the one you picked, else one picked freely who didn't speak last
+      const pool = env.cast().filter((x) => x.lines === 'ai'), picked = takePick()
       const who = run.event?.character ? pool.find((x) => x.id === run.event!.character)
-        : pool.find((x) => x.id === order.forced) ?? freePick(pool.filter((x) => pool.length === 1 || x.id !== order.lastTurn), env.state().lines, chance)
-      order.forced = null
+        : pool.find((x) => x.id === picked) ?? freely(pool.filter((x) => pool.length === 1 || x.id !== order.lastTurn), env.state().lines)
       if (!who) throw new Error(tr("舞台上没有已就绪的 AI 角色"))
       env.set({ waitingAudience: false })
       turnsBefore = env.state().turns
@@ -71,6 +70,7 @@ export function livePolicy(run: Run, env: Env, setup: LiveSetup): Policy {
     ended: {
       limit: tr("已达到本次生成次数上限"), needModel: 'live',
       failure: (error) => ({ error: setup.describe(error), ended: failures >= LIVE_FAILURES ? tr("连续出错 {0} 次，已停止", LIVE_FAILURES) : tr("会话因错误停止") }),
+      reset: { speaking: null, waiting: null, waitingAudience: false, retryAt: 0, engine: undefined, game: undefined }, silence: 'all',
     },
   }
 }
