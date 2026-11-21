@@ -239,7 +239,7 @@ try {
   await page.evaluate(() => window.__stage.talk.stop())
   await page.locator('.settings').getByRole('button', { name: '关闭', exact: true }).click()
   await page.setViewportSize({ width: 1280, height: 800 })
-  assert.ok(await page.locator('.console input.topic').evaluate((element) => element.getBoundingClientRect().width >= 120), 'chat input stays usable')
+  assert.ok(await page.locator('.console .run-bar input').evaluate((element) => element.getBoundingClientRect().width >= 120), 'chat input stays usable')
   await page.getByRole('button', { name: '更换音色' }).click()
   await page.setViewportSize({ width: 390, height: 844 })
   await page.screenshot({ path: join(artifacts, 'voices-mobile.png') })

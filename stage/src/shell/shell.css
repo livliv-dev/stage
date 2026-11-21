@@ -69,7 +69,7 @@
 
 /* ---------------------------------------------------------------- the console */
 .console.next .run-bar { gap: 6px; padding: 5px 6px; }
-.console.next .run-bar .topic { flex: 1 1 160px; }
+.console.next .run-bar .topic, .console.next .run-bar .first-line { flex: 1 1 160px; }
 .start-rows { flex: 0 1 auto; min-width: 0; gap: 0; padding: 2px 4px 2px 2px; border-radius: 999px; background: var(--hover); border-color: transparent; }
 .start-rows { padding: 5px 8px 5px 4px; }
 .start-rows > span { text-align: left; padding: 0 9px; border-right: 1px solid var(--line-2); min-width: 0; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 18px; color: var(--fg); }
@@ -133,7 +133,7 @@
   .console.next .status-line > * { flex: none; }
   .console.next { left: 8px; right: 8px; }
   .console.next .run-bar { flex-wrap: wrap; border-radius: 18px; }
-  .console.next .run-bar .topic { flex-basis: 100%; }
+  .console.next .run-bar .topic, .console.next .run-bar .first-line { flex-basis: 100%; }
   .start-rows { flex: 1 1 auto; }
   .start-rows > span { padding: 0 6px; max-width: none; }
   .console.next .say-bar { flex-wrap: wrap; border-radius: 18px; }

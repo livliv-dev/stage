@@ -18,8 +18,9 @@ export function planNow(goal: Goal, options: StartOptions): StartPlan {
   return startPlan(goal, options, { cast, hear: asrReady(activeSpeech()) || accountNow().status === 'in', demo: loadBrainConfig().kind === 'demo' })
 }
 
-/** starts it; an error in words when it can't */
-export async function startGoal(goal: Goal, options: StartOptions) {
+/** starts it; an error in words when it can't. A first line (和角色聊天's, typed before the start) starts the chat with
+ *  that line as your first message */
+export async function startGoal(goal: Goal, options: StartOptions, firstLine = '') {
   const plan = planNow(goal, options)
   if ('blocked' in plan) throw new Error(tr(plan.blocked))
   const t = store.get().talk, ai = participants(store.get()).filter((c) => c.lines === 'ai' && !c.remote)
@@ -37,10 +38,13 @@ export async function startGoal(goal: Goal, options: StartOptions) {
   // a recording that starts the characters talking (录制's 同时开始对话) is the conversation's start
   if (plan.record) await rec.start({ mic: false, talk: plan.session === 'conversation' })
   if (plan.session === 'conversation') { if (!plan.record) talk.start() }
-  else if (plan.session === 'chat') await talk.startChat()
+  else if (plan.session === 'chat') { if (firstLine.trim()) await talk.say(firstLine, { chat: true }); else await talk.startChat() }
   else talk.startLive({ minutes: t.chatMinutes ?? 60, maxGenerations: t.chatGenerations ?? 100, warmupSeconds: liveSetup.get().warmupSeconds, textOnly, ...(airi ? { airi } : {}) })
   if (plan.handsFree) await setHandsFree(true)
 }
+
+/** 和角色聊天 started by you: the console's field takes your first line, not a topic */
+export const firstLineStart = (goal: Goal, options: StartOptions) => goal === 'chat' && options.audience === 'me' && options.you !== 'none'
 
 /** what a start would turn on that makes it public: a 直播间, a recording */
 export const startGoesOut = (goal: Goal, options: StartOptions) => options.audience === 'live' || goal === 'video'

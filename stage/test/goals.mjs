@@ -1,6 +1,6 @@
-// Each goal from the start page, with a model already set up, counting the clicks it takes: 我来演 to its output
-// window (≤ 3), AI 来开播 to a running 直播间 (≤ 5), 和角色聊天 to a chat waiting for you (≤ 2), 做一段视频 to a
-// finished video (≤ 4). Prints the counts.
+// Each goal from the start page, with a model already set up, counting the actions it takes (a click, or a line typed
+// and sent with Enter): 我来演 to its output window (≤ 3), AI 来开播 to a running 直播间 (≤ 5), 和角色聊天 to a chat
+// answering your first line (≤ 2), 做一段视频 to a finished video (≤ 4). Prints the counts.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { freePort, startVite, testTimeout } from './vite.mjs'
@@ -32,8 +32,9 @@ try {
     await page.waitForSelector('.start-page .goal-tile')
     let clicks = 0
     const click = async (locator) => { await locator.click(); clicks++ }
+    const type = async (locator, text) => { await locator.fill(text); await locator.press('Enter'); clicks++ }
     const loaded = () => page.waitForFunction(() => [...window.__stage.actors.values()].length > 0 && [...window.__stage.actors.values()].every((a) => a.status === 'ready'), null, { timeout: testTimeout(60000) })
-    return { context, page, click, clicks: () => clicks, loaded }
+    return { context, page, click, type, clicks: () => clicks, loaded }
   }
   const goal = (page, label) => page.locator('.start-page .goal-tile', { hasText: label }).first()
   const footer = (page) => page.locator('.popover.checklist footer .primary')
@@ -61,15 +62,14 @@ try {
     assert.equal(await page.evaluate(() => window.__stage.conversation().scope), 'public', 'a 直播间 is public')
     counts.live = clicks(); await page.evaluate(() => window.__stage.talk.stop()); await context.close()
   }
-  // 和角色聊天: the goal, then 开始聊天 (the character speaks first, then waits for you)
+  // 和角色聊天: the goal, then your first line typed in the console and sent: the chat starts with it and answers it
   {
-    const { context, page, click, clicks, loaded } = await open()
+    const { context, page, click, type, clicks, loaded } = await open()
     await click(goal(page, '和角色聊天'))
     await page.waitForSelector('.popover.checklist'); await loaded()
     assert.equal((await footer(page).innerText()).trim(), '开始聊天')
-    await click(footer(page))
-    await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.running && c.mode === 'chat' && c.waitingInput })
-    await page.getByRole('textbox', { name: '你说的话', exact: true }).waitFor()
+    await type(page.locator('.console .run-bar input.first-line'), '你好，今天想聊什么？')
+    await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.running && c.mode === 'chat' && c.waitingInput && c.lines[0]?.human && c.lines[0].text === '你好，今天想聊什么？' && c.lines.some((l) => !l.human) })
     counts.chat = clicks(); await page.evaluate(() => window.__stage.talk.stop()); await context.close()
   }
   // 做一段视频: the goal, then 开录 (the recording starts the characters talking), 结束 and 停止录制: the video

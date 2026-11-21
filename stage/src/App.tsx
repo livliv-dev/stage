@@ -193,7 +193,7 @@ export default function App() {
     if (narrow) store.select(null)
     setPop('checklist')
   }
-  const startNow = () => { setPop(null); void startGoal(goal, optionsOf(scene.talk, goal, partner)).catch((error: Error) => say(error.message)) }
+  const startNow = (firstLine = '') => { setPop(null); void startGoal(goal, optionsOf(scene.talk, goal, partner), firstLine).catch((error: Error) => say(error.message)) }
   // after the demo, the same characters with a model of one's own: they talk among themselves (和角色聊天, you only
   // watching), and the checklist says what is still needed
   const ownModel = () => { playDemo(false); store.setTalk({ goal: 'chat', audience: 'me', you: 'none' }); setPop('checklist') }

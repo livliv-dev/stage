@@ -1280,7 +1280,9 @@ export const talk = {
   },
   /** you say something, as whom the console says. On your character's turn it is that turn; otherwise it waits for
    *  the current line (or cuts it off, cutIn) and they answer */
-  say(text: string, options: { respond?: boolean; transcribed?: boolean } = {}) {
+  /** a line of yours. With nothing running, in the desktop app or asked for (chat: 和角色聊天's first line), it starts
+   *  a chat with this line as its first input; elsewhere it starts the characters talking */
+  say(text: string, options: { respond?: boolean; transcribed?: boolean; chat?: boolean } = {}) {
     const t = text.trim()
     if (!t) return
     if (realtimeControls) { realtimeControls.say(t); return }
@@ -1289,7 +1291,7 @@ export const talk = {
     const c = me.find((x) => x.id === (state.waiting ?? state.as)) ?? (state.as === 'narrator' ? undefined : me[0])
     const line: Line = { id: uid(), who: c?.id ?? 'me', name: c?.name ?? tr("旁白"), text: t.slice(0, 200), emotion: 'neutral', action: 'none', to: null, human: true }
     set({ error: '' })
-    if (features.desktopConsole && !state.running && options.respond !== false && profiles().length) {
+    if ((features.desktopConsole || options.chat) && !state.running && options.respond !== false && profiles().length) {
       const model = loadBrainConfig()
       if (model.kind !== 'demo') {
         return startChatSession(state.chatScope, undefined, { line, transcribed: options.transcribed === true }).then(() => true, () => false)

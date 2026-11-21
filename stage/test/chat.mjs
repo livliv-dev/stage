@@ -128,9 +128,9 @@ try {
   await page.getByRole('button', { name: '对话记录', exact: true }).click()
   await page.getByRole('tab', { name: '记忆', exact: true }).click()
   await page.locator('.memory-entry').getByText('我的暗号是橘子。', { exact: true }).waitFor()
-  assert.ok(await page.locator('.console input.topic').evaluate((input) => input.getBoundingClientRect().width >= 120), 'topic remains usable at desktop width')
+  assert.ok(await page.locator('.console .run-bar input').evaluate((input) => input.getBoundingClientRect().width >= 120), 'topic remains usable at desktop width')
   await page.screenshot({ path: join(artifacts, 'chat-memory-1440.png') })
-  await page.setViewportSize({ width: 1280, height: 800 }); assert.ok(await page.locator('.console input.topic').evaluate((input) => input.getBoundingClientRect().width >= 120), 'topic remains usable at 1280px'); await page.screenshot({ path: join(artifacts, 'chat-memory-1280.png') })
+  await page.setViewportSize({ width: 1280, height: 800 }); assert.ok(await page.locator('.console .run-bar input').evaluate((input) => input.getBoundingClientRect().width >= 120), 'topic remains usable at 1280px'); await page.screenshot({ path: join(artifacts, 'chat-memory-1280.png') })
   reactionCase = true
   await page.evaluate(async () => {
     const { Actor, onHeard } = await import('/src/actors.ts')

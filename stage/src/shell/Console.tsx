@@ -1,4 +1,5 @@
-// The console under the stage. Before a start: the topic, the start's three rows and its button; after the demo,
+// The console under the stage. Before a start: the topic (和角色聊天 started by you: your first line, which Enter or the
+// button sends as the chat's start), the start's three rows and its button; after the demo,
 // watching it again or 用你的模型重来一遍 (the checklist). Once started: what you say (as whom, typed, held to talk, or
 // hands-free while that is on), 跳过这句, 暂停, 结束, the transcript and the memory. Under both, the status line.
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -12,12 +13,14 @@ import { useRealtime } from '../realtime'
 import { participants, store, useScene, type Goal } from '../scene'
 import { asrReady, useActiveSpeech } from '../voiceApi'
 import { StartButton, StartRows } from './StartBar'
+import { optionsOf } from './goals'
+import { firstLineStart } from './start'
 import { StatusLine } from './StatusLine'
 import type { Check } from './checks'
 
 export type ConsoleProps = {
   goal: Goal; partner: boolean; checks: readonly Check[] | null; optionsOpen: boolean
-  onOptions: () => void; onChecklist: () => void; onStart: () => void; onOwnModel: () => void
+  onOptions: () => void; onChecklist: () => void; onStart: (firstLine?: string) => void; onOwnModel: () => void
   onModel: () => void; onVoice: () => void; onRoom: () => void; onRealtime: () => void; onLog: () => void; onMemory: () => void
 }
 
@@ -25,7 +28,9 @@ export function Console({ goal, partner, checks, optionsOpen, onOptions, onCheck
   const { scene } = useScene(), conv = useConversation(), ptt = usePtt(), account = useAccount(), speech = useActiveSpeech(), brain = useBrainConfig(), realtime = useRealtime()
   const hear = asrReady(speech) || account.status === 'in'
   useEffect(() => { if (ptt.automatic && !hear) pttCancel() }, [hear, ptt.automatic])
-  const [mine, setMine] = useState(''), input = useRef<HTMLInputElement>(null)
+  const [mine, setMine] = useState(''), input = useRef<HTMLInputElement>(null), [first, setFirst] = useState('')
+  const typed = brain.kind !== 'demo' && firstLineStart(goal, optionsOf(scene.talk, goal, partner))
+  const start = () => { const line = typed ? first : ''; if (line) setFirst(''); onStart(line) }
   useEffect(() => { if (conv.waiting) input.current?.focus() }, [conv.waiting])
   const measure = useConsoleHeight()
   const yours = participants(scene).filter((c) => c.lines === 'me')
@@ -39,14 +44,16 @@ export function Console({ goal, partner, checks, optionsOpen, onOptions, onCheck
   </>
   if (!conv.running) return <div className="console next" ref={measure} onPointerDown={(e) => e.stopPropagation()}>
     <div className="talkbar run-bar">
-      <input className="topic" value={scene.topic} placeholder={tr('话题，比如：周末去哪儿玩')} aria-label={tr('话题')} onChange={(e) => store.set({ topic: e.target.value })} />
+      {typed ? <input className="first-line" value={first} placeholder={tr('说点什么…')} aria-label={tr('你说的话')} onChange={(e) => setFirst(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing && first.trim()) start() }} />
+        : <input className="topic" value={scene.topic} placeholder={tr('话题，比如：周末去哪儿玩')} aria-label={tr('话题')} onChange={(e) => store.set({ topic: e.target.value })} />}
       {brain.kind === 'demo' ? <>
         <button className="primary" onClick={() => talk.start()}><Play size={14} />{tr('再看一次')}</button>
         {/* after the demo: the same characters, with a model of one's own (the checklist, then its start) */}
         <button className="demo-own-model" onClick={onOwnModel}><Bot size={14} /><span>{tr('用你的模型重来一遍')}</span></button>
       </> : <>
         <StartRows goal={goal} partner={partner} open={optionsOpen} onToggle={onOptions} />
-        <StartButton goal={goal} partner={partner} onStart={onStart} />
+        <StartButton goal={goal} partner={partner} onStart={start} />
       </>}
       <button className="icon" title={tr('对话记录')} aria-label={tr('对话记录')} onClick={onLog}><MessagesSquare size={16} />{conv.lines.length > 0 && <em>{conv.lines.length}</em>}</button>
     </div>
