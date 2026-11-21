@@ -30,7 +30,7 @@ try {
   await page.locator('.topbar button:has(svg.lucide-settings)').click(); await page.locator('.stage-api .switch').click()
   const api = await wait(() => page.evaluate(() => window.livlivDesktop.stageApi.get()), (s) => s.enabled && s.port, 'test API did not open')
   const state = async () => { const r = await fetch('http://127.0.0.1:' + api.port + '/api/stage/state', { headers: { Authorization: 'Bearer ' + api.token } }); assert.equal(r.status, 200); return (await r.json()).state }
-  await page.locator('.settings-head button[data-close]').click(); await page.getByRole('button', { name: '模板', exact: true }).click(); await page.getByRole('button', { name: /^双人对谈/ }).click()
+  await page.locator('.settings-head button[data-close]').click(); await page.getByRole('button', { name: '模板', exact: true }).click(); await page.getByRole('button', { name: /^双人聊天/ }).click()
   const cast = (await wait(state, (s) => s.characters.length === 2 && s.characters.every((c) => c.status === 'ready'), 'characters did not load')).characters, id = cast[0].id
   const avatar = async () => (await state()).characters.find((c) => c.id === id)
   await page.locator('.actor-select').first().click(); await page.locator('details.advanced > summary').filter({ hasText: '动作与更多设置' }).click(); await page.getByRole('button', { name: '手机 / OSC', exact: true }).click()

@@ -51,11 +51,15 @@ try {
     localStorage.setItem('livliv-stage:brain', JSON.stringify({ kind: 'openai', provider: 'custom', base: origin + '/fixture', key: 'fixture-only', model: 'fixture' }))
     localStorage.setItem('livliv-stage:speech', JSON.stringify({ provider: 'openai', base: origin + '/fixture', key: 'fixture-only', model: 'fixture', voice: 'fixture', asr: 'fixture' }))
   }, origin)
-  await page.reload(); await page.getByRole('button', { name: /^AI 主播/ }).click()
+  await page.reload(); await page.locator('.start-page .goal-tile', { hasText: '和角色聊天' }).click()
   await page.waitForFunction(() => document.querySelector('canvas.character') && !document.querySelector('.badge'))
+  // 你参与吗 = 免按键, then 开始聊天: the chat starts with hands-free on; the running console's switch turns it off
   const toggle = page.getByRole('button', { name: '免按键语音', exact: true })
-  await toggle.click(); await page.waitForFunction(() => !!window.microphone)
-  await page.locator('.chat-status').filter({ hasText: '等你说话' }).waitFor()
+  await page.locator('.console .start-rows').click()
+  await page.locator('.popover.start-options').getByRole('button', { name: '免按键', exact: true }).click()
+  await page.locator('.console .start-button', { hasText: '开始聊天' }).click(); await page.waitForFunction(() => !!window.microphone)
+  await page.locator('.status-line .st-tag').filter({ hasText: '等你说话' }).waitFor()
+  assert.equal(await toggle.getAttribute('aria-pressed'), 'true')
   await app.evaluate(async ({ BrowserWindow }) => { const window = BrowserWindow.getAllWindows()[0]; await new Promise((resolve) => { window.once('minimize', resolve); window.minimize() }) })
   assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isMinimized()), true)
   await page.evaluate(() => window.microphone.gain.gain.setValueAtTime(.12, window.microphone.context.currentTime))
@@ -69,7 +73,8 @@ try {
   await toggle.click(); assert.equal(await toggle.getAttribute('aria-pressed'), 'false')
   assert.equal(await page.evaluate(() => window.microphone.stream.getAudioTracks()[0].readyState), 'ended')
   await page.screenshot({ path: join(artifacts, 'native-handsfree.png') })
-  await page.reload(); assert.equal(await toggle.getAttribute('aria-pressed'), 'false')
+  // not kept across a reload: the console offers no hands-free before a start, and nothing listens
+  await page.reload(); await page.locator('.console .start-button').waitFor(); assert.equal(await toggle.count(), 0); assert.equal(await page.locator('.handsfree-status').count(), 0)
   report.shutdown = 'closing releases the microphone and reloading leaves hands-free off'
   assert.deepEqual(errors, []); report.errors = errors
   await writeFile(join(artifacts, 'results.json'), JSON.stringify(report, null, 2)); console.log(JSON.stringify(report, null, 2))

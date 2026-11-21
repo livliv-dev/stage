@@ -197,7 +197,7 @@ try {
     localStorage.setItem('livliv-stage:speech', JSON.stringify({ provider: 'custom', base, key: '', model: 'fixture', asr: 'fixture', voice: 'fixture' }))
   }, origin)
   await page.reload()
-  await page.getByRole('button', { name: /^AI 主播/ }).click()
+  await page.locator('.start-page .goal-tile', { hasText: '和角色聊天' }).click()
   await page.waitForFunction(() => [...window.__stage.actors.values()].some((actor) => actor.status === 'ready'))
   const actorId = await page.evaluate(async () => {
     const stage = window.__stage
@@ -231,19 +231,17 @@ try {
   assert.equal(outputScope, 'public')
   await page.waitForFunction(() => !window.__stage.conversation().output)
   publicReply = ''
-  // the AI 主播 stage's main button opens AI 直播; the chat with its one character is under 更多方式
-  const startChat = async () => {
-    await page.locator('.start-modes > summary').click()
-    await page.getByRole('button', { name: '和 Rally Nana 聊天', exact: true }).click()
-  }
-  await startChat()
+  // 和角色聊天's start button; the status line names the engine
+  await page.locator('.console .start-button', { hasText: '开始聊天' }).click()
   await page.waitForFunction(() => window.__stage.conversation().waitingInput)
-  await page.locator('.chat-partner').filter({ hasText: '由 Rally Nana 回应' }).waitFor()
+  await page.locator('.status-line .st-tag', { hasText: 'AIRI' }).waitFor()
   assert.equal(await page.evaluate(() => window.__stage.conversation().engine), 'airi')
   assert.equal(await page.evaluate(() => window.__stage.conversation().scope), 'private')
+  // what you type in the console while a session runs; before one, the console has no line to type in, and a first
+  // line goes to the same talk.say the old idle field called
   const ownerSays = async (text, reply) => {
-    await page.getByLabel('你说的话').fill(text)
-    await page.getByLabel('你说的话').press('Enter')
+    if (await page.getByLabel('你说的话').count()) { await page.getByLabel('你说的话').fill(text); await page.getByLabel('你说的话').press('Enter') }
+    else await page.evaluate((text) => window.__stage.talk.say(text), text)
     await page.waitForFunction((text) => window.__stage.conversation().lines.some((line) => line.text === text), reply)
     await page.waitForFunction(() => window.__stage.conversation().waitingInput)
   }
@@ -255,7 +253,7 @@ try {
     await talk.newChat()
     talk.say('New session after the remembered note.', { respond: false })
   })
-  assert.equal(await page.locator('.start-modes').isVisible(), true)
+  assert.equal(await page.locator('.console .start-button').isVisible(), true)
   await ownerSays('Recall my private detail', 'I remember the private detail.')
   assert.equal(memoryCalls.length, 3)
   assert.ok(await page.evaluate(() => window.__stage.conversation().lines.some((line) => line.text === 'I remember the private detail.')))
@@ -281,28 +279,36 @@ try {
   assert.equal(await page.evaluate(() => window.__stage.talk.setScope('private')), true)
   assert.ok(await page.evaluate(() => window.__stage.conversation().lines.some((line) => line.text === 'I remember the private detail.')))
   await page.evaluate(() => window.__stage.talk.stop())
-  await page.getByRole('button', { name: '直播', exact: true }).click()
+  // AI 来开播 on this character: the start page from the stage name's menu; the checklist's 游戏 opens the 直播间 card
+  const startPage = async () => { await page.locator('.scene-switcher > button').click(); await page.locator('.shot-start').click() }
+  await startPage()
+  await page.locator('.start-page .goal-tile', { hasText: 'AI 来开播' }).locator('.goal-main').click()
+  await page.locator('.status-line .st-tag', { hasText: 'AIRI' }).waitFor()
+  await page.locator('.popover.checklist .check', { hasText: '游戏' }).getByRole('button', { name: '去设置', exact: true }).click()
   const live = page.locator('.desktop-live-settings')
-  await live.getByText('由 Rally Nana 回应', { exact: true }).waitFor()
+  await live.waitFor()
   assert.equal(await live.getByRole('button', { name: '私聊', exact: true }).count(), 0)
   assert.equal(await live.getByLabel('游戏连接').inputValue(), 'window')
   await page.screenshot({ path: join(artifacts, 'unified-live.png') })
   await page.getByRole('button', { name: '选择游戏窗口' }).click()
   await page.getByLabel('游戏画面').selectOption({ label: 'AIRI Rally' })
-  await page.locator('.test-chat summary').click()
+  // a test message before the start: Twitch's place in the start options (谁在看 = 直播间)
+  await page.locator('.console .start-rows').click()
+  const options = page.locator('.popover.start-options')
+  await options.locator('.test-chat summary').click()
   const mic = page.getByRole('button', { name: '按住说话', exact: true })
+  // before a start the console has no hold button: the ` key holds to talk
   const holdPrivateCapture = async () => {
     deferredAsr = true; asrStarted = false; asrCancelled = false
-    await mic.hover()
-    await page.mouse.down()
-    await page.waitForFunction(() => document.querySelector('button.mic.listening'))
+    await page.evaluate(() => document.activeElement?.blur())
+    await page.keyboard.down('Backquote')
     await page.waitForTimeout(650)
-    await page.mouse.up()
+    await page.keyboard.up('Backquote')
     await until(() => asrStarted, 'The private capture did not reach transcription')
   }
   await holdPrivateCapture()
-  await live.getByLabel('模拟一条弹幕').fill('Public scope transition probe')
-  await live.locator('.test-chat').getByRole('button', { name: '发送', exact: true }).click()
+  await options.getByLabel('模拟一条弹幕').fill('Public scope transition probe')
+  await options.locator('.test-chat').getByRole('button', { name: '发送', exact: true }).click()
   const publicStart = await page.evaluate(() => {
     const { talk, conversation } = window.__stage
     talk.start()
@@ -314,7 +320,7 @@ try {
   await until(() => asrCancelled, 'Starting a public conversation did not cancel the pending private transcript')
   await page.evaluate(() => window.__stage.talk.setScope('private'))
   await holdPrivateCapture()
-  await page.getByRole('button', { name: '开始 AI 直播', exact: true }).click()
+  await page.locator('.console .start-button', { hasText: '开播' }).click()
   await until(() => asrCancelled, 'Starting the live session did not cancel the pending private transcript')
   deferredAsr = false
   await page.waitForFunction(() => window.__stage.conversation().scope === 'public' && !!window.__stage.conversation().sessionId)
@@ -326,7 +332,11 @@ try {
   assert.equal(await page.evaluate(() => window.__stage.recording().phase), 'recording')
   const recAt = await page.evaluate(() => performance.timeOrigin + window.__stage.recording().started)
 
+  // while live, the viewers' messages are in the 直播间 card (the status line's 直播间)
+  const room = async () => { if (!await page.locator('.live-settings .test-chat').count()) await page.locator('.status-line .st-tag', { hasText: '直播间' }).click(); const chat = page.locator('.live-settings .test-chat'); if (!await chat.evaluate((d) => d.open)) await chat.locator('summary').click() }
+  await room()
   const send = async (text) => {
+    await room()
     await page.getByLabel('模拟一条弹幕').fill(text)
     await page.locator('.test-chat').getByRole('button', { name: '发送', exact: true }).click()
   }
@@ -418,8 +428,12 @@ try {
   await page.waitForFunction(() => window.__stage.conversation().lines.some((line) => line.text === 'Manual microphone caption.') && !window.__stage.conversation().running)
   assert.equal(turns.length, 3)
   await page.evaluate((id) => window.__stage.store.patch(id, { lines: 'ai' }), actorId)
-  await page.locator('.chat-scope-link').filter({ hasText: '私聊' }).waitFor()
-  await page.getByRole('button', { name: '记忆', exact: true }).click()
+  // back to 和角色聊天: private is there to choose again; the memory is a tab of the transcript card
+  await startPage()
+  await page.locator('.start-page .goal-tile', { hasText: '和角色聊天' }).click()
+  await page.locator('.popover.checklist [data-close]').click()
+  await page.locator('.console .scope-tag').filter({ hasText: '私聊' }).waitFor()
+  await page.locator('.console button[aria-label="对话记录"]').click(); await page.locator('.transcript').getByRole('tab', { name: '记忆', exact: true }).click()
   const transcript = page.locator('.transcript')
   await transcript.getByRole('button', { name: '添加记忆', exact: true }).click()
   assert.equal(await transcript.getByLabel('可在直播中使用').isChecked(), false)
@@ -434,11 +448,9 @@ try {
   await ownerSays('Check the batch completion again.', 'I can answer that again.')
   assert.deepEqual(batchCalls, [true, false, false])
   await page.evaluate(() => window.__stage.talk.stop())
-  const liveToggle = page.getByRole('button', { name: '直播', exact: true })
-  if (await liveToggle.getAttribute('aria-expanded') === 'true') await liveToggle.click()
-  await liveToggle.click()
-  await page.getByRole('button', { name: '开始 AI 直播', exact: true }).click()
-  await page.locator('.test-chat summary').click()
+  await startPage()
+  await page.locator('.start-page .goal-tile', { hasText: 'AI 来开播' }).locator('.goal-main').click()
+  await page.locator('.popover.checklist footer .primary', { hasText: '开播' }).click()
   await send('Retry the temporary fault')
   await page.waitForFunction(() => window.__stage.conversation().retryAt > 0)
   await page.waitForFunction(() => window.__stage.conversation().lines.some((line) => line.text === 'Still here after the brief outage.'))

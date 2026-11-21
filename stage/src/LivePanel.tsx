@@ -1,6 +1,6 @@
 // 直播间: in the desktop app the game the characters play while live (set before the start), and while live how it
-// goes (what it is doing, how much is left, the game's state and a task for it). Starting, the limits and Twitch are
-// the start options' (shell/StartBar.tsx); pausing and ending, the console's.
+// goes (what it is doing, how much is left, the viewers' messages, the game's state and a task for it). Starting, the
+// limits and choosing Twitch are the start options' (shell/StartBar.tsx); pausing and ending, the console's.
 import { tr } from './i18n'
 import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
@@ -12,6 +12,7 @@ import { participants, useScene } from './scene'
 import { voiceRoute, useActiveSpeech } from './voiceApi'
 import { desktop } from './desktopBridge'
 import { features } from './core/platform'
+import { AudiencePanel } from './AudiencePanel'
 import { liveGame, liveSetup, useLiveSetup } from './shell/liveSetup'
 
 export function LivePanel({ onClose }: { onClose: () => void }) {
@@ -111,6 +112,7 @@ export function LivePanel({ onClose }: { onClose: () => void }) {
         <button disabled={state.paused || !instruction.trim()} onClick={() => void sendTask()}>{tr('执行')}</button>
       </div>}
     </section>}
+    {active && <AudiencePanel />}
     {active && <section className="section">
       <h3>{tr("本次会话")}</h3>
       <p className="live-status" role="status">{status}</p>
