@@ -3,6 +3,7 @@
 // the cast (who is in the conversation, and in what state) over the console (topic, run, your line). ⌘\ folds the
 // right panel away. Show mode: only the stage; moving the mouse brings back a small control bar for a moment.
 // The parts live in shell/ (TopBar, Rail, Cast, Console, the cards); which card is open is the ui store's (shell/ui.ts).
+import { keysOf } from './core/prefs'
 import { useEffect, useRef, useState } from 'react'
 import { playDemo } from './brain'
 import { talk, useConversation } from './conversation'
@@ -71,7 +72,7 @@ export default function App() {
   })
   const [zoom, setZoom] = useState<Zoom>('fit')
   const resetLayout = () => {
-    for (const key of [FOLDED, 'livliv-stage:left-folded', 'livliv-stage:tools-folded', 'livliv-stage:cast-folded']) localStorage.removeItem(key)
+    for (const key of keysOf(['layout'])) localStorage.removeItem(key)
     setBareNow(false); setLeftFolded(false); setZoom('fit')
   }
   const [menu, setMenu] = useState<MenuAt | null>(null)

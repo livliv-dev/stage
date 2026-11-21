@@ -4829,4 +4829,9 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "设计": {"zh-Hans": "设计", "zh-Hant": "設計", "en": "Designed", "ja": "デザイン"},
   "还没有声音": {"zh-Hans": "还没有声音", "zh-Hant": "還沒有聲音", "en": "no voice yet", "ja": "まだ声がありません"},
   "用 Voicebox（免费，在本机运行）": {"zh-Hans": "用 Voicebox（免费，在本机运行）", "zh-Hant": "用 Voicebox（免費，在本機執行）", "en": "Use Voicebox (free, runs on this computer)", "ja": "Voicebox を使う（無料、このコンピューターで動作）"},
+  "全局热键（恢复默认并关闭）": {"zh-Hans": "全局热键（恢复默认并关闭）", "zh-Hant": "全域快速鍵（恢復預設並關閉）", "en": "Global hotkeys (back to default, and off)", "ja": "グローバルホットキー（初期設定に戻してオフ）"},
+  "选择要恢复默认的项：": {"zh-Hans": "选择要恢复默认的项：", "zh-Hant": "選擇要恢復預設的項目：", "en": "Choose what to reset:", "ja": "初期設定に戻す項目を選んでください："},
+  "设备选择": {"zh-Hans": "设备选择", "zh-Hant": "裝置選擇", "en": "Devices", "ja": "デバイスの選択"},
+  "音量": {"zh-Hans": "音量", "zh-Hant": "音量", "en": "Volumes", "ja": "音量"},
+  "面板布局": {"zh-Hans": "面板布局", "zh-Hant": "面板佈局", "en": "Panel layout", "ja": "パネルのレイアウト"},
 }
