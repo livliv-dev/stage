@@ -1,7 +1,7 @@
 // A goal's 准备清单, over the console: each item with where it stands, a test that says what went wrong in words, and a
 // way into the right setting (which comes back here).
 import { useEffect, useRef, useState } from 'react'
-import { Check as Tick, CircleAlert, ChevronRight, LoaderCircle, Minus, X } from 'lucide-react'
+import { Check as Tick, CircleAlert, ChevronRight, ExternalLink, LoaderCircle, Minus, X } from 'lucide-react'
 import { tr } from '../i18n'
 import { actors } from '../actors'
 import { brainReady, loadBrainConfig, testModel } from '../brain'
@@ -47,6 +47,7 @@ function CheckRow({ check, onFix, test }: { check: Check; onFix?: () => void; te
   return <li className={`check ${check.state}`}>
     <i aria-hidden="true">{icon}</i>
     <span className="check-text"><b>{tr(check.label)}{check.desktop && <span className="desk-tag">{tr('桌面版')}</span>}</b><small>{tr(check.detail)}</small>
+      {check.link && <a className="check-link" href={check.link.url} target="_blank" rel="noreferrer">{tr(check.link.label)}<ExternalLink size={11} /></a>}
       {st.err && <small className="error" role="alert">{st.err}</small>}{st.ok && <small className="ok" role="status">{st.ok}</small>}</span>
     {test && check.state !== 'off' && <button disabled={st.busy} onClick={() => void go()}>{st.busy ? <LoaderCircle size={13} className="spin" /> : null}{tr('测试')}</button>}
     {onFix && check.state !== 'off' && <button className="icon" aria-label={tr('去设置')} title={tr('去设置')} onClick={onFix}><ChevronRight size={15} /></button>}

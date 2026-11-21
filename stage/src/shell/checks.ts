@@ -8,7 +8,9 @@ export type CheckId = 'model' | 'voice' | 'camera' | 'microphone' | 'phone' | 'p
 /** ok: ready; todo: needed and not ready; warn: works, short of what you might expect (subtitles only); optional: not
  *  needed, not set; off: not here (a desktop item on the web) */
 export type CheckState = 'ok' | 'todo' | 'warn' | 'optional' | 'off'
-export type Check = { id: CheckId; label: string; state: CheckState; detail: string; desktop?: boolean }
+export type Check = { id: CheckId; label: string; state: CheckState; detail: string; desktop?: boolean
+  /** a page to get what it needs (Voicebox's) */
+  link?: { label: string; url: string } }
 
 export type CheckContext = {
   /** the model the AI characters think with: its name, 'LivLiv', or null when none is set up (the demo is none) */
@@ -27,6 +29,9 @@ export type CheckContext = {
   game: { here: boolean; engine: EngineChoice; reason: string }
   /** 实时通话: credentials for OpenAI's or Bailian's realtime API */
   realtime: { ready: boolean; provider: string }
+  /** Voicebox on this computer (the desktop app): found running, and the voice the first AI character would speak in
+   *  with it, when it is the voice in use */
+  voicebox?: { here: boolean; on: boolean; profile?: string }
 }
 
 const voiced = (route: VoiceRoute) => route === 'api' || route === 'livliv' || route === 'system'
@@ -34,10 +39,13 @@ const voiced = (route: VoiceRoute) => route === 'api' || route === 'livliv' || r
 function modelCheck(c: CheckContext): Check {
   return { id: 'model', label: '文字模型', state: c.model ? 'ok' : 'todo', detail: c.model ?? '需要设置' }
 }
+/** where to get Voicebox, offered on the desktop while it isn't found */
+const VOICEBOX = { label: '用 Voicebox（免费，在本机运行）', url: 'https://voicebox.sh' }
 function voiceCheck(c: CheckContext): Check {
   const silent = c.ai.filter((a) => !a.muted && !voiced(a.voice))
   if (!c.ai.length) return { id: 'voice', label: '声音', state: 'todo', detail: '先放一个 AI 角色' }
-  return silent.length ? { id: 'voice', label: '声音', state: 'warn', detail: '现在只有字幕' } : { id: 'voice', label: '声音', state: 'ok', detail: c.ai.map((a) => a.name).join('、') }
+  if (silent.length) return { id: 'voice', label: '声音', state: 'warn', detail: '现在只有字幕', ...(c.voicebox?.here && !c.voicebox.on ? { link: VOICEBOX } : {}) }
+  return { id: 'voice', label: '声音', state: 'ok', detail: c.voicebox?.profile ? `Voicebox · ${c.voicebox.profile}` : c.ai.map((a) => a.name).join('、') }
 }
 
 export function checklist(goal: Goal, c: CheckContext): Check[] {

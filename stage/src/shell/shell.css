@@ -45,6 +45,7 @@
 .check-text small { font-size: 12px; line-height: 18px; color: var(--fg-3); }
 .check-text small.error { color: var(--error); }
 .check-text small.ok { color: var(--ok); }
+.check-text .check-link { font-size: 12px; line-height: 18px; display: inline-flex; align-items: center; gap: 3px; width: fit-content; }
 .check > button:not(.icon) { flex: none; padding: 3px 10px; font-size: 12px; }
 .desk-tag { display: inline-block; font-style: normal; font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: 999px; background: var(--hover); color: var(--fg-3); font-weight: 400; }
 .popover.checklist footer { margin-top: 10px; display: flex; justify-content: flex-end; align-items: center; }

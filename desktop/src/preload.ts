@@ -9,12 +9,15 @@
 //   window.clickThrough(mode) / alwaysOnTop(on) / minimize() / close() / menu() / dragStart() / dragEnd()
 //   window.openStage('/live/<id>?…')     opens a stage window
 //   onCommand(cb) -> unsubscribe        a stage's commands (hotkeys, local endpoint), as CmdBody
+//   voicebox.profiles() / speak(id, line, language) / transcribe(id, wav, language) / cancel(id)   Voicebox on this
+//                                        computer (the Stage editor only; results, never thrown: voicebox.ts)
 import type { MotionEvent, MotionSettings, MotionState } from './trackingProtocol'
 import type { StageApiState, StageControlRequest } from './stageCommands'
 import type { NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } from './neuroProtocol'
 import type { CollabConfig, CollabState } from './collabProtocol'
 import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameMessage, AiriGameSnapshot } from './airiGameProtocol'
 import type { ExternalSelection } from './neuroProtocol'
+import type { VoiceboxProfile, VoiceboxResult } from './voicebox'
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
 type Info = { api: 1; version: string; platform: string; role: 'main' | 'stage'; stageEditor: boolean }
@@ -70,6 +73,12 @@ if (info) {
         },
       },
       tracking: { get: (): Promise<MotionState> => invoke('livliv:tracking', 'get'), set: (settings: MotionSettings): Promise<MotionState> => invoke('livliv:tracking', 'set', settings) },
+      voicebox: {
+        profiles: (): Promise<VoiceboxResult<VoiceboxProfile[]>> => invoke('livliv:voicebox', 'profiles'),
+        speak: (id: string, line: { profile: string; text: string }, language: string): Promise<VoiceboxResult<ArrayBuffer>> => invoke('livliv:voicebox', 'speak', id, line, language),
+        transcribe: (id: string, wav: ArrayBuffer, language?: string): Promise<VoiceboxResult<string>> => invoke('livliv:voicebox', 'transcribe', id, wav, language),
+        cancel: (id: string): Promise<null> => invoke('livliv:voicebox', 'cancel', id),
+      },
       onMotion: (callback: (event: MotionEvent) => void) => {
         const listener = (_event: IpcRendererEvent, value: MotionEvent) => callback(value)
         ipcRenderer.on('livliv:motion', listener)

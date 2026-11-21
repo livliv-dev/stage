@@ -25,6 +25,7 @@ import { stageFromPath } from './urls'
 import { NeuroHost } from './neuroHost'
 import { CollabHost } from './collabHost'
 import { AiriGameHost } from './airiGameHost'
+import { VOICEBOX_URL, voiceboxClient } from './voicebox'
 
 // ---------------------------------------------------------------- global hotkeys
 
@@ -50,6 +51,8 @@ const control = APP === 'stage' ? stageControl(mainContents) : undefined
 const neuro = APP === 'stage' ? new NeuroHost({ editor: mainContents }) : null
 const collab = APP === 'stage' ? new CollabHost({ editor: mainContents }) : null
 const airiGames = APP === 'stage' ? new AiriGameHost(process.env.AIRICRAFT_BRIDGE_STATE_FILE || join(app.getPath('home'), '.airicraft', 'bridge-state.json')) : null
+// Voicebox where it listens (a test points it at a stand-in, in development)
+const voicebox = APP === 'stage' ? voiceboxClient({ fetch, base: (DEV && process.env.VOICEBOX_URL) || VOICEBOX_URL }) : null
 let api: LocalApi | null = null
 let apiError: string | null = null
 let apiQueue = Promise.resolve()
@@ -131,6 +134,7 @@ else {
       ...(collab ? { collab } : {}),
       ...(neuro ? { neuro } : {}),
       ...(airiGames ? { airiGames } : {}),
+      ...(voicebox ? { voicebox } : {}),
       ...(motionInput ? { tracking: { get: () => motionInput.state(), set: async (value) => { update((s) => { s.trackingInput = value }); return motionInput.configure(value) } } } : {}),
       capabilities: () => (APP === 'stage' ? ['global-hotkeys', ...(api ? ['local-commands'] : [])] : capabilities()),
       ...(APP === 'stage' ? { stageApi: { get: stageApiState, set: async (enabled: boolean) => { update((s) => { s.stageApi.enabled = enabled }); await syncLocalApi(); return stageApiState() }, rotate: () => { update((s) => { s.token = randomBytes(16).toString('hex') }); return stageApiState() } } } : {}),

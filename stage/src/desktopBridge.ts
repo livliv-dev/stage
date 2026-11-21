@@ -5,6 +5,7 @@ import type { NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSpeech, NeuroState } 
 import type { CollabConfig, CollabState } from '../../desktop/src/collabProtocol'
 import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameMessage, AiriGameSnapshot } from '../../desktop/src/airiGameProtocol'
 import type { ExternalSelection } from '../../desktop/src/neuroProtocol'
+import type { VoiceboxProfile, VoiceboxResult } from '../../desktop/src/voicebox'
 
 export type Shortcut = { accelerator: string; do: string; ok: boolean; why?: string }
 export type Desktop = {
@@ -31,6 +32,13 @@ export type Desktop = {
     onState(callback: (state: NeuroState) => void): () => void
   }
   tracking?: { get(): Promise<MotionState>; set(settings: MotionSettings): Promise<MotionState> }
+  /** Voicebox on this computer (the Stage editor; desktop/src/voicebox.ts): absent in older desktop builds */
+  voicebox?: {
+    profiles(): Promise<VoiceboxResult<VoiceboxProfile[]>>
+    speak(id: string, line: { profile: string; text: string }, language: string): Promise<VoiceboxResult<ArrayBuffer>>
+    transcribe(id: string, wav: ArrayBuffer, language?: string): Promise<VoiceboxResult<string>>
+    cancel(id: string): Promise<null>
+  }
   onMotion?(cb: (event: MotionEvent) => void): () => void
   version: string
   platform: string

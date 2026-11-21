@@ -15,6 +15,7 @@ import { readNeuroAnswer, readNeuroConfig, type NeuroConfig, type NeuroSpeech, t
 import { readCollabConfig, type CollabConfig, type CollabState } from './collabProtocol'
 import type { AiriGameHost } from './airiGameHost'
 import { readAiriGameConfig } from './airiGameProtocol'
+import type { VoiceboxClient } from './voicebox'
 
 export type IpcDeps = {
   collab?: { state(): CollabState; start(config: CollabConfig): Promise<CollabState>; close(): Promise<CollabState> }
@@ -22,6 +23,7 @@ export type IpcDeps = {
   tracking?: { get(): MotionState; set(settings: MotionSettings): Promise<MotionState> }
   stageApi?: { get(): StageApiState; set(enabled: boolean): Promise<StageApiState>; rotate(): StageApiState }
   airiGames?: AiriGameHost
+  voicebox?: VoiceboxClient
   capabilities: () => string[]
   local: () => { port: number; commandUrl: string } | null
   hotkeys: { list: () => HotkeyState[]; set: (b: Binding[] | null) => HotkeyState[]; enabled: () => boolean; enable: (on: boolean) => HotkeyState[] }
@@ -82,6 +84,34 @@ export function registerIpc(deps: IpcDeps) {
       if (answer?.ok && answer.action) return games.execute(value, answer.action)
     }
     throw new Error('Invalid AIRI game operation')
+  })
+  // Voicebox on this computer (voicebox.ts): its profiles, a line said, what you said heard. A line can be given up
+  // (cancel, by the id the page chose); the editor's lines only
+  const voiceboxCalls = new Map<string, AbortController>()
+  handle('livliv:voicebox', async (event, op, id, value, language) => {
+    const voicebox = deps.voicebox
+    if (!voicebox || APP !== 'stage' || event.sender !== mainContents()) throw new Error('Stage editor only')
+    if (op === 'profiles') return voicebox.profiles()
+    if (typeof id !== 'string' || !/^[\w-]{1,64}$/.test(id)) throw new Error('Invalid Voicebox call')
+    if (op === 'cancel') { voiceboxCalls.get(id)?.abort(); voiceboxCalls.delete(id); return null }
+    const lang = typeof language === 'string' && /^[a-z]{2}$/.test(language) ? language : undefined
+    const controller = new AbortController()
+    voiceboxCalls.set(id, controller)
+    try {
+      if (op === 'speak') {
+        const line = value as { profile?: unknown; text?: unknown }
+        if (!line || typeof line.profile !== 'string' || line.profile.length > 200 || typeof line.text !== 'string' || !line.text || line.text.length > 5000) throw new Error('Invalid Voicebox line')
+        return await voicebox.speak(line.profile, line.text, lang ?? 'en', controller.signal)
+      }
+      if (op === 'transcribe') {
+        if (!(value instanceof ArrayBuffer) || value.byteLength > 25_000_000) throw new Error('Invalid recording')
+        return await voicebox.transcribe(value, lang, controller.signal)
+      }
+      throw new Error('Invalid Voicebox operation')
+    } catch (error) {
+      if (controller.signal.aborted) return { ok: false, error: 'failed', detail: 'cancelled' }
+      throw error
+    } finally { voiceboxCalls.delete(id) }
   })
   handle('livliv:vision', async (event, op, sourceId) => {
     if (APP !== 'stage' || event.sender !== mainContents()) throw new Error('Stage editor only')

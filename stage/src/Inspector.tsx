@@ -17,6 +17,7 @@ import { VoicePicker } from './VoicePicker'
 import { demoVoice } from './demo'
 import { useBrainConfig } from './brain'
 import { apiVoice, listVoices, speechProviderOf, speechReady, useActiveSpeech, voiceRoute } from './voiceApi'
+import { detectVoicebox, OPEN_ENGINES, profileName, useVoicebox, voiceboxError, voiceboxHere } from './voicebox'
 import { DevicePanel } from './DevicePanel'
 import { TrackingPanel } from './TrackingPanel'
 import { NetworkPanel } from './NetworkPanel'
@@ -110,6 +111,9 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
   const route = voiceRoute(c, speech), livliv = route === 'livliv'
   const [apiVoices, setApiVoices] = useState<string[]>([])
   useEffect(() => { if (route === 'api') void listVoices(speech).then(setApiVoices) }, [route, speech])
+  // Voicebox's voices are its profiles: looked for again as the page opens
+  const voicebox = useVoicebox(), onVoicebox = speech.provider === 'voicebox'
+  useEffect(() => { if (voiceboxHere()) void detectVoicebox() }, [])
   const test = async () => {
     if (preview.current) { preview.current.abort(); return }
     if (!a || a.status !== 'ready' || conversation.running) return
@@ -139,6 +143,14 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
       ]} />
       {livliv ? <>
         {officialPicker}
+      </> : route === 'api' && onVoicebox ? <>
+        <label className="field spaced"><span>{tr("Voicebox 的声音")}</span>
+          <select value={v.api} onChange={(e) => patch({ voice: { ...v, api: e.target.value } })}>
+            <option value="">{tr("默认（{0}）", profileName(apiVoice({ ...c, voice: { ...v, api: '' } }, speech, participants(store.get()))) || tr("还没有声音"))}</option>
+            {voicebox.profiles.map((p) => <option key={p.id} value={p.id}>{p.name} · {tr(p.kind === 'preset' ? '预设' : p.kind === 'cloned' ? '克隆' : p.kind === 'designed' ? '设计' : '其他')}{OPEN_ENGINES.has(p.engine) ? '' : ` · ${p.engine}`}</option>)}
+          </select>
+        </label>
+        <p className="hint">{voicebox.error ? voiceboxError(voicebox.error, voicebox.detail) : tr("声音在 Voicebox 里添加：预设，或用你的录音克隆。")}</p>
       </> : route === 'api' ? <>
         <label className="field spaced"><span>{tr("音色")}</span>
           <input list={`api-voices-${c.id}`} value={v.api} placeholder={tr("默认（{0}）", apiVoice(c, speech, participants(store.get())).split(':').at(-1) || tr("接口的"))} onChange={(e) => patch({ voice: { ...v, api: e.target.value } })} />
