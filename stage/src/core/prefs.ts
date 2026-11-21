@@ -22,6 +22,7 @@ export const PREFS = {
   'livliv-stage:realtime': { group: 'connections', about: 'the realtime call\'s provider and key' },
   'livliv-stage:twitch': { group: 'connections', about: 'the Twitch channel read' },
   'livliv-stage:session': { group: 'account', about: 'the livliv.ai sign-in (desktop and self-hosted)' },
+  'livliv-stage:keys-cleared': { group: 'connections', about: 'keys and the sign-in cleared here whose encrypted copy (desktop) is not yet deleted' },
   'livliv-stage:scene': { group: 'scenes', about: 'the stage being edited' },
   'livliv-stage:shots': { group: 'scenes', about: 'the scenes of the project' },
   'livliv-stage:recent-livliv-voices': { group: 'characters', about: 'LivLiv voices picked lately' },
