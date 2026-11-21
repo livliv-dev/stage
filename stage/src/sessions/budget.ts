@@ -2,6 +2,7 @@
 // generation against their limit and end there; 对谈 ends after its lines (turnLimit); every timed session ends at its
 // minutes (deadline). Limits from settings and the start options are kept within bounds here.
 import type { AiriGameConfig } from '../../../desktop/src/airiGameProtocol'
+import { clock } from './clock'
 
 /** the session made all the model calls it may */
 export class GenerationLimit extends Error {}
@@ -40,9 +41,9 @@ export const turnLimit = (demoLines: number | undefined, limit: number) => demoL
 
 /** `end` is called at `until` (milliseconds since the epoch, as Date.now()), at once if that has passed; the function
  *  returned cancels it */
-export function deadline(until: number, end: () => void, now: () => number = Date.now) {
-  const timer = setTimeout(end, Math.max(0, until - now()))
-  return () => clearTimeout(timer)
+export function deadline(until: number, end: () => void, now: () => number = clock.now) {
+  const timer = clock.timeout(end, Math.max(0, until - now()))
+  return () => clock.clear(timer)
 }
 
 /** AI 直播 rides out a busy or slow service: a failed turn is tried again after these seconds, and the session stops at

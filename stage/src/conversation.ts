@@ -36,6 +36,7 @@ import { onRoom, roomState } from './collab/session'
 import { chatLimits, counted, deadline, GenerationLimit, LIVE_FAILURES, lineLimit, liveLimits, RETRY_SECONDS, spend, spent, turnLimit as linesFor, type LiveOptions } from './sessions/budget'
 import { checkMemory, memoryIdsOf, memoryUnchanged } from './sessions/memoryGate'
 import { chance } from './sessions/chance'
+import { clock } from './sessions/clock'
 import { across, freePick as pickFree, nextSpeaker as speakerAfter } from './sessions/order'
 import { outputsOn, publicSwitch, scopeFor } from './sessions/scope'
 import { sleep, untilFree, waitWhile, Wake } from './sessions/wake'
@@ -189,7 +190,7 @@ const speechHeld = () => state.paused || dialogue.size > 0 || inputPending
 /** what holds a session's next turn back: those, and a game action being decided */
 const turnHeld = () => speechHeld() || externalDecisions > 0
 /** a viewer's message, now and then (as often as the stage's talk settings say) */
-const someViewer = () => (chance() < [0, 0.35, 0.8][store.get().talk.danmaku] ? viewers.take(Date.now(), isBlocked) : null)
+const someViewer = () => (chance() < [0, 0.35, 0.8][store.get().talk.danmaku] ? viewers.take(clock.now(), isBlocked) : null)
 
 let liveOptions: LiveOptions | null = null
 let airi: { model: ModelConfig; actorId: string; windowId: string; game?: AiriGameConnection } | null = null
@@ -291,7 +292,7 @@ function nextSpeaker(): CharacterItem | null {
 
 /** glances planned for the line being said (cleared by the next one) */
 let glances: number[] = []
-const later = (seconds: number, f: () => void) => { glances.push(window.setTimeout(f, seconds * 1000)) }
+const later = (seconds: number, f: () => void) => { glances.push(clock.timeout(f, seconds * 1000)) }
 
 /** who looks where while a line is said (characters whose eyes follow people; a tracked face or the mouse decides for
  *  its own). The speaker looks at whom the line is for: who the AI says it looks at, else whom it names, else someone
@@ -299,7 +300,7 @@ const later = (seconds: number, f: () => void) => { glances.push(window.setTimeo
  *  back (eye contact); the others watch the speaker and glance at the one it is for, or at someone it mentions, now
  *  and then. A longer line to someone may turn to the audience for a moment. */
 function looks(speaker: CharacterItem | null, line: Line | null, seconds = 0) {
-  for (const g of glances) clearTimeout(g)
+  for (const g of glances) clock.clear(g)
   glances = []
   const all = participants(store.get())
   const free = (c: CharacterItem) => !(c.driver === 'face' || c.driver === 'replay' || c.driver === 'pointer')
@@ -391,14 +392,14 @@ async function deliver(line: Line, c: CharacterItem | null, signal: AbortSignal,
   const t = store.get().talk
   const others = voices().filter((x) => x.lines === 'ai' && x.id !== c?.id)
   if (c && !line.human && line.demo === undefined && t.interrupt && others.length && line.text.length >= 14 && chance() < [0, 0.2, 0.45][t.interrupt]) {
-    cutTimer = window.setTimeout(() => cut(line.id), seconds * (0.5 + chance() * 0.25) * 1000)
+    cutTimer = clock.timeout(() => cut(line.id), seconds * (0.5 + chance() * 0.25) * 1000)
   }
   try {
     const interrupted = () => cut(line.id, true)
     signal.addEventListener('abort', interrupted, { once: true })
     try {
     if (a && take) await a.perform(take, line.emotion, line.action, signal, line.cues, () => listenTo(c, line, seconds))
-    else { listenTo(c, line, seconds); await new Promise<void>((r) => { const s = setTimeout(r, seconds * 1000); signal.addEventListener('abort', () => { clearTimeout(s); r() }, { once: true }) }) }
+    else { listenTo(c, line, seconds); await new Promise<void>((r) => { const s = clock.timeout(r, seconds * 1000); signal.addEventListener('abort', () => { clock.clear(s); r() }, { once: true }) }) }
     await take?.clip?.live?.whole
     } catch (error) {
       cut(line.id, true)
@@ -406,7 +407,7 @@ async function deliver(line: Line, c: CharacterItem | null, signal: AbortSignal,
       throw error
     } finally { signal.removeEventListener('abort', interrupted) }
   } finally {
-    clearTimeout(cutTimer)
+    clock.clear(cutTimer)
     if (c && !line.human) {
       const cancelled = signal.aborted || state.lines.find((entry) => entry.id === line.id)?.cut === true
       speech?.onEnd(cancelled)
@@ -713,7 +714,7 @@ async function run(once: boolean) {
   const c = new AbortController(); ctrl = c
   single = once; liveOptions = null; boundProfiles = castKey()
   // A public conversation consumes viewer inputs and opens only the public history.
-  const audience = store.get().talk.danmaku > 0 && (chatState().status === 'on' || viewers.available(Date.now(), isBlocked))
+  const audience = store.get().talk.danmaku > 0 && (chatState().status === 'on' || viewers.available(clock.now(), isBlocked))
   const scope: MemoryScope = audience ? 'public' : sessionScope()
   const switchScope = scope !== state.scope && loadBrainConfig().kind !== 'demo'
   set({ running: true, mode: 'conversation', waitingAudience: false, until: 0, ended: '', paused: false, error: '',
@@ -756,9 +757,9 @@ async function run(once: boolean) {
       c.signal.throwIfAborted()  // stopped during the line: it ends quietly, and the next one mustn't start
       await new Promise<void>((r, j) => {  // the pause between lines: 下一句 ends it now
         const scripted = loadBrainConfig().kind === 'demo' ? demoPause(voices(), state.lines) : null
-        const t = setTimeout(r, scripted !== null ? scripted * 1000 : state.gap * 1000 * (cutting ? 0.1 : 0.7 + chance() * 0.6))
-        hurry = () => { clearTimeout(t); r() }
-        c.signal.addEventListener('abort', () => { clearTimeout(t); j(c.signal.reason) }, { once: true })
+        const t = clock.timeout(r, scripted !== null ? scripted * 1000 : state.gap * 1000 * (cutting ? 0.1 : 0.7 + chance() * 0.6))
+        hurry = () => { clock.clear(t); r() }
+        c.signal.addEventListener('abort', () => { clock.clear(t); j(c.signal.reason) }, { once: true })
       })
       hurry = null
       while (state.paused) await sleep(200, c.signal)
@@ -795,7 +796,7 @@ async function runLive(options: LiveOptions) {
   single = false; boundProfiles = castKey()
   const offAiriCast = airiModel ? bindAiri(c, airiModel, cast[0], options.airi?.windowId) : undefined
   const engine = airi
-  const until = Date.now() + options.minutes * 60_000
+  const until = clock.now() + options.minutes * 60_000
   set({ running: true, mode: 'live', paused: false, waitingAudience: true, turns: 0, generations: 0, generationLimit: options.maxGenerations, until, retryAt: 0, ended: '', error: '',
     engine: engine ? 'airi' : undefined, game: gameConfig ? { name: gameConfig.game, status: 'connecting', text: '' } : undefined,
     scope: 'public', sessionId: '', lines: [], speaking: null,
@@ -804,7 +805,7 @@ async function runLive(options: LiveOptions) {
     if (ctrl !== c || c.signal.aborted) return
     set({ ended: tr("已达到本次时长上限") }); c.abort(); hush(); actors.forEach((a) => a.silence())
   })
-  let lastReply = Date.now() - 6000, failures = 0, replyToOwner = false
+  let lastReply = clock.now() - 6000, failures = 0, replyToOwner = false
   let retryChat: Chat | null = null
   let attached: AiriGameConnection | undefined
   let offGame: (() => void) | undefined
@@ -853,7 +854,7 @@ async function runLive(options: LiveOptions) {
       while (queue.length) { await consumeInput(c.signal); replyToOwner = true }
       c.signal.throwIfAborted()
       if (turnHeld()) continue
-      const now = Date.now(), cooldown = lastReply + 6000 - now
+      const now = clock.now(), cooldown = lastReply + 6000 - now
       if (cooldown > 0 && !replyToOwner) { await wake.wait(c.signal, cooldown); continue }
       const warmupAt = options.warmupSeconds ? lastReply + options.warmupSeconds * 1000 : Infinity
       if (retryChat && isBlocked(retryChat.user)) retryChat = null
@@ -886,14 +887,14 @@ async function runLive(options: LiveOptions) {
         else retryChat = chat
         if (++failures >= LIVE_FAILURES) throw e
         const ms = RETRY_SECONDS[failures - 1] * 1000
-        set({ thinking: null, waitingAudience: true, error: (e as Error).message, retryAt: Date.now() + ms })
+        set({ thinking: null, waitingAudience: true, error: (e as Error).message, retryAt: clock.now() + ms })
         await sleep(ms, c.signal)
         set({ retryAt: 0 })
         continue
       }
       c.signal.throwIfAborted()
       failures = 0
-      lastReply = Date.now(); set({ waitingAudience: true, error: '' })
+      lastReply = clock.now(); set({ waitingAudience: true, error: '' })
     }
     set({ ended: tr("已达到本次生成次数上限") })
   } catch (e) {
@@ -937,7 +938,7 @@ async function startChatSession(chosen: MemoryScope = state.chatScope, target?: 
   set({ running: true, mode: 'chat', scope, sessionId: '', lines: [], speaking: null, waitingInput: false, paused: false, thinking: null, waitingAudience: false,
     engine: preferred ? 'airi' : undefined, game: undefined,
     generations: 0, generationLimit: limits.generations, turns: 0,
-    until: Date.now() + limits.minutes * 60000, ended: '', error: '' }, false)
+    until: clock.now() + limits.minutes * 60000, ended: '', error: '' }, false)
   try {
     await openRecord(scope, controller.signal)
     for (let i = 0; i < 60 && !voices().some((character) => character.lines === 'ai'); i++) await sleep(250, controller.signal)
@@ -961,7 +962,7 @@ async function startChatSession(chosen: MemoryScope = state.chatScope, target?: 
 async function runChat(controller: AbortController, unbind: () => void) {
   const signal = controller.signal
   const stopClock = deadline(state.until, () => { set({ ended: tr('已达到本次时长上限') }); interruptTurn(); controller.abort() })
-  let requested = !state.lines.length, replyToOwner = false, lastReply = Date.now(), nudges = 0
+  let requested = !state.lines.length, replyToOwner = false, lastReply = clock.now(), nudges = 0
   try {
     while (!spent(state)) {
       signal.throwIfAborted()
@@ -979,7 +980,7 @@ async function runChat(controller: AbortController, unbind: () => void) {
         set({ waitingInput: true })
         actors.forEach((actor) => { if (actor.item.lines === 'ai') actor.setPhase('waiting') })
         const seconds = store.get().talk.proactiveSeconds ?? 0
-        const remaining = seconds && nudges < 1 ? lastReply + seconds * 1000 - Date.now() : Infinity
+        const remaining = seconds && nudges < 1 ? lastReply + seconds * 1000 - clock.now() : Infinity
         if (remaining <= 0) { requested = true; nudges++ }
         else { await wake.wait(signal, Number.isFinite(remaining) ? remaining : undefined); continue }
       }
@@ -994,7 +995,7 @@ async function runChat(controller: AbortController, unbind: () => void) {
       const completed = await aiTurn(speaker, signal, null, replyToOwner)
       requested = !completed && beforeInput === inputEpoch
       replyToOwner &&= requested
-      activeEvent = null; lastReply = Date.now()
+      activeEvent = null; lastReply = clock.now()
     }
     set({ ended: tr('已达到本次生成次数上限') })
   } catch (error) {
@@ -1230,7 +1231,7 @@ export const talk = {
     offRealtimeHistory(); offRealtimeHistory = () => {}
     realtimeControls?.interrupt()
     const realtime = realtimeControls; realtimeControls = null; realtime?.stop()
-    interruptTurn(); ctrl?.abort(); ctrl = null; liveOptions = null; airi = null; queue.length = 0; externalQueue.length = 0; dialogue.clear(); cutting = false; clearTimeout(cutTimer)
+    interruptTurn(); ctrl?.abort(); ctrl = null; liveOptions = null; airi = null; queue.length = 0; externalQueue.length = 0; dialogue.clear(); cutting = false; clock.clear(cutTimer)
     dropAhead()
     hush(); actors.forEach((a) => a.silence())
     set({ running: false, paused: false, thinking: null, speaking: null, waitingInput: false, waiting: null, waitingAudience: false, retryAt: 0, ended: state.mode === 'live' ? tr("已手动停止") : '', engine: undefined, game: undefined })
