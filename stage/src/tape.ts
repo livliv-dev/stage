@@ -7,7 +7,7 @@ import { tr } from './i18n'
 //  - the sound: each LivLiv clip with when it was heard and where it was cut off, and the microphone when asked for.
 //    The system's own voice gives no sound to take down: those lines are in the video without it
 import { actors, onActors, onFrame, onHeard, type Actor, type Heard } from './actors'
-import { conversation, onConv, shownConv } from './conversation'
+import { conversation, onConv, shownConv } from './sessions/state'
 import { store, type Scene } from './scene'
 import type { Line } from './core/lines'
 import type { Params, View } from '@livliv-dev/player'

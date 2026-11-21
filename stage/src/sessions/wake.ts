@@ -2,16 +2,18 @@
 // made, the end of a game character's dialogue) and is woken when it does. One waiter at a time: the session's loop,
 // or the turn it is in.
 
+import { clock } from './clock'
+
 export class Wake {
   private waiter: (() => void) | null = null
   /** until the next wake(), or `ms` milliseconds when given; rejects with the signal's reason when it aborts */
   wait(signal: AbortSignal, ms?: number): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       signal.throwIfAborted()
-      const clean = () => { clearTimeout(timer); signal.removeEventListener('abort', abort); if (this.waiter === done) this.waiter = null }
+      const clean = () => { clock.clear(timer); signal.removeEventListener('abort', abort); if (this.waiter === done) this.waiter = null }
       const done = () => { clean(); resolve() }
       const abort = () => { clean(); reject(signal.reason) }
-      const timer = ms === undefined ? undefined : setTimeout(done, Math.max(0, ms))
+      const timer = ms === undefined ? undefined : clock.timeout(done, Math.max(0, ms))
       this.waiter = done
       signal.addEventListener('abort', abort, { once: true })
     })
@@ -24,8 +26,8 @@ export class Wake {
 export const sleep = (ms: number, signal: AbortSignal) => new Promise<void>((resolve, reject) => {
   signal.throwIfAborted()
   const done = () => { signal.removeEventListener('abort', abort); resolve() }
-  const timer = setTimeout(done, ms)
-  const abort = () => { clearTimeout(timer); signal.removeEventListener('abort', abort); reject(signal.reason) }
+  const timer = clock.timeout(done, ms)
+  const abort = () => { clock.clear(timer); signal.removeEventListener('abort', abort); reject(signal.reason) }
   signal.addEventListener('abort', abort, { once: true })
 })
 

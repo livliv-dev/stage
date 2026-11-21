@@ -77,9 +77,9 @@ async function serve(route, world) {
 
 // ---------------------------------------------------------------- the recorder, in the page
 
-/** before the app: the desktop app's bridge (desktop scenarios), a microphone whose level a scenario sets, a faster
- *  clock for time limits, and every request the page makes to a paid service written down as it is made */
-function beforeApp({ desktop, signedIn, fastClock }) {
+/** before the app: the desktop app's bridge (desktop scenarios), a microphone whose level a scenario sets, and every
+ *  request the page makes to a paid service written down as it is made */
+function beforeApp({ desktop, signedIn }) {
   localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1')
   if (signedIn) localStorage.setItem('livliv-stage:session', 'trace-session')
   if (desktop) {
@@ -96,12 +96,6 @@ function beforeApp({ desktop, signedIn, fastClock }) {
     return destination.stream
   }
   navigator.mediaDevices.enumerateDevices = async () => []
-  // a session's time limit is a minute at least: in a scenario that ends at one, a timer of half a minute or more (a
-  // limit's, set a moment after the session started) runs 60 times sooner, so a minute's limit ends after a second
-  if (fastClock) {
-    const later = window.setTimeout
-    window.setTimeout = function (handler, ms, ...rest) { return later.call(window, handler, typeof ms === 'number' && ms >= 30_000 ? ms / 60 : ms, ...rest) }
-  }
   const trace = window.__trace = { on: false, events: [], memories: [], names: {} }
   const push = (event) => { if (trace.on) trace.events.push(event) }
   /** a memory a request carried, by its id: its scope and text */
@@ -633,7 +627,7 @@ try {
     const world = { voiceSeconds: scenario.voiceSeconds ?? 0.15, signedIn: !!scenario.signedIn, livliv: { nana: 'Nana', kai: 'Kai' } }
     if (!port) { port = await freePort(); servers.push(await startVite({ port, args: ['--configLoader', 'native'] })) }
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
-    await context.addInitScript(beforeApp, { desktop: !!scenario.desktop, signedIn: !!scenario.signedIn, fastClock: !!scenario.fastClock })
+    await context.addInitScript(beforeApp, { desktop: !!scenario.desktop, signedIn: !!scenario.signedIn })
     await context.route('**/*', (route) => serve(route, world))
     const page = await context.newPage(), errors = []
     page.setDefaultTimeout(testTimeout(scenario.timeout ?? 30000)); page.on('pageerror', (error) => errors.push(error.message))
@@ -641,6 +635,10 @@ try {
     try {
       await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'networkidle' })
       await page.waitForFunction(() => !!window.__stage)
+      // a session's time limit is a minute at least: in a scenario that ends at one, the session's clock runs a timer of
+      // half a minute or more (a limit's, set a moment after the session started) 60 times sooner, so a minute's limit
+      // ends after a second
+      if (scenario.fastClock) await page.evaluate(async () => (await import('/src/sessions/clock.ts')).setClock({ timeout: (f, ms) => setTimeout(f, ms >= 30_000 ? ms / 60 : ms) }))
       await scenario.run(page, world)
       await page.waitForTimeout(300)  // a save after the last line
       const events = await page.evaluate(() => window.__trace.events)

@@ -1,0 +1,89 @@
+// A LivLiv voice is paid per /say call (a point at least), so a line in it is voiced whole, one call, however the
+// session says it: on the site's build, signed in (the site is faked: nothing is spent), a chat with a model of one's
+// own in the characters' LivLiv voices makes exactly one /say per AI line, each with the whole line; the same chat in
+// the system voice says the reply sentence by sentence and makes no /say; a 对谈 on LivLiv's own model brings each
+// line with its voice in one stage-line call, and no /say.
+import assert from 'node:assert/strict'
+import { chromium } from 'playwright-core'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
+
+const root = fileURLToPath(new URL('..', import.meta.url)), errors = []
+const FLAGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required']
+const clip = await readFile(join(root, 'public/demo/trio/01.mp3'))
+const REPLY = '你好呀。今天想聊点什么？我们慢慢说。', SENTENCES = ['你好呀。', '今天想聊点什么？', '我们慢慢说。']
+const said = [], lines = []
+let server, browser
+try {
+  const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: 'livliv' } })
+  browser = await chromium.launch({ args: FLAGS })
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  await context.addInitScript(() => { localStorage.setItem('livliv-stage:locale', 'zh-Hans') })
+  await context.route('**/*', async (route) => {
+    const req = route.request(), url = new URL(req.url())
+    if (url.pathname === '/api/me') return route.fulfill({ json: { signed_in: true, email: 'member@example.test', points: 10, plan: 'plus', record_seconds: 300, record_mark: false, stage_line_points: 0.5, stage_silent_free: true } })
+    if (/^\/api\/chat\/[^/]+\/stage-line$/.test(url.pathname)) {
+      const body = req.postDataJSON(); lines.push({ voice: body.voice })
+      return route.fulfill({ json: { text: REPLY, emotion: 'happy', action: 'none', to: null, look: null, audio: body.voice ? '/api/chat/say/line.mp3' : null, points: 10 } })
+    }
+    if (url.pathname === '/api/chat/say/line.mp3') return route.fulfill({ body: clip, contentType: 'audio/mpeg' })
+    if (/^\/api\/chat\/[^/]+\/say$/.test(url.pathname)) {
+      said.push(req.postDataJSON())
+      return route.fulfill({ json: { lines: [{ audio: '/api/chat/say/line.mp3', expression: null }], points: 9 } })
+    }
+    if (url.pathname === '/fixture-ai/chat/completions') return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: REPLY, emotion: 'happy', action: 'none', to: null, look: null }) } }] } })
+    if (/^\/api\/chat\/[^/]+\/voices$/.test(url.pathname)) return route.fulfill({ json: { voices: [{ id: 'Cherry', name: 'Cherry', desc: '' }], voice: 'Cherry', own: null } })
+    if (url.pathname.startsWith('/api/')) return route.fulfill({ status: 404, json: { detail: 'none' } })
+    if (url.hostname === '127.0.0.1' || ['blob:', 'data:'].includes(url.protocol)) return route.continue()
+    return route.abort()
+  })
+  const page = await context.newPage(); page.setDefaultTimeout(testTimeout(30000)); page.on('pageerror', (e) => errors.push(e.message))
+  await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' })
+  // the first visit: the demo's three on the stage, signed in
+  await page.waitForFunction(() => { const a = [...window.__stage.actors.values()]; return a.length === 3 && a.every((x) => x.status === 'ready') }, null, { timeout: testTimeout(60000) })
+  await page.waitForFunction(async () => (await import('/src/livliv.ts')).signedIn())
+  const voices = (source) => page.evaluate((source) => { const { store } = window.__stage; for (const c of store.get().items.filter((i) => i.kind === 'character')) store.patch(c.id, { voice: { ...c.voice, source } }) }, source)
+  const aiLines = () => page.evaluate(() => window.__stage.conversation().lines.filter((l) => !l.human).map((l) => l.text))
+  /** a fresh chat: the character greets, you say a line, it answers; then it stops */
+  async function chat() {
+    await page.evaluate(async () => { const { talk } = window.__stage; talk.stop(); await talk.newChat(); await talk.startChat('private') })
+    await page.waitForFunction(() => window.__stage.conversation().waitingInput)
+    await page.evaluate(() => window.__stage.talk.say('那就聊聊周末吧'))
+    await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.waitingInput && c.lines.filter((l) => !l.human).length >= 2 && !c.speaking })
+    await page.evaluate(() => window.__stage.talk.stop())
+  }
+
+  // a model of one's own, the characters' LivLiv voices: one /say per AI line, each with the whole line
+  await page.evaluate(async () => (await import('/src/brain.ts')).saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' }))
+  await voices('livliv')
+  said.length = 0
+  await chat()
+  const livliv = await aiLines()
+  assert.ok(livliv.length >= 2, 'the character spoke twice: ' + JSON.stringify(livliv))
+  assert.deepEqual(livliv, livliv.map(() => REPLY), 'each line in the LivLiv voice is the whole reply')
+  assert.equal(said.length, livliv.length, 'one /say per line: ' + JSON.stringify(said))
+  assert.deepEqual(said.map((call) => call.lines.map((line) => line.text)), livliv.map((text) => [text]), 'each /say carries its one line, whole')
+
+  // the same chat in the system voice: said sentence by sentence, nothing asked of /say
+  await voices('system')
+  said.length = 0
+  await chat()
+  const system = await aiLines()
+  assert.deepEqual(system.slice(0, 3), SENTENCES, 'a reply in another voice is said sentence by sentence')
+  assert.equal(said.length, 0, 'no /say without the LivLiv voice')
+
+  // a 对谈 on LivLiv's model, in the LivLiv voices: each line comes with its voice in one stage-line call, no /say
+  await page.evaluate(async () => (await import('/src/brain.ts')).saveBrainConfig({ kind: 'livliv' }))
+  await voices('livliv')
+  said.length = 0; lines.length = 0
+  await page.evaluate(() => { window.__stage.talk.setLimit(2); window.__stage.talk.start() })
+  await page.waitForFunction(() => !window.__stage.conversation().running && window.__stage.conversation().turns >= 2, null, { timeout: testTimeout(60000) })
+  assert.equal(lines.filter((line) => line.voice).length, 2, 'two lines, each asked with its voice: ' + JSON.stringify(lines))
+  assert.equal(said.length, 0, 'no /say: the voice came with the line')
+  assert.deepEqual(errors, [])
+  console.log(JSON.stringify({ ok: true, livliv: { lines: livliv.length, say: livliv.length }, system: { lines: system.length }, duet: { stageLines: lines.length } }))
+} finally {
+  await browser?.close(); server?.kill('SIGTERM')
+}

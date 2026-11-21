@@ -25,7 +25,7 @@ export function airiGameError(error: unknown) {
 
 type Frame = AiriGameFrame
 type Core = typeof import('../../vendor/airi-core/core.mjs')
-type Turn = {
+export type AiriTurn = {
   sessionId: string
   scope: MemoryScope
   actor: CharacterItem
@@ -143,7 +143,7 @@ function spoken(core: Core, signal: AbortSignal, output: ReadableStreamDefaultCo
   }
 }
 
-function priorMessages(turn: Turn): Message[] {
+function priorMessages(turn: AiriTurn): Message[] {
   return turn.lines.filter((line) => !line.cut && (line.human || line.who === turn.actor.id)).slice(-24).map((line) => ({
     id: line.id,
     role: line.human ? 'user' : 'assistant',
@@ -162,7 +162,7 @@ function addFrame(conversation: Conversation, frame: Frame | undefined): Convers
 const memoryText = (memories: MemoryRecord[]) => memories.slice(0, 12).map(({ text }) => text.slice(0, 1200)).join('\n')
 
 async function notify(
-  core: Core, turn: Turn, event: ExternalEvent, signal: AbortSignal, speech: ReturnType<typeof spoken>, who: string,
+  core: Core, turn: AiriTurn, event: ExternalEvent, signal: AbortSignal, speech: ReturnType<typeof spoken>, who: string,
 ) {
   const chatProvider = provider(turn.model, signal, { beforeRequest: turn.verifyMemory })
   const selectedChat = { chatProvider, model: turn.model.model, providerId: turn.model.provider }
@@ -212,7 +212,7 @@ async function notify(
   } finally { await parser.end() }
 }
 
-export function streamAiriReply(turn: Turn): ReadableStream<AiriSentence> {
+export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
   const stop = new AbortController()
   const signal = AbortSignal.any([turn.signal, stop.signal])
   const id = turn.sessionId
