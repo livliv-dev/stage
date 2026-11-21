@@ -1,0 +1,15 @@
+{"scenario":"duet-viewers","about":"对谈 while a viewer message waits (对谈时回应弹幕: often): the session is public and a line answers the viewer"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"start","mode":"conversation","scope":"public"}
+{"t":"record","scope":"public","earlier":0}
+{"t":"model","engine":"openai","speaker":"Kai","scope":"public","memories":[],"viewer":"Viewer: 主播们好"}
+{"t":"voice","via":"api","text":"Kai的第1句。我接着说下去。"}
+{"t":"line","from":"viewer","name":"弹幕 · Viewer","text":"主播们好","scope":"public"}
+{"t":"save","scope":"public","lines":1}
+{"t":"line","from":"ai","name":"Kai","text":"Kai的第1句。我接着说下去。","scope":"public"}
+{"t":"save","scope":"public","lines":2}
+{"t":"model","engine":"openai","speaker":"Nana","scope":"public","memories":["public: 公开的爱好是猫"]}
+{"t":"voice","via":"api","text":"Nana的第1句。我接着说下去。"}
+{"t":"line","from":"ai","name":"Nana","text":"Nana的第1句。我接着说下去。","scope":"public"}
+{"t":"save","scope":"public","lines":3}
+{"t":"end","mode":"conversation","scope":"public","turns":2,"generations":0}

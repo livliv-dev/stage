@@ -1,0 +1,11 @@
+{"scenario":"live-failures","about":"AI 直播: the model keeps failing; tried again after 5 s and 15 s, then the session stops (连续出错 3 次)"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"start","mode":"live","scope":"public"}
+{"t":"record","scope":"public","earlier":0}
+{"t":"model","engine":"openai","speaker":"Nana","scope":"public","memories":[],"viewer":"Aki: 今天聊什么"}
+{"t":"retry","seconds":5}
+{"t":"error","text":"这家服务暂时出问题了，稍后再试"}
+{"t":"model","engine":"openai","speaker":"Nana","scope":"public","memories":[],"viewer":"Aki: 今天聊什么"}
+{"t":"retry","seconds":15}
+{"t":"model","engine":"openai","speaker":"Nana","scope":"public","memories":[],"viewer":"Aki: 今天聊什么"}
+{"t":"end","mode":"live","scope":"public","turns":0,"generations":3,"ended":"连续出错 3 次，已停止","error":"这家服务暂时出问题了，稍后再试"}

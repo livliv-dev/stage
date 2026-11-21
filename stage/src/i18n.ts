@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { messages } from './locales/messages'
+import { features } from './core/platform'
 
 export const LANGUAGES = [
   { id: 'zh-Hans', label: '简体中文' }, { id: 'zh-Hant', label: '繁體中文' },
@@ -15,7 +16,7 @@ export function detectLocale(language: string): Locale {
 const SITE_LANG: Record<string, Locale> = { zh: 'zh-Hans', zht: 'zh-Hant', en: 'en', ja: 'ja' }
 function savedLocale(): Locale {
   try { const value = localStorage.getItem(KEY); if (LANGUAGES.some((language) => language.id === value)) return value as Locale } catch { /* Browser storage may be unavailable. */ }
-  try { if (import.meta.env.VITE_STAGE_HOST === 'livliv') { const site = SITE_LANG[localStorage.getItem('lm_lang') ?? '']; if (site) return site } } catch { /* as above */ }
+  try { if (features.host === 'site') { const site = SITE_LANG[localStorage.getItem('lm_lang') ?? '']; if (site) return site } } catch { /* as above */ }
   return typeof window === 'undefined' ? 'zh-Hans' : detectLocale(navigator.language)
 }
 let locale = savedLocale()

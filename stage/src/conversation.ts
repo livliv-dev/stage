@@ -13,9 +13,10 @@ import { tr } from './i18n'
 // run on by itself.
 import { useSyncExternalStore } from 'react'
 import { actors, faceOf, type Take } from './actors'
-import { brainReady, makeBrain, loadBrainConfig, decideExternalAction, type Line, type ModelConfig } from './brain'
+import { brainReady, makeBrain, loadBrainConfig, decideExternalAction, type ModelConfig } from './brain'
+import { asEmotion, type Line } from './core/lines'
 import { demoFor, demoPause, demoReactions, demoSpeaker } from './demo'
-import { participants as characters, store, uid, type CharacterItem } from './scene'
+import { participants, store, uid, type CharacterItem } from './scene'
 import { estimate, hush } from './speech'
 import { chatState, isBlocked, onChat, onChatState, type Chat } from './danmaku'
 import { AudienceInbox } from './audience'
@@ -26,10 +27,18 @@ import { conversationContext, speechSegments } from './chatContext'
 import { memory, type MemoryScope } from './memory'
 import type { ExternalActionRequest, ExternalEvent } from './externalEvents'
 import type { AiriGameConfig, AiriGameConnection } from '../../desktop/src/airiGameProtocol'
-import { airiGameError, airiGameText, airiModelForCast, chooseAiriGameAction, streamAiriReply } from './airiEngine'
+import { airiGameError, airiGameText, chooseAiriGameAction, streamAiriReply } from './airiEngine'
+import { airiFits, chooseEngine } from './brains/select'
 import { desktop } from './desktopBridge'
+import { features } from './core/platform'
 import { onRecording, recording } from './recording'
 import { onRoom, roomState } from './collab/session'
+import { chatLimits, counted, deadline, GenerationLimit, LIVE_FAILURES, lineLimit, liveLimits, RETRY_SECONDS, spend, spent, turnLimit as linesFor, type LiveOptions } from './sessions/budget'
+import { checkMemory, memoryIdsOf, memoryUnchanged } from './sessions/memoryGate'
+import { chance } from './sessions/chance'
+import { across, freePick as pickFree, nextSpeaker as speakerAfter } from './sessions/order'
+import { outputsOn, publicSwitch, scopeFor } from './sessions/scope'
+import { sleep, untilFree, waitWhile, Wake } from './sessions/wake'
 
 export type ConvState = {
   running: boolean
@@ -77,7 +86,6 @@ let state: ConvState = { running: false, mode: 'conversation', scope: 'private',
 class NeedModel extends Error {}
 /** the line was said (shown) but its voice failed: the message it answered was answered */
 class VoiceFailed extends Error {}
-class GenerationLimit extends Error {}
 const subs = new Set<() => void>()
 let restoring = false
 let restoreRequest: { controller: AbortController; signal: AbortSignal } | null = null
@@ -135,7 +143,7 @@ let externalDecisions = 0
 let activeEvent: ExternalEvent | null = null
 type SpeechEvent = { character: string; scope: MemoryScope; speaking: boolean; final?: boolean; cancelled?: boolean }
 const speechListeners = new Set<(event: SpeechEvent) => void>()
-const profiles = () => characters(store.get()).filter((c) => c.lines === 'ai' && !c.remote).map((c) => c.profileId ?? c.id)
+const profiles = () => participants(store.get()).filter((c) => c.lines === 'ai' && !c.remote).map((c) => c.profileId ?? c.id)
 const castKey = () => JSON.stringify([...new Set(profiles())].sort())
 let boundProfiles = ''
 
@@ -154,13 +162,6 @@ function interruptTurn() {
   if (state.speaking) cut(state.speaking.id, true)
   currentTurn?.abort(TURN_INTERRUPTED)
 }
-const wait = (ms: number, signal: AbortSignal) => new Promise<void>((resolve, reject) => {
-  signal.throwIfAborted()
-  const done = () => { signal.removeEventListener('abort', abort); resolve() }
-  const timer = setTimeout(done, ms)
-  const abort = () => { clearTimeout(timer); signal.removeEventListener('abort', abort); reject(signal.reason) }
-  signal.addEventListener('abort', abort, { once: true })
-})
 
 
 /** your lines waiting their turn (free order), and the wait for your line when it is your character's turn */
@@ -179,12 +180,17 @@ let cutting = false
 let cutTimer = 0
 
 const viewers = new AudienceInbox<Chat>()
-let wakeLive: (() => void) | null = null
-onChat((message) => { if (viewers.push(message)) wakeLive?.() })
+/** a running session waiting is woken by a viewer's message, your line, resume, a game event or decision, the end of a
+ *  game character's dialogue (sessions/wake.ts) */
+const wake = new Wake()
+onChat((message) => { if (viewers.push(message)) wake.wake() })
+/** what holds a line back before it is said: paused, a game character talking (dialogue), you speaking */
+const speechHeld = () => state.paused || dialogue.size > 0 || inputPending
+/** what holds a session's next turn back: those, and a game action being decided */
+const turnHeld = () => speechHeld() || externalDecisions > 0
 /** a viewer's message, now and then (as often as the stage's talk settings say) */
-const someViewer = () => (Math.random() < [0, 0.35, 0.8][store.get().talk.danmaku] ? viewers.take(Date.now(), isBlocked) : null)
+const someViewer = () => (chance() < [0, 0.35, 0.8][store.get().talk.danmaku] ? viewers.take(Date.now(), isBlocked) : null)
 
-export type LiveOptions = { minutes: number; maxGenerations: number; warmupSeconds: number; textOnly: boolean; airi?: { windowId: string; game?: AiriGameConfig } }
 let liveOptions: LiveOptions | null = null
 let airi: { model: ModelConfig; actorId: string; windowId: string; game?: AiriGameConnection } | null = null
 export const liveModelName = () => state.mode === 'live' ? airi?.model.model : undefined
@@ -195,10 +201,10 @@ const gameName = (game: AiriGameConfig['game']) => game === 'minecraft' ? 'Minec
  *  While one is, every session is public: no private memory is read or written, by any path, and the conversation goes
  *  to the public record. With all of them off, the scope chosen in the console (chatScope) applies */
 export function outputOn() {
-  return outputOpen() || ['starting', 'recording'].includes(recording().phase) || liveRoom() || chatState().status === 'on' || (state.running && state.mode === 'live')
+  return outputsOn({ window: outputOpen(), recording: ['starting', 'recording'].includes(recording().phase), room: liveRoom(), twitch: chatState().status === 'on', live: state.running && state.mode === 'live' })
 }
 /** the scope a session started now gets: the one chosen, unless an output is on */
-export const sessionScope = (chosen: MemoryScope = state.chatScope): MemoryScope => outputOn() ? 'public' : chosen
+export const sessionScope = (chosen: MemoryScope = state.chatScope): MemoryScope => scopeFor(chosen, outputOn())
 
 /** told by everything that turns an output on or off (the output window, a recording, the room, Twitch), and checked
  *  every second as well (an output window can close without saying so) */
@@ -215,18 +221,16 @@ function outputChanged() {
  *  public memories only. A realtime call keeps its private context at the provider: it ends */
 let switching: Promise<void> | null = null
 function goPublic() {
-  if (state.scope === 'public' || switching) return
-  if (loadBrainConfig().kind === 'demo' && state.mode !== 'realtime') return  // the demo reads and writes no memory
-  if (!state.running) { showPublicRecord(); return }
-  if (realtimeControls) { talk.stop(); set({ ended: tr('输出已打开，私聊通话已结束') }); return }
-  const run = ctrl
-  if (!run) return
+  const run = ctrl, plan = publicSwitch({ scope: state.scope, switching: !!switching, demo: loadBrainConfig().kind === 'demo' && state.mode !== 'realtime', running: state.running, call: !!realtimeControls, session: !!run })
+  if (plan === 'record') { showPublicRecord(); return }
+  if (plan === 'end-call') { talk.stop(); set({ ended: tr('输出已打开，私聊通话已结束') }); return }
+  if (plan !== 'session' || !run) return
   const unsaid = queue.length
   queue.length = 0; inputEpoch++; dropAhead(); interruptTurn()
   set({ scope: 'public', sessionId: '', lines: [], speaking: null, thinking: null, ...(unsaid ? { error: tr('输出已打开，还没说出的私聊输入已丢弃') } : {}) }, false)
   switching = openHistory('public', run.signal).catch((error: unknown) => {
     if (!run.signal.aborted && ctrl === run) { talk.stop(); set({ error: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }) }
-  }).finally(() => { switching = null; wakeLive?.() })
+  }).finally(() => { switching = null; wake.wake() })
 }
 /** nothing running: the public record in place of the private one */
 function showPublicRecord() {
@@ -257,78 +261,32 @@ function bindAiri(controller: AbortController, model: ModelConfig, actor: Charac
   airi = { model: { ...model }, actorId: actor.id, windowId }
   return store.subscribe(() => {
     if (ctrl !== controller || controller.signal.aborted) return
-    const cast = characters(store.get()).filter((character) => character.lines === 'ai')
+    const cast = participants(store.get()).filter((character) => character.lines === 'ai')
     if (cast.length === 1 && cast[0].id === actor.id && !cast[0].remote && cast[0].name === actor.name && boundProfiles === castKey()) return
     controller.abort()
     set({ ended: tr('角色已切换，本次 AIRI 会话已停止') })
   })
 }
 
+/** 持续聊天 on AIRI, when the one rule says so (brains/select.ts): its model and the character */
 function preferredAiriForChat(config: ReturnType<typeof loadBrainConfig>, target?: string) {
-  const cast = characters(store.get()).filter((character) => character.lines === 'ai')
-  const model = airiModelForCast(config, cast)
-  const actor = cast[0]
-  if (!model || model.airi === false || (target && target !== actor.id) || (!actor.muted && voiceRoute(actor) === 'livliv')) return null
-  return { model, actor }
-}
-/** a live session rides out a busy or slow service: a failed turn is tried again after these seconds, and the
- *  session stops at LIVE_FAILURES failed turns in a row */
-const RETRY_SECONDS = [5, 15]
-const LIVE_FAILURES = RETRY_SECONDS.length + 1
-
-/** Woken by a new message, resume, or the optional warm-up timer. */
-function liveEvent(signal: AbortSignal, milliseconds?: number) {
-  return new Promise<void>((resolve, reject) => {
-    signal.throwIfAborted()
-    const clean = () => { clearTimeout(timer); signal.removeEventListener('abort', abort); if (wakeLive === done) wakeLive = null }
-    const done = () => { clean(); resolve() }
-    const abort = () => { clean(); reject(signal.reason) }
-    const timer = milliseconds === undefined ? undefined : setTimeout(done, Math.max(0, milliseconds))
-    wakeLive = done
-    signal.addEventListener('abort', abort, { once: true })
-  })
+  const cast = participants(store.get()).filter((character) => character.lines === 'ai'), actor = cast[0]
+  const choice = chooseEngine(config, cast, { kind: 'chat', target, voice: actor && voiceRoute(actor) }, features)
+  return choice.engine === 'airi' && config.kind === 'openai' ? { model: config, actor } : null
 }
 
 const ready = (c: CharacterItem) => actors.get(c.id)?.status === 'ready'
-const voices = () => characters(store.get()).filter((c) => (c.lines === 'ai' && ready(c)) || c.lines === 'me')
-export const played = () => characters(store.get()).filter((c) => c.lines === 'me')
-/** where a character is, left to right */
-const across = (c: CharacterItem) => c.x + c.w / 2
+const voices = () => participants(store.get()).filter((c) => (c.lines === 'ai' && ready(c)) || c.lines === 'me')
+export const played = () => participants(store.get()).filter((c) => c.lines === 'me')
 
-/** how many lines since c last spoke (all of them if never) */
-const quiet = (c: CharacterItem) => { const i = state.lines.map((l) => l.who).lastIndexOf(c.id); return i < 0 ? state.lines.length + 1 : state.lines.length - 1 - i }
+/** one of `pool`, the chattier and the longer quiet the likelier (sessions/order.ts) */
+const freePick = (pool: CharacterItem[]) => pickFree(pool, state.lines, chance)
 
-function freePick(pool: CharacterItem[]): CharacterItem | null {
-  if (!pool.length) return null
-  const w = pool.map((c) => c.chatty * (1 + quiet(c)))
-  let r = Math.random() * w.reduce((a, b) => a + b, 0)
-  for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r <= 0) return pool[i] }
-  return pool[pool.length - 1]
-}
-
+/** who speaks next by the stage's talk order (sessions/order.ts); a character picked by hand goes once */
 function nextSpeaker(): CharacterItem | null {
-  const t = store.get().talk, all = voices(), ai = all.filter((c) => c.lines === 'ai'), last = state.lines.at(-1)
-  const picked = all.find((c) => c.id === forced)
+  const who = speakerAfter(store.get().talk, voices(), { lines: state.lines, lastTurn, skipped, forced }, chance)
   forced = null
-  if (picked) return picked
-  if (t.order === 'round') {
-    const ring = [...all].sort((a, b) => across(a) - across(b))
-    return ring.length ? ring[(ring.findIndex((c) => c.id === lastTurn) + 1) % ring.length] : null
-  }
-  if (t.order === 'host') {
-    const host = all.find((c) => c.id === t.host) ?? ai[0]
-    if (!host) return null
-    if (lastTurn !== host.id) return host
-    const guests = all.filter((c) => c.id !== host.id)
-    return guests.find((c) => c.name === last?.to) ?? [...guests].sort((a, b) => quiet(b) - quiet(a))[0] ?? host
-  }
-  // a character you skipped isn't asked again until someone has spoken
-  const named = last?.to ? all.find((c) => c.name === last.to && c.id !== last.who && c.id !== skipped) : undefined
-  if (named) return named
-  const pick = freePick(ai.filter((c) => c.id !== last?.who))
-  if (pick) return pick
-  // one AI only: with a character you play it is your turn (you two take turns); alone, it goes on talking
-  return all.find((c) => c.lines === 'me' && c.id !== last?.who && c.id !== skipped) ?? ai[0] ?? null
+  return who
 }
 
 /** glances planned for the line being said (cleared by the next one) */
@@ -343,7 +301,7 @@ const later = (seconds: number, f: () => void) => { glances.push(window.setTimeo
 function looks(speaker: CharacterItem | null, line: Line | null, seconds = 0) {
   for (const g of glances) clearTimeout(g)
   glances = []
-  const all = characters(store.get())
+  const all = participants(store.get())
   const free = (c: CharacterItem) => !(c.driver === 'face' || c.driver === 'replay' || c.driver === 'pointer')
   const byName = (n: string | null | undefined) => (n ? all.find((x) => x.name === n && x.id !== speaker?.id) : undefined)
   const said = line?.text ?? ''
@@ -354,7 +312,7 @@ function looks(speaker: CharacterItem | null, line: Line | null, seconds = 0) {
   for (const c of all) {
     const a = actors.get(c.id)
     if (!a || !free(c)) continue
-    if (!speaker) { a.setPhase(state.waitingInput ? 'waiting' : 'idle'); a.rest(Math.random() * 0.4); continue }
+    if (!speaker) { a.setPhase(state.waitingInput ? 'waiting' : 'idle'); a.rest(chance() * 0.4); continue }
     a.setPhase(c.id === speaker.id ? 'idle' : 'listening')
     if (c.gaze !== 'people') {
       a.listening = c.id !== speaker.id
@@ -365,35 +323,35 @@ function looks(speaker: CharacterItem | null, line: Line | null, seconds = 0) {
       a.listening = false
       if (at === 'away') {
         // down and to the side, then back to whom it talks to (or the audience)
-        const f = faceOf(c), side = Math.random() < 0.5 ? -1 : 1
+        const f = faceOf(c), side = chance() < 0.5 ? -1 : 1
         a.look({ x: f.x + side * c.w * 0.6, y: f.y + c.h * 0.35 })
         later(Math.min(1.6, seconds * 0.5), () => a.look(answered ? faceOf(answered) : null))
       } else {
         a.look(toWhom ? faceOf(toWhom) : null)
         // a longer line to someone turns to the audience for a moment
-        if (toWhom && seconds > 2.6 && Math.random() < 0.4) {
-          later(seconds * (0.5 + Math.random() * 0.15), () => a.look(null))
+        if (toWhom && seconds > 2.6 && chance() < 0.4) {
+          later(seconds * (0.5 + chance() * 0.15), () => a.look(null))
           later(seconds * 0.5 + 1.1, () => a.look(faceOf(toWhom)))
         }
       }
       continue
     }
     a.listening = true
-    if (c.id === toWhom?.id) { a.look(faceOf(speaker), 0.08 + Math.random() * 0.12); continue }  // looks back
-    a.look(faceOf(speaker), 0.1 + Math.random() * 0.3)
+    if (c.id === toWhom?.id) { a.look(faceOf(speaker), 0.08 + chance() * 0.12); continue }  // looks back
+    a.look(faceOf(speaker), 0.1 + chance() * 0.3)
     // a glance at the one it talks to, or at someone it mentions
     const other = toWhom ?? (mentioned && mentioned.id !== c.id ? mentioned : undefined)
-    if (other && other.id !== c.id && seconds > 1.6 && Math.random() < 0.45) {
-      const t0 = seconds * (0.3 + Math.random() * 0.3)
+    if (other && other.id !== c.id && seconds > 1.6 && chance() < 0.45) {
+      const t0 = seconds * (0.3 + chance() * 0.3)
       later(t0, () => a.look(faceOf(other)))
-      later(t0 + 0.9 + Math.random() * 0.6, () => a.look(faceOf(speaker)))
+      later(t0 + 0.9 + chance() * 0.6, () => a.look(faceOf(speaker)))
     }
   }
 }
 
 /** Content reactions follow audible playback; gaze can turn toward the speaker before the voice starts. */
 function listenTo(speaker: CharacterItem | null, line: Line, seconds: number) {
-  const all = characters(store.get())
+  const all = participants(store.get())
   if (line.demo !== undefined) for (const { character, cues } of demoReactions(all, line)) {
     const listener = actors.get(character.id)
     if (!listener || character.id === speaker?.id) continue
@@ -418,7 +376,7 @@ async function deliver(line: Line, c: CharacterItem | null, signal: AbortSignal,
   if (line.human && state.scope !== scope) return
   const seconds = take?.seconds ?? estimate(line.text)
   looks(c, line, seconds)
-  if (c && !line.human) await wait(line.demo === undefined ? 260 : 140, signal)  // a look first, then the words
+  if (c && !line.human) await sleep(line.demo === undefined ? 260 : 140, signal)  // a look first, then the words
   if (speech) await speech.beforeStart()
   signal.throwIfAborted()
   if (line.human && state.scope !== scope) return
@@ -432,8 +390,8 @@ async function deliver(line: Line, c: CharacterItem | null, signal: AbortSignal,
   if (c && !line.human) makeAhead()
   const t = store.get().talk
   const others = voices().filter((x) => x.lines === 'ai' && x.id !== c?.id)
-  if (c && !line.human && line.demo === undefined && t.interrupt && others.length && line.text.length >= 14 && Math.random() < [0, 0.2, 0.45][t.interrupt]) {
-    cutTimer = window.setTimeout(() => cut(line.id), seconds * (0.5 + Math.random() * 0.25) * 1000)
+  if (c && !line.human && line.demo === undefined && t.interrupt && others.length && line.text.length >= 14 && chance() < [0, 0.2, 0.45][t.interrupt]) {
+    cutTimer = window.setTimeout(() => cut(line.id), seconds * (0.5 + chance() * 0.25) * 1000)
   }
   try {
     const interrupted = () => cut(line.id, true)
@@ -480,10 +438,7 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
   const role = t.order === 'host' ? (me.id === (t.host ?? ai[0]?.id) ? 'host' : 'guest') : null
   const cutIn = cutting; cutting = false
   const chat = audience === undefined ? state.scope === 'public' ? someViewer() : null : audience
-  if (state.mode !== 'conversation') {
-    if (state.generations >= state.generationLimit) throw new GenerationLimit()
-    set({ generations: state.generations + 1 })
-  }
+  if (state.mode !== 'conversation') set(spend(state))
   const viewer = chat ? { user: chat.user, text: chat.text } : null
   const cfg = loadBrainConfig(), aloud = !liveOptions?.textOnly && !me.muted
   const voiced = aloud && voiceRoute(me) === 'livliv'
@@ -491,11 +446,11 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
   const context = loadBrainConfig().kind === 'demo' ? { lines: state.lines, summary: undefined, memories: [], revision: 0 } : await chatHistory.context(me.profileId ?? me.id, state.lines, state.scope)
   signal.throwIfAborted()
   const used = conversationContext(context.lines, context.summary)
-  const memoryIds = [...new Set([...context.memories.map((entry) => entry.id), ...(context.summary?.memoryIds ?? []), ...context.lines.flatMap((line) => line.memoryIds ?? [])])]
+  const memoryIds = memoryIdsOf(context)
   const r = await makeBrain(cfg).reply({
     me, others: ai.filter((c) => c.id !== me.id), humans: people, topic: s.topic, lines: context.lines, role, cutIn, language: t.language, viewer,
     voiced, scope: state.scope, depth: t.depth, summary: context.summary, memories: context.memories, event: activeEvent ? { source: activeEvent.source, message: activeEvent.message } : undefined,
-    layout: [...characters(s)].sort((a, b) => across(a) - across(b)).map((c) => c.name),
+    layout: [...participants(s)].sort((a, b) => across(a) - across(b)).map((c) => c.name),
   }, signal)
   signal.throwIfAborted()
   const { summary, ...reply } = r
@@ -523,7 +478,7 @@ let ahead: Ahead | null = null
 function dropAhead() { if (ahead?.chat) viewers.putBack(ahead.chat); ahead?.ctl.abort(); ahead = null }
 
 // A prepared demo always reaches its ending; paid conversations retain the user's limit.
-const turnLimit = () => loadBrainConfig().kind === 'demo' ? demoFor(voices())?.script.lines.length ?? state.limit : state.limit
+const turnLimit = () => linesFor(loadBrainConfig().kind === 'demo' ? demoFor(voices())?.script.lines.length : undefined, state.limit)
 function makeAhead() {
   const t = store.get().talk, last = state.lines.at(-1)
   if (state.mode !== 'conversation' || ahead || !ctrl || single || !last || queue.length || state.turns >= turnLimit()) return
@@ -553,10 +508,10 @@ async function playAiriTurn(me: CharacterItem, model: ModelConfig, chat: Chat | 
   const actor = actors.get(me.id), profile = me.profileId ?? me.id
   const { sessionId, scope } = state, windowId = airi?.windowId, event = activeEvent
   if (airi?.actorId !== me.id || !sessionId || actor?.status !== 'ready' || boundProfiles !== castKey()) throw new Error(tr('参与角色已改变，请重新开始会话'))
-  if (state.generations >= state.generationLimit) throw new GenerationLimit()
+  if (spent(state)) throw new GenerationLimit()
   const context = await chatHistory.context(profile, state.lines, scope)
   const verifyMemory = async () => {
-    if ((await memory.context([profile], scope)).revision !== context.revision) throw new Error(tr('记忆已更新，请重新发送这一句'))
+    await checkMemory(memory, profile, scope, context.revision)
     signal.throwIfAborted()
   }
   signal.throwIfAborted()
@@ -570,9 +525,9 @@ async function playAiriTurn(me: CharacterItem, model: ModelConfig, chat: Chat | 
     ?? (state.mode === 'live' ? 'The livestream is quiet. Start a short conversation about the show.' : 'Start a short conversation with the user.')
   const used = conversationContext(context.lines, context.summary)
   const memories = context.memories.slice(0, 48)
-  const memoryIds = [...new Set([...memories.map((entry) => entry.id), ...(context.summary?.memoryIds ?? []), ...context.lines.flatMap((line) => line.memoryIds ?? [])])]
+  const memoryIds = memoryIdsOf({ ...context, memories })
   const textOnly = liveOptions?.textOnly === true
-  set({ generations: state.generations + 1 })
+  set(counted(state))
   addViewer(chat)
   const reader = streamAiriReply({
     sessionId, scope, actor: me, model, input, signal, verifyMemory, allowBatch: !airi.game && !windowId, ...(frame ? { frame } : {}), ...(event ? { event } : {}),
@@ -582,13 +537,10 @@ async function playAiriTurn(me: CharacterItem, model: ModelConfig, chat: Chat | 
   }).getReader()
   const speech = {
     final: false, onStart, onEnd,
-    beforeStart: async () => {
-      do {
-        while (state.paused || dialogue.size || inputPending) await liveEvent(signal)
-        if (state.sessionId !== sessionId || state.scope !== scope || boundProfiles !== castKey() || actors.get(me.id) !== actor) throw new Error(tr('参与角色已改变，请重新开始会话'))
-        await verifyMemory()
-      } while (state.paused || dialogue.size || inputPending)
-    },
+    beforeStart: () => untilFree(speechHeld, wake, signal, async () => {
+      if (state.sessionId !== sessionId || state.scope !== scope || boundProfiles !== castKey() || actors.get(me.id) !== actor) throw new Error(tr('参与角色已改变，请重新开始会话'))
+      await verifyMemory()
+    }),
   }
   let first = true
   const prepareNext = async () => {
@@ -597,7 +549,7 @@ async function playAiriTurn(me: CharacterItem, model: ModelConfig, chat: Chat | 
     if (result.done) return null
     const { text, cue } = result.value
     const feeling = cue?.feeling
-    const emotion: Line['emotion'] = feeling === 'happy' || feeling === 'sad' || feeling === 'angry' || feeling === 'shy' || feeling === 'surprised' ? feeling : 'neutral'
+    const emotion = asEmotion(feeling)
     const aloud = !textOnly && !actor.item.muted
     if (aloud && voiceRoute(actor.item) === 'livliv') throw new Error(tr('内置 AIRI 支持自配语音接口、系统朗读或仅字幕'))
     const take = await actor.prepare(text, emotion, aloud, signal)
@@ -628,7 +580,7 @@ async function playAiriTurn(me: CharacterItem, model: ModelConfig, chat: Chat | 
 async function aiTurn(me: CharacterItem, parent: AbortSignal, audience?: Chat | null, replyToOwner = false) {
   parent.throwIfAborted()
   if (switching) { await switching; parent.throwIfAborted() }
-  while (dialogue.size || externalDecisions || inputPending) await liveEvent(parent)
+  await waitWhile(() => dialogue.size > 0 || externalDecisions > 0 || inputPending, wake, parent)
   const model = airi?.model ?? loadBrainConfig()
   const scope = state.scope
   if (!brainReady(model)) throw new NeedModel()
@@ -652,15 +604,12 @@ async function aiTurn(me: CharacterItem, parent: AbortSignal, audience?: Chat | 
     signal.throwIfAborted()
     const speech = {
       final: false, onStart: () => { spoke = true }, onEnd: (cancelled: boolean) => { hadCut ||= cancelled },
-      beforeStart: async () => {
-        do {
-          while (state.paused || dialogue.size || inputPending) await liveEvent(signal)
-          // made before an output switched the session to public: never said
-          if (state.scope !== scope) { turn.abort(TURN_INTERRUPTED); signal.throwIfAborted() }
-          if (loadBrainConfig().kind !== 'demo' && (await memory.context([me.profileId ?? me.id], state.scope)).revision !== memoryRevision) throw new Error(tr('记忆已更新，请重新发送这一句'))
-          signal.throwIfAborted()
-        } while (state.paused || dialogue.size || inputPending)
-      },
+      beforeStart: () => untilFree(speechHeld, wake, signal, async () => {
+        // made before an output switched the session to public: never said
+        if (state.scope !== scope) { turn.abort(TURN_INTERRUPTED); signal.throwIfAborted() }
+        if (loadBrainConfig().kind !== 'demo') await checkMemory(memory, me.profileId ?? me.id, state.scope, memoryRevision)
+        signal.throwIfAborted()
+      }),
     }
     await speech.beforeStart()
     set({ thinking: null, turns: state.turns + 1 })
@@ -681,10 +630,10 @@ async function aiTurn(me: CharacterItem, parent: AbortSignal, audience?: Chat | 
       for (let i = 0; i < segments.length; i++) {
         const text = segments[i]
         signal.throwIfAborted()
-        while (state.paused || dialogue.size) await liveEvent(signal)
+        await waitWhile(() => state.paused || dialogue.size > 0, wake, signal)
         const voice = await preparedVoice
         signal.throwIfAborted()
-        if ((await memory.context([me.profileId ?? me.id], state.scope)).revision !== memoryRevision) throw new Error(tr('记忆已更新，请重新发送这一句'))
+        await checkMemory(memory, me.profileId ?? me.id, state.scope, memoryRevision)
         if (voice?.mute && voiceRoute(me) !== 'none') throw new Error(actor?.voiceError || tr('声音播放失败，请检查声音设置'))
         preparedVoice = i + 1 < segments.length ? actor?.prepare(segments[i + 1], r.emotion, true, signal) : undefined
         // A cancelled future sentence may reject before playback reaches it.
@@ -718,7 +667,7 @@ let single = false
 
 /** your line, said by whom it is from */
 async function yours(line: Line, signal: AbortSignal, scope = state.scope) {
-  await deliver(line, characters(store.get()).find((character) => character.id === line.who) ?? null, signal)
+  await deliver(line, participants(store.get()).find((character) => character.id === line.who) ?? null, signal)
   signal.throwIfAborted()
   await rememberLine(line, undefined, scope)
 }
@@ -737,8 +686,8 @@ async function consumeInput(signal: AbortSignal) {
 async function rememberLine(line: Line, target?: CharacterItem, scope = state.scope) {
   const remembered = line.text.match(/^(?:请)?记住(?:这件事)?[：:，,\s]*(.+)$/s)?.[1] ?? line.text.match(/^remember\s+(.+)$/is)?.[1]
   if (!remembered || (loadBrainConfig().kind === 'demo' && state.mode !== 'realtime') || state.scope !== scope) return
-  const character = target ?? characters(store.get()).find((candidate) => candidate.id === forced && candidate.lines === 'ai')
-    ?? characters(store.get()).find((candidate) => candidate.lines === 'ai' && !candidate.remote)
+  const character = target ?? participants(store.get()).find((candidate) => candidate.id === forced && candidate.lines === 'ai')
+    ?? participants(store.get()).find((candidate) => candidate.lines === 'ai' && !candidate.remote)
   if (character) await memory.remember({ profileId: character.profileId ?? character.id, scope, text: remembered.trim(), sourceSessionId: state.sessionId, sourceLineIds: [line.id] })
 }
 
@@ -774,8 +723,8 @@ async function run(once: boolean) {
     if (profiles().length) await openRecord(scope, c.signal)
     else { chatHistory.reset(); set({ sessionId: '', scope }) }
     // characters still loading (a template just placed, its players not made yet) are waited for, a little
-    const loading = () => characters(store.get()).some((x) => x.lines === 'ai' && !['ready', 'error'].includes(actors.get(x.id)?.status ?? ''))
-    for (let i = 0; i < 60 && loading(); i++) await wait(250, c.signal)
+    const loading = () => participants(store.get()).some((x) => x.lines === 'ai' && !['ready', 'error'].includes(actors.get(x.id)?.status ?? ''))
+    for (let i = 0; i < 60 && loading(); i++) await sleep(250, c.signal)
     do {
       while (queue.length) await consumeInput(c.signal)
       if (once) {
@@ -807,12 +756,12 @@ async function run(once: boolean) {
       c.signal.throwIfAborted()  // stopped during the line: it ends quietly, and the next one mustn't start
       await new Promise<void>((r, j) => {  // the pause between lines: 下一句 ends it now
         const scripted = loadBrainConfig().kind === 'demo' ? demoPause(voices(), state.lines) : null
-        const t = setTimeout(r, scripted !== null ? scripted * 1000 : state.gap * 1000 * (cutting ? 0.1 : 0.7 + Math.random() * 0.6))
+        const t = setTimeout(r, scripted !== null ? scripted * 1000 : state.gap * 1000 * (cutting ? 0.1 : 0.7 + chance() * 0.6))
         hurry = () => { clearTimeout(t); r() }
         c.signal.addEventListener('abort', () => { clearTimeout(t); j(c.signal.reason) }, { once: true })
       })
       hurry = null
-      while (state.paused) await wait(200, c.signal)
+      while (state.paused) await sleep(200, c.signal)
     } while (state.turns < turnLimit())
   } catch (e) {
     if (e instanceof NeedModel) set({ needModel: true, modelIntent: 'conversation' })
@@ -825,17 +774,19 @@ async function run(once: boolean) {
 async function runLive(options: LiveOptions) {
   const config = loadBrainConfig()
   if (!brainReady(config) || config.kind === 'demo') { set({ error: tr("AI 主播需要接上模型；离线演示可在「对谈」里体验"), needModel: true, modelIntent: 'live' }); return }
-  const cast = characters(store.get()).filter((c) => c.lines === 'ai')
+  const cast = participants(store.get()).filter((c) => c.lines === 'ai')
   if (!cast.length) { set({ error: tr("先添加一个「AI 来演」的角色") }); return }
-  const airiModel = options.airi && airiModelForCast(config, cast)
-  if (options.airi && !airiModel) {
+  // the panel asked for AIRI: the one rule (brains/select.ts), a game or a window asking for it whatever the switch says
+  const choice = options.airi ? chooseEngine(config, cast, { kind: 'live', needsAiri: true, textOnly: options.textOnly, voice: voiceRoute(cast[0]) }, features) : null
+  if (choice && !airiFits(choice)) {
     set({ error: tr('内置 AIRI 需要一个本地 AI 角色和流式模型接口') }); return
   }
   const gameHost = desktop?.airiGame, gameConfig = options.airi?.game
   if (gameConfig && !gameHost) { set({ error: tr('当前桌面版本不支持 AIRI 游戏') }); return }
-  if (options.airi && !options.textOnly && !cast[0].muted && voiceRoute(cast[0]) === 'livliv') {
+  if (choice?.reason === 'livliv-voice') {
     set({ error: tr('内置 AIRI 支持自配语音接口、系统朗读或仅字幕') }); return
   }
+  const airiModel = choice?.engine === 'airi' && config.kind === 'openai' ? config : null
   if (!options.textOnly && cast.some((c) => voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音，请在设置里接上声音，或选择「仅字幕」") }); return }
   const c = new AbortController(); ctrl = c
   dropAhead(); viewers.clear(); queue.length = 0; externalQueue.length = 0; dialogue.clear(); activeEvent = null
@@ -848,10 +799,10 @@ async function runLive(options: LiveOptions) {
     engine: engine ? 'airi' : undefined, game: gameConfig ? { name: gameConfig.game, status: 'connecting', text: '' } : undefined,
     scope: 'public', sessionId: '', lines: [], speaking: null,
   }, false)
-  const deadline = setTimeout(() => {
+  const stopClock = deadline(until, () => {
     if (ctrl !== c || c.signal.aborted) return
     set({ ended: tr("已达到本次时长上限") }); c.abort(); hush(); actors.forEach((a) => a.silence())
-  }, until - Date.now())
+  })
   let lastReply = Date.now() - 6000, failures = 0, replyToOwner = false
   let retryChat: Chat | null = null
   let attached: AiriGameConnection | undefined
@@ -869,7 +820,7 @@ async function runLive(options: LiveOptions) {
   try {
     await openHistory('public', c.signal)
     // The template may have just mounted; use the same loading window as conversation mode.
-    for (let i = 0; i < 60 && cast.some((x) => !actors.get(x.id) || actors.get(x.id)?.status === 'loading'); i++) await wait(250, c.signal)
+    for (let i = 0; i < 60 && cast.some((x) => !actors.get(x.id) || actors.get(x.id)?.status === 'loading'); i++) await sleep(250, c.signal)
     if (cast.some((x) => actors.get(x.id)?.status !== 'ready')) throw new Error(tr("有 AI 角色尚未载入，请检查角色列表"))
     if (engine && gameHost && gameConfig && gameId) {
       c.signal.throwIfAborted()
@@ -893,21 +844,21 @@ async function runLive(options: LiveOptions) {
       set({ game: { name: gameConfig.game, status: 'ready', text: '' } })
     }
     for (;;) {
-      if (state.generations >= options.maxGenerations) {
-        if (state.game?.status === 'playing' || state.game?.status === 'submitting') { await liveEvent(c.signal); continue }
+      if (spent({ generations: state.generations, generationLimit: options.maxGenerations })) {
+        if (state.game?.status === 'playing' || state.game?.status === 'submitting') { await wake.wait(c.signal); continue }
         break
       }
-      while (state.paused || dialogue.size || inputPending || externalDecisions) await liveEvent(c.signal)
+      await waitWhile(turnHeld, wake, c.signal)
       while (queue.length) { await consumeInput(c.signal); replyToOwner = true }
       c.signal.throwIfAborted()
-      if (state.paused || dialogue.size || inputPending || externalDecisions) continue
+      if (turnHeld()) continue
       const now = Date.now(), cooldown = lastReply + 6000 - now
-      if (cooldown > 0 && !replyToOwner) { await liveEvent(c.signal, cooldown); continue }
+      if (cooldown > 0 && !replyToOwner) { await wake.wait(c.signal, cooldown); continue }
       const warmupAt = options.warmupSeconds ? lastReply + options.warmupSeconds * 1000 : Infinity
       if (retryChat && isBlocked(retryChat.user)) retryChat = null
       if (!replyToOwner && !retryChat && !activeEvent && !externalQueue.length && !viewers.available(now, isBlocked) && now < warmupAt) {
         set({ waitingAudience: true })
-        await liveEvent(c.signal, Number.isFinite(warmupAt) ? warmupAt - now : undefined)
+        await wake.wait(c.signal, Number.isFinite(warmupAt) ? warmupAt - now : undefined)
         continue
       }
       activeEvent ??= !replyToOwner && !retryChat ? externalQueue.shift() ?? null : null
@@ -935,7 +886,7 @@ async function runLive(options: LiveOptions) {
         if (++failures >= LIVE_FAILURES) throw e
         const ms = RETRY_SECONDS[failures - 1] * 1000
         set({ thinking: null, waitingAudience: true, error: (e as Error).message, retryAt: Date.now() + ms })
-        await wait(ms, c.signal)
+        await sleep(ms, c.signal)
         set({ retryAt: 0 })
         continue
       }
@@ -949,7 +900,7 @@ async function runLive(options: LiveOptions) {
     else if (e instanceof NeedModel) set({ needModel: true, modelIntent: 'live' })
     else if (!c.signal.aborted) set({ error: gameConfig ? airiGameError(e) : (e as Error).message, ended: failures >= LIVE_FAILURES ? tr("连续出错 {0} 次，已停止", LIVE_FAILURES) : tr("会话因错误停止") })
   } finally {
-    clearTimeout(deadline)
+    stopClock()
     offGame?.()
     c.signal.removeEventListener('abort', closeGame)
     closeGame()
@@ -981,15 +932,14 @@ async function startChatSession(chosen: MemoryScope = state.chatScope, target?: 
   externalQueue.length = 0; dialogue.clear(); activeEvent = null
   const offAiriCast = preferred ? bindAiri(controller, preferred.model, preferred.actor) : undefined
   const unbind = () => { offAiriCast?.() }
-  const settings = store.get().talk
-  const minutes = Math.max(1, Math.min(240, settings.chatMinutes ?? 60))
+  const limits = chatLimits(store.get().talk)
   set({ running: true, mode: 'chat', scope, sessionId: '', lines: [], speaking: null, waitingInput: false, paused: false, thinking: null, waitingAudience: false,
     engine: preferred ? 'airi' : undefined, game: undefined,
-    generations: 0, generationLimit: Math.max(1, Math.min(500, settings.chatGenerations ?? 100)), turns: 0,
-    until: Date.now() + minutes * 60000, ended: '', error: '' }, false)
+    generations: 0, generationLimit: limits.generations, turns: 0,
+    until: Date.now() + limits.minutes * 60000, ended: '', error: '' }, false)
   try {
     await openRecord(scope, controller.signal)
-    for (let i = 0; i < 60 && !voices().some((character) => character.lines === 'ai'); i++) await wait(250, controller.signal)
+    for (let i = 0; i < 60 && !voices().some((character) => character.lines === 'ai'); i++) await sleep(250, controller.signal)
     if (!voices().some((character) => character.lines === 'ai')) throw new Error(tr('有 AI 角色尚未载入，请检查角色列表'))
     controller.signal.throwIfAborted()
     if (firstInput) {
@@ -1009,18 +959,18 @@ async function startChatSession(chosen: MemoryScope = state.chatScope, target?: 
 
 async function runChat(controller: AbortController, unbind: () => void) {
   const signal = controller.signal
-  const deadline = setTimeout(() => { set({ ended: tr('已达到本次时长上限') }); interruptTurn(); controller.abort() }, Math.max(0, state.until - Date.now()))
+  const stopClock = deadline(state.until, () => { set({ ended: tr('已达到本次时长上限') }); interruptTurn(); controller.abort() })
   let requested = !state.lines.length, replyToOwner = false, lastReply = Date.now(), nudges = 0
   try {
-    while (state.generations < state.generationLimit) {
+    while (!spent(state)) {
       signal.throwIfAborted()
-      while (state.paused || dialogue.size || inputPending || externalDecisions) await liveEvent(signal)
-      if (state.generations >= state.generationLimit) break
+      await waitWhile(turnHeld, wake, signal)
+      if (spent(state)) break
       if (queue.length) {
         while (queue.length) await consumeInput(signal)
         requested = true; replyToOwner = true; nudges = 0
       }
-      if (state.paused || dialogue.size || inputPending || externalDecisions) continue
+      if (turnHeld()) continue
       activeEvent = state.scope === 'public' && !(airi && replyToOwner) ? externalQueue.shift() ?? null : null
       if (activeEvent) requested = true
       if (forced) requested = true
@@ -1030,7 +980,7 @@ async function runChat(controller: AbortController, unbind: () => void) {
         const seconds = store.get().talk.proactiveSeconds ?? 0
         const remaining = seconds && nudges < 1 ? lastReply + seconds * 1000 - Date.now() : Infinity
         if (remaining <= 0) { requested = true; nudges++ }
-        else { await liveEvent(signal, Number.isFinite(remaining) ? remaining : undefined); continue }
+        else { await wake.wait(signal, Number.isFinite(remaining) ? remaining : undefined); continue }
       }
       set({ waitingInput: false })
       const pool = voices().filter((character) => character.lines === 'ai')
@@ -1051,7 +1001,7 @@ async function runChat(controller: AbortController, unbind: () => void) {
     else if (!signal.aborted) set({ error: error instanceof Error ? error.message : String(error) })
   } finally {
     unbind()
-    clearTimeout(deadline)
+    stopClock()
     if (ctrl === controller) {
       ctrl = null; airi = null; activeEvent = null; actors.forEach((actor) => actor.silence())
       set({ running: false, paused: false, thinking: null, speaking: null, waitingInput: false, engine: undefined }); looks(null, null)
@@ -1067,14 +1017,14 @@ export const talk = {
     const controller = new AbortController(); ctrl = controller
     dropAhead(); queue.length = 0; realtimeControls = controls; boundProfiles = castKey(); liveOptions = null
     set({ running: true, mode: 'realtime', scope, sessionId: '', lines: [], paused: false, thinking: null, speaking: null, waiting: null, waitingAudience: false, waitingInput: true,
-      turns: 0, generations: 0, generationLimit: Math.max(1, Math.min(500, store.get().talk.chatGenerations ?? 100)), until, error: '', ended: '', needModel: false }, false)
+      turns: 0, generations: 0, generationLimit: chatLimits(store.get().talk).generations, until, error: '', ended: '', needModel: false }, false)
     try {
       await openHistory(state.scope, controller.signal)
       await chatHistory.save(state.lines)
       const context = await chatHistory.context(character.profileId ?? character.id, state.lines, state.scope)
       controller.signal.throwIfAborted()
       const used = conversationContext(context.lines, context.summary)
-      const memoryIds = [...new Set([...context.memories.map((entry) => entry.id), ...(context.summary?.memoryIds ?? []), ...context.lines.flatMap((line) => line.memoryIds ?? [])])]
+      const memoryIds = memoryIdsOf(context)
       const mine = () => realtimeControls === controls
       const session: RealtimeSession = {
         context: { earlier: used.earlier, history: used.history, memories: context.memories.map(({ id, text }) => ({ id, text })) },
@@ -1100,17 +1050,17 @@ export const talk = {
         },
         turn() {
           if (!mine()) return false
-          if (state.generations >= state.generationLimit) { session.end('', tr('已达到本次生成次数上限')); return false }
-          set({ turns: state.turns + 1, generations: state.generations + 1 }); return true
+          if (spent(state)) { session.end('', tr('已达到本次生成次数上限')); return false }
+          set({ turns: state.turns + 1, ...counted(state) }); return true
         },
         end(error = '', reason = '') { if (mine()) { talk.stop(); set({ error, ended: reason }) } },
       }
       const sessionId = state.sessionId
       offRealtimeHistory = memory.subscribe(() => {
-        void Promise.all([memory.context([character.profileId ?? character.id], scope), memory.session(sessionId)]).then(([latest, saved]) => {
+        void Promise.all([memoryUnchanged(memory, character.profileId ?? character.id, scope, context.revision), memory.session(sessionId)]).then(([unchanged, saved]) => {
           if (!mine()) return
           if (!saved) session.end('', tr('对话记录已删除，请重新开始实时语音'))
-          else if (latest.revision !== context.revision) session.end('', tr('记忆已更新，请重新开始实时语音'))
+          else if (!unchanged) session.end('', tr('记忆已更新，请重新开始实时语音'))
         }, (error: unknown) => { if (mine()) session.end(tr('对话未保存：{0}', error instanceof Error ? error.message : String(error))) })
       })
       return session
@@ -1163,7 +1113,7 @@ export const talk = {
       if (active) { inputEpoch++; if (options.interrupt || state.mode === 'chat' || airi || store.get().talk.cutIn) interruptTurn() }
     }
     if (active) actors.forEach((actor) => { if (actor.item.lines === 'ai') actor.setPhase('listening') })
-    wakeLive?.()
+    wake.wake()
   },
   externalEvent(event: ExternalEvent): boolean {
     if (!state.running || state.scope !== 'public' || externalSeen.has(event.id)) return false
@@ -1175,7 +1125,7 @@ export const talk = {
     if (realtimeControls) return true
     if (event.reply === 'always' || (event.reply === 'maybe' && !state.speaking && !state.thinking && !externalQueue.length)) externalQueue.push(event)
     if (externalQueue.length > 16) externalQueue.shift()
-    wakeLive?.(); return true
+    wake.wake(); return true
   },
   externalDialogue(event: { id: string; started: boolean; character?: string }) {
     if (event.started) {
@@ -1184,22 +1134,22 @@ export const talk = {
       dialogue.add(event.id); interruptTurn()
     } else dialogue.delete(event.id)
     realtimeControls?.pause(state.paused || dialogue.size > 0)
-    wakeLive?.()
+    wake.wake()
   },
   async decideExternalAction(request: ExternalActionRequest, incoming: AbortSignal) {
     if (!ctrl || !state.running || state.scope !== 'public' || state.paused) throw new Error(tr('请先开启公开的游戏互动会话'))
     const engine = airi
     if (engine && (!state.sessionId || request.character !== engine.actorId)) throw new Error(tr('参与角色已改变，请重新开始会话'))
-    const actor = characters(store.get()).find((character) => character.id === request.character && character.lines === 'ai' && !character.remote)
+    const actor = participants(store.get()).find((character) => character.id === request.character && character.lines === 'ai' && !character.remote)
     if (!actor) throw new Error(tr('先选择一个 AI 角色'))
     const signal = AbortSignal.any([ctrl.signal, incoming, AbortSignal.timeout(45000)])
     externalDecisions++
     try {
       if (request.priority === 'critical' || request.priority === 'high') interruptTurn()
-      while (currentTurn) await wait(40, signal)
+      while (currentTurn) await sleep(40, signal)
       signal.throwIfAborted()
-      if (state.paused || state.generations >= state.generationLimit) throw new Error(tr('会话已暂停或达到生成上限'))
-      set({ generations: state.generations + 1 })
+      if (state.paused || spent(state)) throw new Error(tr('会话已暂停或达到生成上限'))
+      set(counted(state))
       const frame = engine?.windowId ? await desktop?.vision?.frame(engine.windowId) : undefined
       signal.throwIfAborted()
       if (engine?.windowId && !frame) throw new Error(tr('游戏窗口已关闭或屏幕录制权限不可用'))
@@ -1209,7 +1159,7 @@ export const talk = {
       signal.throwIfAborted()
       if (state.paused) throw new Error(tr('会话已暂停或达到生成上限'))
       return action
-    } finally { externalDecisions--; wakeLive?.() }
+    } finally { externalDecisions--; wake.wake() }
 
   },
   async playGame(instruction: string) {
@@ -1217,13 +1167,13 @@ export const talk = {
     if (!engine || !game || !host || !parent || !sessionId || state.scope !== 'public' || state.paused || state.game?.status !== 'ready') {
       throw new Error(tr('请先在 AIRI 开启游戏直播'))
     }
-    const actor = characters(store.get()).find((character) => character.id === engine.actorId)
+    const actor = participants(store.get()).find((character) => character.id === engine.actorId)
     const query = instruction.trim().slice(0, 500)
     if (!actor || !query) return
-    if (state.generations >= state.generationLimit) throw new Error(tr('会话已暂停或达到生成上限'))
+    if (spent(state)) throw new Error(tr('会话已暂停或达到生成上限'))
     const signal = AbortSignal.any([parent.signal, AbortSignal.timeout(45_000)])
     const profile = actor.profileId ?? actor.id
-    set({ generations: state.generations + 1, game: { name: game.game, status: 'submitting', text: '' } })
+    set({ ...counted(state), game: { name: game.game, status: 'submitting', text: '' } })
     try {
       const [context, snapshot] = await Promise.all([chatHistory.context(profile, state.lines, 'public'), host.snapshot(game.id, true)])
       const stillCurrent = async () => {
@@ -1231,7 +1181,7 @@ export const talk = {
         if (airi !== engine || engine.game !== game || sessionId !== state.sessionId || state.scope !== 'public' || state.paused) {
           throw new Error(tr('游戏连接已关闭或会话已暂停'))
         }
-        if ((await memory.context([profile], 'public')).revision !== context.revision) throw new Error(tr('记忆已更新，请重新发送这一句'))
+        await checkMemory(memory, profile, 'public', context.revision)
         signal.throwIfAborted()
       }
       const facts = context.memories.slice(0, 12).map((entry) => entry.text.slice(0, 300))
@@ -1252,7 +1202,7 @@ export const talk = {
       if (airi === engine && engine.game === game && !parent.signal.aborted) {
         set({ game: { name: game.game, status: 'ready', text: airiGameError(error) } })
       }
-    } finally { wakeLive?.() }
+    } finally { wake.wake() }
   },
   async cancelGame() {
     if (airi?.game?.game === 'minecraft') await desktop?.airiGame?.cancel(airi.game.id)
@@ -1268,11 +1218,11 @@ export const talk = {
   },
   startLive(options: LiveOptions) {
     if (state.running) return
-    void runLive({ minutes: Math.max(1, Math.min(240, Math.round(options.minutes) || 30)), maxGenerations: Math.max(1, Math.min(500, Math.round(options.maxGenerations) || 100)), warmupSeconds: [30, 60, 120].includes(options.warmupSeconds) ? options.warmupSeconds : 0, textOnly: options.textOnly, airi: options.airi })
+    void runLive(liveLimits(options))
   },
   /** the line being said finishes, then they wait */
-  pause() { if (state.running) { set({ paused: true }); realtimeControls?.pause(true); wakeLive?.() } },
-  resume() { set({ paused: false }); realtimeControls?.pause(dialogue.size > 0); wakeLive?.() },
+  pause() { if (state.running) { set({ paused: true }); realtimeControls?.pause(true); wake.wake() } },
+  resume() { set({ paused: false }); realtimeControls?.pause(dialogue.size > 0); wake.wake() },
   stop() {
     cancelRestore()
     inputPending = false; activeEvent = null
@@ -1286,7 +1236,7 @@ export const talk = {
     looks(null, null)
   },
   clear() { talk.stop(); viewers.clear(); lastTurn = null; chatHistory.invalidate(); set({ lines: [], turns: 0, error: '' }) },
-  setLimit(n: number) { set({ limit: Math.max(1, Math.min(60, Math.round(n) || 1)) }) },
+  setLimit(n: number) { set({ limit: lineLimit(n) }) },
   setGap(s: number) { set({ gap: Math.max(0, Math.min(3, s)) }) },
   /** who you speak as: a character you play, or 'narrator' */
   setAs(id: string) { set({ as: id }) },
@@ -1314,7 +1264,7 @@ export const talk = {
     if (airi && currentTurn) { inputEpoch++; interruptTurn(); return }
     if (answer) answer(null)
     else if (state.speaking) cut(state.speaking.id, true)
-    else if (state.mode === 'chat') { forced = voices().find((character) => character.lines === 'ai')?.id ?? null; wakeLive?.() }
+    else if (state.mode === 'chat') { forced = voices().find((character) => character.lines === 'ai')?.id ?? null; wake.wake() }
     else hurry?.()
   },
   /** this character speaks next (a click on its card): an AI one after the current line, or, idle, at once; one you
@@ -1326,7 +1276,7 @@ export const talk = {
     if (c.lines === 'me') { set({ as: c.id }); return }
     forced = c.id
     if (!state.running) void run(true)
-    else if (!state.speaking && !answer) { hurry?.(); wakeLive?.() }
+    else if (!state.speaking && !answer) { hurry?.(); wake.wake() }
   },
   /** you say something, as whom the console says. On your character's turn it is that turn; otherwise it waits for
    *  the current line (or cuts it off, cutIn) and they answer */
@@ -1339,7 +1289,7 @@ export const talk = {
     const c = me.find((x) => x.id === (state.waiting ?? state.as)) ?? (state.as === 'narrator' ? undefined : me[0])
     const line: Line = { id: uid(), who: c?.id ?? 'me', name: c?.name ?? tr("旁白"), text: t.slice(0, 200), emotion: 'neutral', action: 'none', to: null, human: true }
     set({ error: '' })
-    if (desktop?.vision && !state.running && options.respond !== false && profiles().length) {
+    if (features.desktopConsole && !state.running && options.respond !== false && profiles().length) {
       const model = loadBrainConfig()
       if (model.kind !== 'demo') {
         return startChatSession(state.chatScope, undefined, { line, transcribed: options.transcribed === true }).then(() => true, () => false)
@@ -1349,7 +1299,7 @@ export const talk = {
     if (options.respond === false) return
     if (answer) { answer(line); return }
     queue.push({ line, transcribed: options.transcribed === true })
-    wakeLive?.()
+    wake.wake()
     if (!state.running) { void run(true); return }
     if (airi) inputEpoch++
     if (state.mode === 'chat' || airi || store.get().talk.cutIn) interruptTurn()

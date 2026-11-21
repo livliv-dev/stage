@@ -1,4 +1,4 @@
-// LivLiv's points AI in the desktop app (livliv.ts livlivHere, brain.ts, App.tsx ModelForm), on Stage's own build with the
+// LivLiv's points AI in the desktop app (core/platform.ts features.points, brain.ts, App.tsx ModelForm), on Stage's own build with the
 // app's bridge stood in for (window.livlivDesktop) and the site faked. Signed out: LivLiv is the first option, chosen it
 // says the site's price and offers 登录 livliv.ai, which starts the connect code (shown in the form, the site's page
 // opened), and once allowed LivLiv becomes the model. Signed in (a kept token): LivLiv is the model from the start and a

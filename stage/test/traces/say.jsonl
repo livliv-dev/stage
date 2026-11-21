@@ -1,0 +1,10 @@
+{"scenario":"say","about":"One-shot: idle, you type a line as the narrator; the AI character answers once and the session ends"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"start","mode":"conversation","scope":"private"}
+{"t":"line","from":"you","name":"旁白","text":"你好","scope":"private"}
+{"t":"save","scope":"private","lines":1}
+{"t":"model","engine":"openai","speaker":"Nana","scope":"private","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫"]}
+{"t":"voice","via":"api","text":"Nana的第1句。我接着说下去。"}
+{"t":"line","from":"ai","name":"Nana","text":"Nana的第1句。我接着说下去。","scope":"private"}
+{"t":"save","scope":"private","lines":2}
+{"t":"end","mode":"conversation","scope":"private","turns":1,"generations":0}

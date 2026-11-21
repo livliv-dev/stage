@@ -9,14 +9,13 @@ import { tr } from './i18n'
 //  output window is see-through). A character placed new starts from its live settings on the site (smoothing, how
 //  far the body carries it, the voice's motion, hops, dozing off); Stage never writes them back
 //  &as=ai: the same shot with the character as AI, for the AI 直播 panel (the old AI 直播 console's links)
-import { byId, liveOf, samples, type Live, type Pick } from './library'
+import { byId, liveOf, samples, type LiveSettings, type Pick } from './library'
 import { bubbleFor, captionBar, newCharacter, participants, store, type CharacterItem, type Scene } from './scene'
 import { controlSettings } from './workflow'
-import { setLiveCharacter } from './live'
+import { setFaceCharacter } from './control'
 import { talk } from './conversation'
 import { GREEN } from './paint'
-import { onSite } from './host'
-import { desktop } from './desktopBridge'
+import { features } from './core/platform'
 
 /** the id asked for in the address, if any */
 export const linkedId = () => new URLSearchParams(location.search).get('c')?.trim() || null
@@ -36,12 +35,12 @@ let handled = false
 export async function openLinked(id: string, as: LinkedAs | null = null): Promise<{ note: string; character: string | null }> {
   if (handled) return { note: '', character: null }
   handled = true
-  let pick: Pick, live: Live | undefined
+  let pick: Pick, live: LiveSettings | undefined
   try {
     const sample = samples().find((s) => s.id === id)
     pick = sample ?? await byId(id)
     // a featured one's live settings are on the site only (its card); elsewhere it goes as it comes
-    live = sample ? onSite ? await liveOf(id) : undefined : pick.live
+    live = sample ? features.host === 'site' ? await liveOf(id) : undefined : pick.live
   } catch (e) {
     return { note: (e as Error).message, character: null }  // the id stays: signing in comes back here with it
   }
@@ -65,7 +64,7 @@ export async function openLinked(id: string, as: LinkedAs | null = null): Promis
 
 /** the shot for 开播 / AI 直播: the one it is alone in already, else the one showing when nothing is in sight there,
  *  else a new one (the rest of the project stays as it was). Its id */
-function onStage(pick: Pick, there: CharacterItem | undefined, as: LinkedAs, live?: Live): string {
+function onStage(pick: Pick, there: CharacterItem | undefined, as: LinkedAs, live?: LiveSettings): string {
   const alone = (s: Scene) => {
     const seen = s.items.filter((i) => !i.hidden)
     return !!there && seen.some((i) => i.id === there.id) && seen.every((i) => i.id === there.id || (i.kind === 'subtitle' && (i.of === there.id || i.of === 'all')))
@@ -74,13 +73,13 @@ function onStage(pick: Pick, there: CharacterItem | undefined, as: LinkedAs, liv
   if (own) store.switchScene(own.id)
   else {
     if (store.get().items.some((i) => !i.hidden)) store.addScene(true)
-    store.set({ name: as === 'face' ? tr("开播 · {0}", pick.name) : `${tr("AI 直播")} · ${pick.name}`, background: desktop ? 'transparent' : GREEN, backgroundAsset: undefined })
+    store.set({ name: as === 'face' ? tr("开播 · {0}", pick.name) : `${tr("AI 直播")} · ${pick.name}`, background: features.shell ? 'transparent' : GREEN, backgroundAsset: undefined })
   }
   // big, in the middle, standing on the bottom edge (in its own shot, where you put it last time)
   const s = store.get(), h = Math.round(Math.min(s.height * 0.94, s.width * 0.9 * 1.5)), w = Math.round(h * 2 / 3)
   const place = own ? { hidden: false } : { hidden: false, x: Math.round((s.width - w) / 2), y: s.height - h, w, h }
   const face = as === 'face'
-  const setup: Partial<CharacterItem> = { ...controlSettings(face ? 'human' : 'ai'), ...place, ...(live ? { exprModes: live.expr } : {}),
+  const setup: Partial<CharacterItem> = { ...controlSettings(face ? 'me' : 'ai'), ...place, ...(live ? { exprModes: live.expr } : {}),
     // the microphone on the mouth: on, unless you switched it off for this one
     ...(face ? { faceMic: there?.faceMic !== false } : {}) }
   store.begin()
@@ -101,7 +100,7 @@ function onStage(pick: Pick, there: CharacterItem | undefined, as: LinkedAs, liv
     if (!face && !store.get().items.some((i) => i.kind === 'subtitle' && !i.hidden && (i.of === id || i.of === 'all'))) store.add(captionBar(store.get()))
   } finally { store.end() }
   store.select(id)
-  setLiveCharacter(face ? id : null)
+  setFaceCharacter(face ? id : null)
   if (face) talk.setAs(id)
   return id
 }

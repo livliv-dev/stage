@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { desktop } from './desktopBridge'
+import { features } from './core/platform'
 import { resetInputs } from './devices'
 import { resetLocale, tr } from './i18n'
 import { resetMixer } from './mixer'
@@ -42,7 +43,7 @@ function ResetDialog({ onResetLayout, onClose, onDone }: { onResetLayout: () => 
       <h2 id={title}>{tr('恢复默认偏好？')}</h2>
       <div id={description}>
         <p>{tr('将重置界面语言、画面质量、设备选择、音量和面板布局。')}</p>
-        {desktop && <p>{tr('全局热键将恢复默认并关闭。')}</p>}
+        {features.globalHotkeys && <p>{tr('全局热键将恢复默认并关闭。')}</p>}
         <p className="hint">{tr('保留模型配置、密钥、登录状态、场景、聊天记录和记忆。')}</p>
       </div>
       {error && <p className="hint error" role="alert">{error}</p>}

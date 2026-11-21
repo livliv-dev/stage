@@ -27,7 +27,8 @@ import { PropPanel } from './PropPanel'
 import { AvatarView } from './AvatarView'
 import { SidebarToggle } from './SidebarToggle'
 import { CONTROLS, controlOf, controlSettings } from './workflow'
-import { keysOf, modeOf, MOVE_KEYS } from './live'
+import { keysOf, MOVE_KEYS } from './characterKeys'
+import { modeOf } from './control'
 import { readReactionSettings, type ReactionFeeling } from './reactions'
 
 const settingsLabel = (item?: Item) => tr(item ? ({ character: '角色设置', subtitle: '字幕设置', text: '文字设置', image: '图片设置' })[item.kind] : '舞台设置')
@@ -212,7 +213,7 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
   </Section>
   return <>
     <Section title={tr("谁来控制")}>
-      <Seg value={controlOf(c)} options={CONTROLS} set={(control) => { patch(controlSettings(control)); if (control === 'human') talk.setAs(c.id) }} />
+      <Seg value={controlOf(c)} options={CONTROLS} set={(control) => { patch(controlSettings(control)); if (control === 'me') talk.setAs(c.id) }} />
       <p className="hint">{tr(CONTROLS.find((x) => x.id === controlOf(c))?.hint ?? '')}</p>
       <Switch label={tr("静音角色声音")} on={c.muted} set={(muted) => patch({ muted })} />
     </Section>

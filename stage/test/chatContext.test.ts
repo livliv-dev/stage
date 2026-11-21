@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { conversationContext, contextLine, speechSegments } from '../src/chatContext'
-import type { Line } from '../src/brain'
+import type { Line } from '../src/core/lines'
 
 const line = (id: number, human = id % 2 === 0): Line => ({ id: String(id), who: human ? 'me' : 'ai', name: human ? '我' : 'Nana', text: `细节 ${id}`, emotion: 'neutral', action: 'none', to: null, human })
 

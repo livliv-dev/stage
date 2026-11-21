@@ -8,12 +8,12 @@ import { conversation, talk } from './conversation'
 import { renderTake, type Made } from './render'
 import { store } from './scene'
 import { MAX_SECONDS, record, type Recorder, type Take } from './tape'
-import { onSite } from './host'
+import { features } from './core/platform'
 import { accountNow } from './livliv'
 
 /** how long a take may run, and whether its video carries the LivLiv mark: on livliv.ai/stage the visitor's plan says
  *  (as the site's 录制: free 30 s with the mark, paid 5 min), elsewhere 10 minutes and no mark of Stage's own */
-export const takeLimit = () => onSite ? { seconds: Math.min(MAX_SECONDS, accountNow().recordSeconds), mark: accountNow().recordMark } : { seconds: MAX_SECONDS, mark: false }
+export const takeLimit = () => features.host === 'site' ? { seconds: Math.min(MAX_SECONDS, accountNow().recordSeconds), mark: accountNow().recordMark } : { seconds: MAX_SECONDS, mark: false }
 
 export type RecPhase = 'idle' | 'starting' | 'recording' | 'making' | 'done' | 'error'
 /** retry: the video failed and its take is kept, to make it again */

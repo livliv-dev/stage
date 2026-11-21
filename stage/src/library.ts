@@ -10,17 +10,17 @@ import { keep, type Kept } from './vault'
 import type { PngSlot } from './bodies/png'
 
 /** label: how the picker names it (when two share a name); live: how it goes live, as its page on the site sets it */
-export type Pick = { name: string; persona: string; model: ModelRef; thumb?: string; label?: string; id?: string; card?: SampleCard; live?: Live }
+export type Pick = { name: string; persona: string; model: ModelRef; thumb?: string; label?: string; id?: string; card?: SampleCard; live?: LiveSettings }
 
 type Card = { id: string; name: string; tagline?: string; tags?: string[]; v?: number; live?: unknown }
 
 /** a character's live settings on the site (the `live` field of GET /api/models/<id>, set on its page), read only:
  *  face smoothing 0..1, how far the body's movement carries it 0..2, how much the voice moves the head 0..2, hops on
  *  syllables, seconds without a face before it dozes off (0 never), and how each expression's key shows it */
-export type Live = { smooth?: number; follow?: number; talk?: number; bounce?: boolean; autoAway?: number; expr?: Record<string, ExprMode> }
-export function readLive(value: unknown): Live | undefined {
+export type LiveSettings = { smooth?: number; follow?: number; talk?: number; bounce?: boolean; autoAway?: number; expr?: Record<string, ExprMode> }
+export function readLive(value: unknown): LiveSettings | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
-  const v = value as Record<string, unknown>, out: Live = {}
+  const v = value as Record<string, unknown>, out: LiveSettings = {}
   const num = (k: 'smooth' | 'follow' | 'talk' | 'autoAway', max: number) => { const n = v[k]; if (typeof n === 'number' && Number.isFinite(n)) out[k] = Math.max(0, Math.min(max, n)) }
   num('smooth', 1); num('follow', 2); num('talk', 2); num('autoAway', 600)
   if (typeof v.bounce === 'boolean') out.bounce = v.bounce
@@ -31,7 +31,7 @@ export function readLive(value: unknown): Live | undefined {
 
 /** the live settings of a character the site has, by its card (a featured one, which comes with Stage, is otherwise
  *  never asked for); none when the site doesn't answer */
-export async function liveOf(id: string): Promise<Live | undefined> {
+export async function liveOf(id: string): Promise<LiveSettings | undefined> {
   try {
     const r = await api(`/api/models/${encodeURIComponent(id)}`)
     return r.ok ? readLive((await r.json() as Card).live) : undefined

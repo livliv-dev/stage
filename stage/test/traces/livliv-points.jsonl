@@ -1,0 +1,10 @@
+{"scenario":"livliv-points","about":"Desktop, signed in to LivLiv, 对谈 with LivLiv's points model: each line is one stage-line request that brings its voice (no /say)"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"start","mode":"conversation","scope":"private"}
+{"t":"model","engine":"livliv","speaker":"Kai","memories":[],"voiced":true}
+{"t":"line","from":"ai","name":"Kai","text":"Kai的第1句。我接着说下去。","scope":"private"}
+{"t":"save","scope":"private","lines":1}
+{"t":"model","engine":"livliv","speaker":"Nana","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫"],"voiced":true}
+{"t":"line","from":"ai","name":"Nana","text":"Nana的第1句。我接着说下去。","scope":"private"}
+{"t":"save","scope":"private","lines":2}
+{"t":"end","mode":"conversation","scope":"private","turns":2,"generations":0}

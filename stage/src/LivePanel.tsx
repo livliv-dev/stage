@@ -3,14 +3,16 @@ import { useEffect, useState } from 'react'
 import { Check, Pause, Play, Settings, Square, X } from 'lucide-react'
 import { actors, onActors } from './actors'
 import { brainReady, useBrainConfig } from './brain'
-import { airiGameError, airiModelForCast } from './airiEngine'
+import { airiGameError } from './airiEngine'
+import { airiFits, chooseEngine } from './brains/select'
 import { liveModelName, talk, useConversation } from './conversation'
-import { participants as characters, useScene } from './scene'
+import { participants, useScene } from './scene'
 import { voiceRoute, useActiveSpeech } from './voiceApi'
 import { useAccount } from './livliv'
 import { cancel as cancelPtt } from './ptt'
 import { AudiencePanel } from './AudiencePanel'
 import { desktop } from './desktopBridge'
+import { features } from './core/platform'
 import { validGamePort, type AiriGameConfig } from '../../desktop/src/airiGameProtocol'
 
 export function LivePanel({ onClose, onSettings }: { onClose: () => void; onSettings: () => void }) {
@@ -29,15 +31,15 @@ export function LivePanel({ onClose, onSettings }: { onClose: () => void; onSett
   const [eventsPort, setEventsPort] = useState('8080'), [rconPort, setRconPort] = useState('24180')
   const [instruction, setInstruction] = useState(''), [actionError, setActionError] = useState('')
   useEffect(() => { setWindows(null); setWindowId(''); setVisionError('') }, [model])
-  const cast = characters(scene).filter((c) => c.lines === 'ai')
+  const cast = participants(scene).filter((c) => c.lines === 'ai')
   const modelReady = brainReady(model) && model.kind !== 'demo', ready = cast.length > 0 && cast.every((c) => actors.get(c.id)?.status === 'ready')
   const missingVoice = cast.filter((c) => voiceRoute(c, speech) === 'none')
   const maxGenerations = Number(maxInput), budgetReady = Number.isInteger(maxGenerations) && maxGenerations >= 1 && maxGenerations <= 500
   const active = state.running && state.mode === 'live'
-  const compatibleModel = airiModelForCast(model, cast)
   const needsAiri = game !== 'window' || !!windowId
-  const airiVoiceReady = !compatibleModel || textOnly || cast[0].muted || voiceRoute(cast[0], speech) !== 'livliv'
-  const useAiri = !!compatibleModel && airiVoiceReady && (needsAiri || compatibleModel.airi !== false)
+  // AIRI or not: the one rule (brains/select.ts); a game or a window asks for it whatever the switch says
+  const engine = chooseEngine(model, cast, { kind: 'live', textOnly, needsAiri, voice: cast[0] && voiceRoute(cast[0], speech) }, features)
+  const compatibleModel = airiFits(engine), airiVoiceReady = engine.reason !== 'livliv-voice', useAiri = engine.engine === 'airi'
   const portsReady = game !== 'factorio' || validGamePort(Number(eventsPort)) && validGamePort(Number(rconPort))
   const canStart = budgetReady && modelReady && ready && (textOnly || !missingVoice.length) && (!needsAiri || useAiri) && portsReady
   const gameConfig: AiriGameConfig | undefined = game === 'window' ? undefined
@@ -76,7 +78,7 @@ export function LivePanel({ onClose, onSettings }: { onClose: () => void; onSett
   const status = state.paused ? tr("已暂停 · 当前句说完后等待") : state.speaking ? tr("正在回应观众") : retryIn > 0 ? tr("出错了，{0} 秒后重试", retryIn) : state.waitingAudience ? tr("等待新弹幕") : tr("正在准备回应…")
   const pinnedModel = active ? liveModelName() : undefined
   const modelName = model.kind === 'openai' ? model.model : 'LivLiv'
-  return <div className={`card popover live-settings${desktop?.vision ? ' desktop-live-settings' : ''}`} onPointerDown={(e) => e.stopPropagation()}>
+  return <div className={`card popover live-settings${features.desktopConsole ? ' desktop-live-settings' : ''}`} onPointerDown={(e) => e.stopPropagation()}>
     <header><span className="title">{tr("AI 直播")}</span><button className="icon" data-close="true" aria-label={tr("关闭")} onClick={onClose}><X size={16} /></button></header>
     <section className="section live-readiness">
       <p className={ready ? 'ok' : 'hint'}><Check size={14} />{ready ? tr('由 {0} 回应', cast.map((character) => character.name).join('、')) : tr("先添加并载入「AI 来演」的角色")}</p>
@@ -84,8 +86,8 @@ export function LivePanel({ onClose, onSettings }: { onClose: () => void; onSett
       <p className={textOnly || !missingVoice.length ? 'ok' : 'hint'}><Check size={14} />{textOnly ? tr("仅显示字幕") : missingVoice.length ? missingVoice.map((c) => c.name).join('、') + tr(" 还没有声音") : tr("角色声音已设置")}</p>
       <button className="link" onClick={onSettings}><Settings size={14} />{tr("设置模型与声音")}</button>
       {state.running && !active && <p className="hint">{tr('请先停止当前会话')}</p>}
-      {desktop?.vision && !state.running && <>
-        {desktop?.airiGame && <label className="field"><span>{tr('游戏连接')}</span><select value={game} onChange={(e) => { setGame(e.target.value as typeof game); setWindowId(''); setVisionError(''); setActionError('') }}>
+      {features.airi && !state.running && <>
+        {features.games && <label className="field"><span>{tr('游戏连接')}</span><select value={game} onChange={(e) => { setGame(e.target.value as typeof game); setWindowId(''); setVisionError(''); setActionError('') }}>
           <option value="window">{tr('不连接游戏')}</option>
           <option value="minecraft">Minecraft / Fabric</option>
           <option value="factorio">Factorio / Autorio</option>

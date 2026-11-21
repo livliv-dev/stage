@@ -9,8 +9,8 @@ import { startInputTracking, type InputTracking } from './inputTracking'
 import { networkSource } from './networkTracking'
 import { gamepadSource } from './gamepad'
 import { deviceError, inputs, microphoneConstraints, onInputs, refreshDevices } from './devices'
-import type { Emotion, Move } from './brain'
-import { AUTO_AWAY, participants as characters, store, type CharacterItem, type ModelRef } from './scene'
+import type { Emotion, Move } from './core/lines'
+import { AUTO_AWAY, participants, store, type CharacterItem, type ModelRef } from './scene'
 import { ReactionDirector, type ReactionCue, type ReactionMove, type ReactionPhase } from './reactions'
 import { estimate, say, type Utterance } from './speech'
 import { isOutput, outputOpen, post } from './link'
@@ -457,7 +457,7 @@ export class Actor {
   }
 
   private async fromApi(text: string, emotion: Emotion, signal?: AbortSignal): Promise<Clip> {
-    const s = activeSpeech(), v = this.item.voice, voice = apiVoice(this.item, s, characters(store.get()))
+    const s = activeSpeech(), v = this.item.voice, voice = apiVoice(this.item, s, participants(store.get()))
     if (!speechProviderOf(s).live) {
       const blob = await speakApi(s, text, voice, emotion, v.rate, signal)
       return { blob, seconds: await length(blob), expression: null }

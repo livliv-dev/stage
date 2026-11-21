@@ -1,0 +1,6 @@
+{"scenario":"chat-time-limit","about":"持续聊天 with a one-minute limit: the time runs out while the model is still answering; nothing is said"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"start","mode":"chat","scope":"private"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"model","engine":"openai","speaker":"Nana","scope":"private","memories":[]}
+{"t":"end","mode":"chat","scope":"private","turns":0,"generations":1,"ended":"已达到本次时长上限"}

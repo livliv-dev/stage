@@ -7,7 +7,7 @@
 //    before the account is known (a member's output would flash it); desktop and self-hosted copies never
 import { actors } from './actors'
 import { isOutput, onMsg, outputOpen, post } from './link'
-import { onSite } from './host'
+import { features } from './core/platform'
 import { accountNow, onAccount } from './livliv'
 
 let worker: Worker | null = null
@@ -29,7 +29,7 @@ function start() {
 }
 function stop() { worker?.terminate(); worker = null }
 
-export const markShown = () => onSite && accountNow().status !== 'unknown' && accountNow().recordMark
+export const markShown = () => features.host === 'site' && accountNow().status !== 'unknown' && accountNow().recordMark
 
 /** the editor's side (App mounts it once) */
 export function connectOutputFeed() {

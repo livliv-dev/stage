@@ -10,11 +10,11 @@ import { getLocale, tr } from './i18n'
 //    before is free. The MP3 is fetched whole and its length read, so the subtitle and a cut-off go by the real voice
 import { useSyncExternalStore } from 'react'
 import { desktopFetch } from './request'
-import type { Emotion } from './brain'
+import type { Emotion, StreamingVoice } from './core/lines'
 import type { CharacterItem } from './scene'
 import { SAMPLES } from './samples'
-import type { Live } from './voiceApi'
-import { onSite, signInUrl } from './host'
+import { signInUrl } from './host'
+import { features } from './core/platform'
 
 /** connect: a code waiting for its approval on the site (shown here, the same on the page). recordSeconds,
  *  recordMark: on livliv.ai/stage, how long a recording may run and whether it carries the LivLiv mark (the plan's, as
@@ -44,7 +44,7 @@ async function answer(r: Response) {
 // the session the site gave this app (connect), on this computer. On livliv.ai/stage the site's own cookie is the
 // session: no token is kept or sent there
 const TOKEN = 'livliv-stage:session'
-const token = () => { if (onSite) return ''; try { return localStorage.getItem(TOKEN) || '' } catch { return '' } }
+const token = () => { if (features.host === 'site') return ''; try { return localStorage.getItem(TOKEN) || '' } catch { return '' } }
 const keep = (t: string) => { try { if (t) localStorage.setItem(TOKEN, t); else localStorage.removeItem(TOKEN) } catch { /* private mode: the cookie still works */ } }
 
 /** a request to LivLiv's API, as this app's session */
@@ -60,7 +60,7 @@ const post = (url: string, body: unknown, signal?: AbortSignal) =>
 let refreshVersion = 0
 export async function refresh() {
   const version = ++refreshVersion, session = token()
-  if (inApp() && !token()) { set({ status: 'out', email: '', points: 0 }); return }  // no account here: LivLiv isn't asked
+  if (features.shell && !token()) { set({ status: 'out', email: '', points: 0 }); return }  // no account here: LivLiv isn't asked
   try {
     const me = await answer(await api('/api/me'))
     if (version !== refreshVersion || token() !== session) return
@@ -84,20 +84,15 @@ let waiting: AbortController | null = null
 /** whether the site gives codes yet: an empty request, which it refuses (422) without making one, or doesn't know (404,
  *  405). Asked each time a card with the sign-in opens, so the button comes alive by itself; unreachable changes nothing */
 export async function checkConnect() {
-  if (account.status === 'in' || onSite) return  // the site signs in with its own page
+  if (account.status === 'in' || features.host === 'site') return  // the site signs in with its own page
   try {
     const r = await fetch('/api/connect/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '' })
     set({ closed: r.status === 404 || r.status === 405 })
   } catch { /* offline: pressing the button says so */ }
 }
-/** the desktop app (its own scheme, or its bridge): signed in to LivLiv with a connect code, its token kept here */
-export const inApp = () => location.protocol === 'livliv-stage:' || 'livlivDesktop' in window
-/** where LivLiv's points AI is offered: on livliv.ai/stage (the site's sign-in) and in the desktop app (a connect
- *  code); never in a copy hosted elsewhere, which has no account of its own */
-export const livlivHere = () => onSite || inApp()
 /** a session kept from an earlier sign-in (the desktop app), before the site has said whether it still holds */
 export const hasSession = () => !!token()
-const device = () => (!inApp() ? tr("浏览器") : /Mac/i.test(navigator.platform) ? 'Mac' : /Win/i.test(navigator.platform) ? 'Windows' : /Linux/i.test(navigator.platform) ? 'Linux' : tr("浏览器"))
+const device = () => (!features.shell ? tr("浏览器") : /Mac/i.test(navigator.platform) ? 'Mac' : /Win/i.test(navigator.platform) ? 'Windows' : /Linux/i.test(navigator.platform) ? 'Linux' : tr("浏览器"))
 const sleep = (ms: number, signal: AbortSignal) => new Promise<void>((ok, no) => {
   const t = setTimeout(ok, ms)
   signal.addEventListener('abort', () => { clearTimeout(t); no(signal.reason) }, { once: true })
@@ -107,7 +102,7 @@ export const openConnect = () => { if (account.connect) window.open(account.conn
 
 /** asks LivLiv for a code, opens its page, and waits (up to the code's 10 minutes) for it to be allowed there */
 export async function connect() {
-  if (onSite) { location.assign(signInUrl()); return }  // the site's own sign-in, back here afterwards
+  if (features.host === 'site') { location.assign(signInUrl()); return }  // the site's own sign-in, back here afterwards
   cancelConnect()
   const ctl = new AbortController()
   waiting = ctl
@@ -216,7 +211,7 @@ export function voicesOf(mid: string): Promise<Voices> {
 }
 
 /** live: the sound is still coming in (voiceApi speakLive): blob comes with it, seconds is a guess until then */
-export type Clip = { blob: Blob; seconds: number; expression: string | null; live?: Live }
+export type Clip = { blob: Blob; seconds: number; expression: string | null; live?: StreamingVoice }
 
 /** a line in the character's voice (`voice`: one of its voices by id, '' its default) */
 export async function voiceLine(mid: string, text: string, emotion: Emotion, voice: string, signal?: AbortSignal): Promise<Clip> {

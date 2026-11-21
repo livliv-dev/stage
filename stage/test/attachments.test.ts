@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { AttachmentAnchor } from '@livliv-dev/player'
-import { bindImage, imageGeometry, moveImage, readAttachment } from '../src/attachments'
+import { bindImage, imageGeometry, moveImage } from '../src/attachments'
+import { readAttachment } from '../src/attachmentData'
 import type { CharacterItem, ImageItem, Scene } from '../src/scene'
 
 test('binding, moving and unbinding preserve world geometry under posed scale, rotation and mirror', () => {

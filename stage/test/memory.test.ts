@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { emptyArchive, MemoryArchive, type ArchiveData, type MemoryDatabase, type StoredSession } from '../src/memory'
-import type { Line } from '../src/brain'
+import type { Line } from '../src/core/lines'
 
 class TestDatabase implements MemoryDatabase {
   data = emptyArchive()

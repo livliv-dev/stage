@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
-import { aiFetch, loadBrainConfig, previousModelConfig, type Line } from './brain'
+import { aiFetch, loadBrainConfig, previousModelConfig } from './brain'
+import type { Line } from './core/lines'
 import { actors, onActors, onFrame } from './actors'
 import { conversation, talk, type RealtimeSession } from './conversation'
 import { cancel as cancelPtt } from './ptt'
@@ -7,6 +8,7 @@ import { inputs, microphoneConstraints, onInputs } from './devices'
 import { store, uid, type CharacterItem } from './scene'
 import { loadSpeech } from './voiceApi'
 import { tr } from './i18n'
+import { personaOf, realtimeInstructions } from './brains/persona'
 import type { MemoryScope } from './memory'
 import { routeMicrophone } from './microphone'
 import { RealtimeConnection, RealtimeHttpError, type ModelEvent, type RealtimeOptions, type RealtimeProvider } from './realtime/connection'
@@ -49,18 +51,11 @@ const set = (update: Partial<State>) => { state = { ...state, ...update }; liste
 export const realtimeState = () => state
 export const useRealtime = () => useSyncExternalStore((listener) => { listeners.add(listener); return () => { listeners.delete(listener) } }, realtimeState)
 
-function instructions(character: CharacterItem) {
-  const scene = store.get(), language = { auto: '跟随用户当前说话的语言。', zh: '使用中文。', en: 'Speak English.', ja: '日本語で話してください。' }[scene.talk.language]
-  return [
-    `你在实时语音通话中扮演「${character.name}」，正在和操作者交谈。`,
-    character.persona, character.style, character.examples?.length ? `语气示例，只参考语气：${character.examples.join(' / ')}` : '',
-    scene.topic ? `当前话题：${scene.topic}` : '', language,
-    scene.talk.depth === 'discussion' ? '回应用户的具体问题，允许有层次地深入讨论，说明依据和不确定之处，按需要追问。先说要点，再展开。' : '自然接话，先回应具体内容，再按需要追问。通常先说一两个短句。',
-    conversation().scope === 'public' ? '这是公开互动，不要声称知道没有提供的私聊内容。' : '这是与操作者的私聊。',
-    '可以安静倾听。不要朗读动作、旁白、JSON、表情标签或思考过程。',
-    '舞台交互规则：用户庆祝成果、直接夸你可爱，或你明确惊讶、疑惑、不同意时，必须先调用一次 stage_reaction 做符合内容的小反应，再自然回答。例如用户完成项目时用 happy，直接夸你可爱时用 shy，疑惑时歪头。不能只在台词里说「我害羞了」来代替调用，那不会触发舞台表情。',
-    '说话者反应用 speaking，倾听用户或其他角色时用 listening。每次回复最多给自己和另一位 AI 各一次反应；普通事实、追问和没有明确情绪的聊天不必做动作，开心也不必一直闭眼笑。工具只控制表情和小动作，执行后继续接话，不朗读工具结果、不说「正在调用」或确认动作完成。',
-  ].filter(Boolean).join('\n')
+/** what the call is told: the character's persona for it (brains/persona.ts), the stage's topic and depth
+ *  (test/prompts.mjs pins it word for word) */
+export function instructions(character: CharacterItem) {
+  const scene = store.get()
+  return realtimeInstructions(personaOf(character, scene.talk.language, conversation().scope), { topic: scene.topic, depth: scene.talk.depth })
 }
 
 /** The model connection does not know about Stage. Only this adapter owns a character, controls and transcript. */

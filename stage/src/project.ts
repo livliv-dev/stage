@@ -3,13 +3,12 @@ import { archivePath, packFiles, PROJECT_LIMIT, unpackFiles } from './archive'
 import { backgroundUrl, cacheAsset, imageBackground, inspectPicture } from './assets'
 import { formatOf, sourceOf, type Format } from './bodies'
 import { getAsset, importAssets, kept, type StoredAsset, type StoredModel } from './vault'
-import { emptyScene, loadable, localModels, persistentScene, uid, type Scene } from './scene'
-import { shareCast, type Project } from './shots'
+import { emptyScene, loadable, localModels, persistentScene, shareCast, uid, type Project, type Scene } from './scene'
 import { modelId } from './livliv'
 import { sampleAt } from './samples'
 import { tr } from './i18n'
 import { readAudienceRules } from './triggers'
-import { readAttachment } from './attachments'
+import { readAttachment } from './attachmentData'
 
 type Model = { id: string; name: string; format: Format; files: { path: string; entry: string; type: string }[] }
 type Picture = { id: string; name: string; type: string; entry: string }

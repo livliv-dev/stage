@@ -1,7 +1,9 @@
 // The desktop protocol needs an explicit cancellation ticket; ordinary browser fetch already owns its signal.
+import { features } from './core/platform'
+
 export async function desktopFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const bridge = window.livlivDesktop?.requests, signal = init.signal
-  if (location.protocol !== 'livliv-stage:' || !bridge || !signal) return fetch(url, init)
+  if (!features.appScheme || !bridge || !signal) return fetch(url, init)
   const id = await bridge.begin()
   const cancel = () => { void bridge.cancel(id).catch((error: unknown) => console.error('Request cancellation failed', error)) }
   if (signal.aborted) { cancel(); throw signal.reason }

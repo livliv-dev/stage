@@ -1,6 +1,7 @@
 import { tr } from './i18n'
 import { useEffect, useState } from 'react'
 import { desktop, shortcutName, type Shortcut } from './desktop'
+import { features } from './core/platform'
 export function HotkeysPanel() {
   const [bindings, setBindings] = useState<Shortcut[]>([]), [error, setError] = useState('')
   // global hotkeys start off: they take keys away from every other program while on
@@ -19,7 +20,7 @@ export function HotkeysPanel() {
     try { setBindings(await desktop.hotkeys.enable(next)); setOn(next); setError('') }
     catch (e) { setError((e as Error).message) }
   }
-  if (!desktop) return <p className="hint">{tr("全局热键在桌面版中可用，切到游戏窗口后仍能控制角色。网页中的编辑快捷键见「快捷键」。")}</p>
+  if (!features.globalHotkeys || !desktop) return <p className="hint">{tr("全局热键在桌面版中可用，切到游戏窗口后仍能控制角色。网页中的编辑快捷键见「快捷键」。")}</p>
   return <div className="hotkey-settings">
     {desktop.hotkeys.enable && <label className="switch spaced"><span>{tr("启用全局热键")}</span><input type="checkbox" checked={!!on} disabled={on === null} onChange={(e) => void toggle(e.target.checked)} /><i /></label>}
     <p className="hint">{tr("表情和校准作用于选中的角色；未选中时，优先控制「我来演」的角色。语音输入按一次开始，再按一次结束。")}</p>

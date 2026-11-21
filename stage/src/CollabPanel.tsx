@@ -2,7 +2,7 @@ import { tr } from './i18n'
 import { useEffect, useRef, useState } from 'react'
 import { Check, Copy, LoaderCircle, Mic, MicOff, UserPlus, Volume2, VolumeX, X } from 'lucide-react'
 import { actors, onActors } from './actors'
-import { participants as characters, useScene } from './scene'
+import { participants, useScene } from './scene'
 import { voiceRoute } from './voiceApi'
 import { decodeInvite } from './collab/protocol'
 import { room, useRoom, type PeerState } from './collab/session'
@@ -18,7 +18,7 @@ export function CollabPanel({ onClose, onSettings }: { onClose: () => void; onSe
   useEffect(() => () => { attempt.current++ }, [])
   const [, redraw] = useState(0)
   useEffect(() => onActors(() => redraw((value) => value + 1)), [])
-  const cast = characters(scene).filter((character) => !character.remote)
+  const cast = participants(scene).filter((character) => !character.remote)
   const [tab, setTab] = useState<'create' | 'join'>('create')
   const [name, setName] = useState(() => localStorage.getItem('livliv-stage:person') || '')
   const [characterId, setCharacter] = useState(() => cast.some((character) => character.id === selected) ? selected! : cast[0]?.id || '')
