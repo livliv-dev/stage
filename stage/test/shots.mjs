@@ -52,8 +52,9 @@ try {
   await output.waitForFunction(() => [...window.__stage.actors.values()][0]?.status === 'ready')
   await output.evaluate(() => { window.firstCanvas = [...window.__stage.actors.values()][0].player.canvas })
   await page.evaluate(() => window.__stage.store.patch(window.avatarId, { hidden: true }))
-  const before = await page.evaluate(() => window.poseFrames); await page.waitForTimeout(testTimeout(300))
-  assert.ok(await page.evaluate(() => window.poseFrames) > before + 2, 'hidden avatars still publish final poses')
+  // a hidden avatar keeps drawing its pose: a few more frames come, however slowly the machine draws them
+  const before = await page.evaluate(() => window.poseFrames)
+  assert.ok(await page.waitForFunction((before) => window.poseFrames > before + 2, before, { timeout: testTimeout(5000) }).then(() => true, () => false), 'hidden avatars still publish final poses')
   assert.equal(await page.locator('.placed.character').evaluate((e) => getComputedStyle(e).visibility), 'hidden')
   const cut = await page.evaluate(async () => { const { performStageCommand, stageState } = await import('/src/control.ts'); return { result: performStageCommand({ do: 'scene', id: window.secondScene }), state: stageState() } })
   assert.equal(cut.result.ok, true); assert.equal(cut.state.scene.id, cut.result.scene); assert.equal(cut.state.scenes.length, 2)
@@ -100,7 +101,8 @@ try {
   assert.equal(await page.getByRole('button', { name: '暂停', exact: true }).count(), 1)
   await page.evaluate(() => window.__stage.talk.stop())
   report.ai = 'a cut to a visually empty shot keeps the same running AI turn and transport controls'
-  await page.waitForTimeout(500); const bank = await page.evaluate(() => ({ active: window.__stage.store.get().id, count: window.__stage.store.project().scenes.length })); await page.reload({ waitUntil: 'networkidle' })
+  // saved now, not after the store's own delay, so the reload reads what is on the page
+  await page.evaluate(() => window.__stage.store.flush()); const bank = await page.evaluate(() => ({ active: window.__stage.store.get().id, count: window.__stage.store.project().scenes.length })); await page.reload({ waitUntil: 'networkidle' })
   assert.deepEqual(await page.evaluate(() => ({ active: window.__stage.store.get().id, count: window.__stage.store.project().scenes.length })), bank)
   for (const locale of ['zh-Hans', 'zh-Hant', 'en', 'ja']) {
     await page.evaluate(async (value) => (await import('/src/i18n.ts')).setLocale(value), locale)
