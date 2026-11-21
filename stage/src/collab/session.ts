@@ -6,6 +6,7 @@ import { store, type CharacterItem } from '../scene'
 import { packageFor, PackageReceiver, sendPackage, type Package } from './assets'
 import { PublishAudio } from './audio'
 import { checkPackage } from './headers'
+import { handshake } from './handshake'
 import { actorFor, characterFor, receiveCharacter, removeCharacter } from './scene'
 import { attachSound, removeSound, volumeFor } from './streams'
 import { decodeInvite, encodeInvite, MAX_MEMBERS, object, personName, ROOM_VERSION, serviceUrl, validSignal, type Invite, type Member } from './protocol'
@@ -150,11 +151,12 @@ class Session {
     }
     if (channel.label !== 'model' || peer.stateChannel) { channel.close(); return }
     peer.stateChannel = channel; channel.binaryType = 'arraybuffer'
-    // shared once, when the channel opens; one announced by the other side may be open already
-    let shared = false
-    const share = () => { if (!shared) { shared = true; void this.share(peer) } }
-    channel.onopen = share
-    if (channel.readyState === 'open') queueMicrotask(share)
+    // our character goes once both ends listen (handshake.ts): once, on an open channel; one announced by the other
+    // side may be open already
+    const ready = handshake(() => { if (channel.readyState === 'open') channel.send(JSON.stringify({ t: 'ready' })) }, () => { void this.share(peer) })
+    peer.asset.signal.addEventListener('abort', () => ready.close(), { once: true })
+    channel.onopen = () => ready.opened()
+    if (channel.readyState === 'open') queueMicrotask(() => ready.opened())
     channel.onmessage = (event) => {
       if (this.stopped || peer.status.phase === 'error') return
       try {
@@ -165,6 +167,7 @@ class Session {
           if (!object(message)) throw new Error(tr("好友联播消息无效"))
           if (message.t === 'model') { peer.receiver.begin(message.model); peer.status.phase = 'receiving'; this.publish() }
           else if (message.t === 'model-end') { const value = peer.receiver.end(message.id); peer.status.phase = 'loading'; peer.status.progress = 1; this.publish(); void this.load(peer, value) }
+          else if (message.t === 'ready') ready.heard()
           else if (message.t === 'pose') {
             const pose = readPose(message.pose)
             if (!pose) throw new Error(tr("收到的角色动作有问题"))
@@ -174,7 +177,7 @@ class Session {
         }
       } catch (error) { this.peerError(peer, (error as Error).message) }
     }
-    channel.onclose = () => { if (!this.stopped && this.peers.has(peer.member.id) && peer.pc.connectionState !== 'closed') this.peerError(peer, tr("角色同步已断开")) }
+    channel.onclose = () => { ready.close(); if (!this.stopped && this.peers.has(peer.member.id) && peer.pc.connectionState !== 'closed') this.peerError(peer, tr("角色同步已断开")) }
   }
   private async load(peer: Peer, value: Package) {
     try { await checkPackage(value.files) } catch (error) { this.peerError(peer, (error as Error).message); return }
