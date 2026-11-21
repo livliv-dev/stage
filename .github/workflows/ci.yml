@@ -47,7 +47,7 @@ jobs:
           - name: conversation
             suites: chat memory demo-history lifecycle privacy start points say-once recording-scope model-switch app-livliv
           - name: voice
-            suites: handsfree voice-setup realtime journey goals
+            suites: handsfree voice-setup realtime journey goals voicebox-dropout
           - name: editor
             suites: browser settings ux shots projects mixer profiles card-import
           - name: live

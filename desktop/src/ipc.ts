@@ -110,9 +110,10 @@ export function registerIpc(deps: IpcDeps) {
     voiceboxCalls.set(id, controller)
     try {
       if (op === 'speak') {
-        const line = value as { profile?: unknown; text?: unknown }
+        const line = value as { profile?: unknown; text?: unknown; size?: unknown }
         if (!line || typeof line.profile !== 'string' || line.profile.length > 200 || typeof line.text !== 'string' || !line.text || line.text.length > 5000) throw new Error('Invalid Voicebox line')
-        return await voicebox.speak(line.profile, line.text, lang ?? 'en', controller.signal)
+        const size = typeof line.size === 'string' && /^(1\.7B|0\.6B|1B|3B)$/.test(line.size) ? line.size : undefined
+        return await voicebox.speak(line.profile, line.text, lang ?? 'en', controller.signal, size)
       }
       if (op === 'transcribe') {
         if (!(value instanceof ArrayBuffer) || value.byteLength > 25_000_000) throw new Error('Invalid recording')

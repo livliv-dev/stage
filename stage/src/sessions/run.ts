@@ -10,6 +10,7 @@ import type { CharacterItem } from '../scene'
 import type { Line } from '../core/lines'
 import type { AiriGameConnection } from '../../../protocol/src/airiGame'
 import type { LiveOptions } from './budget'
+import type { Spend } from './spend'
 
 /** a realtime call's controls: its own connection, told what the session does */
 export type RealtimeControls = { stop(): void; pause(paused: boolean): void; interrupt(): void; say(text: string): void; event(event: ExternalEvent): boolean }
@@ -40,6 +41,8 @@ export class Run {
   airi: AiriBinding | null = null
   /** the AI cast the session started with (its profiles): a change stops it */
   boundProfiles = ''
+  /** what it may spend, settled when it started (sessions/spend.ts) */
+  spend: Spend | null = null
   /** ends the pause between lines now (下一句) */
   hurry: (() => void) | null = null
   /** the switch to the public record under way (an output came on: sessions/record.ts) */

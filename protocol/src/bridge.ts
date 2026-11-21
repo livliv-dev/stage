@@ -46,7 +46,7 @@ export type DesktopApi = DesktopInfo & {
   /** Voicebox on this computer: results, never thrown */
   voicebox?: {
     profiles(): Promise<VoiceboxResult<VoiceboxProfile[]>>
-    speak(id: string, line: { profile: string; text: string }, language: string): Promise<VoiceboxResult<ArrayBuffer>>
+    speak(id: string, line: { profile: string; text: string; size?: string }, language: string): Promise<VoiceboxResult<ArrayBuffer>>
     transcribe(id: string, wav: ArrayBuffer, language?: string): Promise<VoiceboxResult<string>>
     cancel(id: string): Promise<null>
   }

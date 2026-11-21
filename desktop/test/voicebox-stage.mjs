@@ -1,7 +1,9 @@
 // Voicebox on this computer, as LivLiv Stage finds and uses it (against a stand-in Voicebox): not running, the 声音 item
 // offers it; started, it is found and is the characters' voice with no other voice set, in a voice of an open engine
-// (never HumeAI TADA unasked), each line in its language; a slow line still arrives; what you say is heard by its
-// Whisper (the recording sent as `file`), which counts as your own recognition.
+// whose model is downloaded (never HumeAI TADA unasked, never a voice without its model), each line in its language,
+// never a voice id chosen for another API; a slow line still arrives; its Whisper stays off until switched on (finding
+// Voicebox doesn't move your recognition), then hears what you say (the recording sent as `file`) as your own
+// recognition.
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { mkdtemp } from 'node:fs/promises'
@@ -29,13 +31,17 @@ const model = createServer(async (request, response) => {
   if (request.url === '/fixture/chat/completions') return json(response, { choices: [{ message: { content: JSON.stringify({ text: '你好，我们开始吧。', emotion: 'happy', action: 'none' }) } }] })
   json(response, { signed_in: false, available: false })
 })
-// the stand-in Voicebox: a TADA voice listed first, then an open preset
+// the stand-in Voicebox: a TADA voice listed first, a Chatterbox one whose model isn't downloaded, then an open preset
 const voicebox = createServer(async (request, response) => {
   const body = await read(request)
   if (request.url === '/profiles') return json(response, [
     { id: 'tada', name: 'Tada me', language: 'en', voice_type: 'cloned', default_engine: 'tada' },
+    { id: 'box', name: 'Box', language: 'en', voice_type: 'preset', preset_engine: 'chatterbox' },
     { id: 'lily', name: 'Lily', language: 'zh', voice_type: 'preset', preset_engine: 'kokoro' },
   ])
+  if (request.url === '/models/status') return json(response, { models: [
+    { model_name: 'tada-1b', downloaded: true }, { model_name: 'chatterbox-tts', downloaded: false }, { model_name: 'kokoro', downloaded: true },
+  ] })
   if (request.url === '/generate/stream' && request.method === 'POST') {
     generated.push({ ...JSON.parse(body.toString()), at: Date.now() })
     if (slow) await new Promise((resolve) => setTimeout(resolve, slow))
@@ -74,15 +80,18 @@ try {
   // started: found, and the characters' voice; the 声音 item says which
   await listen(voicebox, port)
   await page.evaluate(() => window.__stage.voice.detectVoicebox())
-  assert.deepEqual(await voice(), { status: 'on', error: null, profiles: 2, provider: 'voicebox' })
+  assert.deepEqual(await voice(), { status: 'on', error: null, profiles: 3, provider: 'voicebox' })
   await voiceItem.locator('small', { hasText: 'Voicebox · Lily' }).waitFor()
   assert.equal(await voiceItem.locator('a.check-link').count(), 0)
   await page.locator('.popover.checklist [data-close]').click()
 
-  // a chat: the greeting said in Lily (an open engine), in Chinese
+  // a chat: the greeting said in Lily (an open engine with its model), in Chinese, though the character still has a
+  // voice chosen for another API (no profile of Voicebox's)
+  await page.evaluate(() => { const c = [...window.__stage.actors.values()].find((a) => a.item.lines === 'ai').item; window.__stage.store.patch(c.id, { voice: { ...c.voice, api: 'coral' } }) })
   await page.evaluate(async () => { const { talk } = window.__stage; await talk.newChat(); await talk.startChat('private') })
   await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.waitingInput && !c.speaking && c.lines.some((l) => !l.human) })
   assert.deepEqual(generated.map(({ profile_id, language, text }) => ({ profile_id, language, text })), [{ profile_id: 'lily', language: 'zh', text: '你好，我们开始吧。' }])
+  assert.equal(generated[0].model_size, undefined, 'Kokoro has one model: no size asked for')
   const actorError = () => page.evaluate(() => [...window.__stage.actors.values()].find((a) => a.item.lines === 'ai')?.voiceError ?? '')
   assert.equal(await actorError(), '')
 
@@ -96,9 +105,13 @@ try {
   slow = 0
   await page.evaluate(() => window.__stage.talk.stop())
 
-  // what you say, heard by its Whisper: your own recognition
+  // its Whisper: off while Voicebox is only found (your recognition stays as it was); switched on, it hears you as your
+  // own recognition
+  assert.equal(await page.evaluate(() => window.__stage.voice.asrReady(window.__stage.voice.activeSpeech())), false)
+  assert.deepEqual(heard, [])
   const said = await page.evaluate(async () => {
     const v = window.__stage.voice, wav = new Blob([new Uint8Array(44)], { type: 'audio/wav' })
+    v.saveSpeech({ provider: 'voicebox', base: 'voicebox', key: '', model: 'voicebox', voice: '', asr: 'whisper' })
     return { own: v.asrReady(v.activeSpeech()), text: await v.transcribeApi(v.activeSpeech(), wav) }
   })
   assert.deepEqual(said, { own: true, text: '你好 Voicebox' })

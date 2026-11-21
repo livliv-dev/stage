@@ -7,6 +7,8 @@ import { recognize, signedIn } from './livliv'
 import { busGain, onMixer } from './mixer'
 import { routeMicrophone } from './microphone'
 import { activeSpeech, asrReady, transcribeApi } from './voiceApi'
+import { current } from './sessions/run'
+import { hearingNow } from './sessions/spend'
 import { isBackchannel, VoiceActivity } from './voiceActivity'
 
 export type PttPhase = 'idle' | 'opening' | 'armed' | 'listening' | 'recognizing'
@@ -111,7 +113,11 @@ async function drain(run: MicSession) {
         const pcm = buffer.getChannelData(0).slice(0, Math.round(MAX * buffer.sampleRate))
         const wav = await wav16k(pcm, buffer.sampleRate), speech = activeSpeech()
         signal.throwIfAborted()
-        const said = asrReady(speech) ? await transcribeApi(speech, wav, signal) : await recognize(wav, signal)
+        // a session that started on your own recognition never turns to LivLiv's (points) when yours goes away: hearing
+        // stops instead (sessions/spend.ts)
+        const hearing = hearingNow(asrReady(speech), current()?.spend)
+        if (hearing === 'stop') { cancel(); set({ error: tr('自己的语音识别不可用了：已停止听你说话，不会改用积分识别') }); return }
+        const said = hearing === 'own' ? await transcribeApi(speech, wav, signal) : await recognize(wav, signal)
         signal.throwIfAborted()
         if (said) talk.say(said, { transcribed: run.automatic, respond: !run.automatic || !isBackchannel(said, capture.seconds, capture.duringReply) })
         set({ error: said ? '' : tr('没听清，请再说一次') })

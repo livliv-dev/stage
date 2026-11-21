@@ -47,6 +47,7 @@
     "test:traces": "node test/traces.mjs",
     "test:prompts": "node test/prompts.mjs",
     "test:card-import": "node test/card-import.mjs",
+    "test:voicebox-dropout": "node test/voicebox-dropout.mjs",
     "test:realtime": "node test/with-vite.mjs test/realtime.mjs",
     "test:collab": "npm ci --prefix ../collab --no-audit --no-fund && node test/collab.mjs",
     "test:collab-pose": "npm ci --prefix ../collab --no-audit --no-fund && node test/collab-pose.mjs",

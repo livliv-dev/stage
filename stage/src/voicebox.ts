@@ -17,6 +17,8 @@ export const VOICEBOX_SITE = 'https://voicebox.sh'
  *  speaks only when you pick it for a character */
 export const OPEN_ENGINES: ReadonlySet<string> = new Set(['qwen', 'qwen_custom_voice', 'qwen_voice_design', 'kokoro', 'chatterbox', 'chatterbox_turbo'])
 export const openProfiles = (profiles: readonly VoiceboxProfile[]) => profiles.filter((p) => OPEN_ENGINES.has(p.engine))
+/** the voices Stage uses unasked: of an open engine, with its model downloaded (Stage starts no download) */
+export const usableProfiles = (profiles: readonly VoiceboxProfile[]) => openProfiles(profiles).filter((p) => p.ready)
 
 /** the language a line is said in, as Voicebox names it: from its writing (kana, hangul, Chinese characters, letters),
  *  else the voice's own */
@@ -32,6 +34,7 @@ export function lineLanguage(text: string, voice = '') {
 export function voiceboxError(error: VoiceboxFailure, detail = '') {
   if (error === 'not-running') return tr('Voicebox 没有在运行：打开 Voicebox 后再试')
   if (error === 'no-profiles') return tr('Voicebox 里还没有声音：在 Voicebox 里添加一个预设声音或克隆一个')
+  if (error === 'no-model') return tr('Voicebox 里还没下载这个声音的模型：在 Voicebox 里用这个声音生成一句（它会先下载模型），或在它的模型设置里下载，再回来试')
   if (error === 'downloading') return tr('Voicebox 还在下载模型，下载好后再试')
   return tr('Voicebox 没有说出这句：{0}', detail || tr('未知原因'))
 }
@@ -53,7 +56,7 @@ export function setVoiceboxBridge(b: Bridge | undefined) { given = b }
 /** Stage can use Voicebox here: the desktop app */
 export const voiceboxHere = () => !!bridge()
 /** Voicebox is running with a voice of an open engine: the characters' voice when no other is set */
-export const voiceboxReady = () => state.status === 'on' && openProfiles(state.profiles).length > 0
+export const voiceboxReady = () => state.status === 'on' && usableProfiles(state.profiles).length > 0
 
 let looking: Promise<VoiceboxState> | null = null
 /** looks for Voicebox now (once at a time) */
@@ -64,7 +67,9 @@ export function detectVoicebox(): Promise<VoiceboxState> {
     set({ checking: true })
     try {
       const r = await b.profiles()
-      set(r.ok ? { status: 'on', profiles: r.value, error: null, detail: '' } : { status: 'off', profiles: [], error: r.error, detail: r.detail })
+      // running, but no open voice has its model: it says how to get one, and isn't the default voice until then
+      const missing = r.ok && openProfiles(r.value).length > 0 && !usableProfiles(r.value).length
+      set(r.ok ? { status: 'on', profiles: r.value, error: missing ? 'no-model' : null, detail: '' } : { status: 'off', profiles: [], error: r.error, detail: r.detail })
     } catch (error) { set({ status: 'off', profiles: [], error: 'failed', detail: (error as Error).message }) }
     finally { set({ checking: false }); looking = null }
     return state
@@ -74,7 +79,7 @@ export function detectVoicebox(): Promise<VoiceboxState> {
 
 /** a character's default voice: the open profiles in turn, by its place among those with none of their own */
 export const defaultProfile = (place: number) => {
-  const open = openProfiles(state.profiles)
+  const open = usableProfiles(state.profiles)
   return open.length ? open[Math.max(0, place) % open.length].id : ''
 }
 /** a profile's name, else its id */
@@ -97,8 +102,9 @@ export async function voiceboxSpeak(profile: string, text: string, signal?: Abor
   const b = bridge()
   if (!b) throw unavailable()
   if (!profile) throw new Error(voiceboxError('no-profiles'))
-  const language = lineLanguage(text, state.profiles.find((p) => p.id === profile)?.language)
-  const r = await giveUpWith(signal, (id) => b.speak(id, { profile, text }, language))
+  const known = state.profiles.find((p) => p.id === profile), language = lineLanguage(text, known?.language)
+  if (known && !known.ready) throw new Error(voiceboxError('no-model'))
+  const r = await giveUpWith(signal, (id) => b.speak(id, { profile, text, ...(known?.size ? { size: known.size } : {}) }, language))
   signal?.throwIfAborted()
   if (!r.ok) {
     if (r.error === 'not-running') void detectVoicebox()

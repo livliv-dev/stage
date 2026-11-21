@@ -148,7 +148,7 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
         <label className="field spaced"><span>{tr("Voicebox 的声音")}</span>
           <select value={v.api} onChange={(e) => patch({ voice: { ...v, api: e.target.value } })}>
             <option value="">{tr("默认（{0}）", profileName(apiVoice({ ...c, voice: { ...v, api: '' } }, speech, participants(store.get()))) || tr("还没有声音"))}</option>
-            {voicebox.profiles.map((p) => <option key={p.id} value={p.id}>{p.name} · {tr(p.kind === 'preset' ? '预设' : p.kind === 'cloned' ? '克隆' : p.kind === 'designed' ? '设计' : '其他')}{OPEN_ENGINES.has(p.engine) ? '' : ` · ${p.engine}`}</option>)}
+            {voicebox.profiles.map((p) => <option key={p.id} value={p.id}>{p.name} · {tr(p.kind === 'preset' ? '预设' : p.kind === 'cloned' ? '克隆' : p.kind === 'designed' ? '设计' : '其他')}{OPEN_ENGINES.has(p.engine) ? '' : ` · ${p.engine}`}{p.ready ? '' : ` · ${tr('模型未下载')}`}</option>)}
           </select>
         </label>
         <p className="hint">{voicebox.error ? voiceboxError(voicebox.error, voicebox.detail) : tr("声音在 Voicebox 里添加：预设，或用你的录音克隆。")}</p>

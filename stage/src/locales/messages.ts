@@ -4856,4 +4856,8 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "其他开场白": {"zh-Hans": "其他开场白", "zh-Hant": "其他開場白", "en": "alternate greetings", "ja": "ほかの最初のひとこと"},
   "系统提示": {"zh-Hans": "系统提示", "zh-Hant": "系統提示", "en": "system prompt", "ja": "システムプロンプト"},
   "图片素材": {"zh-Hans": "图片素材", "zh-Hant": "圖片素材", "en": "pictures", "ja": "画像素材"},
+  "模型未下载": {"zh-Hans": "模型未下载", "zh-Hant": "模型未下載", "en": "model not downloaded", "ja": "モデル未ダウンロード"},
+  "它的声音接口停了：这句只出字幕，不会改用积分的声音": {"zh-Hans": "它的声音接口停了：这句只出字幕，不会改用积分的声音", "zh-Hant": "它的聲音介面停了：這句只出字幕，不會改用積分的聲音", "en": "Its voice service stopped: this line is shown as subtitles only, never voiced with points.", "ja": "音声サービスが止まりました。このセリフは字幕だけで表示し、ポイントの音声には切り替えません。"},
+  "自己的语音识别不可用了：已停止听你说话，不会改用积分识别": {"zh-Hans": "自己的语音识别不可用了：已停止听你说话，不会改用积分识别", "zh-Hant": "自己的語音辨識不可用了：已停止聽你說話，不會改用積分辨識", "en": "Your own speech recognition is no longer available: listening stopped, and it won't switch to recognition with points.", "ja": "自分の音声認識が使えなくなりました。聞き取りを止めました。ポイントの認識には切り替えません。"},
+  "Voicebox 里还没下载这个声音的模型：在 Voicebox 里用这个声音生成一句（它会先下载模型），或在它的模型设置里下载，再回来试": {"zh-Hans": "Voicebox 里还没下载这个声音的模型：在 Voicebox 里用这个声音生成一句（它会先下载模型），或在它的模型设置里下载，再回来试", "zh-Hant": "Voicebox 裡還沒下載這個聲音的模型：在 Voicebox 裡用這個聲音生成一句（它會先下載模型），或在它的模型設定裡下載，再回來試", "en": "Voicebox hasn't downloaded this voice's model yet: generate a line with this voice in Voicebox (it downloads the model first), or download it in its model settings, then try again.", "ja": "Voicebox にこの声のモデルがまだありません。Voicebox でこの声で一度生成するか（先にモデルをダウンロードします）、モデル設定でダウンロードしてから、もう一度試してください。"},
 }

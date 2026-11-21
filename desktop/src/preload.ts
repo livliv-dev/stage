@@ -83,7 +83,7 @@ if (info) {
       },
       voicebox: {
         profiles: (): Promise<VoiceboxResult<VoiceboxProfile[]>> => invoke('livliv:voicebox', 'profiles'),
-        speak: (id: string, line: { profile: string; text: string }, language: string): Promise<VoiceboxResult<ArrayBuffer>> => invoke('livliv:voicebox', 'speak', id, line, language),
+        speak: (id: string, line: { profile: string; text: string; size?: string }, language: string): Promise<VoiceboxResult<ArrayBuffer>> => invoke('livliv:voicebox', 'speak', id, line, language),
         transcribe: (id: string, wav: ArrayBuffer, language?: string): Promise<VoiceboxResult<string>> => invoke('livliv:voicebox', 'transcribe', id, wav, language),
         cancel: (id: string): Promise<null> => invoke('livliv:voicebox', 'cancel', id),
       },

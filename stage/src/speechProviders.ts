@@ -3,6 +3,8 @@
 // hear you. A speech API ready to hear you is your own recognition: hearing you spends no LivLiv points.
 
 export type SpeechApi = { provider: string; base: string; key: string; model: string; voice: string; asr: string }
+/** where a character's voice comes from: LivLiv's (points), your speech API, the system's, or none (subtitles) */
+export type VoiceRoute = 'livliv' | 'api' | 'system' | 'none'
 /** tone: the model takes a speaking style (OpenAI's instructions); voicesPath: the API lists its voices there */
 export type SpeechProvider = { id: string; label: string; base: string; model: string; asr: string; voices?: string[]; voicesPath?: string; noKey?: boolean; keyUrl?: string; tone?: boolean
   /** gives a WAV as it is made: a line starts being heard with its first piece (speakLive) */
@@ -31,5 +33,6 @@ export const asrReady = (s: SpeechApi) => !!s.base && !!s.asr && (!!s.key || s.p
 export const SPEECH_UNSET: SpeechApi = { provider: '', base: '', key: '', model: '', voice: '', asr: '' }
 /** chosen in settings: no speech API, not even the model key's */
 export const SPEECH_OFF: SpeechApi = { ...SPEECH_UNSET, provider: 'off' }
-/** Voicebox as the speech API: its voices, and what you say heard by its Whisper */
-export const VOICEBOX_SPEECH: SpeechApi = { provider: 'voicebox', base: 'voicebox', key: '', model: 'voicebox', voice: '', asr: 'whisper' }
+/** Voicebox as the speech API: its voices. Its Whisper hears you only once you switch it on (asr: 'whisper', saved
+ *  with it in settings): Voicebox found running never moves 按住说 / 免按键 off the recognition you had */
+export const VOICEBOX_SPEECH: SpeechApi = { provider: 'voicebox', base: 'voicebox', key: '', model: 'voicebox', voice: '', asr: '' }

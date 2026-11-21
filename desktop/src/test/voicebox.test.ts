@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { engineOf, readProfiles, voiceboxClient } from '../voicebox'
+import { engineOf, modelFor, readDownloaded, readProfiles, voiceboxClient } from '../voicebox'
 
 type Call = { url: string; init: RequestInit }
 /** a Voicebox that answers each path as given: a response, or a refused connection */
@@ -26,11 +26,11 @@ test('profiles: presets, cloned and designed voices, each with the engine that m
     { id: 'd', name: 'Old', voice_type: 'cloned' },
     { name: 'no id' }, 'nonsense', null,
   ]), [
-    { id: 'a', name: 'Lily', language: 'zh', kind: 'preset', engine: 'kokoro' },
-    { id: 'b', name: 'Me', language: 'en', kind: 'cloned', engine: 'chatterbox' },
-    { id: 'c', name: 'Calm narrator', language: '', kind: 'designed', engine: 'qwen_voice_design' },
-    { id: 'd', name: 'Old', language: '', kind: 'cloned', engine: 'qwen' },
-  ])
+    { id: 'a', name: 'Lily', language: 'zh', kind: 'preset', engine: 'kokoro', ready: true },
+    { id: 'b', name: 'Me', language: 'en', kind: 'cloned', engine: 'chatterbox', ready: true },
+    { id: 'c', name: 'Calm narrator', language: '', kind: 'designed', engine: 'qwen_voice_design', ready: true },
+    { id: 'd', name: 'Old', language: '', kind: 'cloned', engine: 'qwen', ready: true },
+  ], 'a Voicebox that doesn\'t say which models it has: ready, as it decides')
   assert.equal(engineOf({ voice_type: 'cloned', default_engine: 'tada' }), 'tada')
   assert.deepEqual(readProfiles({ profiles: [] }), [])
 })
@@ -40,7 +40,29 @@ test('not running, no voice yet, or listed', async () => {
   assert.equal(((await stand({}).client.profiles()) as { error: string }).error, 'not-running')
   assert.equal(((await stand({ '/profiles': () => json([]) }).client.profiles()) as { error: string }).error, 'no-profiles')
   const listed = await stand({ '/profiles': () => json([{ id: 'a', name: 'Lily', voice_type: 'preset', preset_engine: 'kokoro' }]) }).client.profiles()
-  assert.deepEqual(listed, { ok: true, value: [{ id: 'a', name: 'Lily', language: '', kind: 'preset', engine: 'kokoro' }] })
+  assert.deepEqual(listed, { ok: true, value: [{ id: 'a', name: 'Lily', language: '', kind: 'preset', engine: 'kokoro', ready: true }] })
+})
+
+test('each voice with whether its model is downloaded, the size to ask for, and the model to get if not', async () => {
+  const status = { models: [
+    { model_name: 'qwen-tts-1.7B', downloaded: false }, { model_name: 'qwen-tts-0.6B', downloaded: true },
+    { model_name: 'kokoro', downloaded: true }, { model_name: 'chatterbox-tts', downloaded: false, downloading: true },
+  ] }
+  const have = readDownloaded(status)
+  assert.deepEqual([...have!].sort(), ['kokoro', 'qwen-tts-0.6B'])
+  assert.deepEqual(modelFor('qwen', have), { ready: true, size: '0.6B' }, 'only the small Qwen3-TTS: that one is asked for')
+  assert.deepEqual(modelFor('kokoro', have), { ready: true })
+  assert.deepEqual(modelFor('chatterbox', have), { ready: false, model: 'Chatterbox' }, 'downloading is not downloaded')
+  assert.deepEqual(modelFor('someday', have), { ready: true }, 'an engine Stage doesn\'t know: as Voicebox decides')
+  assert.equal(readDownloaded({ detail: 'Not Found' }), null)
+  const { client } = stand({
+    '/profiles': () => json([{ id: 'a', name: 'Lily', voice_type: 'preset', preset_engine: 'kokoro' }, { id: 'b', name: 'Box', voice_type: 'preset', preset_engine: 'chatterbox' }]),
+    '/models/status': () => json(status),
+  })
+  assert.deepEqual(await client.profiles(), { ok: true, value: [
+    { id: 'a', name: 'Lily', language: '', kind: 'preset', engine: 'kokoro', ready: true },
+    { id: 'b', name: 'Box', language: '', kind: 'preset', engine: 'chatterbox', ready: false, model: 'Chatterbox' },
+  ] })
 })
 
 test('a line: the profile, the text and its language, made whole; a model still downloading says so', async () => {
@@ -51,7 +73,10 @@ test('a line: the profile, the text and its language, made whole; a model still 
   assert.equal(calls[0].init.method, 'POST')
   assert.deepEqual(JSON.parse(String(calls[0].init.body)), { profile_id: 'a', text: '你好呀。', language: 'zh' })
   const notYet = await stand({ '/generate/stream': () => json({ detail: 'Model 1.7B is not downloaded yet. Use /generate to trigger a download.' }, 400) }).client.speak('a', 'hi', 'en')
-  assert.deepEqual(notYet, { ok: false, error: 'downloading', detail: 'Model 1.7B is not downloaded yet. Use /generate to trigger a download.' })
+  assert.deepEqual(notYet, { ok: false, error: 'no-model', detail: 'Model 1.7B is not downloaded yet. Use /generate to trigger a download.' }, 'not downloaded: Stage starts no download')
+  const small = stand({ '/generate/stream': () => new Response(wav) })
+  await small.client.speak('a', 'hi', 'en', undefined, '0.6B')
+  assert.deepEqual(JSON.parse(String(small.calls[0].init.body)), { profile_id: 'a', text: 'hi', language: 'en', model_size: '0.6B' })
   const missing = await stand({ '/generate/stream': () => json({ detail: 'Profile not found' }, 404) }).client.speak('gone', 'hi', 'en')
   assert.deepEqual(missing, { ok: false, error: 'failed', detail: 'Profile not found' })
   assert.equal(((await stand({}).client.speak('a', 'hi', 'en')) as { error: string }).error, 'not-running')

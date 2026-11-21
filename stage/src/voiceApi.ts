@@ -16,7 +16,9 @@ import { modelId, signedIn } from './livliv'
 import type { CharacterItem } from './scene'
 import { features } from './core/platform'
 import { readKeyed, writeKeyed } from './core/secrets'
-import { asrReady, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speechProviderOf, speechReady, VOICEBOX_SPEECH, type SpeechApi, type SpeechProvider } from './speechProviders'
+import { current } from './sessions/run'
+import { voiceNow } from './sessions/spend'
+import { asrReady, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speechProviderOf, speechReady, VOICEBOX_SPEECH, type SpeechApi, type SpeechProvider, type VoiceRoute } from './speechProviders'
 export { asrReady, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speechProviderOf, speechReady, VOICEBOX_SPEECH, type SpeechApi, type SpeechProvider }
 import { defaultProfile, detectVoicebox, onVoicebox, voiceboxHere, voiceboxReady, voiceboxSpeak, voiceboxState, voiceboxTranscribe } from './voicebox'
 
@@ -60,10 +62,16 @@ export function useActiveSpeech() {
 /** a character's voice of this API: its own choice, the default set for the API, else one nobody else on the stage
  *  has: the next free woman's or man's voice by its gender, either in turn when it isn't known */
 export function apiVoice(c: CharacterItem, s: SpeechApi, cast: CharacterItem[]): string {
+  // Voicebox: a profile it lists (a voice chosen for another API is no profile of its), else its open voices with their
+  // model in turn, among the characters with none of their own
+  if (s.provider === 'voicebox') {
+    const listed = (id: string) => !!id && voiceboxState().profiles.some((p) => p.id === id)
+    if (listed(c.voice.api)) return c.voice.api
+    if (listed(s.voice)) return s.voice
+    return defaultProfile(cast.filter((x) => x.lines === 'ai' && !listed(x.voice.api)).findIndex((x) => x.id === c.id))
+  }
   if (c.voice.api) return c.voice.api
   if (s.voice) return s.voice
-  // Voicebox: its open voices in turn, among the characters with none of their own
-  if (s.provider === 'voicebox') return defaultProfile(cast.filter((x) => x.lines === 'ai' && !x.voice.api).findIndex((x) => x.id === c.id))
   // Keep the featured cast's voices consistent with the demo, even when reordered or used solo.
   const featured = s.provider === 'qwen' ? QWEN_FEATURED[modelId(c) ?? ''] : undefined
   if (featured) return featured
@@ -217,7 +225,10 @@ export async function listVoices(s: SpeechApi, signal?: AbortSignal): Promise<st
   } catch { return [] }
 }
 
-export type VoiceRoute = 'livliv' | 'api' | 'system' | 'none'
+export type { VoiceRoute }
+/** a character's voice for a line of the session running: never LivLiv's for points because its own went away
+ *  (sessions/spend.ts) */
+export const sessionRoute = (c: CharacterItem, s = activeSpeech()): VoiceRoute => voiceNow(c.id, voiceRoute(c, s), c.voice.source === 'livliv', current()?.spend)
 /** where a character's voice comes from now: its choice if it can be had, else your API, LivLiv's, else none */
 export function voiceRoute(c: CharacterItem, s = activeSpeech()): VoiceRoute {
   const livliv = !!modelId(c) && signedIn(), api = speechReady(s), want = c.voice.source

@@ -8,9 +8,10 @@ import { checklist, type CheckContext } from '../src/shell/checks'
 import { asrReady, speechReady, VOICEBOX_SPEECH } from '../src/speechProviders'
 import { defaultProfile, detectVoicebox, lineLanguage, openProfiles, setVoiceboxBridge, voiceboxError, voiceboxReady, voiceboxSpeak, voiceboxState, voiceboxTranscribe } from '../src/voicebox'
 
-const lily: VoiceboxProfile = { id: 'lily', name: 'Lily', language: 'zh', kind: 'preset', engine: 'kokoro' }
-const mine: VoiceboxProfile = { id: 'mine', name: 'Me', language: 'en', kind: 'cloned', engine: 'chatterbox' }
-const tada: VoiceboxProfile = { id: 'tada', name: 'Tada', language: 'en', kind: 'cloned', engine: 'tada' }
+const lily: VoiceboxProfile = { id: 'lily', name: 'Lily', language: 'zh', kind: 'preset', engine: 'kokoro', ready: true }
+const mine: VoiceboxProfile = { id: 'mine', name: 'Me', language: 'en', kind: 'cloned', engine: 'qwen', ready: true, size: '0.6B' }
+const tada: VoiceboxProfile = { id: 'tada', name: 'Tada', language: 'en', kind: 'cloned', engine: 'tada', ready: true, size: '1B' }
+const bare: VoiceboxProfile = { id: 'bare', name: 'Bare', language: 'en', kind: 'preset', engine: 'chatterbox', ready: false, model: 'Chatterbox' }
 
 /** a desktop bridge to a Voicebox that lists these profiles (none: not running) */
 function voicebox(profiles: VoiceboxProfile[] | null) {
@@ -37,6 +38,13 @@ test('found running: the open engines are used unasked, a voice of another engin
   voicebox([tada])
   await detectVoicebox()
   assert.equal(voiceboxReady(), false, 'only a TADA voice: not the default voice')
+  voicebox([bare, lily])
+  await detectVoicebox()
+  assert.deepEqual([0, 1].map(defaultProfile), ['lily', 'lily'], 'a voice whose model isn\'t downloaded is not used unasked')
+  voicebox([bare])
+  await detectVoicebox()
+  assert.equal(voiceboxReady(), false, 'no voice has its model: not the default voice')
+  assert.deepEqual([voiceboxState().status, voiceboxState().error], ['on', 'no-model'], 'and it says how to get one')
   voicebox(null)
   await detectVoicebox()
   assert.deepEqual([voiceboxState().status, voiceboxState().error], ['off', 'not-running'])
@@ -55,6 +63,12 @@ test('a line goes in the language it is written in; a line given up is cancelled
   stop.abort()
   await assert.rejects(said)
   assert.equal(calls.at(-1)?.[0], 'cancel')
+  const sized = voicebox([lily, mine, bare])
+  await detectVoicebox()
+  await voiceboxSpeak('mine', 'Hello')
+  assert.deepEqual(sized[0].slice(2), [{ profile: 'mine', text: 'Hello', size: '0.6B' }, 'en'], 'the model size it has')
+  await assert.rejects(voiceboxSpeak('bare', 'Hello'), { message: voiceboxError('no-model') })
+  assert.equal(sized.length, 1, 'a voice without its model is not asked')
   setVoiceboxBridge(undefined)
 })
 
@@ -66,12 +80,13 @@ test('readable errors: not running, no voice, a model downloading; the web has n
   setVoiceboxBridge(undefined)
   await assert.rejects(voiceboxSpeak('lily', '你好'), /桌面版/)
   assert.notEqual(voiceboxError('no-profiles'), voiceboxError('downloading'))
+  assert.match(voiceboxError('no-model'), /在 Voicebox 里用这个声音生成一句/, 'how to get the model: Stage starts no download')
 })
 
-test('as the speech API: no key, ready to speak, and its Whisper counts as your own recognition', () => {
+test('as the speech API: no key, ready to speak; its Whisper off until you switch it on, then your own recognition', () => {
   assert.equal(speechReady(VOICEBOX_SPEECH), true)
-  assert.equal(asrReady(VOICEBOX_SPEECH), true, 'hearing you spends no points')
-  assert.equal(asrReady({ ...VOICEBOX_SPEECH, asr: '' }), false, 'turned off, it hears nothing')
+  assert.equal(asrReady(VOICEBOX_SPEECH), false, 'found running, it leaves your recognition as it was')
+  assert.equal(asrReady({ ...VOICEBOX_SPEECH, asr: 'whisper' }), true, 'switched on: hearing you spends no points')
 })
 
 test('the checklist: Voicebox offered on the desktop while not found and only subtitles would play; its voice shown once in use', () => {
