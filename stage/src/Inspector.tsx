@@ -4,11 +4,11 @@ import { getLocale, tr } from './i18n'
 // what moves it, how it moves and looks; a subtitle's speaker and style; a text's words. With nothing selected, the
 // stage's: shape, background, and the talk rules (order, cutting in, language, length).
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, Captions, Copy, X, Crosshair, Eye, EyeOff, Image as ImageIcon, ImagePlus, LayoutGrid, Lock, LockOpen, Trash, Type, UserRound, Volume2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Captions, Copy, Crosshair, Eye, EyeOff, Image as ImageIcon, ImagePlus, LayoutGrid, Lock, LockOpen, Trash, Type, UserRound, Volume2 } from 'lucide-react'
 import { actors, onActors } from './actors'
 import { talk, useConversation } from './conversation'
 import {
-  bubbleFor, characters, participants, COLORS, DRIVERS, GAZES, LENGTHS, MOTIONS, ORDERS, arrange, reshape, store, SUB_STYLES, useScene,
+  bubbleFor, characters, participants, COLORS, DRIVERS, GAZES, LENGTHS, MOTIONS, arrange, reshape, store, SUB_STYLES, useScene,
   type CharacterItem, type Item, type SubtitleItem, type TextItem,
 } from './scene'
 import { onVoices, voices } from './speech'
@@ -17,7 +17,6 @@ import { VoicePicker } from './VoicePicker'
 import { demoVoice } from './demo'
 import { useBrainConfig } from './brain'
 import { apiVoice, listVoices, speechProviderOf, speechReady, useActiveSpeech, voiceRoute } from './voiceApi'
-import { AudiencePanel } from './AudiencePanel'
 import { DevicePanel } from './DevicePanel'
 import { TrackingPanel } from './TrackingPanel'
 import { NetworkPanel } from './NetworkPanel'
@@ -30,7 +29,6 @@ import { CONTROLS, controlOf, controlSettings } from './workflow'
 import { keysOf, MOVE_KEYS } from './characterKeys'
 import { modeOf } from './control'
 import { readReactionSettings, type ReactionFeeling } from './reactions'
-import { uiNext } from './shell/next'
 import { showCardPage, useCardPage } from './shell/cardPage'
 
 const settingsLabel = (item?: Item) => tr(item ? ({ character: '角色设置', subtitle: '字幕设置', text: '文字设置', image: '图片设置' })[item.kind] : '舞台设置')
@@ -300,31 +298,13 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
   const voice = voiced && <VoiceSection c={c} patch={patch} onAccount={onAccount} onVoice={onVoice} />
   const reactions = c.lines === 'ai' && <ReactionSection key={`reactions:${c.id}`} c={c} patch={patch} />
   // the card in pages (身体 / 谁来演 / 人设和声音): voice only here, who plays it with what moves it in sight
-  if (uiNext) return <>
+  return <>
     <div className="seg card-pages" role="tablist" aria-label={tr('角色卡')}>{([['body', '身体'], ['who', '谁来演'], ['persona', '人设和声音']] as const).map(([id, label]) =>
       <button key={id} role="tab" aria-selected={page === id} className={page === id ? 'on' : ''} onClick={() => showCardPage(id)}>{tr(label)}</button>)}</div>
     {page === 'body' && <>{looks}{expressions}{motion}</>}
     {page === 'who' && <>{control}{c.lines === 'me' && <DevicePanel character={c} />}{drive}<TrackingPanel c={c} patch={patch} />{lines}</>}
     {page === 'persona' && <>{c.lines === 'ai' ? persona : <p className="hint card-note">{tr('人设只在「AI 来演」时用到。')}</p>}{voice}{reactions}
       {!voiced && <p className="hint card-note">{tr('这个角色不出声：「只展示」，或者你自己说话。')}</p>}</>}
-  </>
-  return <>
-    {control}
-    {c.lines === 'me' && <DevicePanel character={c} />}
-    {voice}
-    <details className="advanced"><summary>{tr("外观")}</summary>
-    {looks}</details>
-    {c.lines === 'ai' && <details className="advanced persona-settings" key={`persona:${c.id}`}><summary>{tr('人设与风格')}</summary>
-      {persona}
-    </details>}
-    {reactions}
-    {lines}
-    <TrackingPanel c={c} patch={patch} />
-    <details className="advanced"><summary>{tr("动作与更多设置")}</summary>
-    {drive}
-    {motion}
-    </details>
-    {expressions}
   </>
 }
 
@@ -420,40 +400,6 @@ function SceneSettings() {
     </Section>
     <Layers />
   </>
-}
-
-/** 对话设置, from the console: who speaks when, interrupting, the language, the pace, viewers' messages (the stage panel
- *  keeps the picture and the layers) */
-export function TalkSettings({ onClose }: { onClose: () => void }) {
-  const { scene } = useScene(), conv = useConversation()
-  const t = scene.talk, cs = participants(scene).filter((c) => c.lines !== 'none')
-  return <div className="card popover talk-settings" onPointerDown={(event) => event.stopPropagation()}>
-    <header><span className="title">{tr('对话设置')}</span><button className="icon" data-close="true" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button></header>
-    <Section title={tr('持续聊天')}>
-      <div className="field"><span>{tr('聊天方式')}</span><Seg value={t.depth ?? 'casual'} options={[{ id: 'casual', label: '日常陪聊' }, { id: 'discussion', label: '深入讨论' }] as const} set={(depth) => store.setTalk({ depth })} /></div>
-      <p className="hint">{tr(t.depth === 'discussion' ? '围绕观点和理由继续聊，回复可以更充分。' : '轻松接话，回复简短自然。')}</p>
-      <label className="field"><span>{tr('主动接话')}</span><select value={t.proactiveSeconds ?? 0} onChange={(event) => store.setTalk({ proactiveSeconds: +event.target.value })}><option value={0}>{tr('等我说话')}</option>{[30, 60, 120].map((seconds) => <option key={seconds} value={seconds}>{tr('安静 {0} 秒后接话', seconds)}</option>)}</select></label>
-      <p className="hint">{tr('没有回应时最多主动接话一次，然后继续等待。')}</p>
-      <label className="field"><span>{tr('说什么语言')}</span><select value={t.language} onChange={(event) => store.setTalk({ language: event.target.value as typeof t.language })}><option value="auto">{tr('跟话题一样')}</option><option value="zh">{tr('中文')}</option><option value="en">English</option><option value="ja">{tr('日本語')}</option></select></label>
-      <details className="chat-limits"><summary>{tr('使用上限 · {0} 分钟 / {1} 次', t.chatMinutes ?? 60, t.chatGenerations ?? 100)}</summary>
-        <label className="field"><span>{tr('时长上限')}</span><select value={t.chatMinutes ?? 60} onChange={(event) => store.setTalk({ chatMinutes: +event.target.value })}>{[15,30,60,120].map((minutes) => <option key={minutes} value={minutes}>{minutes} {tr('分钟')}</option>)}</select></label>
-        <label className="field"><span>{tr('生成次数上限')}</span><input type="number" min={1} max={500} value={t.chatGenerations ?? 100} onChange={(event) => { const value = +event.target.value; if (Number.isInteger(value) && value >= 1 && value <= 500) store.setTalk({ chatGenerations: value }) }} /></label>
-      </details>
-    </Section>
-    <details className="advanced"><summary>{tr('对谈与直播设置')}</summary>
-      <Section title={tr('谁先说、谁接话')}>
-        <Seg value={t.order} options={ORDERS} set={(order) => store.setTalk({ order, host: order === 'host' ? t.host ?? cs[0]?.id ?? null : t.host })} />
-        {t.order === 'host' && <label className="field spaced"><span>{tr('主持人')}</span><select value={t.host ?? ''} onChange={(event) => store.setTalk({ host: event.target.value || null })}>{cs.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}</select></label>}
-        <div className="field spaced"><span>{tr('AI 抢话')}</span><Seg value={t.interrupt} options={[{ id: 0, label: '不抢' }, { id: 1, label: '偶尔' }, { id: 2, label: '经常' }] as const} set={(interrupt) => store.setTalk({ interrupt })} /></div>
-        <div className="field"><span>{tr('对谈时，你在控制台说话')}</span><Seg value={t.cutIn ? 'cut' : 'wait'} options={[{ id: 'wait', label: '等这句说完' }, { id: 'cut', label: '立刻打断' }] as const} set={(value) => store.setTalk({ cutIn: value === 'cut' })} /></div>
-      </Section>
-      <Section title={tr('节奏')}>
-        <Slider label={tr('一轮最多几句（AI）')} value={conv.limit} min={2} max={60} show={String(conv.limit)} set={talk.setLimit} />
-        <Slider label={tr('句子之间停多久')} value={conv.gap} min={0} max={3} step={0.1} show={tr('{0} 秒', conv.gap.toFixed(1))} set={talk.setGap} />
-      </Section>
-      <AudiencePanel preferences />
-    </details>
-  </div>
 }
 
 const KIND_ICON = { character: UserRound, subtitle: Captions, text: Type, image: ImageIcon }

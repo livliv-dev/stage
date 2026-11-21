@@ -5,40 +5,35 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  Bot, Captions, Check, ChevronDown, CircleHelp, CircleAlert, ExternalLink, FolderOpen, Image as ImageIcon, LayoutTemplate, LoaderCircle, MessagesSquare, Mic,
-  FileBox, Plus, SlidersHorizontal, Users, Volume2, VolumeX,
-  MonitorPlay, Pencil, Pause, Play, Radio, Redo2, RotateCcw, Save, Send, SkipForward, Square, StepForward, Settings, Sparkles, Type, Undo2, UserPlus, X,
+  Captions, ChevronDown, CircleHelp, CircleAlert, ExternalLink, FolderOpen, Image as ImageIcon, LayoutTemplate, LoaderCircle,
+  FileBox, Plus, Users, Volume2, VolumeX,
+  MonitorPlay, Pencil, Pause, Play, Redo2, RotateCcw, Save, Square, StepForward, Settings, Sparkles, Type, Undo2, UserPlus, X,
 } from 'lucide-react'
-import { brainReady, loadBrainConfig, playDemo, providerOf, useBrainConfig, type BrainConfig } from './brain'
+import { loadBrainConfig, playDemo, useBrainConfig } from './brain'
 import { conversation, talk, useConversation } from './conversation'
-import { Panel, PanelTab, TalkSettings } from './Inspector'
+import { Panel, PanelTab } from './Inspector'
 import { byId, fromFiles, fromKept, fromPngs, mine as accountCharacters, samples, type Pick } from './library'
 import { PNG_SLOTS, type PngSlot } from './bodies/png'
 import { forget, kept, type Kept } from './vault'
-import { bubbleFor, captionBar, characters, hadSaved, participants, newCharacter, store, uid, useScene, type Scene, type StartKind } from './scene'
+import { bubbleFor, captionBar, characters, hadSaved, participants, newCharacter, store, uid, useScene } from './scene'
 import { Stage, type Insets, type MenuAt, type Zoom } from './Stage'
-import { outputOpen } from './link'
 import { OutputPanel } from './OutputPanel'
 import { LivePanel } from './LivePanel'
 import { RealtimePanel } from './RealtimePanel'
-import { RealtimeModelForm } from './RealtimeModelForm'
-import { useRealtime } from './realtime'
 import { HotkeysPanel } from './HotkeysPanel'
 import { CollabPanel } from './CollabPanel'
-import { useRoom } from './collab/session'
 import { connectDesktop } from './desktop'
 import { ROOM, useCrowded } from './contexts'
 import { ageGate, checkConnect, refresh, setAge, useAccount } from './livliv'
 import { rec, takeLimit, useRecording } from './recording'
-import { cancel as pttCancel, clearError as pttClear, holdKey, press as pttPress, release as pttRelease, setHandsFree, usePtt } from './ptt'
-import { asrReady, useActiveSpeech, voiceRoute } from './voiceApi'
+import { cancel as pttCancel, holdKey, release as pttRelease, usePtt } from './ptt'
+import { useActiveSpeech, voiceRoute } from './voiceApi'
 import { buildTemplate, TEMPLATES, type TemplateId } from './templates'
 import { demoFor } from './demo'
 import { actors, onActors } from './actors'
 import { imageGeometry, moveImage } from './attachments'
 import { propSource } from './propGeometry'
 import { AccountPanel } from './AccountPanel'
-import { AudiencePopover } from './AudiencePanel'
 import { connectNetworkTracking } from './networkTracking'
 import { connectAudienceActions } from './audienceControl'
 import { pictureFile } from './assets'
@@ -51,10 +46,8 @@ import { tr, getLocale, useLocale } from './i18n'
 import { small } from './host'
 import { features } from './core/platform'
 import { linkedAs, linkedId, openLinked } from './entry'
-import { PhoneIntro, SiteWelcome } from './SiteIntro'
+import { PhoneIntro } from './SiteIntro'
 import { beginDemo, ensureTrio } from './shell/demoStart'
-import { ModelForm, SpeechForm } from './shell/ConnectForms'
-import { uiNext } from './shell/next'
 import { StartPage } from './shell/StartPage'
 import { Checklist, type Fix } from './shell/Checklist'
 import { StartOptionsCard } from './shell/StartBar'
@@ -62,7 +55,7 @@ import { Console } from './shell/Console'
 import { Connections, SETTINGS_INDEX, type ConnectSection } from './shell/Connections'
 import { useChecks } from './shell/useChecks'
 import { GOAL_TEMPLATE, GOALS, goalOptions, optionsOf, startLabel } from './shell/goals'
-import { startGoal } from './shell/start'
+import { startGoal, startGoesOut } from './shell/start'
 import { showCardPage } from './shell/cardPage'
 import type { Goal } from './scene'
 import { connectCharacterKeys } from './characterKeys'
@@ -78,25 +71,9 @@ import './shell/shell.css'
 type SettingsTab = 'general' | 'ai' | 'hotkeys' | 'account'
 type ModelTab = 'chat' | 'speech' | 'realtime'
 
-type Pop = null | 'add' | 'settings' | 'templates' | 'help' | 'record' | 'model' | 'talk' | 'output' | 'live' | 'realtime' | 'collab' | 'scenes' | 'mixer' | 'audience' | 'checklist' | 'start-options' | 'start'
+type Pop = null | 'add' | 'settings' | 'templates' | 'help' | 'record' | 'output' | 'live' | 'realtime' | 'collab' | 'scenes' | 'mixer' | 'checklist' | 'start-options' | 'start'
 
-const COACHED = 'livliv-stage:coached', FOLDED = 'livliv-stage:panel-folded'
-/** the source (the public repository's address: set when it is published) */
-const coached = () => { try { return !!localStorage.getItem(COACHED) } catch { return true } }
-
-/** what the main start button begins while nothing runs: the console's (editing: what the stage's template set,
- *  else 持续聊天), or the show controls' (show mode). Space begins the same one (useShortcuts) */
-type MainStart = 'replay' | StartKind
-function mainStart(brain: BrainConfig, scene: Scene, show = false): MainStart {
-  if (brain.kind === 'demo') return 'replay'
-  return show ? 'conversation' : scene.talk.start ?? 'chat'
-}
-/** AI 直播 opens its panel: where its audience, limits and voice are chosen, and its own start button */
-function startMain(kind: MainStart, openLive: () => void) {
-  if (kind === 'chat') void talk.startChat().catch(() => {})
-  else if (kind === 'live') openLive()
-  else talk.start()
-}
+const FOLDED = 'livliv-stage:panel-folded'
 
 export default function App() {
   useLocale()
@@ -125,11 +102,10 @@ export default function App() {
   const [logView, setLogView] = useState<'history' | 'memory'>('history')
   const [menu, setMenu] = useState<MenuAt | null>(null)
   const [note, setNote] = useState('')
-  const [coach, setCoach] = useState(() => !coached())
-  // livliv.ai/stage: a phone gets the demo to watch; a computer's first visit gets the demo's three on the stage and a
-  // welcome with the ways in (none for a link to a character, which opens that one instead)
+  // livliv.ai/stage: a phone gets the demo to watch; a computer's first visit gets the demo's three on the stage and the
+  // start page over them (none for a link to a character, which opens that one instead)
   const phone = features.host === 'site' && small()
-  const [welcome, setWelcome] = useState(() => features.host === 'site' && !phone && !hadSaved && !linkedId())
+  const firstVisit = features.host === 'site' && !phone && !hadSaved && !linkedId()
   // the site's 开播 (?c=<id>&as=face): its card, where the first-visit checklist goes
   const [goLive, setGoLive] = useState<string | null>(null)
   const toggle = (p: Pop) => { if (p === 'settings') { setForStart(false); setSettingsTab('general') } setPop((x) => (x === p ? null : p)) }
@@ -160,14 +136,13 @@ export default function App() {
     if (id && !phone) void openLinked(id, as).then(({ note, character }) => {
       if (note) say(note)
       if (character && as === 'face') { setGoLive(character); setLeftFolded(false) }
-      if (character && as === 'ai') setPop('live')
+      if (character && as === 'ai') { store.setTalk({ goal: 'live', ...goalOptions('live', false) }); setPop('checklist') }
     })
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
   // on the site, signing in or out happens on its own pages, maybe in another tab: asked again when this one is back
   useEffect(() => { if (!(features.host === 'site')) return; const again = () => void refresh(); addEventListener('focus', again); return () => removeEventListener('focus', again) }, [])
   useEffect(() => { if (phone && mode !== 'show') store.setMode('show') }, [phone, mode])
-  // the redesign: the site's first visit opens the start page (it takes the welcome card's place)
-  useEffect(() => { if (uiNext && welcome) setPop('start') }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (firstVisit) setPop('start') }, [])  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(connectDesktop, [])
   useEffect(() => connectNeuro({ event: talk.externalEvent, dialogue: talk.externalDialogue, decide: talk.decideExternalAction, subscribeSpeech: talk.onSpeech }), [])
   const profilesKey = participants(scene).filter((character) => character.lines === 'ai' && !character.remote).map((character) => character.profileId ?? character.id).sort().join(',')
@@ -180,10 +155,6 @@ export default function App() {
   // Choose the model before asking for a particular provider's account.
   const conv = useConversation()
   const [forStart, setForStart] = useState(false)
-  // the model card opened to go from the demo to a model of one's own: it opens on the models, not on the demo
-  const [ownModel, setOwnModel] = useState(false)
-  const openOwnModel = () => { setForStart(false); setOwnModel(true); setPop('model') }
-  useEffect(() => { if (pop !== 'model') setOwnModel(false) }, [pop])
   useEffect(() => {
     if (!conv.needModel) return
     talk.modelAsked(); store.setMode('edit'); openModels('chat', conv.modelIntent !== 'input')
@@ -191,22 +162,14 @@ export default function App() {
   const closeSettings = () => { setForStart(false); setSettingsTab('general'); setPop(back) }
   const continueAfterModel = () => {
     if (conv.modelIntent === 'chat') void talk.startChat().catch(() => {})
-    else if (conv.modelIntent === 'live') setPop('live')
+    else if (conv.modelIntent === 'live') startNow()
     else if (conv.modelIntent === 'conversation') talk.start()
   }
   const say = (s: string) => { setNote(s); window.setTimeout(() => setNote((n) => (n === s ? '' : n)), 3200) }
-  useShortcuts({
-    escape: () => { if (menu) setMenu(null); else if (pop) { setForStart(false); setPop(null) } else if (welcome) setWelcome(false); else if (store.selected()) store.select(null); else if (store.mode() === 'show' && !phone) store.setMode('edit') },
-    help: () => toggle('help'),
-    zoom: setZoom,
-    bare: () => setBare((b) => !b),
-    say,
-    live: () => toggle('live'),
-  })
   const show = mode === 'show'
-  // the redesign on a phone or a narrow window: the stage full width, the console under it, cards over it
-  const narrow = useNarrow() && uiNext
-  // the redesign (?ui=next): what the stage is for, whether you play with an AI partner, and its 准备清单
+  // a phone or a narrow window: the stage full width, the console under it, cards over it
+  const narrow = useNarrow()
+  // what the stage is for (its goal), whether you play with an AI partner, and its 准备清单
   const ai = participants(scene).filter((c) => c.lines === 'ai' && !c.remote)
   const goal: Goal = scene.talk.goal ?? (scene.talk.start === 'live' ? 'live' : scene.talk.start === 'conversation' ? 'video' : hasAI ? 'chat' : 'perform')
   const partner = goal === 'perform' && ai.length > 0
@@ -227,16 +190,30 @@ export default function App() {
     setPop('checklist')
   }
   const startNow = () => { setPop(null); void startGoal(goal, optionsOf(scene.talk, partner)).catch((error: Error) => say(error.message)) }
+  // after the demo, the same characters with a model of one's own: they talk among themselves (和角色聊天, you only
+  // watching), and the checklist says what is still needed
+  const ownModel = () => { playDemo(false); store.setTalk({ goal: 'chat', audience: 'me', you: 'none' }); setPop('checklist') }
   const fix = (target: Fix) => {
     const select = (who: 'ai' | 'me') => { const c = participants(store.get()).find((x) => x.lines === who && !x.remote) ?? participants(store.get())[0]; if (c) store.select(c.id); setBare(false) }
     if (target === 'connect:model') openModels('chat', false, 'checklist')
     else if (target === 'connect:speech') openModels('speech', false, 'checklist')
     else if (target === 'connect:realtime') openModels('realtime', false, 'checklist')
+    // 实时通话 set up: its own card, where the call starts
+    else if (target === 'realtime') { if (checks.find((c) => c.id === 'realtime')?.state === 'ok') setPop('realtime'); else openModels('realtime', false, 'checklist') }
+    else if (target === 'live-room') setPop('live')
     else if (target === 'character:who') { select('me'); showCardPage('who') }
     else if (target === 'character:voice') { select('ai'); showCardPage('persona') }
     else if (target === 'options') setPop('start-options')
     else { setSettingsTab('general'); setPop('settings') }
   }
+  useShortcuts({
+    escape: () => { if (menu) setMenu(null); else if (pop) { setForStart(false); setPop(null) } else if (store.selected()) store.select(null); else if (store.mode() === 'show' && !phone) store.setMode('edit') },
+    help: () => toggle('help'),
+    zoom: setZoom,
+    bare: () => setBare((b) => !b),
+    say,
+    start: () => { if (startGoesOut(goal, optionsOf(scene.talk, partner))) setPop('checklist'); else startNow() },
+  })
   // the stage's room: the same whatever is open (only ⌘\ changes it)
   // a phone: the stage above the intro card at the bottom
   const insets: Insets = narrow && !show ? { top: 56, right: 8, bottom: 150, left: 8 } : show ? (phone ? { top: 12, right: 8, bottom: 360, left: 8 } : { top: 0, right: 0, bottom: 0, left: 0 }) : { top: 56, right: bare ? 80 : 312, bottom: hasAI ? 124 : 76, left: leftFolded ? 80 : 220 }
@@ -250,37 +227,25 @@ export default function App() {
     } catch (e) { say((e as Error).message) }
   }
   return (
-    <div className={`app ${mode}${bare ? ' panels-folded' : ''}${hasAI ? '' : ' solo-mode'}${leftFolded ? ' tools-folded' : ''}${uiNext ? ' next' : ''}${narrow ? ' narrow' : ''}${store.selected() ? ' selected' : ''}`} onPointerDown={() => setMenu(null)}>
-      <Stage insets={insets} onMenu={setMenu} zoom={zoom} setZoom={setZoom} empty={narrow ? null : uiNext ? <StartPage onGoal={(g, p) => void pickGoal(g, p)} onTemplate={template} onAdd={() => setPop('add')} /> : <Empty onTemplate={template} onAdd={() => setPop('add')} />} />
-      {show ? (phone ? <PhoneIntro onDemo={() => beginDemo()} /> : <ShowControls />) : <>
+    <div className={`app ${mode}${bare ? ' panels-folded' : ''}${hasAI ? '' : ' solo-mode'}${leftFolded ? ' tools-folded' : ''} next${narrow ? ' narrow' : ''}${store.selected() ? ' selected' : ''}`} onPointerDown={() => setMenu(null)}>
+      <Stage insets={insets} onMenu={setMenu} zoom={zoom} setZoom={setZoom} empty={narrow ? null : <StartPage onGoal={(g, p) => void pickGoal(g, p)} onTemplate={template} onAdd={() => setPop('add')} />} />
+      {show ? (phone ? <PhoneIntro onDemo={() => beginDemo()} /> : <ShowControls goal={goal} partner={partner} onStart={startNow} />) : <>
         <TopBar pop={pop} toggle={toggle} onTemplate={template} say={say} onStartPage={() => setPop('start')} />
         <CrowdNotice insets={insets} />
         <Rail pop={pop} toggle={toggle} folded={leftFolded} onFold={foldLeft} />
-        {uiNext && ((pop === 'start' && scene.items.length > 0) || (narrow && !scene.items.length && !pop)) && <div className="start-overlay"><StartPage onGoal={(g, p) => void pickGoal(g, p)} onTemplate={template} onAdd={() => setPop('add')} onClose={() => setPop(null)} /></div>}
+        {((pop === 'start' && scene.items.length > 0) || (narrow && !scene.items.length && !pop)) && <div className="start-overlay"><StartPage onGoal={(g, p) => void pickGoal(g, p)} onTemplate={template} onAdd={() => setPop('add')} onClose={() => setPop(null)} /></div>}
         {bare ? <PanelTab onOpen={() => setBare(false)} /> : <Panel onFold={() => setBare(true)} onAccount={openAccount} onVoice={(id) => { openModels('speech'); setVoiceSetup(id) }} />}
-        {welcome && !uiNext && !pop && <SiteWelcome onClose={() => setWelcome(false)}
-          onDemo={async () => { await beginDemo(); setWelcome(false) }}
-          onCamera={() => { setWelcome(false); void template('solo') }}
-          onModel={() => { setWelcome(false); setForStart(false); setPop('model') }}
-          onCharacter={() => { setWelcome(false); setPop('add') }} />}
-        {!leftFolded && <Cast onFriend={uiNext && features.collab ? () => toggle('collab') : undefined} friendOn={pop === 'collab'} guide={goLive ? <GoLiveGuide id={goLive} onClose={() => setGoLive(null)} /> : coach && !uiNext && !welcome && !pop && scene.items.length > 0 ? <CoachList
-          done={() => { setCoach(false); try { localStorage.setItem(COACHED, '1') } catch { /* private mode */ } }}
-          onModel={openOwnModel} onVoice={() => openModels('speech')}
-          onCharacter={() => { setBare(false); store.select(characters(store.get())[0]?.id ?? null) }} onOutput={() => setPop('output')} /> : null} />}
-        {uiNext ? goal === 'perform' && !partner ? <><SoloStatus />{pop !== 'checklist' && scene.items.some((i) => i.kind === 'character') && <button className="st-tag solo-checks" onClick={() => setPop('checklist')}>{tr('准备清单')}</button>}</>
-          : <Console goal={goal} partner={partner} checks={checks} optionsOpen={pop === 'start-options'} onOptions={() => toggle('start-options')} onChecklist={() => toggle('checklist')} onStart={startNow}
-            onModel={() => openModels('chat')} onVoice={() => fix('character:voice')} onLog={() => { setLog((on) => !on || logView === 'memory'); setLogView('history') }} onMemory={() => { setLogView('memory'); setLog(true) }} />
-        : <TalkBar log={log} setLog={(on) => { setLog(on || logView === 'memory'); setLogView('history') }} onMemory={() => { setLogView('memory'); setLog(true) }} model={pop === 'model'} toggleModel={() => { setForStart(false); toggle('model') }}
-          rules={pop === 'talk'} toggleRules={() => toggle('talk')} onLive={() => toggle('live')} onRealtime={() => toggle('realtime')} onOwnModel={openOwnModel} />}
-        {uiNext && pop === 'checklist' && <Checklist goal={goal} partner={partner} startLabel={startLabel(goal, partner)} onStart={startNow} onFix={fix} onClose={() => setPop(null)} />}
-        {uiNext && pop === 'start-options' && <StartOptionsCard goal={goal} partner={partner} onClose={() => setPop(null)} />}
-        {pop === 'audience' && <AudiencePopover onClose={() => setPop(null)} />}
+        {!leftFolded && <Cast onFriend={features.collab ? () => toggle('collab') : undefined} friendOn={pop === 'collab'} guide={goLive ? <GoLiveGuide id={goLive} onClose={() => setGoLive(null)} /> : null} />}
+        {goal === 'perform' && !partner ? <><SoloStatus />{pop !== 'checklist' && scene.items.some((i) => i.kind === 'character') && <button className="st-tag solo-checks" onClick={() => setPop('checklist')}>{tr('准备清单')}</button>}</>
+          : <Console goal={goal} partner={partner} checks={checks} optionsOpen={pop === 'start-options'} onOptions={() => toggle('start-options')} onChecklist={() => toggle('checklist')} onStart={startNow} onOwnModel={ownModel}
+            onModel={() => openModels('chat')} onVoice={() => fix('character:voice')} onRoom={() => toggle('live')} onRealtime={() => toggle('realtime')}
+            onLog={() => { setLog((on) => !on || logView === 'memory'); setLogView('history') }} onMemory={() => { setLogView('memory'); setLog(true) }} />}
+        {pop === 'checklist' && <Checklist goal={goal} partner={partner} startLabel={startLabel(goal, partner)} onStart={startNow} onFix={fix} onClose={() => setPop(null)} />}
+        {pop === 'start-options' && <StartOptionsCard goal={goal} partner={partner} onClose={() => setPop(null)} />}
         {kept('mixer') && <Kept on={pop === 'mixer'}><MixerPanel onClose={() => setPop(null)} onSettings={() => openModels('speech', false, 'mixer')} /></Kept>}
         {kept('collab') && <Kept on={pop === 'collab'}><CollabPanel onClose={() => setPop(null)} onSettings={() => openModels('speech', false, 'collab')} /></Kept>}
-        {kept('live') && <Kept on={pop === 'live'}><LivePanel onClose={() => setPop(null)} onSettings={() => openModels('chat', false, 'live')} /></Kept>}
+        {kept('live') && <Kept on={pop === 'live'}><LivePanel onClose={() => setPop(null)} /></Kept>}
         {pop === 'realtime' && <RealtimePanel onClose={() => setPop(null)} onSettings={() => openModels('realtime', false, 'realtime')} />}
-        {pop === 'talk' && <TalkSettings onClose={() => setPop(null)} />}
-        {pop === 'model' && <ModelCard forStart={forStart} own={ownModel} onClose={() => { setForStart(false); setPop(null) }} onAccount={openAccount} onContinue={continueAfterModel} onSettings={() => openModels('chat', forStart, 'model')} />}
         {log && <Transcript view={logView} setView={setLogView} onClose={() => setLog(false)} right={bare ? 80 : 324} />}
         {pop === 'add' && <AddCharacter left={228} onClose={() => setPop(null)} onSignIn={() => { setSettingsTab('account'); setPop('settings') }} />}
         {pop === 'settings' && <><div className="scrim" onPointerDown={closeSettings} /><SettingsCard key={voiceSetup ?? 'settings'} forVoice={voiceSetup} initialTab={settingsTab} initialModel={settingsModel} forStart={forStart} returns={back !== null} onContinue={continueAfterModel} onResetLayout={resetLayout} onAdd={() => { setForStart(false); setPop('add') }} onClose={closeSettings} /></>}
@@ -296,7 +261,7 @@ export default function App() {
   )
 }
 
-type Keys = { escape: () => void; help: () => void; zoom: (z: Zoom | ((z: Zoom) => Zoom)) => void; bare: () => void; say: (s: string) => void; live: () => void }
+type Keys = { escape: () => void; help: () => void; zoom: (z: Zoom | ((z: Zoom) => Zoom)) => void; bare: () => void; say: (s: string) => void; start: () => void }
 
 /** keys while not typing: ⌘Z / ⇧⌘Z undo / redo, ⌘D copy, Delete, arrows move (⇧: by 10), ⇧1 fit, ⇧0 100%, ⌘\
  *  panels, Space start / pause, Esc, ? the list */
@@ -326,15 +291,17 @@ function useShortcuts(keys: Keys) {
         if (!characters(store.get()).some((x) => x.lines === 'ai')) actors.forEach((a) => { if (a.item.lines === 'me') a.calibrate() })
         else if (c.running) { if (c.paused) talk.resume(); else talk.pause() }
         else {
-          const brain = loadBrainConfig(), kind = mainStart(brain, store.get(), store.mode() === 'show')
-          // lines paid with points start only from a button, never from a key: Space plays the free demo instead
-          // (AI 直播 only opens its panel). Points pay for LivLiv's lines and for every line in a LivLiv voice
+          // the demo: again. Else the stage's start, as its button does; one that goes out to a 直播间 or records only
+          // opens its checklist from a key. Lines paid with points start only from a button, never from a key: Space
+          // plays the free demo instead. Points pay for LivLiv's lines and for every line in a LivLiv voice
+          const brain = loadBrainConfig()
           const paidVoice = brain.kind !== 'demo' && participants(store.get()).some((c) => c.lines === 'ai' && !c.muted && voiceRoute(c) === 'livliv')
-          if (brain.kind === 'livliv' && kind !== 'live') {
+          if (brain.kind === 'demo') talk.start()
+          else if (brain.kind === 'livliv') {
             if (demoFor(characters(store.get()))?.script.template === 'trio') void beginDemo()
             else K.say(tr("用积分的台词，请点按钮开始"))
-          } else if (paidVoice && kind !== 'live') K.say(tr("用积分的台词，请点按钮开始"))
-          else startMain(kind, K.live)
+          } else if (paidVoice) K.say(tr("用积分的台词，请点按钮开始"))
+          else K.start()
         }
         return
       }
@@ -369,8 +336,7 @@ function Kept({ on, children }: { on: boolean; children: ReactNode }) {
 
 function TopBar({ pop, toggle, onTemplate, say, onStartPage }: { pop: Pop; toggle: (p: Pop) => void; onTemplate: (id: TemplateId) => void; say: (s: string) => void; onStartPage: () => void }) {
   const { scene, canUndo, canRedo } = useScene()
-  const collab = useRoom()
-  const conv = useConversation()
+  const narrow = useNarrow()
   const file = useRef<HTMLInputElement>(null)
   const [io, setIO] = useState<'save' | 'open' | null>(null), [progress, setProgress] = useState(0)
   const task = useRef<AbortController | null>(null)
@@ -397,15 +363,13 @@ function TopBar({ pop, toggle, onTemplate, say, onStartPage }: { pop: Pop; toggl
     <header className="topbar" onPointerDown={(e) => e.stopPropagation()}>
       <div className="left">
         <img className="mark" src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" />
-        <div className="menu-anchor scene-switcher"><input className="name" value={scene.name} aria-label={tr("舞台名字")} onChange={(e) => store.set({ name: e.target.value })} /><button className={pop === "scenes" ? "icon on" : "icon"} title={tr("切换镜头")} aria-expanded={pop === "scenes"} onClick={() => toggle("scenes")}><ChevronDown size={15} /></button>{pop === "scenes" && <ScenesMenu close={() => toggle(null)} onStartPage={uiNext ? () => { toggle(null); onStartPage() } : undefined} />}</div>
+        <div className="menu-anchor scene-switcher"><input className="name" value={scene.name} aria-label={tr("舞台名字")} onChange={(e) => store.set({ name: e.target.value })} /><button className={pop === "scenes" ? "icon on" : "icon"} title={tr("切换镜头")} aria-expanded={pop === "scenes"} onClick={() => toggle("scenes")}><ChevronDown size={15} /></button>{pop === "scenes" && <ScenesMenu close={() => toggle(null)} onStartPage={() => { toggle(null); onStartPage() }} />}</div>
       </div>
       <div className="seg mode">
         <button className="on" title={tr("编辑")} aria-label={tr("编辑")}><Pencil size={13} /><span className="mode-label">{tr("编辑")}</span></button>
         <button onClick={() => store.setMode('show')} title={tr("只留画面（Esc 回来）")} aria-label={tr("预览")}><Play size={13} /><span className="mode-label">{tr("预览")}</span></button>
       </div>
       <div className="right">
-        {features.desktopConsole && !uiNext && <button className={'stream-entry' + (pop === 'live' ? ' on' : '')} aria-expanded={pop === 'live'}
-          title={tr('游戏直播与观众弹幕')} onClick={() => toggle('live')}><Radio size={16} />{tr('直播')}{conv.running && conv.mode === 'live' && <i className="live-dot on" />}</button>}
         <button className="icon" title={tr("撤销（⌘Z）")} disabled={!canUndo} onClick={store.undo}><Undo2 size={16} /></button>
         <button className="icon" title={tr("重做（⇧⌘Z）")} disabled={!canRedo} onClick={store.redo}><Redo2 size={16} /></button>
         <span className="sep" />
@@ -417,11 +381,9 @@ function TopBar({ pop, toggle, onTemplate, say, onStartPage }: { pop: Pop; toggl
             </div>
           )}
         </div>
-        {features.collab && !uiNext && <button className={pop === 'collab' ? 'on collab-button' : 'collab-button'} onClick={() => toggle('collab')}><UserPlus size={15} />{tr("联播")}{collab.phase === 'on' && <i className="live-dot on" />}{collab.pending.length > 0 && <span className="room-count">{collab.pending.length}</span>}</button>}
-        {!features.desktopConsole && !uiNext && <button className={pop === 'audience' ? 'icon on' : 'icon'} title={tr('观众弹幕')} onClick={() => toggle('audience')}><MessagesSquare size={16} /></button>}
         <button className={pop === 'mixer' ? 'icon on' : 'icon'} title={tr('调音台')} onClick={() => toggle('mixer')}><Volume2 size={16} /></button>
         <RecordButton on={pop === 'record'} toggle={() => toggle('record')} />
-        <button className="primary output-button" onClick={() => toggle('output')}><MonitorPlay size={15} />{tr("输出到 OBS")}</button>
+        <button className="primary output-button" title={tr("输出到 OBS")} onClick={() => toggle('output')}><MonitorPlay size={15} />{narrow ? 'OBS' : tr("输出到 OBS")}</button>
         <span className="sep" />
         <button className="icon" title={tr("打开项目")} disabled={!!io} onClick={() => file.current?.click()}><FolderOpen size={16} /></button>
         <button className="icon" title={tr("保存项目")} disabled={!!io} onClick={() => void save()}><Save size={16} /></button>
@@ -593,25 +555,6 @@ function PngForm({ onDone, onError }: { onDone: (p: Pick) => void; onError: (m: 
   </div>
 }
 
-function Empty({ onTemplate, onAdd }: { onTemplate: (id: TemplateId) => void; onAdd: () => void }) {
-  const [busy, setBusy] = useState(false), [error, setError] = useState('')
-  const demo = async () => { setBusy(true); setError(''); try { await beginDemo() } catch (error) { setError((error as Error).message) } finally { setBusy(false) } }
-  return <div className="empty-card">
-    <p className="big">{tr('让角色第一次开口')}</p>
-    <p className="hint">{tr('先看一段对谈，或选择你的上场方式。')}</p>
-    <button className="welcome-demo" disabled={busy} onClick={() => void demo()}>
-      <span className="welcome-cast" aria-hidden="true">{['d03ft', 'k01', 'v04'].map((id) => <img key={id} src={`${import.meta.env.BASE_URL}characters/${id}/avatar.webp`} alt="" />)}</span>
-      <span className="welcome-demo-copy"><b>{tr('Nana、Sena 与 Kai 的三人对谈')}</b><span>{tr('三种声音、表情与动作 · 约 20 秒')}</span></span>
-      <span className="welcome-play">{busy ? <LoaderCircle size={16} className="spin" /> : <Play size={16} />}{tr('看演示')}</span>
-    </button>
-    <div className="row center">
-      {TEMPLATES.filter((t) => ['solo', 'ai', 'cohost'].includes(t.id)).map((t) => <button key={t.id} className="workflow-tile" onClick={() => onTemplate(t.id)}><b>{tr(t.label)}</b><span>{tr(t.hint)}</span></button>)}
-    </div>
-    <button className="link" onClick={onAdd}>{tr('自己放角色')}</button>
-    {error && <p className="hint error" role="alert">{error}</p>}
-  </div>
-}
-
 /** said once over the stage while a character shows nothing because the page has no WebGL context left for it
  *  (contexts.ts); gone when there is room again: characters removed or hidden */
 function CrowdNotice({ insets }: { insets: Insets }) {
@@ -654,115 +597,6 @@ function Cast({ guide, onFriend, friendOn }: { guide: ReactNode; onFriend?: () =
     {onFriend && <button className={`cast-friend${friendOn ? ' on' : ''}`} onClick={onFriend}><Users size={15} />{tr('请朋友上台')}</button>}
     {guide && <div className="cast-guide">{guide}</div>}
   </aside>
-}
-
-/** three parts: what they talk about; running it; what you say */
-/** the console: the conversation (topic, start / pause, the model, next, stop, how far, its rules, the transcript) and,
- *  apart, what you say (as whom, the line, push to talk, send) */
-function TalkBar({ log, setLog, onMemory, model, toggleModel, rules, toggleRules, onLive, onRealtime, onOwnModel }: { log: boolean; setLog: (on: boolean) => void; onMemory: () => void; model: boolean; toggleModel: () => void; rules: boolean; toggleRules: () => void; onLive: () => void; onRealtime: () => void; onOwnModel: () => void }) {
-  const { scene } = useScene()
-  const conv = useConversation(), realtime = useRealtime(), brain = useBrainConfig(), demo = brain.kind === 'demo', main = mainStart(brain, scene)
-  const inRealtime = conv.running && conv.mode === 'realtime'
-  const [mine, setMine] = useState('')
-  const input = useRef<HTMLInputElement>(null), moreModes = useRef<HTMLDetailsElement>(null)
-  useEffect(() => {
-    const close = (event: PointerEvent) => { if (moreModes.current && !moreModes.current.contains(event.target as Node)) moreModes.current.open = false }
-    document.addEventListener('pointerdown', close, true); return () => document.removeEventListener('pointerdown', close, true)
-  }, [])
-  const send = async () => {
-    const text = mine
-    if (await talk.say(text) !== false) setMine((current) => current === text ? '' : current)
-  }
-  // who you speak as: on your character's turn, that one; else the chosen one, the first you play, or the narrator
-  const yours = participants(scene).filter((c) => c.lines === 'me')
-  const as = conv.waiting ?? (yours.some((c) => c.id === conv.as) || conv.as === 'narrator' ? conv.as : yours[0]?.id ?? 'narrator')
-  const name = yours.find((c) => c.id === as)?.name
-  const ptt = usePtt(), account = useAccount(), speech = useActiveSpeech(), hear = asrReady(speech) || account.status === 'in'
-  useEffect(() => { if (ptt.automatic && !hear) pttCancel() }, [hear, ptt.automatic])
-  useEffect(() => { if (conv.waiting) input.current?.focus() }, [conv.waiting])
-  const handsFree = async () => {
-    if (ptt.automatic) { await setHandsFree(false); return }
-    try { if (!conv.running) await talk.startChat(); await setHandsFree(true) } catch { /* The model setup and conversation already expose the failure. */ }
-  }
-  const hint = ptt.phase === 'opening' ? tr("打开麦克风…") : ptt.phase === 'listening' ? ptt.automatic ? tr('正在听，停顿后自动发送') : ptt.toggle ? tr("正在听，再按一次热键结束") : tr("正在听，松开就说出去") : ptt.phase === 'recognizing' ? tr("正在识别…") : ptt.automatic ? tr('免按键已开启，直接说话')
-    : conv.waiting ? tr("轮到你了：以 {0} 说…", name ?? tr("旁白")) : name ? tr("以 {0} 说一句…", name) : tr("以旁白说一句…")
-  const cast = participants(scene).filter((c) => c.lines === 'ai')
-  if (!cast.length) return <SoloStatus />
-  const partner = features.desktopConsole && !demo && cast.length === 1 ? cast[0].name : ''
-  const startLabel = partner ? tr('和 {0} 聊天', partner) : tr('持续聊天')
-  // the scope: the session's while one runs, else the one the next gets (public while an output is on)
-  const scope = conv.running ? conv.scope : conv.output ? 'public' : conv.chatScope
-  const liveStatus = tr(!conv.running ? '会话已结束' : conv.paused ? '已暂停' : conv.waitingAudience ? '等待弹幕' : '回应中') + ` · ${conv.generations}/${conv.generationLimit}`
-  return (
-    <div className="console" onPointerDown={(e) => e.stopPropagation()}>
-     <div className="talkbar run-bar">
-      <div className="zone topic-zone">
-        <input className="topic" value={scene.topic} placeholder={tr("话题，比如：周末去哪儿玩")} aria-label={tr("话题")} onChange={(e) => store.set({ topic: e.target.value })} />
-      </div>
-      <div className="zone run">
-        {!conv.running && (main === 'replay' ? <><button className="primary" onClick={() => startMain(main, onLive)}><Play size={14} />{tr('再看一次')}</button>
-          {/* after the demo: the same characters, with a model of one's own (the model card, then back here) */}
-          <button className="demo-own-model" aria-label={tr('用你的模型重来一遍')} title={tr('用你的模型重来一遍')} onClick={onOwnModel}><Bot size={14} /><span>{tr('用你的模型重来一遍')}</span></button></>
-          : main === 'conversation' ? <button className="primary" onClick={() => startMain(main, onLive)}><Play size={14} />{tr('开始对谈')}</button>
-          : main === 'live' ? <button className="primary" onClick={() => startMain(main, onLive)}><Bot size={14} />{tr('AI 直播')}</button>
-          : <button className="primary start-chat" title={startLabel} onClick={() => startMain(main, onLive)}><MessagesSquare size={14} /><span>{startLabel}</span></button>)}
-        {!features.desktopConsole && <button className="realtime-toggle" aria-label={tr('实时语音')} title={tr('实时语音')} onClick={onRealtime} disabled={conv.running && !inRealtime}><Mic size={14} /><span>{tr('实时语音')}</span></button>}
-        {!conv.running && <details ref={moreModes} className="start-modes" onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); moreModes.current!.open = false; moreModes.current?.querySelector('summary')?.focus() } }}>
-          <summary>{tr('更多方式')}<ChevronDown size={13} /></summary>
-          <div className="card start-mode-options">
-            {features.desktopConsole
-              ? <button onClick={() => { moreModes.current!.open = false; onRealtime() }}><Mic size={16} /><span><b>{tr('实时语音通话')}</b></span></button>
-              : main !== 'live' && <button aria-label={tr('AI 直播')} onClick={() => { moreModes.current!.open = false; onLive() }}><Bot size={16} /><span><b>{tr('AI 直播')}</b><small>{tr('回应直播间的观众弹幕')}</small></span></button>}
-            {/* the sessions the main button doesn't start (on the desktop AI 直播 is in the top bar) */}
-            {main !== 'chat' && main !== 'replay' && <button aria-label={startLabel} onClick={() => { moreModes.current!.open = false; startMain('chat', onLive) }}><MessagesSquare size={16} /><span><b>{startLabel}</b></span></button>}
-            {main !== 'conversation' && <button aria-label={tr('对谈')} onClick={() => { moreModes.current!.open = false; talk.start() }}><Play size={16} /><span><b>{tr('对谈')}</b><small>{tr('让多位角色轮流聊起来')}</small></span></button>}
-          </div>
-        </details>}
-        {conv.running && !conv.paused && <button className="primary" onClick={talk.pause}><Pause size={14} />{tr("暂停")}</button>}
-        {conv.running && conv.paused && <button className="primary" onClick={talk.resume}><Play size={14} />{tr("继续")}</button>}
-        <ModelButton on={model} onClick={toggleModel} />
-        <button className="icon" title={tr("下一句：跳过等待，或者让正在说的停下")} disabled={!conv.running} onClick={talk.next}><StepForward size={15} /></button>
-        <button className="icon" title={tr("停止")} disabled={!conv.running} onClick={() => { pttCancel(); talk.stop() }}><Square size={14} /></button>
-        {conv.mode === 'chat' ? conv.running && partner && <span className="chat-partner" title={tr('由 {0} 回应', partner)}>{tr('由 {0} 回应', partner)}</span>
-          : conv.mode === 'realtime' ? inRealtime ? <button className="live-state" onClick={onRealtime}>{tr('语音通话中')}</button> : <span className="live-state">{tr('通话已结束')}</span>
-          : conv.mode === 'live' ? features.desktopConsole ? <span className="live-state">{liveStatus}</span> : <button className="live-state" onClick={onLive}>{liveStatus}</button>
-          : <TurnCount turns={conv.turns} limit={conv.limit} />}
-        <button className={`icon${rules ? ' on' : ''}`} title={tr("对话设置：谁先说、抢话、语言、节奏、弹幕")} onClick={toggleRules}><SlidersHorizontal size={15} /></button>
-        <button className={`icon${log ? ' on' : ''}`} title={tr("对话记录")} aria-label={tr("对话记录")} onClick={() => setLog(!log)}>
-          <MessagesSquare size={16} />{conv.lines.length > 0 && <em>{conv.lines.length}</em>}
-        </button>
-      </div>
-     </div>
-     <div className={`talkbar say-bar${conv.waiting ? ' waiting' : ''}`}>
-      <div className="zone say">
-        <select className="as" value={as} aria-label={tr("以谁的身份说")} title={tr("以谁的身份说")} disabled={!!conv.waiting} onChange={(e) => talk.setAs(e.target.value)}>
-          {yours.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          <option value="narrator">{tr("旁白")}</option>
-        </select>
-        <input ref={input} value={mine} disabled={inRealtime && (realtime.phase === 'connecting' || conv.paused)} aria-label={tr("你说的话")} onChange={(e) => { setMine(e.target.value); pttClear() }} placeholder={tr(hint)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) void send() }} />
-        {/* the one place to choose private: only with no output on (OBS, a recording, a co-stream, a live audience) */}
-        <button className={`chat-status chat-scope-link scope-tag ${scope}`} aria-label={tr('对话范围')} disabled={conv.running || conv.output}
-          title={tr(conv.output ? '输出开着（OBS、录制、联播或直播间）：只用公开记忆' : conv.running ? '对话范围' : '点一下在私聊和公开记忆之间切换')}
-          onClick={() => void talk.setScope(scope === 'private' ? 'public' : 'private')}>{tr(scope === 'public' ? '公开记忆' : '私聊')}</button>
-        {conv.mode === 'chat' && conv.running && <span className="chat-status" role="status" title={tr('已生成 {0} / {1} 次', conv.generations, conv.generationLimit)}>{tr(conv.paused ? '已暂停' : conv.waitingInput ? '等你说话' : conv.thinking ? '正在思考' : '回应中')}</span>}
-        <button className="console-memory" onClick={onMemory}>{tr('记忆')}</button>
-        <button className={`handsfree${ptt.automatic ? ' on' : ''}`} aria-label={tr('免按键语音')} aria-pressed={ptt.automatic} disabled={!ptt.automatic && (!hear || inRealtime || (conv.running && conv.mode === 'conversation'))} title={tr('自动判断说完；外放时建议戴耳机。')} onClick={() => void handsFree()}>{tr(ptt.automatic ? '关闭免按键' : '免按键')}</button>
-        <button className={`icon mic ${ptt.phase}`} title={ptt.phase === 'recognizing' && !ptt.automatic ? tr("正在识别，Esc 取消") : hear ? tr("按住说话，松开说出去（也可以按住 ` 键）") : tr("按住说话：在设置里接上语音识别后可用")}
-          aria-label={tr("按住说话")} disabled={inRealtime || (!ptt.automatic && ptt.phase === 'recognizing') || !hear} style={{ ['--level' as string]: ptt.level }}
-          onPointerDown={(e) => { e.currentTarget.setPointerCapture?.(e.pointerId); void pttPress() }}
-          onPointerUp={() => void pttRelease()} onPointerCancel={pttCancel} onContextMenu={(e) => e.preventDefault()}>
-          {ptt.phase === 'recognizing' ? <LoaderCircle size={16} className="spin" /> : <Mic size={16} />}
-        </button>
-        {conv.waiting && <button className="icon" title={tr("这次不说，跳过")} onClick={talk.skip}><SkipForward size={15} /></button>}
-        <button className="icon" title={tr("说")} disabled={!mine.trim() || (inRealtime && (realtime.phase === 'connecting' || conv.paused))} onClick={() => void send()}><Send size={15} /></button>
-      </div>
-     </div>
-      {ptt.automatic && <p className="handsfree-status" role="status">{tr(conv.paused ? '已暂停收音，继续后恢复' : '免按键已开启 · 停顿后自动发送 · Esc 关闭')}</p>}
-      {(conv.error || ptt.error) && <p className="talk-err">{conv.error || ptt.error}</p>}
-      {conv.storageError && <p className="talk-err" role="alert">{conv.storageError}</p>}
-    </div>
-  )
 }
 
 function SoloStatus() {
@@ -841,9 +675,10 @@ function Transcript({ view, setView, onClose, right }: { view: 'history' | 'memo
 
 // ---------------------------------------------------------------- show mode, menus, AI
 
-function ShowControls() {
-  const conv = useConversation(), r = useRecording(), { scene } = useScene(), main = mainStart(useBrainConfig(), scene, true)
-  const hasAI = participants(scene).some((c) => c.lines === 'ai')
+/** show mode's controls, for a moment after the mouse moves: the stage's start (the demo again, or the goal's), pause,
+ *  stop, the recording, back to editing */
+function ShowControls({ goal, partner, onStart }: { goal: Goal; partner: boolean; onStart: () => void }) {
+  const conv = useConversation(), r = useRecording(), brain = useBrainConfig(), label = brain.kind === 'demo' ? '再看一次' : startLabel(goal, partner)
   const [on, setOn] = useState(true)
   useEffect(() => {
     let t = window.setTimeout(() => setOn(false), 2500)
@@ -853,7 +688,7 @@ function ShowControls() {
   }, [])
   return (
     <div className={`show-controls${on ? ' on' : ''}`} onPointerDown={(e) => e.stopPropagation()}>
-      {hasAI && !conv.running && <button className="primary" onClick={() => startMain(main, () => {})}><Play size={14} />{tr(main === 'replay' ? '再看一次' : '开始对谈')}</button>}
+      {label && !conv.running && <button className="primary" onClick={brain.kind === 'demo' ? () => talk.start() : onStart}><Play size={14} />{tr(label)}</button>}
       {conv.running && !conv.paused && <button onClick={talk.pause}><Pause size={14} />{tr("暂停")}</button>}
       {conv.running && conv.paused && <button onClick={talk.resume}><Play size={14} />{tr("继续")}</button>}
       <button className="icon" title={tr("停止")} disabled={!conv.running} onClick={() => { pttCancel(); talk.stop() }}><Square size={14} /></button>
@@ -877,33 +712,6 @@ function Help({ onClose }: { onClose: () => void }) {
       <dl>{KEYS.map(([k, v]) => <div key={k}><dt><kbd>{tr(k)}</kbd></dt><dd>{tr(v)}</dd></div>)}</dl>
     </div>
   )
-}
-
-/** the first time: three steps that tick themselves as they are done */
-function CoachList({ done, onModel, onVoice, onCharacter, onOutput }: { done: () => void; onModel: () => void; onVoice: () => void; onCharacter: () => void; onOutput: () => void }) {
-  const { scene } = useScene(), conv = useConversation(), brain = useBrainConfig(), speech = useActiveSpeech()
-  useAccount()
-  const cs = characters(scene).filter((c) => !c.remote), ai = cs.some((c) => c.lines === 'ai')
-  const [, redraw] = useState(0), [open, setOpen] = useState(false)
-  useEffect(() => { const timer = setInterval(() => redraw((n) => n + 1), 500); return () => clearInterval(timer) }, [])
-  // watching the demo finishes none of it: it is no model of one's own, and its lines are no conversation of one's own
-  const model = brain.kind !== 'demo' && brainReady(brain), sound = cs.filter((c) => c.lines === 'ai').every((c) => voiceRoute(c, speech) !== 'none')
-  const human = cs.find((c) => c.lines === 'me'), actor = human && actors.get(human.id)
-  const steps = ai ? [
-    { ok: cs.length > 0 && cs.every((c) => actors.get(c.id)?.status === 'ready'), title: tr('选择角色'), how: tr('点选角色，查看它的设置'), run: onCharacter },
-    { ok: model && sound, title: tr('连接模型与声音'), how: model ? tr('先听听角色的声音') : tr('填一份密钥，开始真实对话'), run: model ? onVoice : onModel },
-    { ok: conv.lines.some((line) => line.demo === undefined), title: tr('开始对话'), how: tr('让角色先聊几句'), run: talk.start },
-  ] : [
-    { ok: cs.length > 0 && cs.every((c) => actors.get(c.id)?.status === 'ready'), title: tr('选择角色'), how: tr('点选角色，查看它的设置'), run: onCharacter },
-    { ok: !!actor?.canCalibrate && actor.calibratedAt > 0, title: tr('校准正面'), how: tr('看向镜头，保持自然表情'), run: () => { if (actor?.canCalibrate) actor.calibrate(); else onCharacter() } },
-    { ok: outputOpen(), title: tr('输出到 OBS'), how: tr('把准备好的画面送去直播'), run: onOutput },
-  ]
-  const all = steps.every((step) => step.ok), next = steps.find((step) => !step.ok), count = steps.filter((step) => step.ok).length
-  useEffect(() => { if (all) { const timer = setTimeout(done, 2500); return () => clearTimeout(timer) } }, [all, done])
-  return <div className={'coach' + (!open && next ? ' mini' : '')}>
-    <header><span>{all ? tr('准备好了') : tr('三步上手')} <small className="num">{count}/3</small></span><span><button className="icon" aria-label={tr('查看上手步骤')} onClick={() => setOpen((v) => !v)}><ChevronDown size={13} /></button><button className="icon" aria-label={tr('关闭上手引导')} onClick={done}><X size={13} /></button></span></header>
-    {!open && next ? <button className="coach-next" onClick={next.run}><b>{next.title}</b><span>{next.how}</span></button> : <ol>{steps.map((step) => <li key={step.title} className={step.ok ? 'ok' : ''}><i>{step.ok && <Check size={12} />}</i><button className="coach-next" onClick={step.run}><b>{step.title}</b><span>{step.how}</span></button></li>)}</ol>}
-  </div>
 }
 
 function ContextMenu({ at, close }: { at: MenuAt; close: () => void }) {
@@ -950,12 +758,6 @@ function RecordButton({ on, toggle }: { on: boolean; toggle: () => void }) {
 }
 
 /** how far this round is; the demo's script has its own length */
-function TurnCount({ turns, limit }: { turns: number; limit: number }) {
-  const brain = useBrainConfig(), { scene } = useScene()
-  const d = brain.kind === 'demo' ? demoFor(participants(scene)) : null
-  return <span className="count" title={tr("这一轮 AI 说了几句 / 最多几句")}>{turns} / {d ? d.script.lines.length : limit} {tr("句")}</span>
-}
-
 /** the finished video, to watch before saving it */
 function Preview({ file }: { file: File }) {
   const [url, setUrl] = useState('')
@@ -1038,63 +840,25 @@ function AgeDialog({ onAnswer }: { onAnswer: (adult: boolean) => void }) {
   </>
 }
 
-/** the model in the console: which one the AI characters think with; not set up yet, an invitation */
-function ModelButton({ on, onClick }: { on: boolean; onClick: () => void }) {
-  const c = useBrainConfig(), ready = brainReady(c)
-  const label = c.kind === 'demo' ? tr("演示") : c.kind === 'livliv' ? 'LivLiv' : ready ? c.model : tr("接入模型")
-  return (
-    <button className={`model-btn${on ? ' on' : ''}${ready ? '' : ' need'}`} aria-label={tr("AI 模型")} title={c.kind === 'openai' && ready ? `${tr(providerOf(c).label)} · ${c.model}` : tr("AI 角色用什么模型想台词")} onClick={onClick}>
-      <Bot size={14} /><span>{tr(label)}</span><ChevronDown size={12} />
-    </button>
-  )
-}
-
-/** the model card over the console */
-function ModelCard({ forStart, own, onClose, onAccount, onContinue, onSettings }: { forStart: boolean; own?: boolean; onClose: () => void; onAccount: () => void; onContinue: () => void; onSettings: () => void }) {
-  return (
-    <div className="card popover model" onPointerDown={(e) => e.stopPropagation()}>
-      <header><span className="title">{tr("AI 模型")}</span><button className="icon" data-close="true" aria-label={tr("关闭")} onClick={onClose}><X size={16} /></button></header>
-      <ModelForm forStart={forStart} own={own} done={onClose} onAccount={onAccount} onContinue={onContinue} />
-      <button className="link model-settings-link" onClick={onSettings}><Settings size={13} />{tr('设置模型与声音')}</button>
-    </div>
-  )
-}
-
 /** Settings for general preferences, models, voice, shortcuts and the optional livliv.ai account. */
 /** returns: opened from a panel or card, so saving a form closes it and goes back there */
 function SettingsCard({ onClose, onAdd, initialTab, initialModel, forStart, returns, forVoice, onContinue, onResetLayout }: { onClose: () => void; onAdd: () => void; initialTab: SettingsTab; initialModel: ModelTab; forStart: boolean; returns?: boolean; forVoice?: string; onContinue: () => void; onResetLayout: () => void }) {
   const [tab, setTab] = useState<SettingsTab>(initialTab)
-  const [modelTab, setModelTab] = useState<ModelTab>(initialModel)
   useEffect(() => { if (tab === 'account') void checkConnect() }, [tab])
-  // the redesign: providers and keys on one page (连接), and a search over every setting
+  // providers and keys on one page (连接), and a search over every setting
   const [query, setQuery] = useState(''), [focus, setFocus] = useState<ConnectSection>(initialModel === 'chat' ? 'model' : initialModel)
   const found = query.trim() ? SETTINGS_INDEX.filter((entry) => `${tr(entry.label)} ${entry.label} ${entry.words}`.toLowerCase().includes(query.trim().toLowerCase())) : null
   return (
     <div className="card popover settings" onPointerDown={(e) => e.stopPropagation()}>
       <div className="settings-head"><header><span className="title">{tr("设置")}</span><button className="icon" data-close="true" aria-label={tr("关闭")} onClick={onClose}><X size={16} /></button></header>
-      {uiNext && <input className="settings-search" type="search" value={query} placeholder={tr('搜索设置')} aria-label={tr('搜索设置')} onChange={(e) => setQuery(e.target.value)} />}
-      <div className="settings-tabs seg">{([{ id: 'general', label: tr("通用") }, { id: 'ai', label: uiNext ? tr('连接') : tr("模型与声音") }, { id: 'hotkeys', label: tr("全局热键") }, { id: 'account', label: tr("livliv.ai 帐号") }] as const).map((t) => <button className={`${tab === t.id ? 'on ' : ''}${t.id === 'account' ? 'account-tab' : ''}`} key={t.id} onClick={() => setTab(t.id)}>{t.id === 'account' && <Sparkles size={13} />}{t.label}</button>)}</div>
+      <input className="settings-search" type="search" value={query} placeholder={tr('搜索设置')} aria-label={tr('搜索设置')} onChange={(e) => setQuery(e.target.value)} />
+      <div className="settings-tabs seg">{([{ id: 'general', label: tr("通用") }, { id: 'ai', label: tr('连接') }, { id: 'hotkeys', label: tr("全局热键") }, { id: 'account', label: tr("livliv.ai 帐号") }] as const).map((t) => <button className={`${tab === t.id ? 'on ' : ''}${t.id === 'account' ? 'account-tab' : ''}`} key={t.id} onClick={() => setTab(t.id)}>{t.id === 'account' && <Sparkles size={13} />}{t.label}</button>)}</div>
       </div><div className="settings-body">
       {found && <div className="settings-found">{found.length ? found.map((entry) => <button key={entry.label} className="item" onClick={() => { setTab(entry.tab); if (entry.section) setFocus(entry.section); setQuery('') }}><b>{tr(entry.label)}</b><span>{tr(({ general: '通用', ai: '连接', hotkeys: '全局热键', account: 'livliv.ai 帐号' } as const)[entry.tab])}</span></button>) : <p className="hint">{tr('没有找到')}</p>}</div>}
       {!found && <>
       {tab === 'general' && <GeneralPanel onResetLayout={onResetLayout} />}
       {tab === 'hotkeys' && <HotkeysPanel />}
-      {tab === 'ai' && uiNext && <Connections key={focus} focus={focus} forStart={forStart} onAccount={() => setTab('account')} onContinue={onContinue} onDone={forStart || returns ? onClose : undefined} />}
-      {tab === 'ai' && !uiNext && <div className="model-settings">
-        <div className="seg model-tabs" aria-label={tr('模型用途')}>{([{ id: 'chat', label: '文字对话' }, { id: 'speech', label: '配音与识别' }, { id: 'realtime', label: '实时语音' }] as const).map((entry) => <button key={entry.id} className={modelTab === entry.id ? 'on' : ''} aria-pressed={modelTab === entry.id} onClick={() => setModelTab(entry.id)}>{tr(entry.label)}</button>)}</div>
-        {modelTab === 'chat' && <section>
-        <h3>{tr('文字对话')}</h3><p className="hint model-purpose">{tr('用于持续聊天、对谈和 AI 直播。')}</p>
-        <ModelForm forStart={forStart} done={forStart || returns ? onClose : undefined} onContinue={onContinue} demoDone={onClose} onAccount={() => setTab('account')} />
-      </section>}
-      {modelTab === 'speech' && <section>
-        <h3>{tr('配音与识别')}</h3><p className="hint model-purpose">{tr('用于角色朗读、按住说话和免按键聊天。')}</p>
-        <SpeechForm forCharacter={forVoice} onDone={onClose} />
-      </section>}
-      {modelTab === 'realtime' && <section>
-        <h3>{tr('实时语音')}</h3><p className="hint model-purpose">{tr('用于直接听说、自然接话和插话。')}</p>
-        <RealtimeModelForm onSaved={returns ? onClose : undefined} />
-      </section>}
-      </div>}
+      {tab === 'ai' && <Connections key={focus} focus={focus} forStart={forStart} forVoice={forVoice} onAccount={() => setTab('account')} onContinue={onContinue} onDone={forStart || returns ? onClose : undefined} />}
       {tab === 'account' && <AccountPanel onAdd={onAdd} />}
       </>}
       </div>

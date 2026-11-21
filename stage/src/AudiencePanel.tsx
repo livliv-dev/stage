@@ -1,7 +1,6 @@
 import { tr } from './i18n'
 import { AudienceActions } from './AudienceActions'
 import { useState } from 'react'
-import { X } from 'lucide-react'
 import { blockUser, connectTwitch, disconnect, simulate, useChat } from './danmaku'
 import { store, useScene } from './scene'
 
@@ -29,11 +28,4 @@ export function AudiencePanel({ preferences = false, heading = true }: { prefere
     {chat.recent.length > 0 && <ul className="chat">{chat.recent.slice(-5).map((message) => <li key={message.id}><div><b>{message.user}</b><span>{message.text}</span></div><button className="link" title={tr("屏蔽 ") + message.user} onClick={() => blockUser(message.user)}>{tr("屏蔽")}</button></li>)}</ul>}
     {chat.blocked.length > 0 && <details className="blocked"><summary>{tr("已屏蔽")} {chat.blocked.length} {tr("位观众")}</summary>{chat.blocked.map((user) => <button className="chip" key={user} title={tr("点击解除屏蔽")} onClick={() => blockUser(user)}>{user} ×</button>)}</details>}
   </section>
-}
-
-export function AudiencePopover({ onClose }: { onClose: () => void }) {
-  return <div className="card popover audience-settings" onPointerDown={(e) => e.stopPropagation()}>
-    <header><span className="title">{tr('观众弹幕')}</span><button className="icon" data-close="true" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button></header>
-    <div className="audience-body"><AudiencePanel heading={false} /></div>
-  </div>
 }

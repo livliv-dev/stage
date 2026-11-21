@@ -46,6 +46,13 @@ export const YOUS: readonly { id: You; label: string; hint: string }[] = [
   { id: 'camera', label: '我也上镜', hint: '你的角色跟着摄像头动，你说话' },
 ]
 
+/** what a way of taking part does in this start: 不参与 depends on who watches and how many AI characters there are */
+export function youHint(you: You, audience: Audience, ai: number): string {
+  if (you !== 'none') return YOUS.find((y) => y.id === you)!.hint
+  if (audience === 'live') return '角色回应直播间'
+  return ai >= 2 ? '角色之间聊' : '只有一个 AI 角色：它会一个人说下去'
+}
+
 /** what the stage offers a start: its characters (who plays each), whether speech recognition works, whether the AI
  *  characters think with the demo */
 export type StartStage = { cast: readonly Pick<CharacterItem, 'id' | 'lines' | 'remote' | 'hidden'>[]; hear: boolean; demo: boolean }

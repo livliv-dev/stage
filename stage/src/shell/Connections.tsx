@@ -11,7 +11,7 @@ import { ModelForm, SpeechForm } from './ConnectForms'
 
 export type ConnectSection = 'model' | 'speech' | 'realtime'
 
-export function Connections({ focus, forStart, onAccount, onContinue, onDone }: { focus?: ConnectSection; forStart?: boolean; onAccount: () => void; onContinue: () => void; onDone?: () => void }) {
+export function Connections({ focus, forStart, forVoice, onAccount, onContinue, onDone }: { focus?: ConnectSection; forStart?: boolean; forVoice?: string; onAccount: () => void; onContinue: () => void; onDone?: () => void }) {
   const chat = useBrainConfig(), speech = useSpeech(), shareable = speechOfModel(chat)
   // the speech API follows the model's key until one of its own is chosen (SpeechForm saves it)
   const [own, setOwn] = useState(!!speech.provider), shared = !!shareable && !own && !speech.provider
@@ -27,7 +27,7 @@ export function Connections({ focus, forStart, onAccount, onContinue, onDone }: 
       <h3>{tr('声音与语音识别')}</h3><p className="hint">{tr('角色念台词，和你说话变成文字。每个角色用哪个音色，在角色卡里选。')}</p>
       {shareable && <label className="switch"><span>{tr('一个密钥用于全部')}<small className="hint">{tr('声音、语音识别和实时通话用文字模型的密钥')}</small></span>
         <input type="checkbox" checked={shared} onChange={(e) => { if (e.target.checked) { saveSpeech(SPEECH_UNSET); setOwn(false) } else setOwn(true) }} /><i /></label>}
-      {!shared && <SpeechForm onDone={() => onDone?.()} />}
+      {!shared && <SpeechForm forCharacter={forVoice} onDone={() => onDone?.()} />}
     </section>
     <section className="connect-section" data-section="realtime">
       <button className="fold" aria-expanded={realtimeOpen} onClick={() => setRealtimeOpen((open) => !open)}><ChevronRight size={14} className={realtimeOpen ? 'open' : ''} /><h3>{tr('实时通话')}</h3></button>

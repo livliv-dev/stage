@@ -12,11 +12,12 @@ import { readiness, type Check, type CheckId } from './checks'
 import { useChecks } from './useChecks'
 
 /** where an item is set: the connections page, the character card (who plays it, or its voice), the start options, the
- *  general settings */
-export type Fix = 'connect:model' | 'connect:speech' | 'connect:realtime' | 'character:who' | 'character:voice' | 'options' | 'settings:general'
+ *  直播间 card (a game, in the desktop app), the general settings; 实时通话 once set up opens its own card, where the call
+ *  starts */
+export type Fix = 'connect:model' | 'connect:speech' | 'connect:realtime' | 'realtime' | 'live-room' | 'character:who' | 'character:voice' | 'options' | 'settings:general'
 const FIX: Partial<Record<CheckId, Fix>> = {
   model: 'connect:model', voice: 'character:voice', 'record-voice': 'character:voice', camera: 'character:who', microphone: 'character:who',
-  phone: 'settings:general', twitch: 'options', game: 'options', hearing: 'connect:speech', realtime: 'connect:realtime',
+  phone: 'settings:general', twitch: 'options', game: 'live-room', hearing: 'connect:speech', realtime: 'realtime',
 }
 const TESTS: CheckId[] = ['model', 'voice', 'record-voice', 'camera']
 

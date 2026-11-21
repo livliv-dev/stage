@@ -1,15 +1,18 @@
 // The one start button, named by the goal, and beside it the three rows that set the start: 谁上场 (who takes part, and
 // how: you, AI, shown only), 谁在看 (only you, or a 直播间 with Twitch or without chat), 你参与吗. Limits and Twitch
-// live here and nowhere else; the rest of the talk rules are folded under the rows.
-import { useRef, useState } from 'react'
+// live here and nowhere else; the rest of the talk rules (language, depth, order, interrupting, pace, what a 直播间
+// does without chat) are folded under the rows.
+import { useRef } from 'react'
 import { ChevronDown, Play, X } from 'lucide-react'
 import { tr } from '../i18n'
 import { useConversation, talk } from '../conversation'
-import { connectTwitch, disconnect, useChat } from '../danmaku'
+import { useChat } from '../danmaku'
+import { AudiencePanel } from '../AudiencePanel'
 import { participants, store, useScene, ORDERS, type Goal } from '../scene'
 import { CONTROLS, controlOf, controlSettings } from '../workflow'
-import { AUDIENCES, YOUS, optionsOf, startLabel, type StartOptions } from './goals'
+import { AUDIENCES, YOUS, optionsOf, startLabel, youHint, type StartOptions } from './goals'
 import { planNow } from './start'
+import { liveSetup, useLiveSetup } from './liveSetup'
 
 export function StartButton({ goal, partner, onStart }: { goal: Goal; partner: boolean; onStart: () => void }) {
   const { scene } = useScene(), conv = useConversation(), label = startLabel(goal, partner)
@@ -32,13 +35,12 @@ export function StartRows({ partner, open, onToggle }: { partner: boolean; open:
 }
 
 export function StartOptionsCard({ goal, partner, onClose }: { goal: Goal; partner: boolean; onClose: () => void }) {
-  const { scene } = useScene(), conv = useConversation(), chat = useChat()
+  const { scene } = useScene(), conv = useConversation(), chat = useChat(), live = useLiveSetup()
   const t = scene.talk, options = optionsOf(t, partner)
   const set = (change: Partial<StartOptions>) => store.setTalk({ ...options, ...change })
-  const cast = participants(scene).filter((c) => !c.remote)
+  const cast = participants(scene).filter((c) => !c.remote), ai = cast.filter((c) => c.lines === 'ai').length
   const plan = planNow(goal, options)
   const reason = (you: StartOptions['you']) => { const p = planNow(goal, { ...options, you }); return 'blocked' in p && /语音识别|我来演/.test(p.blocked) ? p.blocked : '' }
-  const [channel, setChannel] = useState(chat.channel)
   const lines = options.audience === 'me' && options.you === 'none'
   const limitRef = useRef<HTMLInputElement>(null)
   return <div className="card popover start-options" role="dialog" aria-label={tr('开始选项')} onPointerDown={(e) => e.stopPropagation()}>
@@ -53,17 +55,12 @@ export function StartOptionsCard({ goal, partner, onClose }: { goal: Goal; partn
     <section className="option-row">
       <h3>{tr('谁在看')}</h3>
       <div className="seg">{AUDIENCES.map((a) => <button key={a.id} className={options.audience === a.id ? 'on' : ''} disabled={conv.running} title={tr(a.hint)} onClick={() => set({ audience: a.id })}>{tr(a.label)}</button>)}</div>
-      {options.audience === 'live' && <div className="twitch-row">
-        <label className="field"><span>{tr('Twitch 频道')}</span><input value={channel} placeholder={tr('不接弹幕也能开播')} onChange={(e) => setChannel(e.target.value)} /></label>
-        {chat.status === 'on' || chat.status === 'connecting' ? <button onClick={disconnect}>{tr(chat.status === 'on' ? '断开' : '取消')}</button>
-          : <button disabled={!channel.trim()} onClick={() => connectTwitch(channel.trim())}>{tr('连接')}</button>}
-        <small className={`hint${chat.status === 'error' ? ' error' : ''}`}>{chat.status === 'on' ? tr('已连接 {0}', chat.channel) : chat.status === 'error' ? chat.error : chat.status === 'connecting' ? tr('正在连接…') : tr('只读弹幕，不需要登录')}</small>
-      </div>}
+      {options.audience === 'live' && <div className="twitch-row"><p className="hint">{tr('Twitch 频道（可选，只读弹幕，不需要登录）')}</p><AudiencePanel heading={false} /></div>}
     </section>
     <section className="option-row">
       <h3>{tr('你参与吗')}</h3>
-      <div className="seg">{YOUS.map((y) => { const why = reason(y.id); return <button key={y.id} className={options.you === y.id ? 'on' : ''} disabled={conv.running || !!why} title={tr(why || y.hint)} onClick={() => set({ you: y.id })}>{tr(y.label)}</button> })}</div>
-      <p className="hint">{tr(YOUS.find((y) => y.id === options.you)!.hint)}</p>
+      <div className="seg">{YOUS.map((y) => { const why = reason(y.id); return <button key={y.id} className={options.you === y.id ? 'on' : ''} disabled={conv.running || !!why} title={tr(why || youHint(y.id, options.audience, ai))} onClick={() => set({ you: y.id })}>{tr(y.label)}</button> })}</div>
+      <p className="hint">{tr(youHint(options.you, options.audience, ai))}</p>
     </section>
     <section className="option-row limits">
       <h3>{tr('上限')}</h3>
@@ -74,9 +71,17 @@ export function StartOptionsCard({ goal, partner, onClose }: { goal: Goal; partn
     <details className="advanced"><summary>{tr('更多：语言、节奏、谁先说')}</summary>
       <label className="field"><span>{tr('说什么语言')}</span><select value={t.language} onChange={(e) => store.setTalk({ language: e.target.value as typeof t.language })}><option value="auto">{tr('跟话题一样')}</option><option value="zh">{tr('中文')}</option><option value="en">English</option><option value="ja">{tr('日本語')}</option></select></label>
       <div className="field"><span>{tr('聊天方式')}</span><div className="seg">{([['casual', '日常陪聊'], ['discussion', '深入讨论']] as const).map(([id, label]) => <button key={id} className={(t.depth ?? 'casual') === id ? 'on' : ''} onClick={() => store.setTalk({ depth: id })}>{tr(label)}</button>)}</div></div>
-      <div className="field"><span>{tr('谁先说、谁接话')}</span><div className="seg">{ORDERS.map((o) => <button key={o.id} className={t.order === o.id ? 'on' : ''} title={tr(o.hint)} onClick={() => store.setTalk({ order: o.id })}>{tr(o.label)}</button>)}</div></div>
+      <p className="hint">{tr(t.depth === 'discussion' ? '围绕观点和理由继续聊，回复可以更充分。' : '轻松接话，回复简短自然。')}</p>
+      {options.audience === 'live'
+        ? <label className="field"><span>{tr('没有弹幕时')}</span><select aria-label={tr('没有弹幕时')} value={live.warmupSeconds} onChange={(e) => liveSetup.set({ warmupSeconds: +e.target.value as typeof live.warmupSeconds })}><option value={0}>{tr('安静等待')}</option><option value={30}>{tr('每 30 秒聊一句')}</option><option value={60}>{tr('每分钟聊一句')}</option><option value={120}>{tr('每 2 分钟聊一句')}</option></select></label>
+        : options.you !== 'none' && <><label className="field"><span>{tr('主动接话')}</span><select value={t.proactiveSeconds ?? 0} onChange={(e) => store.setTalk({ proactiveSeconds: +e.target.value })}><option value={0}>{tr('等我说话')}</option>{[30, 60, 120].map((s) => <option key={s} value={s}>{tr('安静 {0} 秒后接话', s)}</option>)}</select></label>
+          <p className="hint">{tr('没有回应时最多主动接话一次，然后继续等待。')}</p></>}
+      <div className="field"><span>{tr('谁先说、谁接话')}</span><div className="seg">{ORDERS.map((o) => <button key={o.id} className={t.order === o.id ? 'on' : ''} title={tr(o.hint)} onClick={() => store.setTalk({ order: o.id, host: o.id === 'host' ? t.host ?? cast[0]?.id ?? null : t.host })}>{tr(o.label)}</button>)}</div></div>
+      {t.order === 'host' && <label className="field"><span>{tr('主持人')}</span><select value={t.host ?? ''} onChange={(e) => store.setTalk({ host: e.target.value || null })}>{cast.filter((c) => c.lines !== 'none').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>}
       <div className="field"><span>{tr('AI 抢话')}</span><div className="seg">{([[0, '不抢'], [1, '偶尔'], [2, '经常']] as const).map(([id, label]) => <button key={id} className={t.interrupt === id ? 'on' : ''} onClick={() => store.setTalk({ interrupt: id })}>{tr(label)}</button>)}</div></div>
-      <label className="field"><span>{tr('主动接话')}</span><select value={t.proactiveSeconds ?? 0} onChange={(e) => store.setTalk({ proactiveSeconds: +e.target.value })}><option value={0}>{tr('等我说话')}</option>{[30, 60, 120].map((s) => <option key={s} value={s}>{tr('安静 {0} 秒后接话', s)}</option>)}</select></label>
+      <div className="field"><span>{tr('角色之间聊时，你在控制台说话')}</span><div className="seg">{([['wait', '等这句说完'], ['cut', '立刻打断']] as const).map(([id, label]) => <button key={id} className={(t.cutIn ? 'cut' : 'wait') === id ? 'on' : ''} onClick={() => store.setTalk({ cutIn: id === 'cut' })}>{tr(label)}</button>)}</div></div>
+      <label className="field"><span>{tr('句子之间停多久')}<b className="num"> {tr('{0} 秒', conv.gap.toFixed(1))}</b></span><input type="range" min={0} max={3} step={0.1} value={conv.gap} onChange={(e) => talk.setGap(+e.target.value)} /></label>
+      {chat.status === 'on' && <label className="field"><span>{tr('角色之间聊时回应弹幕')}</span><select value={t.danmaku} onChange={(e) => store.setTalk({ danmaku: +e.target.value as 0 | 1 | 2 })}><option value={0}>{tr('不回')}</option><option value={1}>{tr('偶尔')}</option><option value={2}>{tr('积极')}</option></select></label>}
     </details>
     {'blocked' in plan && <p className="hint error" role="alert">{tr(plan.blocked)}</p>}
   </div>

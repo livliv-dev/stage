@@ -243,6 +243,8 @@ canvas.character.shadow { filter: drop-shadow(0 18px 28px rgb(40 30 20 / .16)); 
 .tag i { width: 8px; height: 8px; border-radius: 50%; background: var(--who); }
 .tag { transition: opacity .15s; }
 .tag.quiet { opacity: 0; }
+/* shown only for the mouse or the selection, it gives way to a subtitle showing a line (both sit at the stage's foot) */
+.stage-box:has(.subtitle.on) .tag.near { opacity: 0; }
 .tag em { font-style: normal; font-weight: 500; font-size: 12px; color: var(--fg-2); background: var(--hover); border-radius: 6px; padding: 0 6px; }
 .tag svg { color: var(--fg-3); }
 .tag.speaking { border-color: var(--who); box-shadow: 0 0 0 2px var(--who); }
