@@ -111,16 +111,21 @@ try {
     console.log('Actor setup:', await page.evaluate(() => ({ actors: window.__stage && [...window.__stage.actors.values()].map((actor) => ({ id: actor.item.id, status: actor.status, error: actor.error })), body: document.body.innerText.slice(-1200) })), errors)
     throw error
   }
-  await page.getByRole('button', { name: '实时语音', exact: true }).click()
+  // 实时通话 is 和角色聊天's other way: its row in the checklist goes to its setting, and once set up opens its card
+  const checklist = page.locator('.popover.checklist'), callRow = checklist.locator('li.check').filter({ hasText: '实时通话' })
+  await page.locator('.status-line .st-tag').filter({ hasText: '准备清单' }).click()
+  await callRow.getByRole('button', { name: '去设置', exact: true }).click()
   const panel = page.locator('.realtime-settings')
-  await panel.getByRole('button', { name: '设置模型与声音', exact: true }).click()
   const modelSettings = page.locator('.settings'), modelForm = modelSettings.locator('.realtime-model-form')
   await modelForm.getByLabel('实时语音服务', { exact: true }).selectOption(provider)
   await modelForm.getByLabel('接口地址', { exact: true }).fill(origin + '/fixture-realtime' + (provider === 'openai' ? '/v1' : ''))
   await modelForm.getByLabel('密钥', { exact: true }).fill('fixture-only')
-  // saved from the realtime panel: back there
+  // saved from the checklist: back there, the row ready; it now opens the call's card
   await modelForm.getByRole('button', { name: '保存', exact: true }).click()
-  await modelSettings.waitFor({ state: 'detached' }); await panel.waitFor()
+  await modelSettings.waitFor({ state: 'detached' }); await checklist.waitFor()
+  await callRow.and(page.locator('.ok')).waitFor()
+  await callRow.getByRole('button', { name: '去设置', exact: true }).click()
+  await panel.waitFor()
   for (const [width, height] of [[1440, 900], [768, 900], [430, 820]]) {
     await page.setViewportSize({ width, height })
     const box = await panel.boundingBox()

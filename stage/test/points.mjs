@@ -49,8 +49,9 @@ try {
   await page.goto(origin + '/', { waitUntil: 'networkidle' })
   // the first visit: the demo's three on the stage, signed in, LivLiv the AI's model
   await page.waitForFunction(() => { const a = [...window.__stage.actors.values()]; return a.length === 3 && a.every((x) => x.status === 'ready') }, null, { timeout: 60000 })
-  await page.locator('.site-welcome .close').click().catch(() => {})
-  await page.locator('.model-btn', { hasText: 'LivLiv' }).waitFor()
+  // the first visit's start page over them, closed: the console's model tag says LivLiv
+  await page.locator('.start-overlay .start-page [data-close]').click()
+  await page.locator('.status-line .st-tag', { hasText: 'LivLiv' }).waitFor()
   const conv = () => page.evaluate(() => { const c = window.__stage.conversation(); return { running: c.running, error: c.error } })
   const ai = () => page.evaluate(() => window.__stage.store.get().items.filter((i) => i.kind === 'character' && i.lines === 'ai').map((i) => i.id))
   const patchAll = (p) => page.evaluate(({ ids, p }) => { for (const id of ids) { const c = window.__stage.store.get().items.find((i) => i.id === id); window.__stage.store.patch(id, typeof p === 'string' ? { voice: { ...c.voice, source: p } } : p) } }, { ids: p.ids, p: p.patch })

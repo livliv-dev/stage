@@ -78,8 +78,14 @@ try {
   })
   await page.waitForFunction(() => [...window.__stage.actors.values()].some((actor) => actor.status === 'ready'))
   const toggle = page.getByRole('button', { name: '免按键语音', exact: true })
-  assert.equal(await toggle.getAttribute('aria-pressed'), 'false')
-  await toggle.click(); await armed(); await waiting()
+  const automatic = () => page.evaluate(async () => (await import('/src/ptt.ts')).pttState().automatic)
+  assert.equal(await automatic(), false)
+  // hands-free from the start: 你参与吗 免按键, then the start button; running, the console's toggle turns it off and on
+  await page.locator('.console .start-rows').click()
+  await page.locator('.popover.start-options .option-row').nth(2).getByRole('button', { name: '免按键', exact: true }).click()
+  await page.locator('.popover.start-options button[data-close]').click()
+  await page.locator('.console .start-button').click(); await armed(); await waiting()
+  assert.equal(await toggle.getAttribute('aria-pressed'), 'true')
   const initialCalls = calls.length
   await level(.003); await delay(300); await speak(80); await delay(400); await armed()
   assert.equal(recordings.length, 0); assert.equal(calls.length, initialCalls)
@@ -161,7 +167,7 @@ try {
 
   await toggle.click(); await armed()
   await page.setViewportSize({ width: 1100, height: 700 })
-  assert.ok(await page.locator('.say input').evaluate((element) => element.getBoundingClientRect().width >= 120))
+  assert.ok(await page.locator('.say-bar input').evaluate((element) => element.getBoundingClientRect().width >= 120))
   assert.equal(await page.locator('.say-bar').evaluate((element) => element.scrollWidth > element.clientWidth), false)
   await page.screenshot({ path: join(artifacts, 'handsfree-1100.png') })
   await page.keyboard.press('Escape'); assert.equal(await toggle.getAttribute('aria-pressed'), 'false')
@@ -183,7 +189,7 @@ try {
   await page.getByText(/Fixture permission refused/).waitFor(); assert.equal(await toggle.getAttribute('aria-pressed'), 'false')
   await page.evaluate(() => { window.refuseMic = false }); await toggle.click(); await armed()
   await page.evaluate(() => window.__stage.talk.stop())
-  assert.equal(await toggle.getAttribute('aria-pressed'), 'false')
+  assert.equal(await automatic(), false); assert.equal(await toggle.count(), 0, 'no session: no hands-free toggle')
   assert.equal(await page.evaluate(() => window.microphone.stream.getAudioTracks()[0].readyState), 'ended')
 
   voiceSeconds = 5; transcript = '嗯'
@@ -219,7 +225,8 @@ try {
   assert.equal(await page.evaluate(() => window.microphone.stream.getAudioTracks()[0].readyState), 'ended')
   await page.evaluate(() => window.__stage.talk.stop())
   checks.push('a stalled recognizer has a bounded queue, stops visibly and releases the microphone')
-  await page.reload(); assert.equal(await toggle.getAttribute('aria-pressed'), 'false')
+  await page.reload(); await page.waitForFunction(() => !!window.__stage)
+  assert.equal(await automatic(), false); assert.equal(await toggle.count(), 0, 'reloaded: nothing runs, nothing listens')
   checks.push('late permission resolution, permission refusal, stop and reload never leave listening enabled')
 
   assert.deepEqual(errors, [])

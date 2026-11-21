@@ -44,8 +44,10 @@ try {
     store.replace(scene)
   })
   await page.waitForFunction(() => window.pendingHistoryReads.length > 0)
-  await page.locator('.model-btn').click()
-  await page.locator('.demo-launch button').click()
+  // the demo, from the start page (reopened from the stage name's menu)
+  await page.locator('.topbar .scene-switcher button[aria-expanded]').click()
+  await page.locator('.shot-start').click()
+  await page.locator('.start-overlay .welcome-demo').click()
   await page.waitForFunction(async () => (await import('/src/brain.ts')).loadBrainConfig().kind === 'demo' && window.__stage.conversation().running)
   await page.evaluate(async () => {
     window.pendingHistoryReads.forEach(resolve => resolve())
