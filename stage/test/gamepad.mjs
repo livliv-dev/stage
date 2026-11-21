@@ -26,7 +26,8 @@ try {
   await page.goto(origin, { waitUntil: 'networkidle' })
   await page.evaluate(async () => { const { store, emptyScene, newCharacter } = await import('/src/scene.ts'), scene = { ...emptyScene(), width: 640, height: 360 }, c = { ...newCharacter(scene, 'Stella', { type: 'url', url: '/characters/k01/' }), id: 'pad-avatar', driver: 'auto', lines: 'none', shadow: false }; c.tuning.idle = false; store.replace({ ...scene, items: [c] }); store.select(c.id) })
   await page.waitForFunction(() => window.__stage.actors.get('pad-avatar')?.status === 'ready')
-  await page.locator('details.advanced > summary').filter({ hasText: '动作与更多设置' }).click()
+  // what drives the motion: on the card's 谁来演 page
+  await page.getByRole('tab', { name: '谁来演', exact: true }).click()
   await page.getByRole('button', { name: '手柄', exact: true }).click()
   await page.getByText('连接手柄后，按一下任意按钮', { exact: true }).waitFor()
   if (process.env.STAGE_GAMEPAD_LAYOUT_ONLY) await page.locator('.pad-mappings > summary').click()

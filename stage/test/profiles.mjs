@@ -20,10 +20,13 @@ try {
   page = await context.newPage(); page.setDefaultTimeout(testTimeout(15000)); page.on('pageerror', (error) => errors.push(error.message))
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'networkidle', timeout: 45000 })
   if (!process.env.STAGE_PROFILES_RECORD_ONLY) {
-  await page.getByRole('button', { name: /^面捕出镜/ }).click()
+  // 我来演 from the start page (its template, its checklist, closed here)
+  await page.locator('.start-page .goal-tile', { hasText: '我来演' }).locator('.goal-main').click()
+  await page.locator('.popover.checklist [data-close]').click()
   await ready(); await page.waitForFunction(() => [...window.__stage.actors.values()][0].inputPhase === 'on', null, { timeout: 30000 })
   await page.evaluate(() => { window.avatarId = [...window.__stage.actors.keys()][0]; window.initialCameraStarts = window.cameraStarts; window.cameraVideo = document.querySelector('video.camera-preview'); window.avatarCanvas = document.querySelector('canvas.character') })
-  const advanced = page.locator('.panel details.advanced').last(); await advanced.locator(':scope > summary').click()
+  // the tracking adjustments: on the card's 谁来演 page
+  await page.getByRole('tab', { name: '谁来演', exact: true }).click()
   const panel = page.locator('.tracking-adjustments'); await panel.locator(':scope > summary').click(); assert.equal(await panel.getByLabel('输入范围 · 起点').isVisible(), false); await panel.locator('.tracking-mapping > summary').click()
   await panel.getByLabel('输入范围 · 起点').fill('-15'); await panel.getByLabel('输入范围 · 起点').press('Tab')
   await panel.getByLabel('输入范围 · 终点').fill('15'); await panel.getByLabel('输入范围 · 终点').press('Tab')
@@ -54,7 +57,9 @@ try {
   }
   await page.locator('.topbar button:has(svg.lucide-settings)').click(); await page.locator('.language-select').selectOption('zh-Hans'); await page.getByLabel('画面质量').selectOption('eco'); await page.locator('.settings-head button[data-close]').click()
   assert.equal(await page.evaluate(() => [...window.__stage.actors.values()].every((a) => a.player.maxPixelRatio === 1)), true)
-  const appearance = page.locator('.panel details.advanced').first(); await appearance.locator('summary').click()
+  // the look and the expressions: the card's 身体 page
+  await page.getByRole('tab', { name: '身体', exact: true }).click()
+  const appearance = page.locator('.panel > section').filter({ has: page.getByRole('heading', { name: '外观', exact: true }) })
   await range(appearance.getByLabel('内部缩放'), 1.3); await range(appearance.getByLabel('水平取景'), .2); await range(appearance.getByLabel('垂直取景'), .1)
   await page.waitForFunction(() => window.__stage.actors.get(window.avatarId).player.getPose().view.zoom === 1.3)
   const expression = await page.evaluate(() => window.__stage.actors.get(window.avatarId).player.expressions.find((e) => e.id !== 'smile'))

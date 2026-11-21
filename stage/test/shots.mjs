@@ -22,7 +22,9 @@ try {
   await context.route('**/api/**', (route) => route.fulfill({ status: route.request().url().endsWith('/me') ? 200 : 404, json: { signed_in: false } }))
   page = await context.newPage(); page.setDefaultTimeout(testTimeout(20000)); page.on('pageerror', (e) => errors.push(e.message))
   await page.goto('http://127.0.0.1:' + port, { waitUntil: 'networkidle' })
-  await page.getByRole('button', { name: /^面捕出镜/ }).click()
+  // 我来演 from the start page (its template, its checklist, closed here)
+  await page.locator('.start-page .goal-tile', { hasText: '我来演' }).locator('.goal-main').click()
+  await page.locator('.popover.checklist [data-close]').click()
   await page.waitForFunction(() => [...window.__stage.actors.values()][0]?.inputPhase === 'on')
   await page.getByLabel('舞台名字').fill('Opening')
   await page.evaluate(() => {
@@ -89,7 +91,8 @@ try {
     s.switchScene(window.demoScene)
   })
   await page.waitForFunction(() => [...window.__stage.actors.values()].length === 2 && [...window.__stage.actors.values()].every((a) => a.status === 'ready'))
-  await page.locator('.start-modes > summary').click(); await page.getByRole('button', { name: '对谈', exact: true }).click()
+  // the demo's characters talking among themselves: the console's demo start
+  await page.locator('.console').getByRole('button', { name: '再看一次', exact: true }).click()
   await page.waitForFunction(() => window.__stage.conversation().speaking !== null)
   const active = await page.evaluate(() => { const c = window.__stage.conversation(); window.speakingId = c.speaking.id; window.__stage.store.switchScene(window.emptyShot); return { running: c.running, id: c.speaking.id } })
   assert.equal(active.running, true)
