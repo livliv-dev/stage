@@ -5,6 +5,7 @@ import { checkMemory, memoryIdsOf, memoryUnchanged } from '../src/sessions/memor
 import { freePick, nextSpeaker, quiet, type Speaker, type Turns } from '../src/sessions/order'
 import { outputsOn, publicSwitch, scopeFor } from '../src/sessions/scope'
 import { sleep, untilFree, waitWhile, Wake } from '../src/sessions/wake'
+import { chance, setChance } from '../src/sessions/chance'
 
 // ---------------------------------------------------------------- who speaks next (对谈)
 
@@ -168,4 +169,15 @@ test('an output coming on: what happens to a private conversation', () => {
   assert.equal(publicSwitch({ ...now, switching: true }), 'none', 'a switch under way')
   assert.equal(publicSwitch({ ...now, demo: true }), 'none', 'the demo keeps no memory')
   assert.equal(publicSwitch({ ...now, session: false }), 'none', 'running, but nothing to switch')
+})
+
+// ---------------------------------------------------------------- chance
+
+test('the session\'s chance draws come from one source a test can pin', () => {
+  setChance(() => 0)
+  try {
+    assert.equal(chance(), 0)
+    assert.equal(nextSpeaker({ order: 'free', host: null }, [nana, kai, sena], turns(), chance)?.id, 'nana', 'pinned to 0: the first one')
+  } finally { setChance() }
+  for (let i = 0; i < 20; i++) { const draw = chance(); assert.ok(draw >= 0 && draw < 1) }
 })

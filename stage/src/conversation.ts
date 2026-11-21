@@ -35,6 +35,7 @@ import { onRecording, recording } from './recording'
 import { onRoom, roomState } from './collab/session'
 import { chatLimits, counted, deadline, GenerationLimit, LIVE_FAILURES, lineLimit, liveLimits, RETRY_SECONDS, spend, spent, turnLimit as linesFor, type LiveOptions } from './sessions/budget'
 import { checkMemory, memoryIdsOf, memoryUnchanged } from './sessions/memoryGate'
+import { chance } from './sessions/chance'
 import { across, freePick as pickFree, nextSpeaker as speakerAfter } from './sessions/order'
 import { outputsOn, publicSwitch, scopeFor } from './sessions/scope'
 import { sleep, untilFree, waitWhile, Wake } from './sessions/wake'
@@ -188,7 +189,7 @@ const speechHeld = () => state.paused || dialogue.size > 0 || inputPending
 /** what holds a session's next turn back: those, and a game action being decided */
 const turnHeld = () => speechHeld() || externalDecisions > 0
 /** a viewer's message, now and then (as often as the stage's talk settings say) */
-const someViewer = () => (Math.random() < [0, 0.35, 0.8][store.get().talk.danmaku] ? viewers.take(Date.now(), isBlocked) : null)
+const someViewer = () => (chance() < [0, 0.35, 0.8][store.get().talk.danmaku] ? viewers.take(Date.now(), isBlocked) : null)
 
 let liveOptions: LiveOptions | null = null
 let airi: { model: ModelConfig; actorId: string; windowId: string; game?: AiriGameConnection } | null = null
@@ -279,11 +280,11 @@ const voices = () => participants(store.get()).filter((c) => (c.lines === 'ai' &
 export const played = () => participants(store.get()).filter((c) => c.lines === 'me')
 
 /** one of `pool`, the chattier and the longer quiet the likelier (sessions/order.ts) */
-const freePick = (pool: CharacterItem[]) => pickFree(pool, state.lines)
+const freePick = (pool: CharacterItem[]) => pickFree(pool, state.lines, chance)
 
 /** who speaks next by the stage's talk order (sessions/order.ts); a character picked by hand goes once */
 function nextSpeaker(): CharacterItem | null {
-  const who = speakerAfter(store.get().talk, voices(), { lines: state.lines, lastTurn, skipped, forced })
+  const who = speakerAfter(store.get().talk, voices(), { lines: state.lines, lastTurn, skipped, forced }, chance)
   forced = null
   return who
 }
@@ -311,7 +312,7 @@ function looks(speaker: CharacterItem | null, line: Line | null, seconds = 0) {
   for (const c of all) {
     const a = actors.get(c.id)
     if (!a || !free(c)) continue
-    if (!speaker) { a.setPhase(state.waitingInput ? 'waiting' : 'idle'); a.rest(Math.random() * 0.4); continue }
+    if (!speaker) { a.setPhase(state.waitingInput ? 'waiting' : 'idle'); a.rest(chance() * 0.4); continue }
     a.setPhase(c.id === speaker.id ? 'idle' : 'listening')
     if (c.gaze !== 'people') {
       a.listening = c.id !== speaker.id
@@ -322,28 +323,28 @@ function looks(speaker: CharacterItem | null, line: Line | null, seconds = 0) {
       a.listening = false
       if (at === 'away') {
         // down and to the side, then back to whom it talks to (or the audience)
-        const f = faceOf(c), side = Math.random() < 0.5 ? -1 : 1
+        const f = faceOf(c), side = chance() < 0.5 ? -1 : 1
         a.look({ x: f.x + side * c.w * 0.6, y: f.y + c.h * 0.35 })
         later(Math.min(1.6, seconds * 0.5), () => a.look(answered ? faceOf(answered) : null))
       } else {
         a.look(toWhom ? faceOf(toWhom) : null)
         // a longer line to someone turns to the audience for a moment
-        if (toWhom && seconds > 2.6 && Math.random() < 0.4) {
-          later(seconds * (0.5 + Math.random() * 0.15), () => a.look(null))
+        if (toWhom && seconds > 2.6 && chance() < 0.4) {
+          later(seconds * (0.5 + chance() * 0.15), () => a.look(null))
           later(seconds * 0.5 + 1.1, () => a.look(faceOf(toWhom)))
         }
       }
       continue
     }
     a.listening = true
-    if (c.id === toWhom?.id) { a.look(faceOf(speaker), 0.08 + Math.random() * 0.12); continue }  // looks back
-    a.look(faceOf(speaker), 0.1 + Math.random() * 0.3)
+    if (c.id === toWhom?.id) { a.look(faceOf(speaker), 0.08 + chance() * 0.12); continue }  // looks back
+    a.look(faceOf(speaker), 0.1 + chance() * 0.3)
     // a glance at the one it talks to, or at someone it mentions
     const other = toWhom ?? (mentioned && mentioned.id !== c.id ? mentioned : undefined)
-    if (other && other.id !== c.id && seconds > 1.6 && Math.random() < 0.45) {
-      const t0 = seconds * (0.3 + Math.random() * 0.3)
+    if (other && other.id !== c.id && seconds > 1.6 && chance() < 0.45) {
+      const t0 = seconds * (0.3 + chance() * 0.3)
       later(t0, () => a.look(faceOf(other)))
-      later(t0 + 0.9 + Math.random() * 0.6, () => a.look(faceOf(speaker)))
+      later(t0 + 0.9 + chance() * 0.6, () => a.look(faceOf(speaker)))
     }
   }
 }
@@ -389,8 +390,8 @@ async function deliver(line: Line, c: CharacterItem | null, signal: AbortSignal,
   if (c && !line.human) makeAhead()
   const t = store.get().talk
   const others = voices().filter((x) => x.lines === 'ai' && x.id !== c?.id)
-  if (c && !line.human && line.demo === undefined && t.interrupt && others.length && line.text.length >= 14 && Math.random() < [0, 0.2, 0.45][t.interrupt]) {
-    cutTimer = window.setTimeout(() => cut(line.id), seconds * (0.5 + Math.random() * 0.25) * 1000)
+  if (c && !line.human && line.demo === undefined && t.interrupt && others.length && line.text.length >= 14 && chance() < [0, 0.2, 0.45][t.interrupt]) {
+    cutTimer = window.setTimeout(() => cut(line.id), seconds * (0.5 + chance() * 0.25) * 1000)
   }
   try {
     const interrupted = () => cut(line.id, true)
@@ -755,7 +756,7 @@ async function run(once: boolean) {
       c.signal.throwIfAborted()  // stopped during the line: it ends quietly, and the next one mustn't start
       await new Promise<void>((r, j) => {  // the pause between lines: 下一句 ends it now
         const scripted = loadBrainConfig().kind === 'demo' ? demoPause(voices(), state.lines) : null
-        const t = setTimeout(r, scripted !== null ? scripted * 1000 : state.gap * 1000 * (cutting ? 0.1 : 0.7 + Math.random() * 0.6))
+        const t = setTimeout(r, scripted !== null ? scripted * 1000 : state.gap * 1000 * (cutting ? 0.1 : 0.7 + chance() * 0.6))
         hurry = () => { clearTimeout(t); r() }
         c.signal.addEventListener('abort', () => { clearTimeout(t); j(c.signal.reason) }, { once: true })
       })

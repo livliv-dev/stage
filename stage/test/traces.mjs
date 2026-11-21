@@ -40,12 +40,15 @@ function sse(content) {
   return chunk({ role: 'assistant', content }) + chunk({}, 'stop') + 'data: [DONE]\n\n'
 }
 
-/** answers this scenario's requests; `world` holds what the scenario set (voice length, a transcript, LivLiv names) */
+/** answers this scenario's requests; `world` holds what the scenario set (voice length, a transcript, LivLiv names, how
+ *  long the model takes and how many of its answers fail) */
 async function serve(route, world) {
   const request = route.request(), url = new URL(request.url())
   const json = (body) => route.fulfill({ json: body }).catch(() => {})
   if (url.pathname === '/fixture-ai/chat/completions') {
     const body = request.postDataJSON()
+    if (world.modelDelay) await new Promise((resolve) => setTimeout(resolve, world.modelDelay))
+    if (world.modelFailures > 0) { world.modelFailures--; return route.fulfill({ status: 503, json: { error: { message: 'Fixture model unavailable' } } }).catch(() => {}) }
     if (body.stream) {
       // AIRI: the speaker from its identity line, the count from its own lines in the history it sends
       const text = JSON.stringify(body.messages), speaker = /You are \\"([^\\]+)\\"/.exec(text)?.[1] ?? '?'
@@ -74,9 +77,9 @@ async function serve(route, world) {
 
 // ---------------------------------------------------------------- the recorder, in the page
 
-/** before the app: the desktop app's bridge (desktop scenarios), a microphone whose level a scenario sets, and every
- *  request the page makes to a paid service written down as it is made */
-function beforeApp({ desktop, signedIn }) {
+/** before the app: the desktop app's bridge (desktop scenarios), a microphone whose level a scenario sets, a faster
+ *  clock for time limits, and every request the page makes to a paid service written down as it is made */
+function beforeApp({ desktop, signedIn, fastClock }) {
   localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1')
   if (signedIn) localStorage.setItem('livliv-stage:session', 'trace-session')
   if (desktop) {
@@ -93,10 +96,12 @@ function beforeApp({ desktop, signedIn }) {
     return destination.stream
   }
   navigator.mediaDevices.enumerateDevices = async () => []
-  // the session's own chance draws (who speaks in free order, whether a line answers a viewer, the pause between
-  // lines, a glance) are pinned to 0, the first choice, so a run is the same every time; any other code draws as usual
-  const random = Math.random
-  Math.random = () => /\/src\/(?:conversation\.ts|sessions\/)/.test(new Error().stack?.split('\n')[2] ?? '') ? 0 : random()
+  // a session's time limit is a minute at least: in a scenario that ends at one, a timer of half a minute or more (a
+  // limit's, set a moment after the session started) runs 60 times sooner, so a minute's limit ends after a second
+  if (fastClock) {
+    const later = window.setTimeout
+    window.setTimeout = function (handler, ms, ...rest) { return later.call(window, handler, typeof ms === 'number' && ms >= 30_000 ? ms / 60 : ms, ...rest) }
+  }
   const trace = window.__trace = { on: false, events: [], memories: [], names: {} }
   const push = (event) => { if (trace.on) trace.events.push(event) }
   /** a memory a request carried, by its id: its scope and text */
@@ -154,6 +159,8 @@ async function record() {
         shown.set(line.id, line)
       }
     }
+    if (c.running && last.running && c.paused !== last.paused) push({ t: c.paused ? 'pause' : 'resume' })
+    if (c.retryAt && !last.retryAt) push({ t: 'retry', seconds: Math.round((c.retryAt - Date.now()) / 1000) })
     if (c.error && c.error !== last.error) push({ t: 'error', text: c.error })
     if (c.storageError && c.storageError !== last.storageError) push({ t: 'error', text: c.storageError })
     if (c.needModel && !last.needModel) push({ t: 'need-model', intent: c.modelIntent })
@@ -172,6 +179,13 @@ async function record() {
     const entry = await remember.call(this, input)
     trace.memories.push({ id: entry.id, text: entry.text, label: `${entry.scope}: ${entry.text}` })
     push({ t: 'remember', scope: entry.scope, for: trace.names[entry.profileId] ?? '?', text: entry.text })
+    return entry
+  }
+  const edit = memory.editMemory
+  memory.editMemory = async function (id, patch) {
+    const known = trace.memories.find((m) => m.id === id), entry = await edit.call(this, id, patch)
+    push({ t: 'memory-edit', from: known?.label ?? '?', to: `${entry.scope}: ${entry.text}` })
+    if (known) Object.assign(known, { text: entry.text, label: `${entry.scope}: ${entry.text}` })
     return entry
   }
 }
@@ -456,6 +470,131 @@ const SCENARIOS = [
       await idle(page)
     },
   },
+  {
+    name: 'duet-free', about: '对谈 in free order with three AI characters (the line limit 4): the one picked, never the same twice running',
+    async run(page) {
+      await stage(page, { cast: ['Nana', 'Kai', 'Mio'], talk: { order: 'free' }, topic: '周末去哪里' })
+      await ready(page)
+      await page.evaluate(() => window.__stage.talk.setLimit(4))
+      await begin(page)
+      await page.evaluate(() => window.__stage.talk.start())
+      await page.waitForFunction(() => window.__stage.conversation().running)
+      await idle(page)
+    },
+  },
+  {
+    name: 'duet-host', about: '对谈 in host order (Kai hosts, the line limit 4): the host after every guest, the guest quiet longest next',
+    async run(page) {
+      const ids = await stage(page, { cast: ['Nana', 'Kai', 'Mio'], topic: '周末去哪里' })
+      await page.evaluate((host) => window.__stage.store.setTalk({ order: 'host', host }), ids.Kai)
+      await ready(page)
+      await page.evaluate(() => window.__stage.talk.setLimit(4))
+      await begin(page)
+      await page.evaluate(() => window.__stage.talk.start())
+      await page.waitForFunction(() => window.__stage.conversation().running)
+      await idle(page)
+    },
+  },
+  {
+    name: 'pause', about: '对谈 paused while its first line is said: that line finishes, nothing more is said until it resumes',
+    voiceSeconds: 1,
+    async run(page) {
+      await stage(page, { cast: ['Nana', 'Kai'], talk: { order: 'round' } })
+      await ready(page)
+      await page.evaluate(() => window.__stage.talk.setLimit(3))
+      await begin(page)
+      await page.evaluate(() => window.__stage.talk.start())
+      await page.waitForFunction(() => !!window.__stage.conversation().speaking)
+      await page.evaluate(() => window.__stage.talk.pause())
+      await page.waitForTimeout(2500)
+      await page.evaluate(() => window.__stage.talk.resume())
+      await idle(page)
+    },
+  },
+  {
+    name: 'memory-changed', about: '持续聊天: a memory is edited while the first line is being made: the line is not said (记忆已更新) and the session stops',
+    async run(page, world) {
+      await stage(page, { cast: ['Nana'], memories: MEMORIES })
+      await ready(page)
+      await begin(page)
+      world.modelDelay = 1500
+      await page.evaluate(() => window.__stage.talk.startChat('private'))
+      await page.waitForFunction(() => !!window.__stage.conversation().thinking)
+      await page.evaluate(async () => {
+        const { memory } = await import('/src/memory.ts'), mine = window.__trace.memories.find((m) => m.label.startsWith('private:'))
+        await memory.editMemory(mine.id, { text: '私下的暗号是芒果' })
+      })
+      await idle(page)
+    },
+  },
+  {
+    name: 'chat-time-limit', about: '持续聊天 with a one-minute limit: the time runs out while the model is still answering; nothing is said',
+    fastClock: true,
+    async run(page, world) {
+      await stage(page, { cast: ['Nana'], talk: { chatMinutes: 1 } })
+      await ready(page)
+      await begin(page)
+      world.modelDelay = 3000
+      await page.evaluate(() => window.__stage.talk.startChat())
+      await idle(page)
+    },
+  },
+  {
+    name: 'live-time-limit', about: 'AI 直播 with a one-minute limit and no viewer: it waits, then ends at its limit',
+    fastClock: true,
+    async run(page) {
+      await stage(page, { cast: ['Nana'] })
+      await ready(page)
+      await begin(page)
+      await page.evaluate(() => window.__stage.talk.startLive({ minutes: 1, maxGenerations: 5, warmupSeconds: 0, textOnly: false }))
+      await idle(page)
+    },
+  },
+  {
+    name: 'live-retry', about: 'AI 直播: the model fails once; the error shows, the viewer is answered on the retry 5 s later, and the generation limit (2) counts the failed call',
+    async run(page, world) {
+      await stage(page, { cast: ['Nana'] })
+      await ready(page)
+      await begin(page)
+      world.modelFailures = 1
+      await page.evaluate(() => window.__stage.talk.startLive({ minutes: 5, maxGenerations: 2, warmupSeconds: 0, textOnly: false }))
+      await page.waitForFunction(() => window.__stage.conversation().running && window.__stage.conversation().waitingAudience)
+      await page.evaluate(async () => (await import('/src/danmaku.ts')).simulate('Aki', '今天聊什么'))
+      await idle(page)
+    },
+    timeout: 60000,
+  },
+  {
+    name: 'live-failures', about: 'AI 直播: the model keeps failing; tried again after 5 s and 15 s, then the session stops (连续出错 3 次)',
+    async run(page, world) {
+      await stage(page, { cast: ['Nana'] })
+      await ready(page)
+      await begin(page)
+      world.modelFailures = 99
+      await page.evaluate(() => window.__stage.talk.startLive({ minutes: 5, maxGenerations: 10, warmupSeconds: 0, textOnly: false }))
+      await page.waitForFunction(() => window.__stage.conversation().running && window.__stage.conversation().waitingAudience)
+      await page.evaluate(async () => (await import('/src/danmaku.ts')).simulate('Aki', '今天聊什么'))
+      await idle(page)
+    },
+    timeout: 90000,
+  },
+  {
+    name: 'airi-private-to-public', about: 'Desktop, AIRI 持续聊天 in private; a recording starts while AIRI speaks: the line is cut, the next AIRI turn is public with public memories only',
+    desktop: true, voiceSeconds: 4,
+    async run(page, world) {
+      await stage(page, { cast: ['Nana'], memories: MEMORIES })
+      await ready(page)
+      await begin(page)
+      await page.evaluate(() => window.__stage.talk.startChat('private'))
+      await page.waitForFunction(() => !!window.__stage.conversation().speaking)
+      world.voiceSeconds = 0.15
+      await page.evaluate(() => window.__stage.rec.start({ mic: false, talk: false }))
+      await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.scope === 'public' && !!c.sessionId && c.waitingInput && !c.speaking && !c.thinking })
+      await say(page, '现在在录像')
+      await page.evaluate(() => window.__stage.talk.stop())
+      await idle(page)
+    },
+  },
 ]
 
 /** the characters are loaded and the record the app opened for them is open (the demo opens none) */
@@ -467,6 +606,10 @@ async function ready(page) {
 }
 /** from here on, everything is written down */
 async function begin(page) {
+  // the session's own chance draws (who speaks in free order, whether a line answers a viewer, whether an AI cuts in,
+  // the pause between lines, a glance) all come from sessions/chance.ts: pinned to 0, the first choice, so a run is the
+  // same every time
+  await page.evaluate(async () => (await import('/src/sessions/chance.ts')).setChance(() => 0))
   await page.evaluate(() => { window.__trace.on = true })
   await page.evaluate(record)
 }
@@ -475,7 +618,7 @@ async function begin(page) {
 
 /** what must match: the story in its order (lines, scopes, records, saves, memories written, starts and ends), and
  *  each kind of paid call in its own order (a model request may be made while the line before is still said) */
-const STORY = new Set(['record', 'start', 'scope', 'line', 'cut', 'drop', 'save', 'remember', 'error', 'need-model', 'end', 'recorder-error'])
+const STORY = new Set(['record', 'start', 'scope', 'line', 'cut', 'drop', 'save', 'remember', 'memory-edit', 'pause', 'resume', 'retry', 'error', 'need-model', 'end', 'recorder-error'])
 const strands = (events) => ({ story: events.filter((e) => STORY.has(e.t)), model: events.filter((e) => e.t === 'model'), voice: events.filter((e) => e.t === 'voice') })
 const toLines = (scenario, events) => [JSON.stringify({ scenario: scenario.name, about: scenario.about }), ...events.map((e) => JSON.stringify(e))].join('\n') + '\n'
 const fromLines = (text) => text.trim().split('\n').slice(1).map((line) => JSON.parse(line))
@@ -490,7 +633,7 @@ try {
     const world = { voiceSeconds: scenario.voiceSeconds ?? 0.15, signedIn: !!scenario.signedIn, livliv: { nana: 'Nana', kai: 'Kai' } }
     if (!port) { port = await freePort(); servers.push(await startVite({ port, args: ['--configLoader', 'native'] })) }
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 } })
-    await context.addInitScript(beforeApp, { desktop: !!scenario.desktop, signedIn: !!scenario.signedIn })
+    await context.addInitScript(beforeApp, { desktop: !!scenario.desktop, signedIn: !!scenario.signedIn, fastClock: !!scenario.fastClock })
     await context.route('**/*', (route) => serve(route, world))
     const page = await context.newPage(), errors = []
     page.setDefaultTimeout(testTimeout(scenario.timeout ?? 30000)); page.on('pageerror', (error) => errors.push(error.message))

@@ -1,0 +1,22 @@
+{"scenario":"airi-private-to-public","about":"Desktop, AIRI 持续聊天 in private; a recording starts while AIRI speaks: the line is cut, the next AIRI turn is public with public memories only"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"start","mode":"chat","scope":"private","engine":"airi"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"model","engine":"airi","speaker":"Nana","scope":"private","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫"],"input":"Start a short conversation with the user."}
+{"t":"voice","via":"api","text":"Nana的第1句。"}
+{"t":"voice","via":"api","text":"我接着说下去。"}
+{"t":"line","from":"ai","name":"Nana","text":"Nana的第1句。","scope":"private"}
+{"t":"save","scope":"private","lines":1}
+{"t":"cut","name":"Nana","text":"Nana的第1句。"}
+{"t":"scope","scope":"public"}
+{"t":"record","scope":"public","earlier":0}
+{"t":"line","from":"you","name":"旁白","text":"现在在录像","scope":"public"}
+{"t":"save","scope":"public","lines":1}
+{"t":"model","engine":"airi","speaker":"Nana","scope":"public","memories":["public: 公开的爱好是猫"],"input":"现在在录像"}
+{"t":"voice","via":"api","text":"Nana的第1句。"}
+{"t":"voice","via":"api","text":"我接着说下去。"}
+{"t":"line","from":"ai","name":"Nana","text":"Nana的第1句。","scope":"public"}
+{"t":"save","scope":"public","lines":2}
+{"t":"line","from":"ai","name":"Nana","text":"我接着说下去。","scope":"public"}
+{"t":"save","scope":"public","lines":3}
+{"t":"end","mode":"chat","scope":"public","turns":2,"generations":2}

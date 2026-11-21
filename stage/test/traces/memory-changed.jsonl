@@ -1,0 +1,8 @@
+{"scenario":"memory-changed","about":"持续聊天: a memory is edited while the first line is being made: the line is not said (记忆已更新) and the session stops"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"start","mode":"chat","scope":"private"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"model","engine":"openai","speaker":"Nana","scope":"private","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫"]}
+{"t":"memory-edit","from":"private: 私下的暗号是木瓜","to":"private: 私下的暗号是芒果"}
+{"t":"error","text":"记忆已更新，请重新发送这一句"}
+{"t":"end","mode":"chat","scope":"private","turns":0,"generations":1,"error":"记忆已更新，请重新发送这一句"}
