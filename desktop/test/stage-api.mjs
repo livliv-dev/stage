@@ -35,7 +35,7 @@ try {
   await page.evaluate(() => { navigator.clipboard.writeText = async (value) => { window.copiedStageExample = value } })
   await page.getByRole('button', { name: '复制动作示例', exact: true }).click(); assert.ok((await page.evaluate(() => window.copiedStageExample)).includes('Authorization: Bearer ' + credentials.token))
   await page.locator('.settings-head button[data-close]').click()
-  await page.getByRole('button', { name: '模板', exact: true }).click(); await page.getByRole('button', { name: /^双人聊天/ }).click()
+  await page.getByRole('button', { name: '模板', exact: true }).click(); await page.locator('.topbar .dropdown').getByRole('button', { name: /^双人聊天/ }).click()
   let value = await wait(state, (s) => s.characters.length === 2 && s.characters.every((c) => c.status === 'ready'), 'avatars not ready')
   const initialScene = value.scene.id
   await page.evaluate(() => { window.initialNativeCanvas = document.querySelector('canvas.character') })

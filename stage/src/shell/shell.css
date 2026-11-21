@@ -143,7 +143,8 @@
 /* 请朋友上台, at the foot of the cast; the friend's panel opens beside the left column */
 .cast-friend { position: absolute; left: 8px; right: 8px; bottom: 8px; justify-content: flex-start; border-radius: 10px; font-size: 13px; color: var(--fg-2); }
 .cast-friend.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
-.app.next .popover.collab-panel { left: 220px; right: auto; top: 152px; }
+/* beside the left column on a wide window; a narrow one keeps the card's own place, inside the window */
+@media (min-width: 761px) { .app.next .popover.collab-panel { left: 220px; right: auto; top: 152px; } }
 .app.next .cast .cast-scroll { padding-bottom: 46px; }
 
 /* ---------------------------------------------------------------- the editor on a phone or a narrow window */

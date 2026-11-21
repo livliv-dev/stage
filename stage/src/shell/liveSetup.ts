@@ -22,6 +22,9 @@ export const liveSetup = {
   get: () => state,
   set(change: Partial<LiveSetup>) { state = { ...state, ...change }; listeners.forEach((listener) => listener()) },
 }
+/** a live session's game and window are chosen for it: once it ends, the next one starts without them (the window may
+ *  be gone, and the list is asked again) */
+export function endLive() { if (state.game !== 'window' || state.windowId) liveSetup.set({ game: 'window', windowId: '' }) }
 export function useLiveSetup() {
   return useSyncExternalStore((listener) => { listeners.add(listener); return () => { listeners.delete(listener) } }, liveSetup.get)
 }

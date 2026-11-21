@@ -23,7 +23,8 @@ export async function startGoal(goal: Goal, options: StartOptions) {
   const plan = planNow(goal, options)
   if ('blocked' in plan) throw new Error(tr(plan.blocked))
   const t = store.get().talk, ai = participants(store.get()).filter((c) => c.lines === 'ai' && !c.remote)
-  const textOnly = ai.some((c) => !c.muted && voiceRoute(c) === 'none')
+  // subtitles only when a character has no voice (muted or not): the 直播间 session asks it of every character
+  const textOnly = ai.some((c) => voiceRoute(c) === 'none')
   // 直播间: AIRI when the rule picks it (brains/select.ts), which a game or a game window asks for
   let airi: { windowId: string; game?: ReturnType<typeof liveGame>['game'] } | undefined
   if (plan.session === 'live') {

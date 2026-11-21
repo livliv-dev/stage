@@ -56,6 +56,7 @@ import { Connections, SETTINGS_INDEX, type ConnectSection } from './shell/Connec
 import { useChecks } from './shell/useChecks'
 import { GOAL_TEMPLATE, GOALS, goalOf, goalOptions, optionsOf, startLabel } from './shell/goals'
 import { startGoal, startGoesOut } from './shell/start'
+import { endLive } from './shell/liveSetup'
 import { showCardPage } from './shell/cardPage'
 import type { Goal } from './scene'
 import { connectCharacterKeys } from './characterKeys'
@@ -166,6 +167,9 @@ export default function App() {
     else if (conv.modelIntent === 'conversation') talk.start()
   }
   const say = (s: string) => { setNote(s); window.setTimeout(() => setNote((n) => (n === s ? '' : n)), 3200) }
+  // a live session ended: its game and window are not carried into the next
+  const wasLive = useRef(false)
+  useEffect(() => { const live = conv.running && conv.mode === 'live'; if (wasLive.current && !live) endLive(); wasLive.current = live }, [conv.running, conv.mode])
   const show = mode === 'show'
   // a phone or a narrow window: the stage full width, the console under it, cards over it
   const narrow = useNarrow()

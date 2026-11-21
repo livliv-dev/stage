@@ -29,7 +29,7 @@ export function LivePanel({ onClose }: { onClose: () => void }) {
   const cast = participants(scene).filter((c) => c.lines === 'ai')
   const active = state.running && state.mode === 'live'
   const { needsAiri } = liveGame(setup), game = setup.game
-  const textOnly = cast.some((c) => !c.muted && voiceRoute(c, speech) === 'none')
+  const textOnly = cast.some((c) => voiceRoute(c, speech) === 'none')
   // AIRI or not: the one rule (brains/select.ts); a game or a window asks for it whatever the switch says
   const engine = chooseEngine(model, cast, { kind: 'live', textOnly, needsAiri, voice: cast[0] && voiceRoute(cast[0], speech) }, features)
   const compatibleModel = airiFits(engine), airiVoiceReady = engine.reason !== 'livliv-voice'
