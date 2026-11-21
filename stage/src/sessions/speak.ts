@@ -25,6 +25,7 @@ import { across, freePick as pickFree, nextSpeaker as speakerAfter } from './ord
 import { cut, deliver, hooks, takeCutting, tellSpeech, type LineSpeech } from './performance'
 import { conversation, set } from './state'
 import { untilFree, waitWhile } from './wake'
+import { bySentence as sentenceBySentence, streamable } from './voicing'
 
 /** one of `pool`, the chattier and the longer quiet the likelier (sessions/order.ts) */
 export const freePick = (pool: CharacterItem[]) => pickFree(pool, conversation().lines, chance)
@@ -74,7 +75,7 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
   }
   // its voice is made while it still shows 在想 (a LivLiv voice takes about a second)
   const recorded = r.audio ?? (voiced && cfg.kind === 'livliv' ? null : undefined)
-  const bySentence = conversation().mode === 'chat' && cfg.kind !== 'livliv' && voiceRoute(me) !== 'livliv'
+  const bySentence = sentenceBySentence(conversation().mode, cfg.kind, voiceRoute(me))
   const take = bySentence ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, recorded)
   signal.throwIfAborted()
   if (session.liveOptions && !session.liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕"))
@@ -173,7 +174,7 @@ async function airiTurn(me: CharacterItem, chat: Chat | null | undefined, replyT
     if (result.done) return null
     const said = result.value
     const aloud = !textOnly && !actor.item.muted
-    if (aloud && voiceRoute(actor.item) === 'livliv') throw new Error(tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕'))
+    if (aloud && !streamable(voiceRoute(actor.item))) throw new Error(tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕'))
     const take = await actor.prepare(said.text, said.emotion, aloud, signal)
     signal.throwIfAborted()
     if (aloud && take.mute) throw new VoiceFailed(actor.voiceError || tr('声音播放失败，请检查声音设置'))
