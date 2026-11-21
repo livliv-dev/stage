@@ -35,6 +35,7 @@
     "test:props": "node test/props.mjs",
     "test:gamepad": "node test/gamepad.mjs",
     "test:journey": "node test/journey.mjs",
+    "test:goals": "node test/goals.mjs",
     "test:live": "node test/live.mjs",
     "test:points": "node test/points.mjs",
     "test:app-livliv": "node test/app-livliv.mjs",
