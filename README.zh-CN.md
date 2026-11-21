@@ -16,7 +16,8 @@
 <p align="center"><img src="media/demo.gif" alt="Ruri、Nana 和 Konatsu 在同一个舞台上聊天，带对话气泡" width="720"></p>
 
 - 一张舞台最多 30 个角色（浏览器里 15 个）：LivLiv 半身和全身、VRM、PNGTuber
-- 长期记忆和实时语音对话
+- 从想做的事开始：**我来演**（可以加一个 AI 搭档）、**AI 来开播**、**和角色聊天**、**做一段视频**。每个目标只列它需要的准备清单
+- 长期记忆和实时通话
 - 角色之间互相对话，也回应 Twitch 弹幕
 - 说话时跟着情绪变的表情
 - 桌面版和角色聊天，每个角色有自己的记忆，由 [Project AIRI](https://github.com/moeru-ai/airi) 驱动
@@ -26,7 +27,7 @@
 - 27 个精选角色，开箱即用。基于 [LivLiv Player](https://github.com/livliv-dev/player)
 
 AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等），也可以使用 LivLiv.ai 帐号。
-实时语音需要你自己的 OpenAI 或阿里云百炼密钥。
+实时通话需要你自己的 OpenAI 或阿里云百炼密钥。
 
 ## 试一试
 
@@ -64,8 +65,8 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # 桌面版（sta
 
 测试：`npm --prefix stage run check && npm --prefix stage test`、`npm --prefix desktop test`、`npm --prefix collab test`；
 浏览器测试是 [stage/package.json](stage/package.json) 里的 `test:*` 脚本。每个 PR 都会在 GitHub Actions 上跑这些测试。
-AI 聊天和记忆见 [docs/ai-conversations.md](docs/ai-conversations.md)，实时语音见 [docs/realtime-voice.md](docs/realtime-voice.md)，
-Neuro SDK 桥接见 [neuro/README.md](neuro/README.md)，本机控制接口见 [docs/stage-api.md](docs/stage-api.md)，联播见 [collab/README.md](collab/README.md)。
+AI 聊天和记忆见 [docs/ai-conversations.md](docs/ai-conversations.md)，实时通话见 [docs/realtime-voice.md](docs/realtime-voice.md)，
+Neuro SDK 桥接见 [neuro/README.md](neuro/README.md)，本机控制接口见 [docs/stage-api.md](docs/stage-api.md)，好友联播见 [collab/README.md](collab/README.md)。
 模型密钥只存在浏览器或应用里，请求直接发给服务商。欢迎贡献：[CONTRIBUTING.md](CONTRIBUTING.md)。
 安全问题：[SECURITY.md](SECURITY.md)。
 
