@@ -7,11 +7,12 @@ import type { Line } from '../core/lines'
 import { session } from './context'
 import { inbox } from './inbox'
 import { deliver } from './performance'
+import { lineAhead } from './speak'
 import { conversation, set } from './state'
 
 /** your line, said by whom it is from */
 async function yours(line: Line, signal: AbortSignal, scope = conversation().scope) {
-  await deliver(line, participants(store.get()).find((character) => character.id === line.who) ?? null, signal)
+  await deliver(line, participants(store.get()).find((character) => character.id === line.who) ?? null, signal, undefined, undefined, lineAhead)
   signal.throwIfAborted()
   await rememberLine(line, undefined, scope)
 }

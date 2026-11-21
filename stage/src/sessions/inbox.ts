@@ -47,5 +47,3 @@ export const turnHeld = () => speechHeld() || inbox.decisions > 0
 export const someViewer = () => (chance() < [0, 0.35, 0.8][store.get().talk.danmaku] ? inbox.viewers.take(clock.now(), isBlocked) : null)
 /** a viewer's message waiting, or chat connected: a conversation that answers viewers is public */
 export const viewersWaiting = () => store.get().talk.danmaku > 0 && (chatState().status === 'on' || inbox.viewers.available(clock.now(), isBlocked))
-/** your lines and the events no session will answer any more */
-export function clearInbox() { inbox.queue.length = 0; inbox.external.length = 0; inbox.dialogue.clear(); inbox.activeEvent = null }

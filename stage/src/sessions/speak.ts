@@ -22,7 +22,7 @@ import { castKey, NeedModel, played, session, TURN_INTERRUPTED, voices, VoiceFai
 import { inbox, someViewer, speechHeld, wake } from './inbox'
 import { checkMemory, memoryIdsOf } from './memoryGate'
 import { across, freePick as pickFree, nextSpeaker as speakerAfter } from './order'
-import { cut, deliver, hooks, takeCutting, tellSpeech, type LineSpeech } from './performance'
+import { cut, deliver, takeCutting, tellSpeech, type LineAhead, type LineSpeech } from './performance'
 import { conversation, set } from './state'
 import { untilFree, waitWhile } from './wake'
 import { bySentence as sentenceBySentence, streamable } from './voicing'
@@ -103,8 +103,8 @@ function makeAhead() {
   const ctl = new AbortController(), chat = conversation().scope === 'public' ? someViewer() : null
   ahead = { who, after: last.id, topic: store.get().topic, ctl, chat, made: makeLine(who, AbortSignal.any([session.ctrl.signal, ctl.signal]), chat).catch(() => null) }
 }
-hooks.aiLineStarted = makeAhead
-hooks.cutOff = dropAhead
+/** what a line said does to the line made ahead (performance.ts deliver and cut) */
+export const lineAhead: LineAhead = { started: makeAhead, dropped: dropAhead }
 
 /** the line made ahead, if it still answers what was just said */
 export function aheadStill() {
@@ -118,7 +118,7 @@ export function interruptTurn() {
   session.realtime?.interrupt()
   dropAhead()
   const speaking = conversation().speaking
-  if (speaking) cut(speaking.id, true)
+  if (speaking) cut(speaking.id, true, lineAhead)
   session.currentTurn?.abort(TURN_INTERRUPTED)
 }
 
@@ -187,7 +187,7 @@ async function airiTurn(me: CharacterItem, chat: Chat | null | undefined, replyT
       if (first) { set({ thinking: null, turns: conversation().turns + 1 }); first = false }
       const next = prepareNext()
       void next.catch(() => {})
-      await deliver({ id: uid(), who: me.id, name: me.name, ...said, memoryIds, memoryRevision: context.revision }, me, signal, take, speech)
+      await deliver({ id: uid(), who: me.id, name: me.name, ...said, memoryIds, memoryRevision: context.revision }, me, signal, take, speech, lineAhead)
       ready = await next
     }
     if (first && event?.reply !== 'maybe') throw new Error(tr('模型没有返回可播放的回复'))
@@ -243,7 +243,7 @@ export async function speakTurn(me: CharacterItem, parent: AbortSignal, audience
     }
     addViewer(chat)
     if (bySentence) await bySentences(me, r, memoryRevision, signal, speech)
-    else await deliver({ id: uid(), who: me.id, name: me.name, ...r }, me, signal, take, speech)
+    else await deliver({ id: uid(), who: me.id, name: me.name, ...r }, me, signal, take, speech, lineAhead)
     if (session.liveOptions && !session.liveOptions.textOnly) {
       await take?.clip?.live?.whole
       const error = actors.get(me.id)?.voiceError
@@ -282,7 +282,7 @@ async function bySentences(me: CharacterItem, r: Utterance & Pick<Line, 'memoryI
     const start = offset / total, width = text.length / total
     const cues = r.cues?.filter((cue) => cue.at >= start && cue.at < start + width).map((cue) => ({ ...cue, at: (cue.at - start) / width }))
     const listeners = r.listeners?.filter(({ cue }) => cue.at >= start && cue.at < start + width).map((reaction) => ({ ...reaction, cue: { ...reaction.cue, at: (reaction.cue.at - start) / width } }))
-    await deliver({ id: uid(), who: me.id, name: me.name, ...r, text, cues, listeners }, me, signal, voice, speech)
+    await deliver({ id: uid(), who: me.id, name: me.name, ...r, text, cues, listeners }, me, signal, voice, speech, lineAhead)
     offset += text.length
   }
 }

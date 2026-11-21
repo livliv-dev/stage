@@ -5,7 +5,7 @@ import { tr } from './i18n'
 // (not one started after it). A take whose video fails is kept, to make it again.
 import { useSyncExternalStore } from 'react'
 import { conversation, talk } from './conversation'
-import { registerRecording } from './sessions/outputs'
+import { registerRecording } from './sessions/recordingOutput'
 import { renderTake, type Made } from './render'
 import { store } from './scene'
 import { MAX_SECONDS, record, type Recorder, type Take } from './tape'
@@ -27,7 +27,7 @@ export const useRecording = () => useSyncExternalStore((f) => { subs.add(f); ret
 export const recording = () => state
 /** told each time the recording changes */
 export const onRecording = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
-// a take on is an output: the session is public while one is (sessions/outputs.ts)
+// a take on is an output: the session is public while one is (sessions/recordingOutput.ts)
 registerRecording({ on: () => ['starting', 'recording'].includes(state.phase), subscribe: onRecording })
 
 let recorder: Recorder | null = null

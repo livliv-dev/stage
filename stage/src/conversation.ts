@@ -33,7 +33,7 @@ import { clearCutting, cut, looks, onSpeech } from './sessions/performance'
 import { cancelRestore, openHistory, outputOn, restoring, sessionScope, showPublicRecord } from './sessions/record'
 import { publicSwitch } from './sessions/scope'
 import { watchOutputs } from './sessions/outputs'
-import { dropAhead, interruptTurn } from './sessions/speak'
+import { dropAhead, interruptTurn, lineAhead } from './sessions/speak'
 import { startDuet } from './sessions/policies/duet'
 import { startChat } from './sessions/policies/chat'
 import { gameName, startLive } from './sessions/policies/live'
@@ -76,9 +76,6 @@ function goPublic() {
     if (!run.signal.aborted && session.ctrl === run) { talk.stop(); set({ error: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }) }
   }).finally(() => { session.switching = null; wake.wake() })
 }
-// once every module is ready (a recording registers itself as an output when its module loads)
-if (!isOutput && typeof window !== 'undefined') setTimeout(() => { watchOutputs(outputChanged) }, 0)
-
 export const talk = {
   /** The transport owns audio; this session owns the archive, memory scope and stage lifecycle. */
   realtime(controls: RealtimeControls, until: number, character: CharacterItem, chosen: MemoryScope = conversation().chatScope): Promise<RealtimeSession | null> {
@@ -278,7 +275,7 @@ export const talk = {
     if (session.airi && session.currentTurn) { inbox.epoch++; interruptTurn(); return }
     const speaking = conversation().speaking
     if (inbox.answer) inbox.answer(null)
-    else if (speaking) cut(speaking.id, true)
+    else if (speaking) cut(speaking.id, true, lineAhead)
     else if (conversation().mode === 'chat') { session.forced = voices().find((character) => character.lines === 'ai')?.id ?? null; wake.wake() }
     else session.hurry?.()
   },
@@ -322,3 +319,6 @@ export const talk = {
     if (conversation().mode === 'chat' || session.airi || store.get().talk.cutIn) interruptTurn()
   },
 }
+
+// the editor follows its outputs (a recording is heard whenever its module registers it: sessions/recordingOutput.ts)
+if (!isOutput && typeof window !== 'undefined') watchOutputs(outputChanged)

@@ -20,9 +20,9 @@ const speechListeners = new Set<(event: SpeechEvent) => void>()
 export function onSpeech(listener: (event: SpeechEvent) => void) { speechListeners.add(listener); return () => { speechListeners.delete(listener) } }
 export const tellSpeech = (event: SpeechEvent) => speechListeners.forEach((listener) => listener(event))
 
-/** what the speak path hears from a line played: an AI line started (the next is made ahead), a line cut (what was
- *  made ahead no longer follows) */
-export const hooks = { aiLineStarted: () => {}, cutOff: () => {} }
+/** what saying a line does to the line made ahead, given by the speak path (sessions/speak.ts lineAhead): an AI line
+ *  on lets the next be made meanwhile; a line cut off drops what was made to follow it */
+export type LineAhead = { started(): void; dropped(): void }
 
 /** the next AI line cuts into the one before */
 let cutting = false
@@ -116,7 +116,7 @@ export type LineSpeech = { beforeStart(): Promise<void>; onStart(): void; onEnd(
 /** a line said: by its character (in its voice, or shown only), or by the narrator (shown only). AI lines may be
  *  cut off part way (interrupt), yours may cut theirs. `ready`: its voice, made already (an AI line's, while it
  *  thought) */
-export async function deliver(line: Line, c: CharacterItem | null, signal: AbortSignal, ready?: Take, speech?: LineSpeech) {
+export async function deliver(line: Line, c: CharacterItem | null, signal: AbortSignal, ready?: Take, speech?: LineSpeech, ahead?: LineAhead) {
   const scope = conversation().scope
   const a = c ? actors.get(c.id) : undefined
   const take = ready ?? (a && c ? await a.prepare(line.text, line.emotion, (!line.human || c.readAloud) && !c.muted, signal) : undefined)
@@ -136,21 +136,21 @@ export async function deliver(line: Line, c: CharacterItem | null, signal: Abort
   // a voice still coming in has only a guess for its length: the true one for what is drawn from here on (a video)
   const said = line
   void take?.clip?.live?.whole.then(() => { said.seconds = take.clip!.seconds }, () => {})
-  if (c && !line.human) hooks.aiLineStarted()
+  if (c && !line.human) ahead?.started()
   const t = store.get().talk
   const others = voices().filter((x) => x.lines === 'ai' && x.id !== c?.id)
   if (c && !line.human && line.demo === undefined && t.interrupt && others.length && line.text.length >= 14 && chance() < [0, 0.2, 0.45][t.interrupt]) {
-    cutTimer = clock.timeout(() => cut(line.id), seconds * (0.5 + chance() * 0.25) * 1000)
+    cutTimer = clock.timeout(() => cut(line.id, false, ahead), seconds * (0.5 + chance() * 0.25) * 1000)
   }
   try {
-    const interrupted = () => cut(line.id, true)
+    const interrupted = () => cut(line.id, true, ahead)
     signal.addEventListener('abort', interrupted, { once: true })
     try {
     if (a && take) await a.perform(take, line.emotion, line.action, signal, line.cues, () => listenTo(c, line, seconds))
     else { listenTo(c, line, seconds); await new Promise<void>((r) => { const s = clock.timeout(r, seconds * 1000); signal.addEventListener('abort', () => { clock.clear(s); r() }, { once: true }) }) }
     await take?.clip?.live?.whole
     } catch (error) {
-      cut(line.id, true)
+      cut(line.id, true, ahead)
       if (c && !line.human && !signal.aborted) throw new VoiceFailed((error as Error).message, { cause: error })
       throw error
     } finally { signal.removeEventListener('abort', interrupted) }
@@ -165,11 +165,11 @@ export async function deliver(line: Line, c: CharacterItem | null, signal: Abort
   }
 }
 
-/** the line being said stops here; the next AI line starts by cutting in */
-export function cut(id: string, byYou = false) {
+/** the line being said stops here; the next AI line starts by cutting in. `ahead`: what was made to follow it goes */
+export function cut(id: string, byYou = false, ahead?: LineAhead) {
   const l = conversation().speaking
   if (!l || l.id !== id) return
-  hooks.cutOff()
+  ahead?.dropped()
   looks(null, null)
   set({ lines: conversation().lines.map((x) => (x.id === id ? { ...x, cut: true } : x)) })
   if (!byYou) cutting = true
