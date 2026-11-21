@@ -71,8 +71,15 @@ export function startPlan(goal: Goal, options: StartOptions, stage: StartStage):
   return { session: 'chat', record, handsFree: options.you === 'handsfree' }
 }
 
-/** a goal's options, kept on the stage: what was chosen last there, else the goal's own */
-export function optionsOf(talk: Pick<Talk, 'goal' | 'audience' | 'you'>, partner: boolean): StartOptions {
-  const own = goalOptions(talk.goal ?? 'chat', partner)
+/** the goal a stage is for: the one picked, else the one its template's start stands for (AI 直播 → AI 来开播; the
+ *  characters talking among themselves, or a chat → 和角色聊天), else 和角色聊天 with its AI characters, 我来演 without */
+export function goalOf(talk: Pick<Talk, 'goal' | 'start'>, hasAI: boolean): Goal {
+  return talk.goal ?? (talk.start === 'live' ? 'live' : hasAI ? 'chat' : 'perform')
+}
+
+/** a goal's options, kept on the stage: what was chosen last there, else the goal's own; a template whose characters
+ *  talk among themselves keeps doing that (和角色聊天, you not joining) */
+export function optionsOf(talk: Pick<Talk, 'goal' | 'start' | 'audience' | 'you'>, goal: Goal, partner: boolean): StartOptions {
+  const own: StartOptions = !talk.goal && talk.start === 'conversation' && goal === 'chat' ? { audience: 'me', you: 'none' } : goalOptions(goal, partner)
   return { audience: talk.audience ?? own.audience, you: talk.you ?? own.you }
 }

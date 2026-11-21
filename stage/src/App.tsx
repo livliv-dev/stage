@@ -54,7 +54,7 @@ import { StartOptionsCard } from './shell/StartBar'
 import { Console } from './shell/Console'
 import { Connections, SETTINGS_INDEX, type ConnectSection } from './shell/Connections'
 import { useChecks } from './shell/useChecks'
-import { GOAL_TEMPLATE, GOALS, goalOptions, optionsOf, startLabel } from './shell/goals'
+import { GOAL_TEMPLATE, GOALS, goalOf, goalOptions, optionsOf, startLabel } from './shell/goals'
 import { startGoal, startGoesOut } from './shell/start'
 import { showCardPage } from './shell/cardPage'
 import type { Goal } from './scene'
@@ -171,7 +171,7 @@ export default function App() {
   const narrow = useNarrow()
   // what the stage is for (its goal), whether you play with an AI partner, and its 准备清单
   const ai = participants(scene).filter((c) => c.lines === 'ai' && !c.remote)
-  const goal: Goal = scene.talk.goal ?? (scene.talk.start === 'live' ? 'live' : scene.talk.start === 'conversation' ? 'video' : hasAI ? 'chat' : 'perform')
+  const goal: Goal = goalOf(scene.talk, hasAI)
   const partner = goal === 'perform' && ai.length > 0
   const checks = useChecks(goal, partner)
   // a goal picked: its stage (the template, unless your own characters are there) and its 准备清单
@@ -189,7 +189,7 @@ export default function App() {
     if (narrow) store.select(null)
     setPop('checklist')
   }
-  const startNow = () => { setPop(null); void startGoal(goal, optionsOf(scene.talk, partner)).catch((error: Error) => say(error.message)) }
+  const startNow = () => { setPop(null); void startGoal(goal, optionsOf(scene.talk, goal, partner)).catch((error: Error) => say(error.message)) }
   // after the demo, the same characters with a model of one's own: they talk among themselves (和角色聊天, you only
   // watching), and the checklist says what is still needed
   const ownModel = () => { playDemo(false); store.setTalk({ goal: 'chat', audience: 'me', you: 'none' }); setPop('checklist') }
@@ -212,7 +212,7 @@ export default function App() {
     zoom: setZoom,
     bare: () => setBare((b) => !b),
     say,
-    start: () => { if (startGoesOut(goal, optionsOf(scene.talk, partner))) setPop('checklist'); else startNow() },
+    start: () => { if (startGoesOut(goal, optionsOf(scene.talk, goal, partner))) setPop('checklist'); else startNow() },
   })
   // the stage's room: the same whatever is open (only ⌘\ changes it)
   // a phone: the stage above the intro card at the bottom
@@ -858,7 +858,7 @@ function SettingsCard({ onClose, onAdd, initialTab, initialModel, forStart, retu
       {!found && <>
       {tab === 'general' && <GeneralPanel onResetLayout={onResetLayout} />}
       {tab === 'hotkeys' && <HotkeysPanel />}
-      {tab === 'ai' && <Connections key={focus} focus={focus} forStart={forStart} forVoice={forVoice} onAccount={() => setTab('account')} onContinue={onContinue} onDone={forStart || returns ? onClose : undefined} />}
+      {tab === 'ai' && <Connections key={focus} focus={focus} forStart={forStart} forVoice={forVoice} onAccount={() => setTab('account')} onContinue={onContinue} onDone={forStart || returns || forVoice ? onClose : undefined} />}
       {tab === 'account' && <AccountPanel onAdd={onAdd} />}
       </>}
       </div>

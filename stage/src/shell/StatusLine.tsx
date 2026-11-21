@@ -17,7 +17,7 @@ import type { Check } from './checks'
 export function StatusLine({ goal, partner, checks, onModel, onVoice, onAudience, onChecklist, onRealtime }: { goal: Goal; partner: boolean; checks: readonly Check[] | null; onModel: () => void; onVoice: () => void; onAudience: () => void; onChecklist?: () => void; onRealtime?: () => void }) {
   const { scene } = useScene(), brain = useBrainConfig(), speech = useActiveSpeech(), conv = useConversation(), chat = useChat()
   const ai = participants(scene).filter((c) => c.lines === 'ai' && !c.remote)
-  const options = optionsOf(scene.talk, partner), plan = planNow(goal, options)
+  const options = optionsOf(scene.talk, goal, partner), plan = planNow(goal, options)
   const model = brain.kind === 'demo' ? tr('演示') : !brainReady(brain) ? null : brain.kind === 'livliv' ? 'LivLiv' : brain.model
   const silent = ai.filter((c) => !c.muted && voiceRoute(c, speech) === 'none')
   const session = conv.running ? conv.mode : 'blocked' in plan ? null : plan.session

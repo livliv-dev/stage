@@ -17,13 +17,13 @@ import { liveSetup, useLiveSetup } from './liveSetup'
 export function StartButton({ goal, partner, onStart }: { goal: Goal; partner: boolean; onStart: () => void }) {
   const { scene } = useScene(), conv = useConversation(), label = startLabel(goal, partner)
   if (!label) return null
-  const plan = planNow(goal, optionsOf(scene.talk, partner))
+  const plan = planNow(goal, optionsOf(scene.talk, goal, partner))
   return <button className="primary start-button" disabled={conv.running || 'blocked' in plan} title={'blocked' in plan ? tr(plan.blocked) : undefined} onClick={onStart}><Play size={14} />{tr(label)}</button>
 }
 
 /** the three rows, short, beside the button: a click opens them in full */
-export function StartRows({ partner, open, onToggle }: { partner: boolean; open: boolean; onToggle: () => void }) {
-  const { scene } = useScene(), options = optionsOf(scene.talk, partner)
+export function StartRows({ goal, partner, open, onToggle }: { goal: Goal; partner: boolean; open: boolean; onToggle: () => void }) {
+  const { scene } = useScene(), options = optionsOf(scene.talk, goal, partner)
   const cast = participants(scene).filter((c) => !c.remote && c.lines !== 'none')
   const who = cast.length ? cast.map((c) => c.name).join('、') : tr('还没有')
   return <button className={`start-rows${open ? ' on' : ''}`} aria-expanded={open} aria-label={tr('开始选项')} onClick={onToggle}>
@@ -36,7 +36,7 @@ export function StartRows({ partner, open, onToggle }: { partner: boolean; open:
 
 export function StartOptionsCard({ goal, partner, onClose }: { goal: Goal; partner: boolean; onClose: () => void }) {
   const { scene } = useScene(), conv = useConversation(), chat = useChat(), live = useLiveSetup()
-  const t = scene.talk, options = optionsOf(t, partner)
+  const t = scene.talk, options = optionsOf(t, goal, partner)
   const set = (change: Partial<StartOptions>) => store.setTalk({ ...options, ...change })
   const cast = participants(scene).filter((c) => !c.remote), ai = cast.filter((c) => c.lines === 'ai').length
   const plan = planNow(goal, options)

@@ -76,8 +76,9 @@
 .start-rows > span:nth-of-type(3) { border-right: 0; }
 .start-rows.on { background: var(--accent-soft); }
 .start-button { flex: none; padding-inline: 16px; }
-.console.next .say-bar { gap: 4px; }
-.console.next .say-bar input { flex: 1 1 120px; }
+/* the buttons wrap under the line before the line gets too short to type in (a narrow window, hands-free on) */
+.console.next .say-bar { gap: 4px; flex-wrap: wrap; }
+.console.next .say-bar input { flex: 1 1 200px; min-width: 160px; }
 .console.next .say-bar .hold { flex: none; gap: 5px; }
 .console.next .say-bar .hold.listening { color: var(--live); border-color: var(--live); }
 .status-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 8px; }

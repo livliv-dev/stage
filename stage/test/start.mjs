@@ -85,8 +85,10 @@ try {
     await page.evaluate(() => window.__stage.rec.reset())
   }
   const templates = {}
-  for (const [label, expected] of [['AI 来开播', { text: '开播', kind: 'live', out: true }], ['双人聊天', { text: '开录', kind: 'conversation', out: true }],
-    ['你和 AI 搭档', { text: '开始聊天', kind: 'chat' }], ['三人闲聊', { text: '开录', kind: 'conversation', out: true }], ['面捕出镜', null], ['空白舞台', null]]) {
+  // a template's start: the characters talking among themselves (双人聊天, 三人闲聊) is 和角色聊天 with you not joining,
+  // the same conversation as before, nothing recorded
+  for (const [label, expected] of [['AI 来开播', { text: '开播', kind: 'live', out: true }], ['双人聊天', { text: '开始聊天', kind: 'conversation' }],
+    ['你和 AI 搭档', { text: '开始聊天', kind: 'chat' }], ['三人闲聊', { text: '开始聊天', kind: 'conversation' }], ['面捕出镜', null], ['空白舞台', null]]) {
     await page.locator('.topbar').getByRole('button', { name: '模板' }).click()
     await page.locator('.topbar .dropdown .item').filter({ hasText: label }).click()
     await page.waitForFunction((name) => window.__stage.store.get().name === name, label === '空白舞台' ? '未命名舞台' : label)
@@ -98,7 +100,7 @@ try {
     assert.equal((await main.innerText()).trim(), expected.text, label)
     await main.click()
     const byButton = await started()
-    if (expected.kind === 'conversation') assert.equal(await page.evaluate(() => window.__stage.recording().phase), 'recording', label + ': 开录 records')
+    if (expected.kind === 'conversation') assert.equal(await page.evaluate(() => window.__stage.recording().phase), 'idle', label + ': nothing is recorded')
     await stopAll()
     let bySpace
     if (expected.out) {

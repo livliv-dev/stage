@@ -45,7 +45,7 @@ export function Console({ goal, partner, checks, optionsOpen, onOptions, onCheck
         {/* after the demo: the same characters, with a model of one's own (the checklist, then its start) */}
         <button className="demo-own-model" onClick={onOwnModel}><Bot size={14} /><span>{tr('用你的模型重来一遍')}</span></button>
       </> : <>
-        <StartRows partner={partner} open={optionsOpen} onToggle={onOptions} />
+        <StartRows goal={goal} partner={partner} open={optionsOpen} onToggle={onOptions} />
         <StartButton goal={goal} partner={partner} onStart={onStart} />
       </>}
       <button className="icon" title={tr('对话记录')} aria-label={tr('对话记录')} onClick={onLog}><MessagesSquare size={16} />{conv.lines.length > 0 && <em>{conv.lines.length}</em>}</button>
