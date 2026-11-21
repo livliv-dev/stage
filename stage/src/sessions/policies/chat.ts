@@ -9,13 +9,14 @@ import type { MemoryScope } from '../../memory'
 import { bindAiri, preferredAiriForChat } from '../airiBinding'
 import { chatLimits, deadline, GenerationLimit, spent } from '../budget'
 import { clock } from '../clock'
-import { castKey, profiles, session, voices } from '../context'
+import { castKey, profiles, voices } from '../context'
 import { inbox, turnHeld, wake, type ChatInput } from '../inbox'
 import { consumeInput } from '../input'
 import { looks } from '../performance'
 import { openRecord, sessionScope } from '../record'
+import { begin, current, finish, lastBegun, order, Run } from '../run'
 import { runSession, type Policy } from '../runner'
-import { dropAhead, freePick, interruptTurn, speakTurn } from '../speak'
+import { dropAhead, followLines, freePick, interruptTurn, speakTurn } from '../speak'
 import { conversation, set } from '../state'
 import { sleep, waitWhile } from '../wake'
 
@@ -23,7 +24,7 @@ import { sleep, waitWhile } from '../wake'
 export async function startChat(chosen: MemoryScope = conversation().chatScope, target?: string, firstInput?: ChatInput) {
   const scope = sessionScope(chosen)
   if (conversation().running) {
-    const state = conversation(), airi = session.airi
+    const state = conversation(), airi = current()?.airi
     if ((state.mode === 'chat' || (state.mode === 'live' && airi)) && state.scope === scope
       && (!airi || (state.sessionId && (!target || airi.actorId === target)))) return
     throw new Error(tr('请先停止当前会话'))
@@ -35,10 +36,11 @@ export async function startChat(chosen: MemoryScope = conversation().chatScope, 
     set({ error }); throw new Error(error)
   }
   const preferred = preferredAiriForChat(config, target)
-  const controller = new AbortController(); session.ctrl = controller
-  dropAhead(); session.single = true; session.liveOptions = null; session.forced = target ?? null; session.boundProfiles = castKey()
+  const run = new Run('chat'), controller = run.controller
+  dropAhead(lastBegun()); begin(run); followLines(run)
+  run.single = true; order.forced = target ?? null; run.boundProfiles = castKey()
   inbox.external.length = 0; inbox.dialogue.clear(); inbox.activeEvent = null
-  const offAiriCast = preferred ? bindAiri(controller, preferred.model, preferred.actor) : undefined
+  const offAiriCast = preferred ? bindAiri(run, preferred.model, preferred.actor) : undefined
   const unbind = () => { offAiriCast?.() }
   const limits = chatLimits(store.get().talk)
   set({ running: true, mode: 'chat', scope, sessionId: '', lines: [], speaking: null, waitingInput: false, paused: false, thinking: null, waitingAudience: false,
@@ -46,7 +48,7 @@ export async function startChat(chosen: MemoryScope = conversation().chatScope, 
     generations: 0, generationLimit: limits.generations, turns: 0,
     until: clock.now() + limits.minutes * 60000, ended: '', error: '' }, false)
   try {
-    await openRecord(scope, controller.signal)
+    await openRecord(run, scope, controller.signal)
     for (let i = 0; i < 60 && !voices().some((character) => character.lines === 'ai'); i++) await sleep(250, controller.signal)
     if (!voices().some((character) => character.lines === 'ai')) throw new Error(tr('有 AI 角色尚未载入，请检查角色列表'))
     controller.signal.throwIfAborted()
@@ -54,23 +56,24 @@ export async function startChat(chosen: MemoryScope = conversation().chatScope, 
       if (firstInput.transcribed) set({ lines: [...conversation().lines, firstInput.line] })
       inbox.queue.unshift(firstInput)
     }
-    void runSession(chat(controller, unbind), controller)
+    void runSession(chat(run, unbind), controller)
   } catch (error) {
     unbind()
-    if (session.ctrl === controller) {
-      session.ctrl = null; session.airi = null
+    if (finish(run)) {
+      run.airi = null
       set({ running: false, engine: undefined, error: controller.signal.aborted ? '' : error instanceof Error ? error.message : String(error) })
     }
     throw error
   }
 }
 
-function chat(controller: AbortController, unbind: () => void): Policy {
+function chat(run: Run, unbind: () => void): Policy {
+  const controller = run.controller
   let stopClock = () => {}
   let requested = !conversation().lines.length, replyToOwner = false, lastReply = clock.now(), nudges = 0
   return {
     async open() {
-      stopClock = deadline(conversation().until, () => { set({ ended: tr('已达到本次时长上限') }); interruptTurn(); controller.abort() })
+      stopClock = deadline(conversation().until, () => { set({ ended: tr('已达到本次时长上限') }); interruptTurn(current()); controller.abort() })
     },
     async step(signal) {
       if (spent(conversation())) return false
@@ -78,13 +81,13 @@ function chat(controller: AbortController, unbind: () => void): Policy {
       await waitWhile(turnHeld, wake, signal)
       if (spent(conversation())) return false
       if (inbox.queue.length) {
-        while (inbox.queue.length) await consumeInput(signal)
+        while (inbox.queue.length) await consumeInput(run, signal)
         requested = true; replyToOwner = true; nudges = 0
       }
       if (turnHeld()) return true
-      inbox.activeEvent = conversation().scope === 'public' && !(session.airi && replyToOwner) ? inbox.external.shift() ?? null : null
+      inbox.activeEvent = conversation().scope === 'public' && !(run.airi && replyToOwner) ? inbox.external.shift() ?? null : null
       if (inbox.activeEvent) requested = true
-      if (session.forced) requested = true
+      if (order.forced) requested = true
       if (!requested) {
         set({ waitingInput: true })
         actors.forEach((actor) => { if (actor.item.lines === 'ai') actor.setPhase('waiting') })
@@ -96,12 +99,12 @@ function chat(controller: AbortController, unbind: () => void): Policy {
       set({ waitingInput: false })
       const pool = voices().filter((character) => character.lines === 'ai')
       const lastHuman = [...conversation().lines].reverse().find((line) => line.human && !line.audience)
-      const speaker = pool.find((character) => character.id === (inbox.activeEvent?.character ?? session.forced))
+      const speaker = pool.find((character) => character.id === (inbox.activeEvent?.character ?? order.forced))
         ?? pool.find((character) => lastHuman?.text.includes(character.name)) ?? freePick(pool)
-      session.forced = null
+      order.forced = null
       if (!speaker) throw new Error(tr('舞台上没有已就绪的 AI 角色'))
       const beforeInput = inbox.epoch
-      const completed = await speakTurn(speaker, signal, null, replyToOwner)
+      const completed = await speakTurn(run, speaker, signal, null, replyToOwner)
       requested = !completed && beforeInput === inbox.epoch
       replyToOwner &&= requested
       inbox.activeEvent = null; lastReply = clock.now()
@@ -115,8 +118,8 @@ function chat(controller: AbortController, unbind: () => void): Policy {
     close() {
       unbind()
       stopClock()
-      if (session.ctrl === controller) {
-        session.ctrl = null; session.airi = null; inbox.activeEvent = null; actors.forEach((actor) => actor.silence())
+      if (finish(run)) {
+        run.airi = null; inbox.activeEvent = null; actors.forEach((actor) => actor.silence())
         set({ running: false, paused: false, thinking: null, speaking: null, waitingInput: false, engine: undefined }); looks(null, null)
       }
     },

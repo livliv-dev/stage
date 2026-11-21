@@ -18,13 +18,14 @@ import type { AiriGameConfig, AiriGameConnection } from '../../../../desktop/src
 import { bindAiri } from '../airiBinding'
 import { deadline, GenerationLimit, LIVE_FAILURES, RETRY_SECONDS, spent, type LiveOptions } from '../budget'
 import { clock } from '../clock'
-import { castKey, NeedModel, session, voices, VoiceFailed } from '../context'
+import { castKey, NeedModel, voices, VoiceFailed } from '../context'
 import { inbox, turnHeld, wake } from '../inbox'
 import { consumeInput } from '../input'
 import { looks } from '../performance'
 import { openHistory } from '../record'
+import { begin, current, finish, lastBegun, order, Run } from '../run'
 import { runSession, type Policy } from '../runner'
-import { dropAhead, freePick, speakTurn } from '../speak'
+import { dropAhead, followLines, freePick, speakTurn } from '../speak'
 import { conversation, set } from '../state'
 import { sleep, waitWhile } from '../wake'
 
@@ -49,27 +50,28 @@ export function startLive(options: LiveOptions, event: (event: ExternalEvent) =>
   const airiModel = choice?.engine === 'airi' && config.kind === 'openai' ? config : null
   // a muted character speaks no line aloud: only the ones that speak need a voice, else the session is subtitles only
   if (!options.textOnly && cast.some((c) => !c.muted && voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕") }); return }
-  const c = new AbortController(); session.ctrl = c
-  dropAhead(); inbox.viewers.clear(); inbox.queue.length = 0; inbox.external.length = 0; inbox.dialogue.clear(); inbox.activeEvent = null
-  session.liveOptions = options
-  session.single = false; session.boundProfiles = castKey()
-  const offAiriCast = airiModel ? bindAiri(c, airiModel, cast[0], options.airi?.windowId) : undefined
-  const engine = session.airi
+  const run = new Run('live'), c = run.controller
+  dropAhead(lastBegun()); begin(run); followLines(run)
+  inbox.viewers.clear(); inbox.queue.length = 0; inbox.external.length = 0; inbox.dialogue.clear(); inbox.activeEvent = null
+  run.liveOptions = options
+  run.boundProfiles = castKey()
+  const offAiriCast = airiModel ? bindAiri(run, airiModel, cast[0], options.airi?.windowId) : undefined
+  const engine = run.airi
   const until = clock.now() + options.minutes * 60_000
   set({ running: true, mode: 'live', paused: false, waitingAudience: true, turns: 0, generations: 0, generationLimit: options.maxGenerations, until, retryAt: 0, ended: '', error: '',
     engine: engine ? 'airi' : undefined, game: gameConfig ? { name: gameConfig.game, status: 'connecting', text: '' } : undefined,
     scope: 'public', sessionId: '', lines: [], speaking: null,
   }, false)
   const stopClock = deadline(until, () => {
-    if (session.ctrl !== c || c.signal.aborted) return
+    if (current() !== run || c.signal.aborted) return
     set({ ended: tr("已达到本次时长上限") }); c.abort(); hush(); actors.forEach((a) => a.silence())
   })
-  return runSession(live(c, options, { cast, engine, gameHost, gameConfig, stopClock, offAiriCast, event }), c)
+  return runSession(live(run, options, { cast, engine, gameHost, gameConfig, stopClock, offAiriCast, event }), c)
 }
 
 type Setup = {
   cast: ReturnType<typeof participants>
-  engine: typeof session.airi
+  engine: Run['airi']
   gameHost: NonNullable<typeof desktop>['airiGame'] | undefined
   gameConfig: AiriGameConfig | undefined
   stopClock: () => void
@@ -77,7 +79,8 @@ type Setup = {
   event: (event: ExternalEvent) => boolean
 }
 
-function live(c: AbortController, options: LiveOptions, { cast, engine, gameHost, gameConfig, stopClock, offAiriCast, event }: Setup): Policy {
+function live(run: Run, options: LiveOptions, { cast, engine, gameHost, gameConfig, stopClock, offAiriCast, event }: Setup): Policy {
+  const c = run.controller
   let lastReply = clock.now() - 6000, failures = 0, replyToOwner = false
   let retryChat: Chat | null = null
   let attached: AiriGameConnection | undefined
@@ -88,7 +91,7 @@ function live(c: AbortController, options: LiveOptions, { cast, engine, gameHost
     if (!gameId || !gameHost) return
     closingGame ??= gameHost.stop(gameId).catch((error: unknown) => {
       console.warn('[AIRI game close]', error)
-      if (session.ctrl === c || (!session.ctrl && conversation().mode === 'live')) set({ error: airiGameError(error) })
+      if (current() === run || (!current() && conversation().mode === 'live')) set({ error: airiGameError(error) })
     })
   }
   c.signal.addEventListener('abort', closeGame, { once: true })
@@ -104,7 +107,7 @@ function live(c: AbortController, options: LiveOptions, { cast, engine, gameHost
         c.signal.throwIfAborted()
         engine.game = attached
         offGame = gameHost.onEvent((game) => {
-          if (session.airi !== engine || c.signal.aborted || game.connection !== engine.game?.id) return
+          if (run.airi !== engine || c.signal.aborted || game.connection !== engine.game?.id) return
           const text = airiGameText(game)
           if (game.status === 'disconnected') {
             engine.game = undefined
@@ -126,7 +129,7 @@ function live(c: AbortController, options: LiveOptions, { cast, engine, gameHost
         return false
       }
       await waitWhile(turnHeld, wake, c.signal)
-      while (inbox.queue.length) { await consumeInput(c.signal); replyToOwner = true }
+      while (inbox.queue.length) { await consumeInput(run, c.signal); replyToOwner = true }
       c.signal.throwIfAborted()
       if (turnHeld()) return true
       const now = clock.now(), cooldown = lastReply + 6000 - now
@@ -141,14 +144,14 @@ function live(c: AbortController, options: LiveOptions, { cast, engine, gameHost
       inbox.activeEvent ??= !replyToOwner && !retryChat ? inbox.external.shift() ?? null : null
       const chat: Chat | null = inbox.activeEvent || (options.airi && replyToOwner) ? null : retryChat ?? inbox.viewers.take(now, isBlocked)
       const pool = voices().filter((x) => x.lines === 'ai')
-      const who = inbox.activeEvent?.character ? pool.find((x) => x.id === inbox.activeEvent!.character) : pool.find((x) => x.id === session.forced) ?? freePick(pool.filter((x) => pool.length === 1 || x.id !== session.lastTurn))
-      session.forced = null
+      const who = inbox.activeEvent?.character ? pool.find((x) => x.id === inbox.activeEvent!.character) : pool.find((x) => x.id === order.forced) ?? freePick(pool.filter((x) => pool.length === 1 || x.id !== order.lastTurn))
+      order.forced = null
       if (!who) throw new Error(tr("舞台上没有已就绪的 AI 角色"))
       set({ waitingAudience: false })
       const turnsBefore = conversation().turns
       try {
         const beforeInput = inbox.epoch
-        const completed = await speakTurn(who, c.signal, chat, replyToOwner)
+        const completed = await speakTurn(run, who, c.signal, chat, replyToOwner)
         if (!completed) {
           if (beforeInput !== inbox.epoch) { retryChat = null; replyToOwner = false; inbox.activeEvent = null }
           else retryChat = chat
@@ -185,8 +188,8 @@ function live(c: AbortController, options: LiveOptions, { cast, engine, gameHost
       closeGame()
       await closingGame
       offAiriCast?.()
-      if (session.ctrl === c) {
-        session.ctrl = null; session.liveOptions = null; session.airi = null; inbox.activeEvent = null; hush(); actors.forEach((a) => a.silence())
+      if (finish(run)) {
+        run.liveOptions = null; run.airi = null; inbox.activeEvent = null; hush(); actors.forEach((a) => a.silence())
         set({ running: false, paused: false, thinking: null, speaking: null, waiting: null, waitingAudience: false, retryAt: 0, engine: undefined, game: undefined }); looks(null, null)
       }
     },

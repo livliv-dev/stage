@@ -18,11 +18,12 @@ import type { Line } from '../core/lines'
 import { engineFor, type Utterance } from '../brains/engines'
 import { counted, GenerationLimit, spend, spent, turnLimit as linesFor } from './budget'
 import { chance } from './chance'
-import { castKey, NeedModel, played, session, TURN_INTERRUPTED, voices, VoiceFailed } from './context'
+import { castKey, NeedModel, played, TURN_INTERRUPTED, voices, VoiceFailed } from './context'
 import { inbox, someViewer, speechHeld, wake } from './inbox'
 import { checkMemory, memoryIdsOf } from './memoryGate'
 import { across, freePick as pickFree, nextSpeaker as speakerAfter } from './order'
-import { cut, deliver, takeCutting, tellSpeech, type LineAhead, type LineSpeech } from './performance'
+import { cut, deliver, takeCutting, tellSpeech, type LineSpeech } from './performance'
+import { current, order, type Run } from './run'
 import { conversation, set } from './state'
 import { untilFree, waitWhile } from './wake'
 import { bySentence as sentenceBySentence, streamable } from './voicing'
@@ -32,8 +33,8 @@ export const freePick = (pool: CharacterItem[]) => pickFree(pool, conversation()
 
 /** who speaks next by the stage's talk order (sessions/order.ts); a character picked by hand goes once */
 export function nextSpeaker(): CharacterItem | null {
-  const who = speakerAfter(store.get().talk, voices(), { lines: conversation().lines, lastTurn: session.lastTurn, skipped: session.skipped, forced: session.forced }, chance)
-  session.forced = null
+  const who = speakerAfter(store.get().talk, voices(), { lines: conversation().lines, lastTurn: order.lastTurn, skipped: order.skipped, forced: order.forced }, chance)
+  order.forced = null
   return who
 }
 
@@ -41,9 +42,9 @@ export function nextSpeaker(): CharacterItem | null {
 export const turnLimit = () => linesFor(loadBrainConfig().kind === 'demo' ? demoFor(voices())?.script.lines.length : undefined, conversation().limit)
 
 /** a line and its voice, made ready (a model of one's own, LivLiv or the demo: the whole reply) */
-async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat | null) {
+async function makeLine(run: Run, me: CharacterItem, signal: AbortSignal, audience?: Chat | null) {
   const s = store.get(), t = s.talk
-  if (session.boundProfiles !== castKey()) throw new Error(tr('参与角色已改变，请重新开始会话'))
+  if (run.boundProfiles !== castKey()) throw new Error(tr('参与角色已改变，请重新开始会话'))
   const ai = voices().filter((c) => c.lines === 'ai')
   const people = played().map((h) => h.name)
   if (conversation().lines.some((l) => l.who === 'me')) people.push(tr("我"))
@@ -52,7 +53,7 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
   const chat = audience === undefined ? conversation().scope === 'public' ? someViewer() : null : audience
   if (conversation().mode !== 'conversation') set(spend(conversation()))
   const viewer = chat ? { user: chat.user, text: chat.text } : null
-  const cfg = loadBrainConfig(), aloud = !session.liveOptions?.textOnly && !me.muted
+  const cfg = loadBrainConfig(), aloud = !run.liveOptions?.textOnly && !me.muted
   const voiced = aloud && voiceRoute(me) === 'livliv'
   const sessionId = conversation().sessionId
   const context = loadBrainConfig().kind === 'demo' ? { lines: conversation().lines, summary: undefined, memories: [], revision: 0 } : await chatHistory.context(me.profileId ?? me.id, conversation().lines, conversation().scope)
@@ -78,7 +79,7 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
   const bySentence = sentenceBySentence(conversation().mode, cfg.kind, voiceRoute(me))
   const take = bySentence ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, recorded)
   signal.throwIfAborted()
-  if (session.liveOptions && !session.liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕"))
+  if (run.liveOptions && !run.liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕"))
   return { r: { ...reply, memoryIds, memoryRevision: context.revision }, take, chat, memoryRevision: context.revision, bySentence }
 }
 
@@ -87,39 +88,45 @@ async function makeLine(me: CharacterItem, signal: AbortSignal, audience?: Chat 
 // that costs one model call and one line's voice at most (with LivLiv, one line's points), at the user's own expense,
 // so it isn't done where lines get cut on purpose (AI 抢话). A viewer's message it answers goes back to wait for the
 // next line
-type Ahead = { who: CharacterItem; after: string; topic: string; ctl: AbortController; chat: Chat | null; made: Promise<Awaited<ReturnType<typeof makeLine>> | null> }
-let ahead: Ahead | null = null
-export function dropAhead() { if (ahead?.chat) inbox.viewers.putBack(ahead.chat); ahead?.ctl.abort(); ahead = null }
+type Made = Awaited<ReturnType<typeof makeLine>>
+/** the line made ahead in this session is given up (a viewer's message it answered goes back to wait) */
+export function dropAhead(run: Run | null) {
+  const ahead = run?.ahead
+  if (!run || !ahead) return
+  if (ahead.chat) inbox.viewers.putBack(ahead.chat)
+  ahead.ctl.abort(); run.ahead = null
+}
 
-function makeAhead() {
+function makeAhead(run: Run) {
   const t = store.get().talk, last = conversation().lines.at(-1)
-  if (conversation().mode !== 'conversation' || ahead || !session.ctrl || session.single || !last || inbox.queue.length || conversation().turns >= turnLimit()) return
+  if (conversation().mode !== 'conversation' || run.ahead || current() !== run || run.single || !last || inbox.queue.length || conversation().turns >= turnLimit()) return
   const cfg = loadBrainConfig()
   if (!brainReady(cfg) || (cfg.kind !== 'demo' && t.interrupt)) return
   const who = cfg.kind === 'demo' ? demoSpeaker(voices(), conversation().lines) : nextSpeaker()
   if (!who) return
-  if (who.lines !== 'ai') { session.forced = who.id; return }  // your turn is next: nothing to make, and it stays next
-  if (session.switching) return
+  if (who.lines !== 'ai') { order.forced = who.id; return }  // your turn is next: nothing to make, and it stays next
+  if (run.switching) return
   const ctl = new AbortController(), chat = conversation().scope === 'public' ? someViewer() : null
-  ahead = { who, after: last.id, topic: store.get().topic, ctl, chat, made: makeLine(who, AbortSignal.any([session.ctrl.signal, ctl.signal]), chat).catch(() => null) }
+  run.ahead = { who, after: last.id, topic: store.get().topic, ctl, chat, made: makeLine(run, who, AbortSignal.any([run.signal, ctl.signal]), chat).catch(() => null) }
 }
-/** what a line said does to the line made ahead (performance.ts deliver and cut) */
-export const lineAhead: LineAhead = { started: makeAhead, dropped: dropAhead }
+/** the line made ahead in this session follows what a line said does (performance.ts deliver and cut) */
+export function followLines(run: Run) { run.lineAhead = { started: () => makeAhead(run), dropped: () => dropAhead(run) } }
 
 /** the line made ahead, if it still answers what was just said */
-export function aheadStill() {
-  if (ahead && (ahead.after !== conversation().lines.at(-1)?.id || ahead.topic !== store.get().topic || (session.forced && session.forced !== ahead.who.id)
-    || !voices().some((c) => c.id === ahead!.who.id && c.lines === 'ai'))) dropAhead()
-  return ahead
+export function aheadStill(run: Run) {
+  const ahead = run.ahead
+  if (ahead && (ahead.after !== conversation().lines.at(-1)?.id || ahead.topic !== store.get().topic || (order.forced && order.forced !== ahead.who.id)
+    || !voices().some((c) => c.id === ahead.who.id && c.lines === 'ai'))) dropAhead(run)
+  return run.ahead
 }
 
 /** the turn in hand stops: a call is interrupted, a line made ahead is dropped, the line being said is cut */
-export function interruptTurn() {
-  session.realtime?.interrupt()
-  dropAhead()
+export function interruptTurn(run: Run | null) {
+  run?.realtime?.interrupt()
+  dropAhead(run)
   const speaking = conversation().speaking
-  if (speaking) cut(speaking.id, true, lineAhead)
-  session.currentTurn?.abort(TURN_INTERRUPTED)
+  if (speaking) cut(speaking.id, true, run?.lineAhead)
+  run?.currentTurn?.abort(TURN_INTERRUPTED)
 }
 
 function addViewer(chat: Chat | null | undefined) {
@@ -128,11 +135,11 @@ function addViewer(chat: Chat | null | undefined) {
 }
 
 /** a turn on AIRI: its reply streams, each sentence voiced and said as it comes (the next made ready while one plays) */
-async function airiTurn(me: CharacterItem, chat: Chat | null | undefined, replyToOwner: boolean, signal: AbortSignal, onStart: () => void, onEnd: (cancelled: boolean) => void) {
-  const airi = session.airi
+async function airiTurn(run: Run, me: CharacterItem, chat: Chat | null | undefined, replyToOwner: boolean, signal: AbortSignal, onStart: () => void, onEnd: (cancelled: boolean) => void) {
+  const airi = run.airi
   const actor = actors.get(me.id), profile = me.profileId ?? me.id
   const { sessionId, scope } = conversation(), windowId = airi?.windowId, event = inbox.activeEvent
-  if (!airi || airi.actorId !== me.id || !sessionId || actor?.status !== 'ready' || session.boundProfiles !== castKey()) throw new Error(tr('参与角色已改变，请重新开始会话'))
+  if (!airi || airi.actorId !== me.id || !sessionId || actor?.status !== 'ready' || run.boundProfiles !== castKey()) throw new Error(tr('参与角色已改变，请重新开始会话'))
   if (spent(conversation())) throw new GenerationLimit()
   const context = await chatHistory.context(profile, conversation().lines, scope)
   const verifyMemory = async () => {
@@ -151,7 +158,7 @@ async function airiTurn(me: CharacterItem, chat: Chat | null | undefined, replyT
   const used = conversationContext(context.lines, context.summary)
   const memories = context.memories.slice(0, 48)
   const memoryIds = memoryIdsOf({ ...context, memories })
-  const textOnly = session.liveOptions?.textOnly === true
+  const textOnly = run.liveOptions?.textOnly === true
   set(counted(conversation()))
   addViewer(chat)
   const answer = engineFor(loadBrainConfig(), airi.model).reply({ kind: 'airi', turn: {
@@ -163,7 +170,7 @@ async function airiTurn(me: CharacterItem, chat: Chat | null | undefined, replyT
   const speech: LineSpeech = {
     final: false, onStart, onEnd,
     beforeStart: () => untilFree(speechHeld, wake, signal, async () => {
-      if (conversation().sessionId !== sessionId || conversation().scope !== scope || session.boundProfiles !== castKey() || actors.get(me.id) !== actor) throw new Error(tr('参与角色已改变，请重新开始会话'))
+      if (conversation().sessionId !== sessionId || conversation().scope !== scope || run.boundProfiles !== castKey() || actors.get(me.id) !== actor) throw new Error(tr('参与角色已改变，请重新开始会话'))
       await verifyMemory()
     }),
   }
@@ -187,7 +194,7 @@ async function airiTurn(me: CharacterItem, chat: Chat | null | undefined, replyT
       if (first) { set({ thinking: null, turns: conversation().turns + 1 }); first = false }
       const next = prepareNext()
       void next.catch(() => {})
-      await deliver({ id: uid(), who: me.id, name: me.name, ...said, memoryIds, memoryRevision: context.revision }, me, signal, take, speech, lineAhead)
+      await deliver({ id: uid(), who: me.id, name: me.name, ...said, memoryIds, memoryRevision: context.revision }, me, signal, take, speech, run.lineAhead)
       ready = await next
     }
     if (first && event?.reply !== 'maybe') throw new Error(tr('模型没有返回可播放的回复'))
@@ -197,30 +204,30 @@ async function airiTurn(me: CharacterItem, chat: Chat | null | undefined, replyT
 }
 
 /** an AI character's turn, said: true when it was said, false when you cut it off (the session goes on) */
-export async function speakTurn(me: CharacterItem, parent: AbortSignal, audience?: Chat | null, replyToOwner = false) {
+export async function speakTurn(run: Run, me: CharacterItem, parent: AbortSignal, audience?: Chat | null, replyToOwner = false) {
   parent.throwIfAborted()
-  if (session.switching) { await session.switching; parent.throwIfAborted() }
+  if (run.switching) { await run.switching; parent.throwIfAborted() }
   await waitWhile(() => inbox.dialogue.size > 0 || inbox.decisions > 0 || inbox.hearing, wake, parent)
-  const model = session.airi?.model ?? loadBrainConfig()
+  const model = run.airi?.model ?? loadBrainConfig()
   const scope = conversation().scope
   if (!brainReady(model)) throw new NeedModel()
   const turn = new AbortController(), signal = AbortSignal.any([parent, turn.signal])
-  session.currentTurn = turn
+  run.currentTurn = turn
   let spoke = false, hadCut = false
   set({ thinking: me.id })
   actors.get(me.id)?.setPhase('thinking')
-  const prepared = aheadStill()?.who.id === me.id ? ahead : null
+  const prepared = aheadStill(run)?.who.id === me.id ? run.ahead : null
   const cancelPrepared = () => prepared?.ctl.abort(signal.reason)
   try {
-    if (session.airi) {
-      await airiTurn(me, audience, replyToOwner, signal, () => { spoke = true }, (cancelled) => { hadCut ||= cancelled })
+    if (run.airi) {
+      await airiTurn(run, me, audience, replyToOwner, signal, () => { spoke = true }, (cancelled) => { hadCut ||= cancelled })
       return true
     }
-    if (!prepared) dropAhead()
-    else { ahead = null; signal.addEventListener('abort', cancelPrepared, { once: true }) }
-    const made = prepared ? await prepared.made : null
+    if (!prepared) dropAhead(run)
+    else { run.ahead = null; signal.addEventListener('abort', cancelPrepared, { once: true }) }
+    const made = prepared ? await prepared.made as Made | null : null
     signal.throwIfAborted()
-    const { r, take, chat, memoryRevision, bySentence } = made ?? await makeLine(me, signal, prepared?.chat ?? audience)
+    const { r, take, chat, memoryRevision, bySentence } = made ?? await makeLine(run, me, signal, prepared?.chat ?? audience)
     signal.throwIfAborted()
     const speech: LineSpeech = {
       final: false, onStart: () => { spoke = true }, onEnd: (cancelled: boolean) => { hadCut ||= cancelled },
@@ -242,9 +249,9 @@ export async function speakTurn(me: CharacterItem, parent: AbortSignal, audience
       return true
     }
     addViewer(chat)
-    if (bySentence) await bySentences(me, r, memoryRevision, signal, speech)
-    else await deliver({ id: uid(), who: me.id, name: me.name, ...r }, me, signal, take, speech, lineAhead)
-    if (session.liveOptions && !session.liveOptions.textOnly) {
+    if (bySentence) await bySentences(run, me, r, memoryRevision, signal, speech)
+    else await deliver({ id: uid(), who: me.id, name: me.name, ...r }, me, signal, take, speech, run.lineAhead)
+    if (run.liveOptions && !run.liveOptions.textOnly) {
       await take?.clip?.live?.whole
       const error = actors.get(me.id)?.voiceError
       if (error) throw new VoiceFailed(error)
@@ -257,13 +264,13 @@ export async function speakTurn(me: CharacterItem, parent: AbortSignal, audience
     if (spoke) tellSpeech({ character: me.id, scope, speaking: false, final: true, cancelled: signal.aborted || hadCut })
     turn.abort()
     signal.removeEventListener('abort', cancelPrepared)
-    if (session.currentTurn === turn) { session.currentTurn = null; set({ thinking: null }); actors.get(me.id)?.setPhase('waiting') }
+    if (run.currentTurn === turn) { run.currentTurn = null; set({ thinking: null }); actors.get(me.id)?.setPhase('waiting') }
   }
 }
 
 /** a whole reply said sentence by sentence (a chat with a model of one's own): each voice made while the one before is
  *  said, its reactions where they fall */
-async function bySentences(me: CharacterItem, r: Utterance & Pick<Line, 'memoryIds' | 'memoryRevision'>, memoryRevision: number, signal: AbortSignal, speech: LineSpeech) {
+async function bySentences(run: Run, me: CharacterItem, r: Utterance & Pick<Line, 'memoryIds' | 'memoryRevision'>, memoryRevision: number, signal: AbortSignal, speech: LineSpeech) {
   const segments = speechSegments(r.text), total = segments.reduce((sum, text) => sum + text.length, 0) || 1
   const actor = actors.get(me.id)
   let preparedVoice: Promise<Take> | undefined = actor?.prepare(segments[0], r.emotion, true, signal)
@@ -282,14 +289,14 @@ async function bySentences(me: CharacterItem, r: Utterance & Pick<Line, 'memoryI
     const start = offset / total, width = text.length / total
     const cues = r.cues?.filter((cue) => cue.at >= start && cue.at < start + width).map((cue) => ({ ...cue, at: (cue.at - start) / width }))
     const listeners = r.listeners?.filter(({ cue }) => cue.at >= start && cue.at < start + width).map((reaction) => ({ ...reaction, cue: { ...reaction.cue, at: (reaction.cue.at - start) / width } }))
-    await deliver({ id: uid(), who: me.id, name: me.name, ...r, text, cues, listeners }, me, signal, voice, speech, lineAhead)
+    await deliver({ id: uid(), who: me.id, name: me.name, ...r, text, cues, listeners }, me, signal, voice, speech, run.lineAhead)
     offset += text.length
   }
 }
 
 /** a 对谈 turn: a clip that won't play keeps its subtitle (the character shows the voice error) and the talk goes on,
  *  as it always did; the turn was already counted, so a voice that keeps failing still ends at the turn limit */
-export async function talkOn(who: CharacterItem, signal: AbortSignal) {
-  try { await speakTurn(who, signal) } catch (e) { if (!(e instanceof VoiceFailed) || signal.aborted) throw e }
+export async function talkOn(run: Run, who: CharacterItem, signal: AbortSignal) {
+  try { await speakTurn(run, who, signal) } catch (e) { if (!(e instanceof VoiceFailed) || signal.aborted) throw e }
 }
 
