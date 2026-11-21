@@ -13,7 +13,7 @@ import type { MemoryScope } from '../../memory'
 import { chance } from '../chance'
 import { clock } from '../clock'
 import { castKey, NeedModel, profiles, voices } from '../context'
-import { inbox, viewersWaiting } from '../inbox'
+import { inbox, viewersWaiting, YOURS } from '../inbox'
 import { consumeInput, sayYours, waitFor } from '../input'
 import { isCutting, looks } from '../performance'
 import { openRecord, sessionScope } from '../record'
@@ -51,7 +51,7 @@ function duet(run: Run, scope: MemoryScope, once: boolean): Policy {
       for (let i = 0; i < 60 && loading(); i++) await sleep(250, signal)
     },
     async step(signal) {
-      while (inbox.queue.length) await consumeInput(run, signal)
+      while (inbox.has(YOURS)) await consumeInput(run, signal)
       if (once) {
         // you said something on your own: one AI answer (the one named, else picked freely), and one more to what you
         // said while it answered
@@ -63,8 +63,8 @@ function duet(run: Run, scope: MemoryScope, once: boolean): Policy {
           order.forced = null
           if (!me) break
           await talkOn(run, me, signal)
-          if (!inbox.queue.length) break
-          while (inbox.queue.length) await consumeInput(run, signal)
+          if (!inbox.has(YOURS)) break
+          while (inbox.has(YOURS)) await consumeInput(run, signal)
         }
         return false
       }
@@ -74,7 +74,7 @@ function duet(run: Run, scope: MemoryScope, once: boolean): Policy {
       const who = demo ?? aheadStill(run)?.who ?? nextSpeaker()
       if (!who) throw new Error(tr("舞台上还没有会说话的角色：给角色选「AI」或「我来说」"))
       if (who.lines === 'me') {
-        const l = await waitFor(who, signal)
+        const l = await waitFor(run, who, signal)
         if (l) await sayYours(run, l, signal)
         else { order.lastTurn = who.id; order.skipped = who.id }
       } else await talkOn(run, who, signal)

@@ -4,7 +4,7 @@ import { loadBrainConfig } from '../brain'
 import { memory } from '../memory'
 import { participants, store, type CharacterItem } from '../scene'
 import type { Line } from '../core/lines'
-import { inbox } from './inbox'
+import { inbox, YOURS } from './inbox'
 import { deliver } from './performance'
 import { order, type Run } from './run'
 import { conversation, set } from './state'
@@ -21,8 +21,8 @@ export { yours as sayYours }
 export async function consumeInput(run: Run, signal: AbortSignal) {
   if (run.switching) { await run.switching; signal.throwIfAborted() }
   const scope = conversation().scope
-  const { line, transcribed } = inbox.queue.shift()!
-  if (transcribed) {
+  const { line, kind } = inbox.take(YOURS)!
+  if (kind === 'transcript') {
     if (!conversation().lines.some((entry) => entry.id === line.id)) set({ lines: [...conversation().lines, line] })
     await rememberLine(line, undefined, scope)
   } else await yours(run, line, signal, scope)
@@ -37,12 +37,13 @@ export async function rememberLine(line: Line, target?: CharacterItem, scope = c
   if (character) await memory.remember({ profileId: character.profileId ?? character.id, scope, text: remembered.trim(), sourceSessionId: conversation().sessionId, sourceLineIds: [line.id] })
 }
 
-/** your character's turn: wait for your line, or a skip */
-export function waitFor(c: CharacterItem, signal: AbortSignal) {
+/** your character's turn: wait for your line (it goes straight to the turn), or a skip */
+export function waitFor(run: Run, c: CharacterItem, signal: AbortSignal) {
   set({ waiting: c.id, as: c.id })
   return new Promise<Line | null>((resolve, reject) => {
-    const abort = () => { inbox.answer = null; set({ waiting: null }); reject(signal.reason) }
-    inbox.answer = (l) => { signal.removeEventListener('abort', abort); inbox.answer = null; set({ waiting: null }); resolve(l) }
+    const abort = () => { run.yourTurn = null; set({ waiting: null }); reject(signal.reason) }
+    const done = (l: Line | null) => { signal.removeEventListener('abort', abort); run.yourTurn = null; set({ waiting: null }); resolve(l) }
+    run.yourTurn = { said: done, skip: () => done(null) }
     signal.addEventListener('abort', abort, { once: true })
   })
 }

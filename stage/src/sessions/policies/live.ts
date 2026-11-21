@@ -20,7 +20,7 @@ import { bindAiri } from '../airiBinding'
 import { deadline, GenerationLimit, LIVE_FAILURES, RETRY_SECONDS, spent, type LiveOptions } from '../budget'
 import { clock } from '../clock'
 import { castKey, NeedModel, voices, VoiceFailed } from '../context'
-import { inbox, turnHeld, wake } from '../inbox'
+import { EVENTS, holds, inbox, turnHeld, wake, YOURS } from '../inbox'
 import { consumeInput } from '../input'
 import { looks } from '../performance'
 import { openHistory } from '../record'
@@ -54,7 +54,7 @@ export function startLive(options: LiveOptions, event: (event: ExternalEvent) =>
   const run = new Run('live'), c = run.controller
   dropAhead(lastBegun()); begin(run); followLines(run)
   run.brain = config; run.engine = makeEngine(config, airiModel)
-  inbox.viewers.clear(); inbox.queue.length = 0; inbox.external.length = 0; inbox.dialogue.clear(); inbox.activeEvent = null
+  inbox.clearViewers(); inbox.drop(YOURS); inbox.drop(EVENTS); holds.dialogue.clear()
   run.liveOptions = options
   run.boundProfiles = castKey()
   const offAiriCast = airiModel ? bindAiri(run, airiModel, cast[0], options.airi?.windowId) : undefined
@@ -131,39 +131,39 @@ function live(run: Run, options: LiveOptions, { cast, engine, gameHost, gameConf
         return false
       }
       await waitWhile(turnHeld, wake, c.signal)
-      while (inbox.queue.length) { await consumeInput(run, c.signal); replyToOwner = true }
+      while (inbox.has(YOURS)) { await consumeInput(run, c.signal); replyToOwner = true }
       c.signal.throwIfAborted()
       if (turnHeld()) return true
       const now = clock.now(), cooldown = lastReply + 6000 - now
       if (cooldown > 0 && !replyToOwner) { await wake.wait(c.signal, cooldown); return true }
       const warmupAt = options.warmupSeconds ? lastReply + options.warmupSeconds * 1000 : Infinity
       if (retryChat && isBlocked(retryChat.user)) retryChat = null
-      if (!replyToOwner && !retryChat && !inbox.activeEvent && !inbox.external.length && !inbox.viewers.available(now, isBlocked) && now < warmupAt) {
+      if (!replyToOwner && !retryChat && !run.event && !inbox.has(EVENTS) && !inbox.viewerWaiting(now, isBlocked) && now < warmupAt) {
         set({ waitingAudience: true })
         await wake.wait(c.signal, Number.isFinite(warmupAt) ? warmupAt - now : undefined)
         return true
       }
-      inbox.activeEvent ??= !replyToOwner && !retryChat ? inbox.external.shift() ?? null : null
-      const chat: Chat | null = inbox.activeEvent || (options.airi && replyToOwner) ? null : retryChat ?? inbox.viewers.take(now, isBlocked)
+      run.event ??= !replyToOwner && !retryChat ? inbox.take(EVENTS)?.event ?? null : null
+      const chat: Chat | null = run.event || (options.airi && replyToOwner) ? null : retryChat ?? inbox.takeViewer(now, isBlocked)
       const pool = voices().filter((x) => x.lines === 'ai')
-      const who = inbox.activeEvent?.character ? pool.find((x) => x.id === inbox.activeEvent!.character) : pool.find((x) => x.id === order.forced) ?? freePick(pool.filter((x) => pool.length === 1 || x.id !== order.lastTurn))
+      const who = run.event?.character ? pool.find((x) => x.id === run.event!.character) : pool.find((x) => x.id === order.forced) ?? freePick(pool.filter((x) => pool.length === 1 || x.id !== order.lastTurn))
       order.forced = null
       if (!who) throw new Error(tr("舞台上没有已就绪的 AI 角色"))
       set({ waitingAudience: false })
       const turnsBefore = conversation().turns
       try {
-        const beforeInput = inbox.epoch
+        const beforeInput = holds.epoch
         const completed = await speakTurn(run, who, c.signal, chat, replyToOwner)
         if (!completed) {
-          if (beforeInput !== inbox.epoch) { retryChat = null; replyToOwner = false; inbox.activeEvent = null }
+          if (beforeInput !== holds.epoch) { retryChat = null; replyToOwner = false; run.event = null }
           else retryChat = chat
           return true
         }
-        retryChat = null; replyToOwner = false; inbox.activeEvent = null
+        retryChat = null; replyToOwner = false; run.event = null
       } catch (e) {
         if ((engine && (gameConfig || engine.windowId)) || e instanceof NeedModel || e instanceof GenerationLimit || c.signal.aborted) throw e
         // A streamed reply may already have delivered a sentence. Retry only the input that is still unanswered.
-        if (engine ? conversation().turns !== turnsBefore : e instanceof VoiceFailed) { retryChat = null; replyToOwner = false; inbox.activeEvent = null }
+        if (engine ? conversation().turns !== turnsBefore : e instanceof VoiceFailed) { retryChat = null; replyToOwner = false; run.event = null }
         else retryChat = chat
         if (++failures >= LIVE_FAILURES) throw e
         const ms = RETRY_SECONDS[failures - 1] * 1000
@@ -191,7 +191,7 @@ function live(run: Run, options: LiveOptions, { cast, engine, gameHost, gameConf
       await closingGame
       offAiriCast?.()
       if (finish(run)) {
-        run.liveOptions = null; run.airi = null; inbox.activeEvent = null; hush(); actors.forEach((a) => a.silence())
+        run.liveOptions = null; run.airi = null; run.event = null; hush(); actors.forEach((a) => a.silence())
         set({ running: false, paused: false, thinking: null, speaking: null, waiting: null, waitingAudience: false, retryAt: 0, engine: undefined, game: undefined }); looks(null, null)
       }
     },

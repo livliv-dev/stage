@@ -7,6 +7,7 @@ import type { Engine } from '../brains/engines/types'
 import type { Chat } from '../danmaku'
 import type { ExternalEvent } from '../externalEvents'
 import type { CharacterItem } from '../scene'
+import type { Line } from '../core/lines'
 import type { AiriGameConnection } from '../../../desktop/src/airiGameProtocol'
 import type { LiveOptions } from './budget'
 
@@ -49,6 +50,10 @@ export class Run {
   lineAhead: LineAhead | undefined = undefined
   /** the line made ahead (sessions/speak.ts) */
   ahead: Ahead | null = null
+  /** the event the turn in hand answers (taken from the inbox) */
+  event: ExternalEvent | null = null
+  /** your character's turn, waiting for your line: given it, or skipped */
+  yourTurn: { said(line: Line): void; skip(): void } | null = null
   /** what runs: the characters among themselves (and a line of yours answered once), a chat, a 直播间, a call */
   readonly kind: 'conversation' | 'chat' | 'live' | 'realtime'
   constructor(kind: Run['kind']) { this.kind = kind }

@@ -11,7 +11,7 @@ import type { Line } from '../core/lines'
 import { chatLimits, counted, spent } from './budget'
 import { castKey, type RealtimeControls } from './context'
 import { begin, current, lastBegun, Run } from './run'
-import { inbox } from './inbox'
+import { inbox, YOURS } from './inbox'
 import { rememberLine } from './input'
 import { memoryIdsOf, memoryUnchanged } from './memoryGate'
 import { looks, tellSpeech } from './performance'
@@ -34,7 +34,7 @@ export async function openRealtime(controls: RealtimeControls, until: number, ch
   const scope = sessionScope(chosen)
   const run = new Run('realtime'), controller = run.controller
   dropAhead(lastBegun()); begin(run)
-  inbox.queue.length = 0; run.realtime = controls; run.boundProfiles = castKey()
+  inbox.drop(YOURS); run.realtime = controls; run.boundProfiles = castKey()
   set({ running: true, mode: 'realtime', scope, sessionId: '', lines: [], paused: false, thinking: null, speaking: null, waiting: null, waitingAudience: false, waitingInput: true,
     turns: 0, generations: 0, generationLimit: chatLimits(store.get().talk).generations, until, error: '', ended: '', needModel: false }, false)
   try {

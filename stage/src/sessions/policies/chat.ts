@@ -11,7 +11,7 @@ import { bindAiri, preferredAiriForChat } from '../airiBinding'
 import { chatLimits, deadline, GenerationLimit, spent } from '../budget'
 import { clock } from '../clock'
 import { castKey, profiles, voices } from '../context'
-import { inbox, turnHeld, wake, type ChatInput } from '../inbox'
+import { EVENTS, holds, inbox, turnHeld, wake, YOURS, yourLine, type ChatInput } from '../inbox'
 import { consumeInput } from '../input'
 import { looks } from '../performance'
 import { openRecord, sessionScope } from '../record'
@@ -41,7 +41,7 @@ export async function startChat(chosen: MemoryScope = conversation().chatScope, 
   dropAhead(lastBegun()); begin(run); followLines(run)
   run.brain = config; run.engine = makeEngine(config, preferred?.model)
   run.single = true; order.forced = target ?? null; run.boundProfiles = castKey()
-  inbox.external.length = 0; inbox.dialogue.clear(); inbox.activeEvent = null
+  inbox.drop(EVENTS); holds.dialogue.clear()
   const offAiriCast = preferred ? bindAiri(run, preferred.model, preferred.actor) : undefined
   const unbind = () => { offAiriCast?.() }
   const limits = chatLimits(store.get().talk)
@@ -56,7 +56,7 @@ export async function startChat(chosen: MemoryScope = conversation().chatScope, 
     controller.signal.throwIfAborted()
     if (firstInput) {
       if (firstInput.transcribed) set({ lines: [...conversation().lines, firstInput.line] })
-      inbox.queue.unshift(firstInput)
+      inbox.pushFirst(yourLine(firstInput))
     }
     void runSession(chat(run, unbind), controller)
   } catch (error) {
@@ -82,13 +82,13 @@ function chat(run: Run, unbind: () => void): Policy {
       signal.throwIfAborted()
       await waitWhile(turnHeld, wake, signal)
       if (spent(conversation())) return false
-      if (inbox.queue.length) {
-        while (inbox.queue.length) await consumeInput(run, signal)
+      if (inbox.has(YOURS)) {
+        while (inbox.has(YOURS)) await consumeInput(run, signal)
         requested = true; replyToOwner = true; nudges = 0
       }
       if (turnHeld()) return true
-      inbox.activeEvent = conversation().scope === 'public' && !(run.airi && replyToOwner) ? inbox.external.shift() ?? null : null
-      if (inbox.activeEvent) requested = true
+      run.event = conversation().scope === 'public' && !(run.airi && replyToOwner) ? inbox.take(EVENTS)?.event ?? null : null
+      if (run.event) requested = true
       if (order.forced) requested = true
       if (!requested) {
         set({ waitingInput: true })
@@ -101,15 +101,15 @@ function chat(run: Run, unbind: () => void): Policy {
       set({ waitingInput: false })
       const pool = voices().filter((character) => character.lines === 'ai')
       const lastHuman = [...conversation().lines].reverse().find((line) => line.human && !line.audience)
-      const speaker = pool.find((character) => character.id === (inbox.activeEvent?.character ?? order.forced))
+      const speaker = pool.find((character) => character.id === (run.event?.character ?? order.forced))
         ?? pool.find((character) => lastHuman?.text.includes(character.name)) ?? freePick(pool)
       order.forced = null
       if (!speaker) throw new Error(tr('舞台上没有已就绪的 AI 角色'))
-      const beforeInput = inbox.epoch
+      const beforeInput = holds.epoch
       const completed = await speakTurn(run, speaker, signal, null, replyToOwner)
-      requested = !completed && beforeInput === inbox.epoch
+      requested = !completed && beforeInput === holds.epoch
       replyToOwner &&= requested
-      inbox.activeEvent = null; lastReply = clock.now()
+      run.event = null; lastReply = clock.now()
       return true
     },
     done() { set({ ended: tr('已达到本次生成次数上限') }) },
@@ -121,7 +121,7 @@ function chat(run: Run, unbind: () => void): Policy {
       unbind()
       stopClock()
       if (finish(run)) {
-        run.airi = null; inbox.activeEvent = null; actors.forEach((actor) => actor.silence())
+        run.airi = null; run.event = null; actors.forEach((actor) => actor.silence())
         set({ running: false, paused: false, thinking: null, speaking: null, waitingInput: false, engine: undefined }); looks(null, null)
       }
     },

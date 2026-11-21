@@ -27,7 +27,7 @@ import { features } from './core/platform'
 import { counted, lineLimit, liveLimits, spent, type LiveOptions } from './sessions/budget'
 import { checkMemory } from './sessions/memoryGate'
 import { castKey, played, profiles, voices, type RealtimeControls } from './sessions/context'
-import { inbox, wake, type ChatInput } from './sessions/inbox'
+import { EVENTS, holds, inbox, wake, YOURS, yourLine, type ChatInput } from './sessions/inbox'
 import { clearCutting, cut, looks, onSpeech } from './sessions/performance'
 import { cancelRestore, openHistory, outputOn, restoring, sessionScope, showPublicRecord } from './sessions/record'
 import { publicSwitch } from './sessions/scope'
@@ -69,8 +69,8 @@ function goPublic() {
   if (plan === 'record') { showPublicRecord(); return }
   if (plan === 'end-call') { talk.stop(); set({ ended: tr('输出已打开，私聊通话已结束') }); return }
   if (plan !== 'session' || !run) return
-  const unsaid = inbox.queue.length
-  inbox.queue.length = 0; inbox.epoch++; dropAhead(run); interruptTurn(run)
+  const unsaid = inbox.has(YOURS)
+  inbox.drop(YOURS); holds.epoch++; dropAhead(run); interruptTurn(run)
   set({ scope: 'public', sessionId: '', lines: [], speaking: null, thinking: null, ...(unsaid ? { error: tr('输出已打开，还没说出的私聊输入已丢弃') } : {}) }, false)
   run.switching = openHistory('public', run.signal).catch((error: unknown) => {
     if (!run.signal.aborted && current() === run) { talk.stop(); set({ error: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) }) }
@@ -118,23 +118,22 @@ export const talk = {
   hearing(active = true, options: { interrupt?: boolean } = {}) {
     const run = current()
     if (!run?.realtime) {
-      inbox.hearing = active
-      if (active) { inbox.epoch++; if (options.interrupt || conversation().mode === 'chat' || run?.airi || store.get().talk.cutIn) interruptTurn(run) }
+      holds.hearing = active
+      if (active) { holds.epoch++; if (options.interrupt || conversation().mode === 'chat' || run?.airi || store.get().talk.cutIn) interruptTurn(run) }
     }
     if (active) actors.forEach((actor) => { if (actor.item.lines === 'ai') actor.setPhase('listening') })
     wake.wake()
   },
-  externalEvent(event: ExternalEvent): boolean {
+  /** another app's event (the external events API, the Neuro bridge), or a game's (`game`) */
+  externalEvent(event: ExternalEvent, kind: 'external' | 'game' = 'external'): boolean {
     const state = conversation(), airi = current()?.airi, realtime = current()?.realtime
-    if (!state.running || state.scope !== 'public' || inbox.externalSeen.has(event.id)) return false
+    if (!state.running || state.scope !== 'public' || inbox.hasSeen(event.id)) return false
     if (airi && (!state.sessionId || (event.character && event.character !== airi.actorId))) return false
     if (realtime && !realtime.event(event)) return false
-    inbox.externalSeen.add(event.id)
-    if (inbox.externalSeen.size > 512) inbox.externalSeen.delete(inbox.externalSeen.values().next().value!)
+    inbox.seenNow(event.id)
     set({ lines: [...conversation().lines, { id: uid(), who: `external:${event.source}`, name: event.source, text: event.message.slice(0, 4000), emotion: 'neutral', action: 'none', to: null, human: true, audience: true }] })
     if (realtime) return true
-    if (event.reply === 'always' || (event.reply === 'maybe' && !conversation().speaking && !conversation().thinking && !inbox.external.length)) inbox.external.push(event)
-    if (inbox.external.length > 16) inbox.external.shift()
+    if (event.reply === 'always' || (event.reply === 'maybe' && !conversation().speaking && !conversation().thinking && !inbox.has(EVENTS))) inbox.push({ kind, event })
     wake.wake(); return true
   },
   externalDialogue(event: { id: string; started: boolean; character?: string }) {
@@ -142,9 +141,9 @@ export const talk = {
       const state = conversation(), airi = current()?.airi
       if (!state.running || state.scope !== 'public') return
       if (airi && (!state.sessionId || event.character !== airi.actorId)) return
-      inbox.dialogue.add(event.id); interruptTurn(current())
-    } else inbox.dialogue.delete(event.id)
-    current()?.realtime?.pause(conversation().paused || inbox.dialogue.size > 0)
+      holds.dialogue.add(event.id); interruptTurn(current())
+    } else holds.dialogue.delete(event.id)
+    current()?.realtime?.pause(conversation().paused || holds.dialogue.size > 0)
     wake.wake()
   },
   async decideExternalAction(request: ExternalActionRequest, incoming: AbortSignal) {
@@ -155,7 +154,7 @@ export const talk = {
     const actor = participants(store.get()).find((character) => character.id === request.character && character.lines === 'ai' && !character.remote)
     if (!actor) throw new Error(tr('先选择一个 AI 角色'))
     const signal = AbortSignal.any([run.signal, incoming, AbortSignal.timeout(45000)])
-    inbox.decisions++
+    holds.decisions++
     try {
       if (request.priority === 'critical' || request.priority === 'high') interruptTurn(run)
       while (current()?.currentTurn) await sleep(40, signal)
@@ -172,7 +171,7 @@ export const talk = {
       signal.throwIfAborted()
       if (conversation().paused) throw new Error(tr('会话已暂停或达到生成上限'))
       return action
-    } finally { inbox.decisions--; wake.wake() }
+    } finally { holds.decisions--; wake.wake() }
   },
   async playGame(instruction: string) {
     const run = current(), airi = run?.airi, game = airi?.game, host = desktop?.airiGame, parent = run?.controller, sessionId = conversation().sessionId
@@ -209,7 +208,7 @@ export const talk = {
       const text = airiGameText(await host.execute(game.id, decision))
       if (current()?.airi !== airi || airi.game !== game || parent.signal.aborted) return
       if (conversation().game?.status === 'submitting') set({ game: { name: game.game, status: game.game === 'minecraft' ? 'playing' : 'ready', text } })
-      talk.externalEvent({ id: uid(), source: gameName(game.game), message: text, character: actor.id, reply: 'never' })
+      talk.externalEvent({ id: uid(), source: gameName(game.game), message: text, character: actor.id, reply: 'never' }, 'game')
     } catch (error) {
       if (current()?.airi === airi && airi.game === game && !parent.signal.aborted) {
         set({ game: { name: game.game, status: 'ready', text: airiGameError(error) } })
@@ -231,26 +230,26 @@ export const talk = {
   },
   startLive(options: LiveOptions) {
     if (conversation().running) return
-    void startLive(liveLimits(options), talk.externalEvent)
+    void startLive(liveLimits(options), (event) => talk.externalEvent(event, 'game'))
   },
   /** the line being said finishes, then they wait */
   pause() { if (conversation().running) { set({ paused: true }); current()?.realtime?.pause(true); wake.wake() } },
-  resume() { set({ paused: false }); current()?.realtime?.pause(inbox.dialogue.size > 0); wake.wake() },
+  resume() { set({ paused: false }); current()?.realtime?.pause(holds.dialogue.size > 0); wake.wake() },
   stop() {
     cancelRestore()
-    inbox.hearing = false; inbox.activeEvent = null
     const run = current()
+    holds.hearing = false; if (run) run.event = null
     if (run) { run.offRealtimeHistory(); run.offRealtimeHistory = () => {} }
     run?.realtime?.interrupt()
     const realtime = run?.realtime; if (run) run.realtime = null; realtime?.stop()
     interruptTurn(run); run?.controller.abort(); clearCurrent(); if (run) { run.liveOptions = null; run.airi = null }
-    inbox.queue.length = 0; inbox.external.length = 0; inbox.dialogue.clear(); clearCutting()
+    inbox.drop(YOURS); inbox.drop(EVENTS); holds.dialogue.clear(); clearCutting()
     dropAhead(run)
     hush(); actors.forEach((a) => a.silence())
     set({ running: false, paused: false, thinking: null, speaking: null, waitingInput: false, waiting: null, waitingAudience: false, retryAt: 0, ended: conversation().mode === 'live' ? tr("已手动停止") : '', engine: undefined, game: undefined })
     looks(null, null)
   },
-  clear() { talk.stop(); inbox.viewers.clear(); order.lastTurn = null; chatHistory.invalidate(); set({ lines: [], turns: 0, error: '' }) },
+  clear() { talk.stop(); inbox.clearViewers(); order.lastTurn = null; chatHistory.invalidate(); set({ lines: [], turns: 0, error: '' }) },
   setLimit(n: number) { set({ limit: lineLimit(n) }) },
   setGap(s: number) { set({ gap: Math.max(0, Math.min(3, s)) }) },
   /** who you speak as: a character you play, or 'narrator' */
@@ -271,15 +270,15 @@ export const talk = {
     void startDuet(true)
   },
   /** your character's turn passes */
-  skip() { inbox.answer?.(null) },
+  skip() { current()?.yourTurn?.skip() },
   /** on to the next line now: your turn skipped, the line being said cut off, or the pause ended */
   next() {
     const run = current()
     if (run?.realtime) { run.realtime.interrupt(); return }
     if (!conversation().running) { talk.start(); return }
-    if (run?.airi && run.currentTurn) { inbox.epoch++; interruptTurn(run); return }
+    if (run?.airi && run.currentTurn) { holds.epoch++; interruptTurn(run); return }
     const speaking = conversation().speaking
-    if (inbox.answer) inbox.answer(null)
+    if (run?.yourTurn) run.yourTurn.skip()
     else if (speaking) cut(speaking.id, true, run?.lineAhead)
     else if (conversation().mode === 'chat') { order.forced = voices().find((character) => character.lines === 'ai')?.id ?? null; wake.wake() }
     else run?.hurry?.()
@@ -293,7 +292,7 @@ export const talk = {
     if (c.lines === 'me') { set({ as: c.id }); return }
     order.forced = c.id
     if (!conversation().running) void startDuet(true)
-    else if (!conversation().speaking && !inbox.answer) { current()?.hurry?.(); wake.wake() }
+    else if (!conversation().speaking && !current()?.yourTurn) { current()?.hurry?.(); wake.wake() }
   },
   /** a line of yours. With nothing running, in the desktop app or asked for (chat: 和角色聊天's first line), it starts
    *  a chat with this line as its first input; elsewhere it starts the characters talking. On your character's turn it
@@ -317,11 +316,11 @@ export const talk = {
     }
     if (options.transcribed || options.respond === false) set({ lines: [...conversation().lines, line] })
     if (options.respond === false) return
-    if (inbox.answer) { inbox.answer(line); return }
-    inbox.queue.push({ line, transcribed: options.transcribed === true })
+    if (run?.yourTurn) { run.yourTurn.said(line); return }
+    inbox.push(yourLine({ line, transcribed: options.transcribed === true }))
     wake.wake()
     if (!conversation().running) { void startDuet(true); return }
-    if (current()?.airi) inbox.epoch++
+    if (current()?.airi) holds.epoch++
     if (conversation().mode === 'chat' || current()?.airi || store.get().talk.cutIn) interruptTurn(current())
   },
 }

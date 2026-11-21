@@ -20,7 +20,7 @@ import { personaOf } from '../brains/persona'
 import { counted, GenerationLimit, spend, spent, turnLimit as linesFor } from './budget'
 import { chance } from './chance'
 import { castKey, NeedModel, played, TURN_INTERRUPTED, voices, VoiceFailed } from './context'
-import { inbox, someViewer, speechHeld, wake } from './inbox'
+import { holds, inbox, someViewer, speechHeld, wake, YOURS } from './inbox'
 import { checkMemory, memoryIdsOf } from './memoryGate'
 import { across, freePick as pickFree, nextSpeaker as speakerAfter } from './order'
 import { cut, deliver, takeCutting, tellSpeech, type LineSpeech } from './performance'
@@ -82,7 +82,7 @@ async function makeLine(run: Run, me: CharacterItem, signal: AbortSignal, audien
   const used = conversationContext(context.lines, context.summary)
   const memoryIds = memoryIdsOf(context)
   const request = turnRequest(me, cast, { lines: context.lines, summary: context.summary, memories: context.memories, viewer: chat && { user: chat.user, text: chat.text },
-    event: inbox.activeEvent ?? undefined, replyToOwner: false },
+    event: run.event ?? undefined, replyToOwner: false },
     { cutIn, voiced, allowBatch: false })
   const answer: Utterance[] = []
   for await (const said of engine.reply(request, signal)) answer.push(said)
@@ -112,13 +112,13 @@ type Made = Awaited<ReturnType<typeof makeLine>>
 export function dropAhead(run: Run | null) {
   const ahead = run?.ahead
   if (!run || !ahead) return
-  if (ahead.chat) inbox.viewers.putBack(ahead.chat)
+  if (ahead.chat) inbox.putBack(ahead.chat)
   ahead.ctl.abort(); run.ahead = null
 }
 
 function makeAhead(run: Run) {
   const t = store.get().talk, last = conversation().lines.at(-1)
-  if (conversation().mode !== 'conversation' || run.ahead || current() !== run || run.single || !last || inbox.queue.length || conversation().turns >= turnLimit()) return
+  if (conversation().mode !== 'conversation' || run.ahead || current() !== run || run.single || !last || inbox.has(YOURS) || conversation().turns >= turnLimit()) return
   const cfg = run.brain
   if (!brainReady(cfg) || (cfg.kind !== 'demo' && t.interrupt)) return
   const who = cfg.kind === 'demo' ? demoSpeaker(voices(), conversation().lines) : nextSpeaker()
@@ -158,7 +158,7 @@ function addViewer(chat: Chat | null | undefined) {
 async function streamedTurn(run: Run, me: CharacterItem, chat: Chat | null | undefined, replyToOwner: boolean, signal: AbortSignal, onStart: () => void, onEnd: (cancelled: boolean) => void) {
   const airi = run.airi, engine = run.engine!
   const actor = actors.get(me.id), profile = me.profileId ?? me.id
-  const { sessionId, scope } = conversation(), windowId = airi?.windowId, event = inbox.activeEvent
+  const { sessionId, scope } = conversation(), windowId = airi?.windowId, event = run.event
   if (!airi || airi.actorId !== me.id || !sessionId || actor?.status !== 'ready' || run.boundProfiles !== castKey()) throw new Error(tr('参与角色已改变，请重新开始会话'))
   if (spent(conversation())) throw new GenerationLimit()
   const context = await chatHistory.context(profile, conversation().lines, scope)
@@ -222,7 +222,7 @@ async function streamedTurn(run: Run, me: CharacterItem, chat: Chat | null | und
 export async function speakTurn(run: Run, me: CharacterItem, parent: AbortSignal, audience?: Chat | null, replyToOwner = false) {
   parent.throwIfAborted()
   if (run.switching) { await run.switching; parent.throwIfAborted() }
-  await waitWhile(() => inbox.dialogue.size > 0 || inbox.decisions > 0 || inbox.hearing, wake, parent)
+  await waitWhile(() => holds.dialogue.size > 0 || holds.decisions > 0 || holds.hearing, wake, parent)
   const model = run.airi?.model ?? run.brain
   const scope = conversation().scope
   if (!brainReady(model)) throw new NeedModel()
@@ -293,7 +293,7 @@ async function bySentences(run: Run, me: CharacterItem, r: Utterance & Pick<Line
   for (let i = 0; i < segments.length; i++) {
     const text = segments[i]
     signal.throwIfAborted()
-    await waitWhile(() => conversation().paused || inbox.dialogue.size > 0, wake, signal)
+    await waitWhile(() => conversation().paused || holds.dialogue.size > 0, wake, signal)
     const voice = await preparedVoice
     signal.throwIfAborted()
     await checkMemory(memory, me.profileId ?? me.id, conversation().scope, memoryRevision)
