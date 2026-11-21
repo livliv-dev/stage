@@ -6,17 +6,18 @@ import { chooseEngine } from '../brains/select'
 import { features } from '../core/platform'
 import { participants, store, type CharacterItem } from '../scene'
 import { voiceRoute } from '../voiceApi'
-import { castKey, session } from './context'
+import { castKey } from './context'
+import { current, type Run } from './run'
 import { set } from './state'
 
 /** binds the session to AIRI with this model and character; the function returned unbinds it */
-export function bindAiri(controller: AbortController, model: ModelConfig, actor: CharacterItem, windowId = '') {
-  session.airi = { model: { ...model }, actorId: actor.id, windowId }
+export function bindAiri(run: Run, model: ModelConfig, actor: CharacterItem, windowId = '') {
+  run.airi = { model: { ...model }, actorId: actor.id, windowId }
   return store.subscribe(() => {
-    if (session.ctrl !== controller || controller.signal.aborted) return
+    if (current() !== run || run.signal.aborted) return
     const cast = participants(store.get()).filter((character) => character.lines === 'ai')
-    if (cast.length === 1 && cast[0].id === actor.id && !cast[0].remote && cast[0].name === actor.name && session.boundProfiles === castKey()) return
-    controller.abort()
+    if (cast.length === 1 && cast[0].id === actor.id && !cast[0].remote && cast[0].name === actor.name && run.boundProfiles === castKey()) return
+    run.controller.abort()
     set({ ended: tr('角色已切换，本次 AIRI 会话已停止') })
   })
 }

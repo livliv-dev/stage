@@ -9,8 +9,9 @@ import { memory, type MemoryScope } from '../memory'
 import { store, type CharacterItem } from '../scene'
 import type { Line } from '../core/lines'
 import { chatLimits, counted, spent } from './budget'
-import { castKey, session, type RealtimeControls } from './context'
-import { inbox } from './inbox'
+import { castKey, type RealtimeControls } from './context'
+import { begin, current, lastBegun, Run } from './run'
+import { inbox, YOURS } from './inbox'
 import { rememberLine } from './input'
 import { memoryIdsOf, memoryUnchanged } from './memoryGate'
 import { looks, tellSpeech } from './performance'
@@ -31,8 +32,9 @@ export type RealtimeSession = {
 export async function openRealtime(controls: RealtimeControls, until: number, character: CharacterItem, chosen: MemoryScope, stop: () => void): Promise<RealtimeSession | null> {
   if (conversation().running) return null
   const scope = sessionScope(chosen)
-  const controller = new AbortController(); session.ctrl = controller
-  dropAhead(); inbox.queue.length = 0; session.realtime = controls; session.boundProfiles = castKey(); session.liveOptions = null
+  const run = new Run('realtime'), controller = run.controller
+  dropAhead(lastBegun()); begin(run)
+  inbox.drop(YOURS); run.realtime = controls; run.boundProfiles = castKey()
   set({ running: true, mode: 'realtime', scope, sessionId: '', lines: [], paused: false, thinking: null, speaking: null, waiting: null, waitingAudience: false, waitingInput: true,
     turns: 0, generations: 0, generationLimit: chatLimits(store.get().talk).generations, until, error: '', ended: '', needModel: false }, false)
   try {
@@ -42,7 +44,7 @@ export async function openRealtime(controls: RealtimeControls, until: number, ch
     controller.signal.throwIfAborted()
     const used = conversationContext(context.lines, context.summary)
     const memoryIds = memoryIdsOf(context)
-    const mine = () => session.realtime === controls
+    const mine = () => run.realtime === controls && current() === run
     const call: RealtimeSession = {
       context: { earlier: used.earlier, history: used.history, memories: context.memories.map(({ id, text }) => ({ id, text })) },
       line(line, complete = true) {
@@ -73,7 +75,7 @@ export async function openRealtime(controls: RealtimeControls, until: number, ch
       end(error = '', reason = '') { if (mine()) { stop(); set({ error, ended: reason }) } },
     }
     const sessionId = conversation().sessionId
-    session.offRealtimeHistory = memory.subscribe(() => {
+    run.offRealtimeHistory = memory.subscribe(() => {
       void Promise.all([memoryUnchanged(memory, character.profileId ?? character.id, scope, context.revision), memory.session(sessionId)]).then(([unchanged, saved]) => {
         if (!mine()) return
         if (!saved) call.end('', tr('对话记录已删除，请重新开始实时通话'))
@@ -82,7 +84,7 @@ export async function openRealtime(controls: RealtimeControls, until: number, ch
     })
     return call
   } catch (error) {
-    if (session.realtime === controls) {
+    if (current() === run) {
       set({ error: tr('对话未保存：{0}', error instanceof Error ? error.message : String(error)) })
       stop()
     }

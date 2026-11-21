@@ -7,7 +7,7 @@ import type { ReactionCue } from './reactions'
 import type { CharacterItem, Talk } from './scene'
 import type { AiriGameFrame, AiriGameMessage } from '../../desktop/src/airiGameProtocol'
 import { aiFetch } from './brain'
-import { airiIdentity, personaOf } from './brains/persona'
+import { airiIdentity, personaOf, type PersonaSpec } from './brains/persona'
 import { parseAiriMarkers } from './airiMarkers'
 import { tr } from './i18n'
 
@@ -29,6 +29,8 @@ export type AiriTurn = {
   sessionId: string
   scope: MemoryScope
   actor: CharacterItem
+  /** who the character is for this turn (brains/persona.ts); its card in the turn's language and scope when left out */
+  persona?: PersonaSpec
   model: ModelConfig
   lines: Line[]
   context: { topic: string; game?: string; summary?: string; memories: MemoryRecord[] }
@@ -223,7 +225,7 @@ export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
         signal.throwIfAborted()
         const speech = spoken(core, signal, output)
         // the persona, once for this turn
-        const who = identity(turn.actor, turn.language, turn.scope)
+        const who = turn.persona ? airiIdentity(turn.persona) : identity(turn.actor, turn.language, turn.scope)
         if (turn.event) {
           await notify(core, turn, turn.event, signal, speech, who)
         } else {

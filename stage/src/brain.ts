@@ -20,12 +20,14 @@ import { LENGTHS, type CharacterItem, type Talk } from './scene'
 import { conversationContext, type ConversationSummary } from './chatContext'
 import { readListenerReactions, readReactionCues } from './reactions'
 import { asEmotion, asMove, type Line, type Reply } from './core/lines'
-import { brainPersona, personaOf } from './brains/persona'
+import { brainPersona, personaOf, type PersonaSpec } from './brains/persona'
 import type { ExternalActionDecision, ExternalActionRequest } from './externalEvents'
 
 /** role: in host order, whether it hosts or is a guest; cutIn: it is cutting into the line before */
 export type Ask = {
   me: CharacterItem; others: CharacterItem[]; humans: string[]; topic: string; lines: Line[]
+  /** who the speaker is for this turn (brains/persona.ts); its card in the ask's language and scope when left out */
+  persona?: PersonaSpec
   /** who stands where on the stage, from the left (the speaker among them) */
   layout: string[]
   role: 'host' | 'guest' | null; cutIn: boolean; language: Talk['language']
@@ -267,7 +269,7 @@ export function prompt(a: Ask) {
   const chars = (LENGTHS.find((l) => l.id === a.me.length)?.chars ?? 60) * (a.depth === 'discussion' ? 3 : 1), said = spoken(a)
   return [
     // who it is, this turn (brains/persona.ts)
-    ...brainPersona(personaOf(a.me, a.language, a.scope ?? 'public'), said),
+    ...brainPersona(a.persona ?? personaOf(a.me, a.language, a.scope ?? 'public'), said),
     people.length ? `同框的还有：${people.join('；')}。` : '',
     a.layout.length > 1 ? `舞台上从左到右站着：${a.layout.join('、')}（你是「${a.me.name}」）。需要时可以用方位称呼别人（左边的、旁边的）。` : '',
     a.topic ? `今天的话题：${a.topic}` : '没有固定话题，随便聊。',

@@ -28,7 +28,8 @@ For a change to the interface, also run `npm --prefix stage run test:browser` an
 chromium-headless-shell`). Every pull request runs all of them in GitHub Actions.
 
 For a change to how sessions run (`stage/src/sessions/`: the runner, its policies, the inbox and the speak path;
-`stage/src/brains/`, its engines included; the `talk.*` facade in `stage/src/conversation.ts`), also run
+`stage/src/brains/`, its engines included; the `talk.*` facade in `stage/src/conversation.ts`), the runner and the
+policies have unit tests that run without a browser (`stage/test/runner.test.ts`, against a fake stage). Also run
 `npm --prefix stage run test:traces`, which compares what every way of starting a session does with
 `stage/test/traces/`, and `test:prompts`, which compares the persona prompts word for word with `stage/test/prompts/`.
 Their files change only on purpose: `-- --update` writes them anew, and the diff belongs in the pull request.

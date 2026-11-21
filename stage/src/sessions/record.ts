@@ -4,7 +4,8 @@ import { tr } from '../i18n'
 import { loadBrainConfig } from '../brain'
 import { chatHistory } from '../chatHistory'
 import type { MemoryScope } from '../memory'
-import { profiles, session } from './context'
+import { profiles } from './context'
+import type { Run } from './run'
 import { outputsNow } from './outputs'
 import { scopeFor } from './scope'
 import { conversation, set, showRecord } from './state'
@@ -50,10 +51,10 @@ export function showPublicRecord() {
 
 /** opens a starting session's record; an output coming on meanwhile opens the public one instead (the facade's
  *  goPublic) */
-export async function openRecord(scope: MemoryScope, signal: AbortSignal) {
+export async function openRecord(run: Run, scope: MemoryScope, signal: AbortSignal) {
   try { await openHistory(scope, signal) }
   catch (error) {
-    if (signal.aborted || !session.switching) throw error
-    await session.switching; signal.throwIfAborted()
+    if (signal.aborted || !run.switching) throw error
+    await run.switching; signal.throwIfAborted()
   }
 }

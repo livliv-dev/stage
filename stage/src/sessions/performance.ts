@@ -10,7 +10,8 @@ import type { Line } from '../core/lines'
 import type { MemoryScope } from '../memory'
 import { chance } from './chance'
 import { clock } from './clock'
-import { session, voices, VoiceFailed } from './context'
+import { voices, VoiceFailed } from './context'
+import { order, type LineAhead } from './run'
 import { conversation, set } from './state'
 import { sleep } from './wake'
 
@@ -20,9 +21,6 @@ const speechListeners = new Set<(event: SpeechEvent) => void>()
 export function onSpeech(listener: (event: SpeechEvent) => void) { speechListeners.add(listener); return () => { speechListeners.delete(listener) } }
 export const tellSpeech = (event: SpeechEvent) => speechListeners.forEach((listener) => listener(event))
 
-/** what saying a line does to the line made ahead, given by the speak path (sessions/speak.ts lineAhead): an AI line
- *  on lets the next be made meanwhile; a line cut off drops what was made to follow it */
-export type LineAhead = { started(): void; dropped(): void }
 
 /** the next AI line cuts into the one before */
 let cutting = false
@@ -129,7 +127,7 @@ export async function deliver(line: Line, c: CharacterItem | null, signal: Abort
   if (speech) await speech.beforeStart()
   signal.throwIfAborted()
   if (line.human && conversation().scope !== scope) return
-  session.lastTurn = c?.id ?? session.lastTurn; session.skipped = null
+  order.lastTurn = c?.id ?? order.lastTurn; order.skipped = null
   line = { ...line, seconds }
   set({ speaking: line, lines: [...conversation().lines, line] })
   if (c && !line.human) { speech?.onStart(); tellSpeech({ character: c.id, scope, speaking: true, final: false }) }
