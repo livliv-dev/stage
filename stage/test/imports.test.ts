@@ -5,9 +5,8 @@ import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 
-// Imports in stage/src go one way. The only cycle left is the session runtime's (a conversation records, a recording
-// listens to the conversation, a take draws the stage): a session runner that sends events to the outputs removes it.
-const KNOWN = ['conversation', 'paint', 'recording', 'render', 'tape']
+// Imports in stage/src go one way, with no cycle at all: the session runner's outputs (a recording, the output window)
+// listen to the session's state; nothing in the session imports them.
 
 const src = fileURLToPath(new URL('../src', import.meta.url))
 const sources = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -50,10 +49,10 @@ function cycles(graph: Map<string, string[]>): string[][] {
   return found
 }
 
-test('stage/src has no import cycle but the session runtime\'s', () => {
+test('stage/src has no import cycle', () => {
   const files = sources(src), graph = new Map(files.map((file) => [file, importsOf(file)]))
   assert.ok(files.length > 80, `the scan found the sources (${files.length})`)
   const name = (file: string) => relative(src, file).replace(/\.tsx?$/, '')
   const found = cycles(graph).map((group) => group.map(name).sort())
-  assert.deepEqual(found, [KNOWN], 'modules that import each other: ' + JSON.stringify(found))
+  assert.deepEqual(found, [], 'modules that import each other: ' + JSON.stringify(found))
 })
