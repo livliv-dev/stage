@@ -270,7 +270,7 @@ export function prompt(a: Ask) {
   const chars = (LENGTHS.find((l) => l.id === a.me.length)?.chars ?? 60) * (a.depth === 'discussion' ? 3 : 1), said = spoken(a)
   return [
     // who it is, this turn (brains/persona.ts)
-    ...brainPersona(a.persona ?? personaOf(a.me, a.language, a.scope ?? 'public'), said),
+    ...brainPersona(a.persona ?? personaOf(a.me, a.language, a.scope ?? 'public'), said, !a.lines.length && !a.summary),
     people.length ? `同框的还有：${people.join('；')}。` : '',
     a.layout.length > 1 ? `舞台上从左到右站着：${a.layout.join('、')}（你是「${a.me.name}」）。需要时可以用方位称呼别人（左边的、旁边的）。` : '',
     a.topic ? `今天的话题：${a.topic}` : '没有固定话题，随便聊。',

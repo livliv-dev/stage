@@ -31,6 +31,7 @@ import { keysOf, MOVE_KEYS } from './characterKeys'
 import { modeOf } from './control'
 import { readReactionSettings, type ReactionFeeling } from './reactions'
 import { showCardPage, useCardPage } from './shell/cardPage'
+import { CardImport } from './CardImport'
 
 const settingsLabel = (item?: Item) => tr(item ? ({ character: '角色设置', subtitle: '字幕设置', text: '文字设置', image: '图片设置' })[item.kind] : '舞台设置')
 
@@ -242,12 +243,16 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
       {!hasBubble && <button className="link" onClick={() => store.add(bubbleFor(c))}>{tr("给它加一个字幕气泡")}</button>}
     </Section>
   const persona = <Section title={tr('人设与风格')}>
+        <CardImport key={c.id} c={c} patch={patch} />
         <label className="field spaced"><span>{tr("人设")}</span>
           {/* its example lines go with the card as written */}
           <textarea rows={3} value={c.persona} placeholder={tr("她是谁、怎么说话，一两句就够")} onChange={(e) => patch({ persona: e.target.value, examples: undefined })} />
         </label>
         {c.style !== undefined && <label className="field"><span>{tr("说话风格")}</span>
           <textarea rows={3} value={c.style} onChange={(e) => patch({ style: e.target.value, examples: undefined })} />
+        </label>}
+        {c.greeting !== undefined && <label className="field"><span>{tr('开场白')}</span>
+          <textarea rows={2} maxLength={400} value={c.greeting} placeholder={tr('没人说话时，它开口的第一句')} onChange={(e) => patch({ greeting: e.target.value })} />
         </label>}
         <label className="field"><span>{tr('关系设定')}</span><textarea rows={2} maxLength={2000} value={c.relationship ?? ''} placeholder={tr('与操作者和观众是什么关系')} onChange={(event) => patch({ relationship: event.target.value })} /></label>
         <label className="field"><span>{tr('立场与兴趣')}</span><textarea rows={2} maxLength={2000} value={c.stance ?? ''} placeholder={tr('角色坚持的观点、感兴趣的事')} onChange={(event) => patch({ stance: event.target.value })} /></label>
