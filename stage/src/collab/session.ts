@@ -28,6 +28,17 @@ function membersFrom(raw: unknown, limit = MAX_MEMBERS): Member[] {
   return members.map((member) => ({ ...member, name: personName(member.name) }))
 }
 
+/** the channel open, waiting while it connects; false once it is closing or closed */
+function opened(channel: RTCDataChannel, signal: AbortSignal): Promise<boolean> {
+  if (channel.readyState === 'open') return Promise.resolve(true)
+  if (channel.readyState !== 'connecting') return Promise.resolve(false)
+  return new Promise((resolve) => {
+    const done = (value: boolean) => { channel.removeEventListener('open', yes); channel.removeEventListener('close', no); signal.removeEventListener('abort', no); resolve(value) }
+    const yes = () => done(true), no = () => done(false)
+    channel.addEventListener('open', yes, { once: true }); channel.addEventListener('close', no, { once: true }); signal.addEventListener('abort', no, { once: true })
+  })
+}
+
 class Session {
   private socket: WebSocket
   private controller = new AbortController()
@@ -139,7 +150,11 @@ class Session {
     }
     if (channel.label !== 'model' || peer.stateChannel) { channel.close(); return }
     peer.stateChannel = channel; channel.binaryType = 'arraybuffer'
-    channel.onopen = () => { void this.share(peer) }
+    // shared once, when the channel opens; one announced by the other side may be open already
+    let shared = false
+    const share = () => { if (!shared) { shared = true; void this.share(peer) } }
+    channel.onopen = share
+    if (channel.readyState === 'open') queueMicrotask(share)
     channel.onmessage = (event) => {
       if (this.stopped || peer.status.phase === 'error') return
       try {
@@ -170,6 +185,9 @@ class Session {
       this.asset ??= packageFor(this.character(), this.controller.signal)
       const value = await this.asset
       if (this.stopped || peer.asset.signal.aborted) return
+      // the package can take longer to make than the channel to change: send on an open channel only (one that has
+      // closed says so itself, and the peer is set up again when the friend comes back)
+      if (!await opened(peer.stateChannel!, peer.asset.signal)) return
       await sendPackage(peer.stateChannel!, value, peer.asset.signal)
       // A paused or backgrounded publisher may not draw another frame after joining.
       if (!this.stopped && !peer.asset.signal.aborted && this.actor?.status === 'ready') peer.stateChannel!.send(JSON.stringify({ t: 'pose', pose: this.actor.lastPose }))
