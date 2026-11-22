@@ -110,7 +110,8 @@ const server = createServer(async (req, res) => {
       } else if (JSON.stringify(last).includes('Recall my private detail')) {
         assert.deepEqual(tools, ['builtIn_readMemory'])
         assert.doesNotMatch(prompt, /APRICOT771/)
-        const id = prompt.match(/\b(m\d+) Private setting for Rally Nana/)?.[1]
+        const system = body.messages.find(({ role }) => role === 'system')?.content ?? ''
+        const id = system.match(/^(m\d+) Private setting for Rally Nana/m)?.[1]
         assert.ok(id, 'The memory index gives the entry a short id')
         return call(res, 'builtIn_readMemory', { ids: [id] })
       } else event(res, 'I have your note.')
