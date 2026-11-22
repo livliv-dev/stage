@@ -113,7 +113,7 @@ function beforeApp({ desktop, signedIn }) {
         return
       }
       const payload = JSON.parse(sent.messages[1].content), system = sent.messages[0].content
-      push({ t: 'model', engine: 'openai', speaker: payload.speaker, scope: system.includes('正在与用户和在场角色聊天') ? 'private' : 'public', memories: memoriesIn(JSON.stringify(payload.memories ?? [])),
+      push({ t: 'model', engine: 'openai', speaker: payload.speaker, scope: system.includes('正在与用户和在场角色聊天') ? 'private' : 'public', memories: trace.memories.filter((m) => (payload.memories ?? []).some((text) => text === m.text)).map((m) => m.label),
         ...(payload.viewer ? { viewer: `${payload.viewer.user}: ${payload.viewer.text}` } : {}), ...(payload.event ? { event: payload.event.message } : {}) })
     } else if (path === '/fixture-ai/audio/speech') push({ t: 'voice', via: 'api', text: JSON.parse(body).input })
     else if (/^\/api\/chat\/[^/]+\/say$/.test(path)) push({ t: 'voice', via: 'livliv', text: JSON.parse(body).lines.map((line) => line.text).join(' ') })

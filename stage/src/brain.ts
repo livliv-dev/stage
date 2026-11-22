@@ -21,6 +21,7 @@ import { LENGTHS, type CharacterItem, type Talk } from './scene'
 import { conversationContext, type ConversationSummary } from './chatContext'
 import { readListenerReactions, readReactionCues } from './reactions'
 import { asEmotion, asMove, type Line, type Reply } from './core/lines'
+import { memoryBrief } from './brains/memoryBrief'
 import { brainPersona, personaOf, type PersonaSpec } from './brains/persona'
 import type { ExternalActionDecision, ExternalActionRequest } from './externalEvents'
 
@@ -311,7 +312,9 @@ class OpenAIBrain implements Brain {
     const context = conversationContext(a.lines, a.summary)
     const j = await complete(this.c, [
       { role: 'system', content: prompt(a) },
-      { role: 'user', content: JSON.stringify({ history: context.history || '还没有人说话，你来开场', earlier: context.earlier, memories: a.memories ?? [], viewer: a.viewer, event: a.event, speaker: a.me.name }) },
+      // what changes least first (memories, then the summary), then the conversation as it grows, then this turn's: the
+      // start of the call stays the same from turn to turn for the provider's cache (brains/memoryBrief.ts)
+      { role: 'user', content: JSON.stringify({ memories: memoryBrief(a.memories), earlier: context.earlier, history: context.history || '还没有人说话，你来开场', viewer: a.viewer, event: a.event, speaker: a.me.name }) },
     ], context.updateSummary ? 1600 : a.depth === 'discussion' ? 900 : 600, signal, 0.9)
     return parse(j?.choices?.[0]?.message?.content ?? '', a)
   }
