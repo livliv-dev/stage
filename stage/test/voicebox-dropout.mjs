@@ -128,7 +128,7 @@ try {
   await page.evaluate(async () => { const { saveSpeech, SPEECH_OFF } = await import('/src/voiceApi.ts'); saveSpeech(SPEECH_OFF) })
   await page.waitForFunction(() => !window.pttState().automatic)
   await speak(800)
-  assert.match((await ptt()).error, /已停止听你说话，不会改用积分识别/)
+  assert.match((await ptt()).error, /语音识别停了，已停止听你说话/)
   assert.deepEqual(paid, [], 'no LivLiv recognition')
   await page.evaluate(() => window.__stage.talk.stop())
   assert.deepEqual(errors, [])

@@ -242,7 +242,7 @@ onMixer(() => {
 export const clearError = () => { if (state.error) set({ error: '' }) }
 /** nothing can hear you any more (your own recognition gone, livliv.ai's voices off or started without): hands-free
  *  stops, and says why */
-export function stopHearing() { cancel(); set({ error: tr('自己的语音识别不可用了：已停止听你说话，不会改用积分识别') }) }
+export function stopHearing() { cancel(); set({ error: tr('语音识别停了，已停止听你说话') }) }
 export const togglePtt = () => state.automatic ? press(true) : state.phase === 'recognizing' ? cancel() : state.phase === 'idle' ? press(true) : release()
 
 export function holdKey() {

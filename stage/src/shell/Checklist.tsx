@@ -48,7 +48,7 @@ function CheckRow({ check, onFix, test }: { check: Check; onFix?: () => void; te
   const icon = check.state === 'ok' ? <Tick size={12} /> : check.state === 'todo' ? <CircleAlert size={12} /> : check.state === 'warn' ? <CircleAlert size={12} /> : <Minus size={12} />
   return <li className={`check ${check.state}`}>
     <i aria-hidden="true">{icon}</i>
-    <span className="check-text"><b>{tr(check.label)}{check.desktop && <span className="desk-tag">{tr('桌面版')}</span>}</b><small>{tr(check.detail)}</small>
+    <span className="check-text"><b>{tr(check.label)}{check.desktop && <span className="desk-tag">{tr('桌面版')}</span>}</b>{check.detail && <small>{tr(check.detail)}</small>}
       {check.link && <a className="check-link" href={check.link.url} target="_blank" rel="noreferrer">{tr(check.link.label)}<ExternalLink size={11} /></a>}
       {st.err && <small className="error" role="alert">{st.err}</small>}{st.ok && <small className="ok" role="status">{st.ok}</small>}</span>
     {test && check.state !== 'off' && <button disabled={st.busy} onClick={() => void go()}>{st.busy ? <LoaderCircle size={13} className="spin" /> : null}{tr('测试')}</button>}
@@ -69,13 +69,13 @@ async function testItem(id: CheckId, signal: AbortSignal): Promise<string> {
     const a = ai.map((c) => actors.get(c.id)).find((x) => x?.status === 'ready')
     if (!a) throw new Error(tr('角色载入后可试听。'))
     const take = await a.prepare(tr('你好，我是{0}。', a.item.name), 'happy', true, signal)
-    if (take.mute) throw new Error(a.voiceError || tr('角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕'))
+    if (take.mute) throw new Error(a.voiceError || tr('角色还没有声音，在角色卡里选一个'))
     await a.perform(take, 'happy', 'nod', signal)
     return tr('{0} 说完了', a.item.name)
   }
   const me = participants(store.get()).find((c) => c.lines === 'me'), a = me && actors.get(me.id)
   if (!a) throw new Error(tr('先放一个「我来演」的角色'))
-  if (!a.canCalibrate) throw new Error(a.inputPhase === 'error' ? a.error : tr('没有看到脸：看向镜头，或在角色卡的「谁来演」里选摄像头'))
+  if (!a.canCalibrate) throw new Error(a.inputPhase === 'error' ? a.error : tr('没有看到脸'))
   a.calibrate()
   return tr('已把现在的姿势设为正面')
 }
