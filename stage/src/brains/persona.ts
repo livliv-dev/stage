@@ -46,7 +46,8 @@ export function linesLanguage(lines: string[]): 'zh' | 'en' | 'ja' {
 export const named = (c: { name: string; cardName?: string }, t: string) => (c.cardName && c.cardName !== c.name ? t.replaceAll(c.cardName, c.name) : t)
 
 /** a character may stay in character, but asked in earnest whether it is a real person or an AI, it says it is a virtual
- *  character: in Stage's own brain's prompt (Chinese, whatever the reply's language) and AIRI's identity (English) */
+ *  character: in Stage's own brain's prompt and a realtime call's instructions (Chinese, whatever the reply's language)
+ *  and AIRI's identity (English) */
 export const HONEST = {
   zh: '你可以一直保持角色；但有人认真问你是真人还是 AI 时，要说明你是虚拟角色，绝不声称自己是真人。',
   en: 'Stay in character, but when someone sincerely asks whether you are a real person or an AI, say you are a virtual character; never claim to be a real human.',
@@ -95,6 +96,7 @@ export function realtimeInstructions(p: PersonaSpec, show: { topic: string; dept
   const language = { auto: '跟随用户当前说话的语言。', zh: '使用中文。', en: 'Speak English.', ja: '日本語で話してください。' }[p.language]
   return [
     `你在实时语音通话中扮演「${p.name}」，正在和操作者交谈。`,
+    HONEST.zh,
     p.persona, p.style, p.examples.length ? `语气示例，只参考语气：${p.examples.join(' / ')}` : '',
     show.topic ? `当前话题：${show.topic}` : '', language,
     show.depth === 'discussion' ? '回应用户的具体问题，允许有层次地深入讨论，说明依据和不确定之处，按需要追问。先说要点，再展开。' : '自然接话，先回应具体内容，再按需要追问。通常先说一两个短句。',
