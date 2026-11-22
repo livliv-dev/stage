@@ -1,9 +1,11 @@
 // How much one model call carries, on both engines, in three sessions:
 //   typical  a sample card, 10 short memories, a short conversation: under 3,000 input tokens a call
 //   long     500 memories (a tenth of them long), a 300-line conversation with its summary: under 6,000
-//   worst    a full card (persona 4,000, style 1,500, relationship and stance 2,000 each), memories that all fill the
-//            index (48 × 120), a full window of 30 lines, and on AIRI a round of its memory tool asking for five entries:
-//            under 16,000 a call, and the reply still comes (the second call may not call a tool, and reads four)
+//   worst    a full imported card (persona 4,000, style 1,500, relationship and stance 2,000 each, 12 example lines of
+//            300, a greeting of 400), memories that all fill the index (48 × 120), a summary of 1,800, a full window of
+//            30 event lines (each cut to 500), and on AIRI a round of its memory tool asking for five entries: under
+//            22,000 a call, and the reply still comes (the second call may not call a tool, and reads four). A full case is
+//            rare; the site's daily cost cap per account covers it
 // Tokens are counted as the cost study counts them: a Chinese character 0.6 of a token, any other character 0.3, and 4
 // for each message. Each engine is driven in the page against a fixture model, so its requests are the ones a session
 // sends: Stage's own brain through makeBrain, AIRI through streamAiriReply with the memories its engine is given
@@ -12,7 +14,7 @@ import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { freePort, startVite, testTimeout } from './vite.mjs'
 
-const LIMITS = { typical: 3000, long: 6000, worst: 16000 }
+const LIMITS = { typical: 3000, long: 6000, worst: 22000 }
 const tokens = (text) => [...text].reduce((n, c) => n + (/[　-鿿＀-￯]/.test(c) ? 0.6 : 0.3), 0)
 const content = (m) => typeof m.content === 'string' ? m.content : JSON.stringify(m.content ?? '') + JSON.stringify(m.tool_calls ?? '')
 const callTokens = (sent) => Math.round(sent.messages.reduce((n, m) => n + 4 + tokens(content(m)), 0) + tokens(JSON.stringify(sent.tools ?? [])))
@@ -51,7 +53,8 @@ try {
     const long = (seed, n) => (seed + '我们一起在海边画了一整天的画，聊到了小时候的猫和那场大雨，还有她最喜欢的那家面包店。').repeat(Math.ceil(n / 40)).slice(0, n)
     const card = name === 'typical' ? { persona: '住在海边的插画师，喜欢猫和雨天。', style: '说话轻快，常用「呐」结尾。' }
       : name === 'long' ? { persona: '住在海边的插画师，喜欢猫和雨天，说话轻快。'.repeat(4), style: '常用「呐」结尾。' }
-      : { persona: long('人设', 4000), style: long('风格', 1500), relationship: long('关系', 2000), stance: long('立场', 2000) }
+      : { persona: long('人设', 4000), style: long('风格', 1500), relationship: long('关系', 2000), stance: long('立场', 2000),
+          examples: Array.from({ length: 12 }, (_, i) => long(`例句${i}：`, 300)), greeting: long('开场白：', 400) }
     const me = { ...newCharacter(store.get(), 'Nana', { type: 'url', url: '/characters/k01/' }), id: 'nana', lines: 'ai', ...card }
     const count = { typical: 10, long: 500, worst: 60 }[name]
     // the memories, the most recent first (as memory.ts gives them)
@@ -62,8 +65,11 @@ try {
     const n = { typical: 8, long: 300, worst: 390 }[name]
     const lines = Array.from({ length: n }, (_, i) => ({ id: `l${i}`, who: i % 2 ? 'nana' : 'me', name: i % 2 ? 'Nana' : '我', emotion: 'neutral', action: 'none', to: null, human: i % 2 === 0,
       text: name === 'worst' ? long(`第${i}句：`, i % 2 ? 300 : 200) : `第${i}句：今天想聊聊周末去哪里玩，海边还是山上，你觉得呢？` }))
-    // a long session has its summary; the worst case has none (its history goes as far as Stage's own brain takes)
-    const summary = name === 'long' ? { text: '之前聊了周末的安排、海边和山上的区别、喜欢的冰淇淋口味和小时候的猫。'.repeat(20), sourceIds: lines.slice(0, 284).map((l) => l.id) } : undefined
+    // the worst case's last 30 lines (AIRI's whole window) are a game's events, longer than the 500 a model is given
+    if (name === 'worst') for (let i = n - 30; i < n; i++) Object.assign(lines[i], { who: 'external:Minecraft', name: 'Minecraft', human: true, audience: true, text: long(`事件${i}：`, 600) })
+    // a long session has its summary; the worst case a full one (1,800)
+    const summary = name === 'long' ? { text: '之前聊了周末的安排、海边和山上的区别、喜欢的冰淇淋口味和小时候的猫。'.repeat(20), sourceIds: lines.slice(0, 284).map((l) => l.id) }
+      : name === 'worst' ? { text: long('摘要：', 1800), sourceIds: lines.slice(0, 340).map((l) => l.id) } : undefined
     const model = { kind: 'openai', provider: 'custom', base: location.origin + '/budget-ai', key: 'test-only', model: 'fixture-model' }
     const signal = new AbortController().signal
     await makeBrain(model).reply({ me, others: [], humans: ['我'], topic: '周末去哪里', lines, layout: ['Nana'], role: null, cutIn: false, language: 'zh', viewer: null, summary, memories, scope: 'private', voiced: false }, signal)
