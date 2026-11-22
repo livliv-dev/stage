@@ -449,6 +449,21 @@ const SCENARIOS = [
     },
   },
   {
+    name: 'livliv-airi-off', about: 'Desktop, signed in, livliv.ai on: an AIRI chat on livliv.ai\'s text whose text is turned off mid-chat stops at once, nothing more asked of livliv.ai',
+    desktop: true, signedIn: true,
+    async run(page) {
+      await stage(page, { cast: ['Nana'], brain: 'livliv', voice: 'auto', memories: MEMORIES })
+      await ready(page)
+      await begin(page)
+      await page.evaluate(() => window.__stage.talk.startChat())
+      await waiting(page)
+      await page.evaluate(async () => (await import('/src/brain.ts')).setLivLiv({ text: false }))
+      await page.waitForFunction(() => !window.__stage.conversation().running)
+      await page.evaluate(() => window.__stage.talk.say('还在吗'))
+      await idle(page)
+    },
+  },
+  {
     name: 'airi-say', about: 'Desktop: typing while idle starts 持续聊天 (on AIRI) with that line as its first input',
     desktop: true,
     async run(page) {

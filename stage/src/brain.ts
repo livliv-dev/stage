@@ -189,6 +189,8 @@ export function playDemo(on: boolean) {
   changed()
 }
 export const useBrainConfig = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => config)
+/** told when the brain or livliv.ai's parts change (a sign-in coming or going too) */
+export const onBrain = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
 
 /** a request to a model's API (this one's, the speech API's): in the desktop app through it (no CORS: Stage served at
  *  livliv-stage://app has its /__ai), anywhere else (a browser, the shell on the dev server) straight */

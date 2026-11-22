@@ -1,0 +1,13 @@
+{"scenario":"livliv-airi-off","about":"Desktop, signed in, livliv.ai on: an AIRI chat on livliv.ai's text whose text is turned off mid-chat stops at once, nothing more asked of livliv.ai"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"start","mode":"chat","scope":"private","engine":"airi"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"model","engine":"airi","via":"livliv","speaker":"Nana","scope":"private","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫"],"input":"Start a short conversation with the user."}
+{"t":"voice","via":"livliv","line":1,"text":"Nana的第1句。"}
+{"t":"voice","via":"livliv","line":1,"text":"我接着说下去。"}
+{"t":"line","from":"ai","name":"Nana","text":"Nana的第1句。","scope":"private"}
+{"t":"save","scope":"private","lines":1}
+{"t":"line","from":"ai","name":"Nana","text":"我接着说下去。","scope":"private"}
+{"t":"save","scope":"private","lines":2}
+{"t":"end","mode":"chat","scope":"private","turns":1,"generations":1,"ended":"livliv.ai 的文字已关闭，本次会话已停止"}
+{"t":"need-model","intent":"input"}
