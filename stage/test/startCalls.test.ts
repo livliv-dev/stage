@@ -60,6 +60,14 @@ test("直播间's own limits and what it does with no chat", () => {
   assert.equal(describe(startCalls(input('live', 'live', 'none', { live: { ...live, minutes: 1, maxGenerations: 7, warmupSeconds: 60 } }))), 'startLive(1m,7,warmup 60,text 0)')
 })
 
+test('a 直播间 with no chat source speaks up every 30 seconds unless told otherwise; with Twitch it waits quietly', () => {
+  const auto = { ...live, warmupSeconds: null }
+  assert.equal(describe(startCalls(input('live', 'live', 'none', { live: auto, chatSource: false }))), 'startLive(30m,100,warmup 30,text 0)')
+  assert.equal(describe(startCalls(input('live', 'live', 'none', { live: auto, chatSource: true }))), 'startLive(30m,100,warmup 0,text 0)')
+  assert.equal(describe(startCalls(input('live', 'live', 'none', { live: { ...live, warmupSeconds: 0 }, chatSource: false }))), LIVE, '安静等待 chosen: kept')
+  assert.equal(describe(startCalls(input('live', 'live', 'none', { live: { ...live, warmupSeconds: 120 }, chatSource: true }))), 'startLive(30m,100,warmup 120,text 0)')
+})
+
 test('a game goes to AIRI when the engine rule picks it, and is refused in words when it does not', () => {
   const one = [{ id: 'nana', muted: false, voice: 'api' as const }]
   const minecraft = { ...live, game: 'minecraft' as const }

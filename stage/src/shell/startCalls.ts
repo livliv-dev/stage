@@ -9,7 +9,7 @@ import type { CharacterItem, Goal } from '../scene'
 import type { LiveOptions } from '../sessions/budget'
 import type { VoiceRoute } from '../voiceApi'
 import { startPlan, type StartOptions, type StartStage } from './goals'
-import { liveGame, type LiveSetup } from './liveSetup'
+import { liveGame, warmupFor, type LiveSetup } from './liveSetup'
 
 export type StartInput = {
   goal: Goal; options: StartOptions
@@ -22,6 +22,8 @@ export type StartInput = {
   features: Pick<Features, 'airi'>
   /** 直播间's own settings: its limits, what it does with no chat, its game (shell/liveSetup.ts) */
   live: LiveSetup
+  /** a chat source (Twitch) is connected: with none, a 直播间 speaks up every 30 seconds unless told otherwise */
+  chatSource: boolean
 }
 export type StartCall = { kind: 'conversation' } | { kind: 'chat'; firstLine: string } | { kind: 'live'; options: LiveOptions }
 export type StartCalls =
@@ -45,6 +47,6 @@ export function startCalls(input: StartInput): StartCalls {
   const engine = chooseEngine(input.brain, input.ai, { kind: 'live', textOnly, needsAiri, voice: input.ai[0]?.voice }, input.features)
   if (needsAiri && engine.engine !== 'airi') return { blocked: '游戏需要内置 AIRI：{0}', args: [engineReason(engine, input.ai.length)] }
   if (!portsReady) return { blocked: '两个端口应连接同一个运行 Autorio 的存档。' }
-  const options: LiveOptions = { minutes: input.live.minutes, maxGenerations: input.live.maxGenerations, warmupSeconds: input.live.warmupSeconds, textOnly, ...(engine.engine === 'airi' ? { airi: { windowId, game } } : {}) }
+  const options: LiveOptions = { minutes: input.live.minutes, maxGenerations: input.live.maxGenerations, warmupSeconds: warmupFor(input.live, input.chatSource), textOnly, ...(engine.engine === 'airi' ? { airi: { windowId, game } } : {}) }
   return { record, call: { kind: 'live', options }, handsFree: plan.handsFree }
 }
