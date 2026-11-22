@@ -22,6 +22,19 @@ export const PATCHES = [
       '}',
     ].join('\n'),
   },
+  {
+    name: 'the memory read tool: at most four ids a call',
+    // Stage gives AIRI an index of a character's memories and this tool to read whole entries by id. One call could ask
+    // for every entry in the index (Stage gives 48, each up to 2,000 characters), all billed in the next call. The
+    // tool's schema now takes one to four ids, which the model is told with the tool.
+    from: /\(0, import_dist\.minLength\)\(1\), \(0, import_dist\.description\)\("Every entry that the reply needs, so one call reads them all\."\)\) \}\);/,
+    to: '(0, import_dist.minLength)(1), (0, import_dist.maxLength)(4), (0, import_dist.description)("Up to four entries that the reply needs, so one call reads them all.")) });',
+  },
+  {
+    name: 'the memory read tool: a call over the limit is told how many to give',
+    from: /if \(!parsed\.success\) return "Give at least one entry id from the memory index\.";/,
+    to: 'if (!parsed.success) return "Give one to four entry ids from the memory index.";',
+  },
 ]
 
 /** the bundle with every fix applied (one already in it is left as it is) */

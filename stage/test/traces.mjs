@@ -99,7 +99,6 @@ function beforeApp({ desktop, signedIn }) {
   const trace = window.__trace = { on: false, events: [], memories: [], names: {} }
   const push = (event) => { if (trace.on) trace.events.push(event) }
   /** a memory a request carried, by its id: its scope and text */
-  const memoriesIn = (text) => trace.memories.filter((m) => text.includes(m.id)).map((m) => m.label)
   const request = (url, init) => {
     const path = new URL(url, location.href).pathname, body = typeof init?.body === 'string' ? init.body : ''
     if (path === '/fixture-ai/chat/completions') {
@@ -109,7 +108,7 @@ function beforeApp({ desktop, signedIn }) {
         // what the turn answers, without the time AIRI stamps on it or the context it adds after it
         const input = (typeof user?.content === 'string' ? user.content : user?.content?.find((part) => part.type === 'text')?.text)
           ?.replace(/^\[[^\]]*\d{2}:\d{2}[^\]]*\]\s*/, '').split('\n[Context]')[0].trim()
-        push({ t: 'model', engine: 'airi', speaker: /You are \\"([^\\]+)\\"/.exec(text)?.[1] ?? '?', scope: text.includes('in a private LivLiv Stage conversation') ? 'private' : 'public', memories: memoriesIn(text), ...(input ? { input } : {}) })
+        push({ t: 'model', engine: 'airi', speaker: /You are \\"([^\\]+)\\"/.exec(text)?.[1] ?? '?', scope: text.includes('in a private LivLiv Stage conversation') ? 'private' : 'public', memories: trace.memories.filter((m) => text.includes(m.text)).map((m) => m.label), ...(input ? { input } : {}) })
         return
       }
       const payload = JSON.parse(sent.messages[1].content), system = sent.messages[0].content

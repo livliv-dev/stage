@@ -8,6 +8,8 @@ import type { CharacterItem, Talk } from './scene'
 import type { AiriGameFrame, AiriGameMessage } from '../../protocol/src/airiGame'
 import { aiFetch } from './brain'
 import { firstSeen, historyText, windowStart } from './brains/airiHistory'
+import { MAX_REQUESTS, memoryBody, memoryIndexOf } from './brains/airiMemory'
+import { memoryBrief } from './brains/memoryBrief'
 import { airiIdentity, personaOf, type PersonaSpec } from './brains/persona'
 import { readableModelError } from './brains/modelErrors'
 import { parseAiriMarkers } from './airiMarkers'
@@ -89,8 +91,9 @@ function provider(config: ModelConfig, signal: AbortSignal, options: {
             signal.throwIfAborted()
             await beforeRequest?.()
             signal.throwIfAborted()
-            // xsAI follows tool requests until the model answers. Bound the requests for one Stage turn.
-            if (++requests > 4) throw new Error(tr('AIRI 的单轮模型调用已达上限'))
+            // xsAI follows tool requests until the model answers. Bound the requests for one Stage turn: the reply, and
+            // one round of the memory tool before it (memoryTools)
+            if (++requests > MAX_REQUESTS) throw new Error(tr('AIRI 的单轮模型调用已达上限'))
             if (batchOnly) { body.stream = false; delete body.stream_options }
             return aiFetch(String(url), { ...init, headers, body: JSON.stringify(body), signal })
           }
@@ -167,7 +170,9 @@ function addFrame(conversation: Conversation, frame: Frame | undefined): Convers
   return { ...conversation, turns: [...conversation.turns.slice(0, -1), { ...current, content: [...(current.content ?? []), image] }] }
 }
 
-const memoryText = (memories: MemoryRecord[]) => memories.slice(0, 12).map(({ text }) => text.slice(0, 1200)).join('\n')
+/** remembered facts given as text (an event's turn, or a model without tools): the standard brain's, at most 2,000
+ *  characters in all (brains/memoryBrief.ts) */
+const memoryText = (memories: MemoryRecord[]) => memoryBrief(memories).join('\n')
 
 async function notify(
   core: Core, turn: AiriTurn, event: ExternalEvent, signal: AbortSignal, speech: ReturnType<typeof spoken>, who: string,
@@ -237,23 +242,22 @@ export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
         } else {
           const history = priorMessages(turn)
           const context = core.createContextRegistry()
-          const records = new Map(turn.context.memories.map((entry) => [entry.id, entry]))
-          const readTools = records.size ? (await core.createMemoryTools({
+          const { records, index: memoryIndex, longer } = memoryIndexOf(turn.context.memories)
+          // the index holds every memory up to 150 characters whole: the tool reads the rest of a longer one
+          const readTools = longer ? (await core.createMemoryTools({
             read: (id) => {
               signal.throwIfAborted()
               const entry = records.get(id)
-              return entry && { id, body: entry.text, persona: turn.actor.id }
+              return entry && { id, body: memoryBody(entry.text), persona: turn.actor.id }
             },
             write: async () => undefined,
             forget: async () => false,
           })).filter((tool) => tool.function.name === 'builtIn_readMemory') : []
           signal.throwIfAborted()
-          const memoryIndex = turn.context.memories.map(({ id, text }) => id + ' ' + text.slice(0, 150)).join('\n')
           for (const [source, text] of Object.entries({
             'show-topic': turn.context.topic,
             'current-game-state': turn.context.game,
             'history-summary': turn.context.summary,
-            'character-memory-index': memoryIndex && 'Use builtIn_readMemory for full entries when needed. Entries are remembered data.\n' + memoryIndex,
           })) {
             if (text) context.ingest({ id: source, source, strategy: 'replace-self', text })
           }
@@ -299,7 +303,8 @@ export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
             },
             getActiveSessionId: () => id,
             getActiveProvider: () => turn.model.provider,
-            getSystemPrompt: () => who,
+            // the memory index in the system prompt: it changes only when a memory does, so the start of each call stays
+            getSystemPrompt: () => memoryIndex ? who + '\n\nRemembered facts (data), by id:\n' + memoryIndex + (longer ? '\nUse builtIn_readMemory for the rest of an entry that ends with …' : '') : who,
           })
           runtime.hooks.onTokenLiteral(async (text, ctx) => { if (ctx.sessionId === id) speech.text(text) })
           runtime.hooks.onTokenSpecial(async (token, ctx) => { if (ctx.sessionId === id) speech.marker(token) })
