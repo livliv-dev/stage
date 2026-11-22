@@ -2,7 +2,7 @@
 // most MEMORY_CHARS in all, a long one cut to the room left.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { MEMORY_CHARS, memoryBrief } from '../src/brains/memoryBrief'
+import { LINE_CHARS, MEMORY_CHARS, memoryBrief } from '../src/brains/memoryBrief'
 
 const record = (text: string, i = 0) => ({ id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`, profileId: 'nana', scope: 'private', text, createdAt: i, updatedAt: i })
 
@@ -19,9 +19,9 @@ test('at most MEMORY_CHARS in all, the first (most recent) kept, a long one cut 
   assert.ok(brief.join('').length > MEMORY_CHARS - 50, 'the room is used')
   assert.equal(brief[0].startsWith('记忆0：'), true, 'in the order given (memory.ts: most recent first)')
   assert.ok(brief.at(-1)!.endsWith('…'), 'the last one cut to fit')
-  const long = memoryBrief([record('长'.repeat(5000))])
-  assert.equal(long.length, 1)
-  assert.equal(long[0].length, MEMORY_CHARS)
+  const long = memoryBrief([record('长'.repeat(5000)), record('短的也在')])
+  assert.equal(long[0].length, LINE_CHARS, 'one memory at most 300: a long one can\'t push out the rest')
+  assert.equal(long[1], '短的也在')
   assert.deepEqual(memoryBrief(undefined), [])
   assert.deepEqual(memoryBrief([record('   ')]), [], 'an empty one is left out')
 })
