@@ -17,6 +17,7 @@ import type { AiriGameHost } from './airiGameHost'
 import { readAiriGameConfig } from '#protocol/airiGame'
 import type { VoiceboxClient } from './voicebox'
 import type { SecretsStore } from './secrets'
+import type { RealtimeSockets } from './realtimeSocket'
 
 export type IpcDeps = {
   collab?: { state(): CollabState; start(config: CollabConfig): Promise<CollabState>; close(): Promise<CollabState> }
@@ -26,6 +27,7 @@ export type IpcDeps = {
   airiGames?: AiriGameHost
   voicebox?: VoiceboxClient
   secrets?: SecretsStore
+  realtimeSockets?: RealtimeSockets
   capabilities: () => string[]
   local: () => { port: number; commandUrl: string } | null
   hotkeys: { list: () => HotkeyState[]; set: (b: Binding[] | null) => HotkeyState[]; enabled: () => boolean; enable: (on: boolean) => HotkeyState[] }
@@ -54,6 +56,15 @@ export function registerIpc(deps: IpcDeps) {
       if (!trusted(e)) throw new Error('not allowed')
       return f(e, ...args)
     })
+  // a realtime call's WebSocket (realtimeSocket.ts): the Stage editor only
+  handle('livliv:realtime-socket', (event, op, id, a, b) => {
+    const sockets = deps.realtimeSockets
+    if (!sockets || APP !== 'stage' || event.sender !== mainContents()) return false
+    if (op === 'open') return sockets.open(event.sender, id, a, b)
+    if (op === 'send') return sockets.send(id, a)
+    if (op === 'close') { sockets.close(id); return true }
+    return false
+  })
   handle('livliv:secrets-set', async (event, name, value) => {
     if (!editor(event)) return false
     try { return await deps.secrets!.set(name, value) } catch { return false }

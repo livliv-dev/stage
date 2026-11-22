@@ -24,6 +24,7 @@ import type { ExternalSelection } from '#protocol/neuro'
 import type { VoiceboxProfile, VoiceboxResult } from '#protocol/voicebox'
 import type { DesktopApi, DesktopInfo } from '#protocol/bridge'
 import type { CmdBody } from '#protocol/commands'
+import type { RealtimeSocketEvent } from '#protocol/realtime'
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
 const info = ipcRenderer.sendSync('livliv:info') as DesktopInfo | null
@@ -82,6 +83,17 @@ if (info) {
       secrets: {
         all: (): { keys: Record<string, string>; lost: string[] } | null => ipcRenderer.sendSync('livliv:secrets', 'all'),
         set: (name: string, value: string): Promise<boolean> => invoke('livliv:secrets-set', name, value),
+      },
+      // a realtime call's WebSocket, opened by the app with the key in its header (realtimeSocket.ts)
+      realtimeSocket: {
+        open: (id: string, url: string, key: string): Promise<boolean> => invoke('livliv:realtime-socket', 'open', id, url, key),
+        send: (id: string, data: string): Promise<boolean> => invoke('livliv:realtime-socket', 'send', id, data),
+        close: (id: string): Promise<void> => invoke('livliv:realtime-socket', 'close', id),
+        onEvent: (callback: (id: string, event: RealtimeSocketEvent) => void) => {
+          const listener = (_event: IpcRendererEvent, id: string, value: RealtimeSocketEvent) => callback(id, value)
+          ipcRenderer.on('livliv:realtime-socket-event', listener)
+          return () => { ipcRenderer.removeListener('livliv:realtime-socket-event', listener) }
+        },
       },
       voicebox: {
         profiles: (): Promise<VoiceboxResult<VoiceboxProfile[]>> => invoke('livliv:voicebox', 'profiles'),

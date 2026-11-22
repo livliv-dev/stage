@@ -9,9 +9,11 @@
 3. 设置接话方式与时长上限，点击「开始实时通话」。连接及模型配置确认后才开始向模型传送麦克风音轨。通话不自动发起开场白。
 4. 可以直接说话和插话，也可以发送文字。暂停停用发送音轨并中止回应；结束释放麦克风、WebRTC、音轨、声音节点和订阅。更换麦克风或移除角色会结束当前通话。
 
-默认百炼模型为 `qwen3.8-omni-flash-realtime`，音色 `Tina`。该模型需要百炼工作空间专属域名，例如 `https://WORKSPACE.cn-beijing.maas.aliyuncs.com`；地区、密钥和模型权限须匹配。不会自动把旧百炼公共域名用于此默认模型。[百炼接入说明](https://help.aliyun.com/en/model-studio/realtime)
+默认百炼模型为 `qwen3.8-omni-flash-realtime`，音色 `Tina`。[百炼接入说明](https://help.aliyun.com/en/model-studio/realtime)
 
-可以直接填写工作空间复制出来、以 `/compatible-mode/v1` 结尾的完整地址。Stage 会使用同一工作空间的实时通话接口，无需手动改写请求路径。
+- 桌面版用百炼的标准密钥即可：接口地址留空（跟文字模型的密钥走）或填 `https://dashscope.aliyuncs.com`（国际站 `https://dashscope-intl.aliyuncs.com`），通话经百炼的 WebSocket 实时接口连接。网页不能在 WebSocket 里带密钥，所以这个连接由桌面应用代为建立，页面收发音频和事件。麦克风以 16 kHz PCM 发送，角色声音以 24 kHz PCM 返回；插话或取消时丢弃未播完的声音。
+- 填了百炼工作空间的专属域名（例如 `https://WORKSPACE.cn-beijing.maas.aliyuncs.com`，也可以直接填工作空间复制出来、以 `/compatible-mode/v1` 结尾的完整地址）时，改走该工作空间的 WebRTC 实时接口。百炼的标准域名没有 WebRTC 实时接口（返回 404）。
+- 网页版的百炼实时通话需要工作空间专属域名；只有标准密钥时，准备清单不会把实时通话标为就绪，表单会说明。连接失败时会说明该改什么：密钥（401/403）、模型名或工作空间地址（404 或「模型不存在」）、额度（429）。
 
 OpenAI 默认模型为 `gpt-realtime-2.1`，音色 `marin`，接口根地址为 `https://api.openai.com/v1`。使用 Realtime API 的 WebRTC unified interface，非旧版 `/realtime/sessions`。[OpenAI 官方文档](https://developers.openai.com/api/docs/guides/voice-webrtc?api=realtime)
 
@@ -21,7 +23,7 @@ OpenAI 默认模型为 `gpt-realtime-2.1`，音色 `marin`，接口根地址为 
 
 ## 数据与声音
 
-- 使用同一个 WebRTC 会话持续发送和接收音轨，不为每句话上传录音或重新调用 TTS。
+- 使用同一个 WebRTC 会话（或桌面版百炼标准密钥的同一个 WebSocket 会话）持续发送和接收音频，不为每句话上传录音或重新调用 TTS。
 - 角色人设、风格与讨论深度进入会话指令。复用当前角色组合和公开范围的同一份档案、历史摘要及长期记忆；存档作为用户会话数据补入，不提升为系统指令。公开通话不读取私聊记录或私密记忆。私聊通话中打开输出窗口、录制、联播或直播间时，通话会结束，需要重新开始（公开）。
 - 通话开始时载入可用记忆，新条目在下次通话载入；「记住：……」仍可保存明确事实。修改、删除或关闭记忆，以及删除当前存档，会结束通话，避免上游继续沿用已撤销内容。Realtime 本身不额外请求文本模型生成摘要，已有摘要仍可用于衔接。
 - 麦克风遵循统一声音控制的静音和增益；角色声音遵循角色及角色总线音量。实时音轨驱动口型，并可供联播与录制使用。

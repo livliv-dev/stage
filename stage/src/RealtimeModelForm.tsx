@@ -4,7 +4,7 @@ import { useBrainConfig } from './brain'
 import { useConversation } from './conversation'
 import { tr } from './i18n'
 import { lostKey } from './core/secrets'
-import { loadRealtime, realtimeCredentials, realtimeDefaults, saveRealtime, type RealtimeSettings } from './realtime'
+import { loadRealtime, realtimeCredentials, realtimeDefaults, realtimeSocketHere, saveRealtime, type RealtimeSettings } from './realtime'
 import { useSpeech } from './voiceApi'
 
 /** onSaved: told once the settings are saved (opened from the realtime panel: back there) */
@@ -25,7 +25,9 @@ export function RealtimeModelForm({ onSaved }: { onSaved?: () => void } = {}) {
       change({ ...next, semantic: settings.semantic, silence: settings.silence, minutes: settings.minutes })
     }}><option value="qwen">{tr('阿里云百炼')}</option><option value="openai">OpenAI Realtime</option></select></label>
     <label className="field"><span>{tr('接口地址')}</span><input aria-label={tr('接口地址')} value={settings.base} placeholder={effective.base || 'https://WORKSPACE.cn-beijing.maas.aliyuncs.com'} onChange={(event) => change({ base: event.target.value })} /></label>
-    {settings.provider === 'qwen' && <p className="hint">{tr('千问 3.8 实时模型需要百炼工作空间的专属域名。')}</p>}
+    {settings.provider === 'qwen' && <p className="hint">{realtimeSocketHere()
+      ? tr('百炼用标准密钥即可（桌面版经 WebSocket 连接）；填了工作空间地址（….maas.aliyuncs.com）则改走 WebRTC。')
+      : tr('网页版的百炼实时通话要用百炼工作空间的专属地址（….maas.aliyuncs.com）；桌面版用标准密钥即可。')}</p>}
     <label className="field"><span>{tr('模型')}</span><input aria-label={tr('模型')} value={settings.model} onChange={(event) => change({ model: event.target.value })} /></label>
     <label className="field"><span>{tr('密钥')}</span><input aria-label={tr('密钥')} type="password" autoComplete="off" value={settings.key} placeholder={effective.key ? tr('复用已配置的密钥') : tr('填写该服务的 API 密钥')} onChange={(event) => change({ key: event.target.value })} /></label>
     {!settings.key && lostKey('livliv-stage:realtime') && <p className="hint error">{tr('这台电脑上保存的密钥读不出来了，请重新填写')}</p>}
