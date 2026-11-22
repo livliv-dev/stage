@@ -106,17 +106,21 @@ const chosen = () => { try { return !!localStorage.getItem(KEY) } catch { return
 const loaded = load()
 /** livliv.ai's text as chosen */
 let choice = { text: loaded.text }
-/** livliv.ai's voices (with speech recognition) as chosen: on, off, or unset (null) */
+/** livliv.ai's voices (with speech recognition) as chosen: on, off, or not yet (null) */
 let voiceSaved: boolean | null = (() => { try { const v = localStorage.getItem(VOICE); return v === null ? null : v === '1' && features.points } catch { return null } })()
-/** voices or recognition of one's own are ready (voiceApi.ts says: a speech API, the one a model's key brings, Voicebox) */
-let ownVoicesReady = () => false
-export const ownVoicesWhen = (ready: () => boolean) => { ownVoicesReady = ready }
-/** livliv.ai's voices as chosen. Unset, they follow its text (what one switch meant before), unless voices or
- *  recognition of one's own are ready: nobody who had free voices moves onto points */
-const voiceChosen = () => voiceSaved ?? (choice.text && !ownVoicesReady())
-/** what voices of one's own can do changed (a speech API saved, Voicebox found or gone): livliv.ai's voices, unset, may
- *  follow */
-export const ownVoicesChanged = () => { if (voiceSaved === null) changed() }
+/** whether voices or recognition of one's own are ready, once voiceApi.ts knows (a speech API, the one a model's key
+ *  brings, Voicebox: in the desktop app once its first look for Voicebox has settled) */
+let ownVoices: (() => boolean) | null = null
+export function ownVoicesKnown(ready: () => boolean) { ownVoices = ready; changed() }
+/** livliv.ai's voices never chosen are worked out once, the first time its text is on and voices of one's own are
+ *  known, and saved: off while those are ready (nobody who had free voices moves onto points), else on. From then on
+ *  only you change them (Voicebox quitting later turns nothing on). Off until then, never on for a moment */
+function settleVoice() {
+  if (voiceSaved !== null || !ownVoices || !choice.text || !features.points) return
+  voiceSaved = !ownVoices()
+  try { localStorage.setItem(VOICE, voiceSaved ? '1' : '0') } catch { /* private mode */ }
+}
+const voiceChosen = () => voiceSaved ?? false
 let own = loaded.own
 const effective = (): BrainConfig => (choice.text && signedIn() ? LIVLIV_TEXT : own)
 /** what the AI characters think with now: livliv.ai's text, the model of one's own, or the demo (for this run) */
@@ -124,7 +128,7 @@ let config: BrainConfig = effective()
 let demo = false
 let wanted = (() => { try { return sessionStorage.getItem(WANT) === '1' } catch { return false } })()
 const subs = new Set<() => void>()
-const changed = () => { config = demo ? DEMO : effective(); subs.forEach((f) => f()) }
+const changed = () => { settleVoice(); config = demo ? DEMO : effective(); subs.forEach((f) => f()) }
 export const loadBrainConfig = () => config
 /** the model of one's own, saved (kept while livliv.ai's text is on) */
 export const previousModelConfig = (): ModelConfig => own

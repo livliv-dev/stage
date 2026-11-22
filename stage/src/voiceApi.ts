@@ -12,7 +12,7 @@ import { tr } from './i18n'
 // else none: its lines show as subtitles. The system's voice only if chosen. A card set to your own never falls back to
 // livliv.ai's.
 import { useSyncExternalStore } from 'react'
-import { aiFetch, failed, livlivNow, loadBrainConfig, ownVoicesChanged, ownVoicesWhen, previousModelConfig, useBrainConfig, type BrainConfig } from './brain'
+import { aiFetch, failed, livlivNow, loadBrainConfig, ownVoicesKnown, previousModelConfig, useBrainConfig, type BrainConfig } from './brain'
 import type { Emotion, StreamingVoice } from './core/lines'
 import { modelId } from './livliv'
 import type { CharacterItem } from './scene'
@@ -42,13 +42,11 @@ export function clearSpeechKey() {
   try { void clearKey(KEY) } catch { /* private mode */ }
   config = { ...config, key: '' }
   subs.forEach((f) => f())
-  ownVoicesChanged()
 }
 export function saveSpeech(s: SpeechApi) {
   config = s
   try { void writeKeyed(KEY, s) } catch { /* private mode */ }
   subs.forEach((f) => f())
-  ownVoicesChanged()
 }
 export const useSpeech = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => config)
 
@@ -63,9 +61,11 @@ export function speechOfModel(c: BrainConfig = loadBrainConfig()): SpeechApi | n
 /** the speech API in use: the one set in settings; none set, the one that comes with the model's key, else Voicebox
  *  when it is running on this computer */
 export const activeSpeech = (s = config, b: BrainConfig = loadBrainConfig()): SpeechApi => (s.provider ? s : speechOfModel(b) ?? (voiceboxReady() ? VOICEBOX_SPEECH : s))
-// livliv.ai's voices, never chosen, stay off while voices or recognition of one's own are ready (brain.ts)
-ownVoicesWhen(() => { const s = activeSpeech(); return speechReady(s) || asrReady(s) })
-onVoicebox(ownVoicesChanged)
+// livliv.ai's voices never chosen are worked out once voices of one's own are known (brain.ts): at once on a web page; in
+// the desktop app once its first look for Voicebox has settled, or after 5 s
+const ownVoicesReady = () => { const s = activeSpeech(); return speechReady(s) || asrReady(s) }
+if (!voiceboxHere()) ownVoicesKnown(ownVoicesReady)
+else void Promise.race([detectVoicebox(), new Promise((resolve) => setTimeout(resolve, 5000))]).then(() => ownVoicesKnown(ownVoicesReady))
 export function useActiveSpeech() {
   const s = useSpeech(), b = useBrainConfig()
   useSyncExternalStore(onVoicebox, voiceboxState)
