@@ -8,6 +8,7 @@
 // the character's name in its place, a realtime call reads the card as written.
 import type { MemoryScope } from '../memory'
 import type { CharacterItem, Talk } from '../scene'
+import { CARD_LIMITS } from '../characterCard'
 
 export type PersonaSpec = {
   name: string
@@ -31,7 +32,8 @@ export type PersonaSpec = {
 
 /** the persona for this turn: the character's card, in the session's language and scope */
 export function personaOf(c: Pick<CharacterItem, 'name' | 'cardName' | 'persona' | 'style' | 'relationship' | 'stance' | 'examples' | 'tagline' | 'greeting'>, language: Talk['language'], scope: MemoryScope): PersonaSpec {
-  return { name: c.name, cardName: c.cardName, persona: c.persona, style: c.style, relationship: c.relationship, stance: c.stance, examples: c.examples ?? [], tagline: c.tagline, ...(c.greeting ? { greeting: c.greeting } : {}), language, scope }
+  // a persona or style typed before the fields counted is held to the card's length here
+  return { name: c.name, cardName: c.cardName, persona: c.persona.slice(0, CARD_LIMITS.persona), style: c.style?.slice(0, CARD_LIMITS.style), relationship: c.relationship, stance: c.stance, examples: c.examples ?? [], tagline: c.tagline, ...(c.greeting ? { greeting: c.greeting } : {}), language, scope }
 }
 
 /** the language example lines are in (kana: Japanese; Chinese characters: Chinese; else English) */
@@ -43,11 +45,20 @@ export function linesLanguage(lines: string[]): 'zh' | 'en' | 'ja' {
 /** a card says the name it was written with; the character may have been renamed since */
 export const named = (c: { name: string; cardName?: string }, t: string) => (c.cardName && c.cardName !== c.name ? t.replaceAll(c.cardName, c.name) : t)
 
+/** a character may stay in character, but asked in earnest whether it is a real person or an AI, it says it is a virtual
+ *  character: in Stage's own brain's prompt and a realtime call's instructions (Chinese, whatever the reply's language)
+ *  and AIRI's identity (English) */
+export const HONEST = {
+  zh: '你可以一直保持角色；但有人认真问你是真人还是 AI 时，要说明你是虚拟角色，绝不声称自己是真人。',
+  en: 'Stay in character, but when someone sincerely asks whether you are a real person or an AI, say you are a virtual character; never claim to be a real human.',
+} as const
+
 /** Stage's own brain: the opening lines of its prompt. `said`: the language the line will be in (example lines pull a
  *  reply into their own language, so they go in only when the reply is in it); `opening`: nothing has been said yet */
 export function brainPersona(p: PersonaSpec, said: 'zh' | 'en' | 'ja', opening = false): string[] {
   return [
     p.scope === 'private' ? `你扮演「${p.name}」，正在与用户和在场角色聊天。` : `你在一个多角色同框的直播 / 视频里扮演「${p.name}」。`,
+    HONEST.zh,
     p.persona ? `你的人设：${named(p, p.persona)}` : '',
     p.style ? `你的说话风格：${named(p, p.style)}` : '',
     p.relationship ? `你与操作者及观众的关系设定：${p.relationship}` : '',
@@ -67,6 +78,7 @@ export function airiIdentity(p: PersonaSpec) {
   }[p.language]
   return [
     'You are ' + JSON.stringify(p.name) + ', the character ' + (p.scope === 'public' ? 'currently performing in LivLiv Stage' : 'in a private LivLiv Stage conversation') + '. Use only this character\'s identity.',
+    HONEST.en,
     p.persona && 'Personality: ' + named(p, p.persona),
     p.style && 'Speaking style: ' + named(p, p.style),
     p.relationship && 'Relationship with the owner and viewers: ' + named(p, p.relationship),
@@ -84,6 +96,7 @@ export function realtimeInstructions(p: PersonaSpec, show: { topic: string; dept
   const language = { auto: '跟随用户当前说话的语言。', zh: '使用中文。', en: 'Speak English.', ja: '日本語で話してください。' }[p.language]
   return [
     `你在实时语音通话中扮演「${p.name}」，正在和操作者交谈。`,
+    HONEST.zh,
     p.persona, p.style, p.examples.length ? `语气示例，只参考语气：${p.examples.join(' / ')}` : '',
     show.topic ? `当前话题：${show.topic}` : '', language,
     show.depth === 'discussion' ? '回应用户的具体问题，允许有层次地深入讨论，说明依据和不确定之处，按需要追问。先说要点，再展开。' : '自然接话，先回应具体内容，再按需要追问。通常先说一两个短句。',

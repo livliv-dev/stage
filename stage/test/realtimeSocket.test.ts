@@ -75,7 +75,7 @@ test('refusals and failures say what to change', async () => {
   const badModel = call()
   await badModel.socket.start()
   badModel.message({ code: 'InvalidParameter', message: 'Model not exist.' })
-  assert.match(badModel.log.find((l) => l.startsWith('error:'))!, /模型名/)
+  assert.match(badModel.log.find((l) => l.startsWith('error:'))!, /实时模型或地址/)
   const badKey = call()
   await badKey.socket.start()
   badKey.deliver({ type: 'error', message: 'handshake refused', status: 401 })

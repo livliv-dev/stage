@@ -62,7 +62,7 @@ export function RecordCard({ onClose, onVoices }: { onClose: () => void; onVoice
       {(r.phase === 'idle' || r.phase === 'starting') && <>
         <div className="chips">
           <span className="chip num">{scene.width} × {scene.height}</span><span className="chip">30 fps</span><span className="chip">MP4</span>
-          {scene.background === 'transparent' && <span className="chip warn" title={tr("视频没有透明通道：透明背景录成绿幕")}>{tr("绿幕")}</span>}
+          {scene.background === 'transparent' && <span className="chip warn" title={tr("透明背景会录成绿幕")}>{tr("绿幕")}</span>}
           {features.host === 'site' && <span className="chip num">{most.seconds < 60 ? tr("最长 {0} 秒", most.seconds) : tr("最长 {0} 分钟", Math.round(most.seconds / 60))}</span>}
           {features.host === 'site' && most.mark && <span className="chip">{tr("LivLiv 标记")}</span>}
         </div>
@@ -70,10 +70,10 @@ export function RecordCard({ onClose, onVoices }: { onClose: () => void; onVoice
         {voiced.length > 0 && <div className="chips voices">
           {voiced.map((c) => heard(c)
             ? <span key={c.id} className="chip"><Volume2 size={12} />{c.name}</span>
-            : <button key={c.id} className="chip off" title={voiceRoute(c, speech) === 'none' ? tr("没有声音，只出字幕：设置里接上语音") : tr("系统朗读录不进声音：设置里接上语音")} onClick={onVoices}><VolumeX size={12} />{c.name}</button>)}
+            : <button key={c.id} className="chip off" title={voiceRoute(c, speech) === 'none' ? tr("没有声音") : tr("系统朗读录不进视频")} onClick={onVoices}><VolumeX size={12} />{c.name}</button>)}
         </div>}
         {voiced.some((c) => c.lines === 'ai') && <label className="switch"><span>{tr("同时开始对话")}</span><input type="checkbox" checked={withTalk && !conv.running} disabled={conv.running} onChange={(e) => setWithTalk(e.target.checked)} /><i /></label>}
-        <label className="switch" title={tr("建议戴耳机，不然角色的声音会被录两遍")}><span>{tr("录进麦克风")}</span><input type="checkbox" checked={mic} onChange={(e) => setMic(e.target.checked)} /><i /></label>
+        <label className="switch" title={tr("建议戴耳机")}><span>{tr("录进麦克风")}</span><input type="checkbox" checked={mic} onChange={(e) => setMic(e.target.checked)} /><i /></label>
         <div className="row end">
           <button className="primary" disabled={r.phase === 'starting'} onClick={() => { void rec.start({ mic, talk: withTalk && !conv.running && voiced.some((c) => c.lines === 'ai') }); onClose() }}><i className="rec-dot" />{silent ? tr("录无声视频") : tr("开始录制")}</button>
         </div>

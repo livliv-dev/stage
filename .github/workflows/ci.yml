@@ -45,17 +45,17 @@ jobs:
       matrix:
         include:
           - name: conversation
-            suites: chat memory demo-history lifecycle privacy start points say-once recording-scope model-switch app-livliv
+            suites: chat memory demo-history lifecycle privacy start points say-once recording-scope model-switch app-livliv livliv-switch livliv-free airi-web
           - name: voice
             suites: handsfree voice-setup realtime journey goals voicebox-dropout
           - name: editor
             suites: browser settings ux shots projects mixer profiles card-import site-phone
           - name: live
             suites: audience props gamepad live collab collab-pose
-          # every way a session starts, compared with its recorded behaviour (test/traces), and the persona prompts
-          # word for word (test/prompts)
+          # every way a session starts, compared with its recorded behaviour (test/traces), the persona prompts word for
+          # word (test/prompts), and how much one model call carries at most (test/budget)
           - name: traces
-            suites: traces prompts
+            suites: traces prompts budget
           # livliv.ai/stage's own parts (this web branch): the guest's sign-in prompt, the ways to livliv.ai, the note on
           # the desktop app
           - name: site

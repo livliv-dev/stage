@@ -21,7 +21,7 @@ test('each combination runs one of the sessions there are, or says why not', () 
   assert.deepEqual(startPlan('chat', { audience: 'me', you: 'type' }, stage({ cast: [me, friend] })), { blocked: '舞台上还没有 AI 角色' }, "a friend's character is not yours to start")
   assert.deepEqual(startPlan('chat', { audience: 'me', you: 'hold' }, stage({ hear: false })), { blocked: '按住说和免按键需要语音识别' })
   assert.deepEqual(startPlan('chat', { audience: 'me', you: 'camera' }, stage()), { blocked: '我也上镜需要一个「我来演」的角色' })
-  assert.deepEqual(startPlan('live', { audience: 'live', you: 'none' }, stage({ demo: true })), { blocked: '直播间需要接上模型，演示只能在「只有我」里看' })
+  assert.deepEqual(startPlan('live', { audience: 'live', you: 'none' }, stage({ demo: true })), { blocked: '直播间需要接上模型' })
   assert.deepEqual(startPlan('chat', { audience: 'me', you: 'none' }, stage({ demo: true })), { session: 'conversation', record: false, handsFree: false }, 'the demo plays for you alone')
 })
 
@@ -53,7 +53,7 @@ test("a stage's goal: the one picked, else its template's start", () => {
 test('不参与 says what happens', () => {
   assert.equal(youHint('none', 'live', 1), '角色回应直播间')
   assert.equal(youHint('none', 'me', 2), '角色之间聊')
-  assert.equal(youHint('none', 'me', 1), '只有一个 AI 角色：它会一个人说下去')
+  assert.equal(youHint('none', 'me', 1), '角色会一个人说下去')
   assert.equal(youHint('type', 'me', 1), '在控制台打字')
 })
 

@@ -110,13 +110,15 @@ const server = createServer(async (req, res) => {
       } else if (JSON.stringify(last).includes('Recall my private detail')) {
         assert.deepEqual(tools, ['builtIn_readMemory'])
         assert.doesNotMatch(prompt, /APRICOT771/)
-        const id = prompt.match(/([0-9a-f-]{36}) Private setting for Rally Nana/)?.[1]
-        assert.ok(id, 'The memory index must contain the durable ID')
+        const system = body.messages.find(({ role }) => role === 'system')?.content ?? ''
+        const id = system.match(/^(m\d+) Private setting for Rally Nana/m)?.[1]
+        assert.ok(id, 'The memory index gives the entry a short id')
         return call(res, 'builtIn_readMemory', { ids: [id] })
       } else event(res, 'I have your note.')
       return finish(res)
     }
-    assert.doesNotMatch(prompt, /private-scope-fixture|APRICOT771|OldCardName/)
+    // the private note's text, its end or its index line's start (APRICOT771 is past what the index holds)
+    assert.doesNotMatch(prompt, /private-scope-fixture|APRICOT771|Private setting for Rally Nana|OldCardName/)
     if (publicReply) {
       // a session an output made public: no private memory or line, and no memory tool to reach one
       publicCalls.push(body)
@@ -126,8 +128,12 @@ const server = createServer(async (req, res) => {
     }
     if (tools.includes('select_game_action')) {
       gameCalls.push(body)
+      // every call, the retry too, must pick with the tool
       assert.equal(body.tool_choice.function.name, 'select_game_action')
       assert.match(prompt, /Blue can use a boost/)
+      // the first pick isn't one the game listed: told so, AIRI picks once more
+      if (gameCalls.length === 1) return call(res, 'select_game_action', { name: 'teleport' })
+      assert.match(JSON.stringify(body.messages.at(-1)), /Choose a listed action/)
       return call(res, 'select_game_action', { name: 'boost', data: { team: 'blue' } })
     }
     if (prompt.includes('Another module "livliv-stage/game"') || tools.includes('builtIn_sparkNoResponse')) {
@@ -264,7 +270,7 @@ try {
   await ownerSays('Recall my private detail', publicReply)
   assert.equal(memoryCalls.length, 3, 'no private prompt while recording')
   assert.ok(publicCalls.length > 0)
-  assert.doesNotMatch(JSON.stringify(publicCalls), /APRICOT771|private-scope-fixture|I remember the private detail/)
+  assert.doesNotMatch(JSON.stringify(publicCalls), /APRICOT771|Private setting for Rally Nana|private-scope-fixture|I remember the private detail/)
   await page.evaluate(async () => {
     const { rec, recording } = window.__stage, stopped = rec.stop()
     for (let i = 0; i < 200 && recording().phase === 'recording'; i++) await new Promise((resolve) => setTimeout(resolve, 25))
@@ -392,7 +398,7 @@ try {
   const action = gameMessages.find((message) => message.command === 'action').data
   assert.equal(action.name, 'boost')
   assert.deepEqual(JSON.parse(action.data), { team: 'blue' })
-  assert.equal(gameCalls.length, 1)
+  assert.equal(gameCalls.length, 2, 'a pick the game did not list, then one retry')
   assert.match(image(gameCalls[0]), /^data:image\/jpeg;base64,/)
   assert.equal(await app.evaluate(() => globalThis.airiRally.webContents.executeJavaScript('window.score()')), 3)
   const gameActionAt = Date.now() - recAt

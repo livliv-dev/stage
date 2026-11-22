@@ -26,6 +26,8 @@ export type TurnRequest = {
     lines: Line[]
     summary?: ConversationSummary
     memories: MemoryRecord[]
+    /** how many memories there are in all, of which `memories` are the ones picked (AIRI numbers them: brains/airiMemory.ts) */
+    memoryCount?: number
     /** a viewer's message to answer (its line's id when it is shown) */
     viewer: { id?: string; user: string; text: string } | null
     /** a game's or another app's event to answer */
@@ -44,8 +46,6 @@ export type TurnRequest = {
     depth?: Talk['depth']
     /** the line before was cut off by this one */
     cutIn: boolean
-    /** the engine voices the line itself (LivLiv's points, in the character's LivLiv voice) */
-    voiced: boolean
     /** the engine may answer in one batch instead of streaming (no game, no window) */
     allowBatch: boolean
     /** checked before each sentence of a streamed reply: the memories it was made from are still the saved ones */
@@ -57,7 +57,7 @@ export type TurnRequest = {
 export type Utterance = Reply
 
 export interface Engine {
-  id: 'openai' | 'livliv' | 'demo' | 'airi'
+  id: 'openai' | 'demo' | 'airi'
   /** stream: the answer comes a sentence at a time, each said as it comes; vision: it sees a game's frame or a window;
    *  tools: it plays a game; multiCast: it can speak for any of several AI characters; memories: the most memories a
    *  turn carries, when it is capped */

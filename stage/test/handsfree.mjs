@@ -131,7 +131,7 @@ try {
   await page.evaluate(() => window.__stage.talk.pause())
   assert.equal(await page.evaluate(() => window.microphone.stream.getAudioTracks()[0].readyState), 'ended')
   assert.equal(await toggle.getAttribute('aria-pressed'), 'true')
-  await page.getByText('已暂停收音，继续后恢复', { exact: true }).waitFor()
+  await page.getByText('已暂停收音', { exact: true }).waitFor()
   await page.evaluate(() => window.__stage.talk.resume()); await armed()
   await page.evaluate(async () => (await import('/src/devices.ts')).setInput({ microphone: 'second-device' })); await armed()
   assert.equal(await page.evaluate(() => window.microphoneConstraints.at(-1).audio.deviceId.exact), 'second-device')

@@ -12,10 +12,10 @@ import {
   type CharacterItem, type Item, type SubtitleItem, type TextItem,
 } from './scene'
 import { onVoices, voices } from './speech'
-import { modelId, useAccount, voiceLine, voicesOf, type Voices } from './livliv'
+import { modelId, systemVoiceOf, useAccount, voiceLine, voicesOf, type Voices } from './livliv'
 import { VoicePicker } from './VoicePicker'
 import { demoVoice } from './demo'
-import { useBrainConfig } from './brain'
+import { useBrainConfig, useLivLiv } from './brain'
 import { apiVoice, listVoices, speechProviderOf, speechReady, useActiveSpeech, voiceRoute } from './voiceApi'
 import { detectVoicebox, OPEN_ENGINES, profileName, useVoicebox, voiceboxError, voiceboxHere } from './voicebox'
 import { DevicePanel } from './DevicePanel'
@@ -32,6 +32,7 @@ import { modeOf } from './control'
 import { readReactionSettings, type ReactionFeeling } from './reactions'
 import { showCardPage, useCardPage } from './shell/cardPage'
 import { CardImport } from './CardImport'
+import { CARD_LIMITS } from './characterCard'
 
 const settingsLabel = (item?: Item) => tr(item ? ({ character: '角色设置', subtitle: '字幕设置', text: '文字设置', image: '图片设置' })[item.kind] : '舞台设置')
 
@@ -92,9 +93,10 @@ function Slider({ label, value, min, max, step, show, set, commit = false }: { l
 }
 
 
-/** The character's LivLiv voice, voice API or system speech. */
-function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patch: (p: Partial<CharacterItem>) => void; onAccount: () => void; onVoice: (character: string) => void }) {
-  const brain = useBrainConfig(), conversation = useConversation()
+/** The character's voice: livliv.ai's (its own on the site, else a system voice) while livliv.ai's voices are on, your
+ *  own speech service, or the system's. */
+function VoiceSection({ c, patch, onVoice }: { c: CharacterItem; patch: (p: Partial<CharacterItem>) => void; onAccount: () => void; onVoice: (character: string) => void }) {
+  const brain = useBrainConfig(), conversation = useConversation(), livlivOn = useLivLiv().voice
   const demo = brain.kind === 'demo' ? demoVoice(c, participants(store.get())) : null
   const [testing, setTesting] = useState(false), preview = useRef<AbortController | null>(null)
   useEffect(() => { setTesting(false); return () => { preview.current?.abort(); preview.current = null } }, [c.id])
@@ -104,12 +106,15 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
   const [voicesError, setVoicesError] = useState(''), [loadingVoices, setLoadingVoices] = useState(false), [voiceAttempt, setVoiceAttempt] = useState(0)
   useEffect(() => {
     let active = true
-    setList(null); setVoicesError(''); setLoadingVoices(!!mid)
-    if (mid) void voicesOf(mid).then((value) => { if (active) { setList(value); setLoadingVoices(false) } }, (error: unknown) => { if (active) { setVoicesError(error instanceof Error ? error.message : String(error)); setLoadingVoices(false) } })
+    setList(null); setVoicesError(''); setLoadingVoices(livlivOn)
+    if (livlivOn) void voicesOf(mid).then((value) => { if (active) { setList(value); setLoadingVoices(false) } }, (error: unknown) => { if (active) { setVoicesError(error instanceof Error ? error.message : String(error)); setLoadingVoices(false) } })
     return () => { active = false }
-  }, [mid, voiceAttempt, account.status, account.email])
-  const speech = useActiveSpeech(), can = !!mid && account.status === 'in', api = speechReady(speech), v = c.voice
+  }, [mid, voiceAttempt, account.status, account.email, livlivOn])
+  const speech = useActiveSpeech(), api = speechReady(speech), v = c.voice
   const route = voiceRoute(c, speech), livliv = route === 'livliv'
+  // a character that isn't on the site: the system voice it gets when none is picked (by its gender and id)
+  const fallback = mid ? '' : systemVoiceOf({ ...c, voice: { ...v, livliv: '' } }, participants(store.get()), list?.voices)
+  const catalog = list && !mid ? { ...list, voice: fallback } : list
   const [apiVoices, setApiVoices] = useState<string[]>([])
   useEffect(() => { if (route === 'api') void listVoices(speech).then(setApiVoices) }, [route, speech])
   // Voicebox's voices are its profiles: looked for again as the page opens
@@ -126,32 +131,30 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
     finally { if (preview.current === controller) { preview.current = null; setTesting(false) } }
   }
   const audition = <button disabled={a?.status !== 'ready' || conversation.running} onClick={() => void test()}>{tr(testing ? '停止试听' : '试听')}</button>
-  const officialPicker = <VoicePicker key={`${c.id}:${mid}`} value={v.livliv} catalog={list} loading={loadingVoices} error={voicesError}
-    disabledReason={!can ? tr('登录后可试听和使用官方音色。') : conversation.running ? tr('聊天进行中，结束聊天后可试听。') : a?.status !== 'ready' ? tr('角色载入后可试听。') : undefined}
-    onSignIn={!can ? onAccount : undefined} onRetry={() => setVoiceAttempt((value) => value + 1)} onChange={(livliv) => patch({ voice: { ...v, livliv } })}
+  const picker = <VoicePicker key={`${c.id}:${mid}`} value={v.livliv} catalog={catalog} loading={loadingVoices} error={voicesError}
+    disabledReason={conversation.running ? tr('聊天进行中，结束聊天后可试听。') : a?.status !== 'ready' ? tr('角色载入后可试听。') : undefined}
+    onRetry={() => setVoiceAttempt((value) => value + 1)} onChange={(livliv) => patch({ voice: { ...v, livliv } })}
     onPreview={async (voice, signal) => {
-      if (!mid || !a || a.status !== 'ready' || conversation.running || !can) throw new Error(tr('角色暂时无法试听'))
-      const text = tr('你好，我是{0}。', c.name), clip = await voiceLine(mid, text, 'happy', voice, signal)
+      if (!a || a.status !== 'ready' || conversation.running) throw new Error(tr('角色暂时无法试听'))
+      const text = tr('你好，我是{0}。', c.name), clip = await voiceLine(mid, text, 'happy', voice || fallback, signal)
       signal.throwIfAborted(); await a.perform({ text, clip, seconds: clip.seconds, aloud: true, mute: false }, 'happy', 'none', signal)
     }} />
   if (demo) return <Section title={tr('声音')}><p className="voice-demo"><Volume2 size={14} />{tr('演示声音')}</p>{audition}{a?.voiceError && <p className="hint error" role="alert">{tr(a.voiceError)}</p>}</Section>
   return (
     <Section title={tr("声音")}>
-      <Seg value={route as 'livliv' | 'api' | 'system'} set={(source) => { if (source === 'livliv' && !can) onAccount(); else if (source === 'api' && !api) onVoice(c.id); else patch({ voice: { ...v, source } }) }} options={[
-        ...(mid ? [{ id: 'livliv' as const, label: tr("角色声音"), title: can ? tr("角色在 livliv.ai 上的声音") : tr("在设置里连上 livliv.ai 帐号后可用") }] : []),
-        { id: 'api' as const, label: tr("我的接口"), title: api ? `${tr(speechProviderOf(speech).label)} · ${speech.model}` : tr("接入语音接口") },
+      <Seg value={route as 'livliv' | 'api' | 'system'} set={(source) => { if (source === 'api' && !api) onVoice(c.id); else patch({ voice: { ...v, source } }) }} options={[
+        ...(livlivOn ? [{ id: 'livliv' as const, label: 'livliv.ai' }] : []),
+        { id: 'api' as const, label: tr("自己的服务"), title: api ? `${tr(speechProviderOf(speech).label)} · ${speech.model}` : undefined },
         { id: 'system' as const, label: tr("系统朗读") },
       ]} />
-      {livliv ? <>
-        {officialPicker}
-      </> : route === 'api' && onVoicebox ? <>
+      {livliv ? picker : route === 'api' && onVoicebox ? <>
         <label className="field spaced"><span>{tr("Voicebox 的声音")}</span>
           <select value={v.api} onChange={(e) => patch({ voice: { ...v, api: e.target.value } })}>
             <option value="">{tr("默认（{0}）", profileName(apiVoice({ ...c, voice: { ...v, api: '' } }, speech, participants(store.get()))) || tr("还没有声音"))}</option>
             {voicebox.profiles.map((p) => <option key={p.id} value={p.id}>{p.name} · {tr(p.kind === 'preset' ? '预设' : p.kind === 'cloned' ? '克隆' : p.kind === 'designed' ? '设计' : '其他')}{OPEN_ENGINES.has(p.engine) ? '' : ` · ${p.engine}`}{p.ready ? '' : ` · ${tr('模型未下载')}`}</option>)}
           </select>
         </label>
-        <p className="hint">{voicebox.error ? voiceboxError(voicebox.error, voicebox.detail) : tr("声音在 Voicebox 里添加：预设，或用你的录音克隆。")}</p>
+        <p className="hint">{voicebox.error ? voiceboxError(voicebox.error, voicebox.detail) : tr('在 Voicebox 里添加声音')}</p>
       </> : route === 'api' ? <>
         <label className="field spaced"><span>{tr("音色")}</span>
           <input list={`api-voices-${c.id}`} value={v.api} placeholder={tr("默认（{0}）", apiVoice(c, speech, participants(store.get())).split(':').at(-1) || tr("接口的"))} onChange={(e) => patch({ voice: { ...v, api: e.target.value } })} />
@@ -167,8 +170,7 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
           <Slider label={tr("音调")} value={v.pitch} min={0.5} max={1.6} step={0.05} show={v.pitch.toFixed(2)} set={(pitch) => patch({ voice: { ...v, pitch } })} />
           <Slider label={tr("语速")} value={v.rate} min={0.6} max={1.6} step={0.05} show={v.rate.toFixed(2)} set={(rate) => patch({ voice: { ...v, rate } })} />
         </div>
-      </> : <p className="hint">{tr("当前只显示字幕。选择系统朗读，或在设置里接入语音接口后出声。")}</p>}
-      {mid && !can && officialPicker}
+      </> : <p className="hint">{tr("只有字幕")}</p>}
       {a?.voiceError && route !== 'system' && route !== 'none' && <p className="hint error">{tr("上一句没有出声：")}{tr(a.voiceError ?? '')}</p>}
       {(route === 'api' || route === 'livliv') && <Slider label={tr("角色语音音量")} value={c.tuning.volume} min={0} max={1} step={0.05} show={`${Math.round(c.tuning.volume * 100)}%`} set={(volume) => patch({ tuning: { ...c.tuning, volume } })} />}
       {route !== 'none' && audition}
@@ -187,11 +189,10 @@ function ReactionSection({ c, patch }: { c: CharacterItem; patch: (value: Partia
   const strength = settings.intensity <= 0.5 ? 'soft' : settings.intensity >= 0.95 ? 'lively' : 'natural'
   return <Section title={tr('AI 反应')}>
     <Switch label={tr('自动反应')} on={settings.enabled} set={(enabled) => patch({ reactions: { ...settings, enabled } })} />
-    <p className="hint">{tr(!driven ? '当前由面捕或其他输入控制，自动反应暂不接管。' : a?.format === 'png' ? '随聊天做点头、歪头等小动作。' : '随聊天使用角色已有表情，配合点头等小动作。')}</p>
+    {!driven && <p className="hint">{tr('面捕等输入控制中，不自动反应')}</p>}
     {settings.enabled && <>
       <div className="field"><span>{tr('反应风格')}</span><Seg value={strength} options={[{ id: 'soft', label: '轻微' }, { id: 'natural', label: '自然' }, { id: 'lively', label: '活泼' }]} set={(value) => { setNotice(''); patch({ reactions: { ...settings, intensity: { soft: 0.4, natural: 0.8, lively: 1 }[value], motion: { soft: 0.5, natural: 0.85, lively: 1 }[value] } }) }} /></div>
       <Switch label={tr('聆听时回应')} on={settings.listen !== false} set={(listen) => patch({ reactions: { ...settings, listen } })} />
-      <p className="hint">{tr('根据聊天内容回应其他角色；没有合适的反应时保持安静。')}</p>
       <button className="link" disabled={!driven || a?.status !== 'ready' || conversation.running} onClick={() => setNotice(tr(a?.previewReaction({ at: 0, feeling: 'curious', action: 'tilt' }) ? '正在预览反应' : '请先恢复手动表情，或稍后再试。'))}>{tr('预览反应')}</button>
       {notice && <p className="hint" role="status">{notice}</p>}
       <details className="advanced reaction-details"><summary>{tr('调整表情与节奏')}</summary>
@@ -238,18 +239,18 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
         </div>
       </div>
       <Switch label={tr("左右翻转")} on={c.mirror} set={(mirror) => patch({ mirror })} />
-      <Switch label={tr("投影")} on={c.shadow} set={(shadow) => patch({ shadow })} hint={tr("身后一层柔和的影子，浅色背景上更立体")} />
+      <Switch label={tr("投影")} on={c.shadow} set={(shadow) => patch({ shadow })} />
       <AvatarView c={c} patch={patch} />
       {!hasBubble && <button className="link" onClick={() => store.add(bubbleFor(c))}>{tr("给它加一个字幕气泡")}</button>}
     </Section>
   const persona = <Section title={tr('人设与风格')}>
         <CardImport key={c.id} c={c} patch={patch} />
-        <label className="field spaced"><span>{tr("人设")}</span>
+        <label className="field spaced"><span>{tr("人设")}<small className={`count num${c.persona.length > CARD_LIMITS.persona ? ' over' : ''}`}>{c.persona.length}/{CARD_LIMITS.persona}</small></span>
           {/* its example lines go with the card as written */}
-          <textarea rows={3} value={c.persona} placeholder={tr("她是谁、怎么说话，一两句就够")} onChange={(e) => patch({ persona: e.target.value, examples: undefined })} />
+          <textarea rows={3} maxLength={CARD_LIMITS.persona} value={c.persona} placeholder={tr("她是谁、怎么说话，一两句就够")} onChange={(e) => patch({ persona: e.target.value, examples: undefined })} />
         </label>
-        {c.style !== undefined && <label className="field"><span>{tr("说话风格")}</span>
-          <textarea rows={3} value={c.style} onChange={(e) => patch({ style: e.target.value, examples: undefined })} />
+        {c.style !== undefined && <label className="field"><span>{tr("说话风格")}<small className={`count num${c.style.length > CARD_LIMITS.style ? ' over' : ''}`}>{c.style.length}/{CARD_LIMITS.style}</small></span>
+          <textarea rows={3} maxLength={CARD_LIMITS.style} value={c.style} onChange={(e) => patch({ style: e.target.value, examples: undefined })} />
         </label>}
         {c.greeting !== undefined && <label className="field"><span>{tr('开场白')}</span>
           <textarea rows={2} maxLength={400} value={c.greeting} placeholder={tr('没人说话时，它开口的第一句')} onChange={(e) => patch({ greeting: e.target.value })} />
@@ -260,7 +261,7 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
         <Slider label={tr("发言频率")} value={c.chatty} min={0.3} max={2} step={0.1} show={c.chatty < 0.8 ? tr("少") : c.chatty > 1.3 ? tr("多") : tr("一般")} set={(chatty) => patch({ chatty })} />
       </Section>
   const lines = c.lines === 'me' && <Section title={tr('台词')}>
-      <Switch label={tr("用角色的声音念出来")} on={c.readAloud} set={(readAloud) => patch({ readAloud })} hint={tr("关掉：你自己对着麦克风说，控制台打的字只当字幕")} />
+      <Switch label={tr("用角色的声音念出来")} on={c.readAloud} set={(readAloud) => patch({ readAloud })} hint={tr("关掉时，打的字只当字幕")} />
     </Section>
   const drive = <Section title={tr("动作由什么驱动")}>
       <div className="driver-choices"><Seg value={c.driver} options={DRIVERS.map((d) => ({ id: d.kind, label: d.label, hint: d.hint, disabled: d.kind === 'network' && !motionSupported() }))} set={(driver) => patch({ driver })} /></div>
@@ -320,8 +321,8 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
       <button key={id} role="tab" aria-selected={page === id} className={page === id ? 'on' : ''} onClick={() => showCardPage(id)}>{tr(label)}</button>)}</div>
     {page === 'body' && <>{looks}{expressions}{motion}</>}
     {page === 'who' && <>{control}{c.lines === 'me' && <DevicePanel character={c} />}{drive}<TrackingPanel c={c} patch={patch} />{lines}</>}
-    {page === 'persona' && <>{c.lines === 'ai' ? persona : <p className="hint card-note">{tr('人设只在「AI 来演」时用到。')}</p>}{voice}{reactions}
-      {!voiced && <p className="hint card-note">{tr('这个角色不出声：「只展示」，或者你自己说话。')}</p>}</>}
+    {page === 'persona' && <>{c.lines === 'ai' ? persona : <p className="hint card-note">{tr('「AI 来演」时才有人设')}</p>}{voice}{reactions}
+      {!voiced && <p className="hint card-note">{tr('这个角色不出声')}</p>}</>}
   </>
 }
 
@@ -338,14 +339,14 @@ function SubtitlePanel({ s, patch }: { s: SubtitleItem; patch: (p: Partial<Subti
     <div className="field"><span>{tr("样式")}</span><Seg value={s.style} options={SUB_STYLES} set={(style) => patch({ style })} /></div>
     <Slider label={tr("字号")} value={s.size} min={18} max={96} show={String(s.size)} set={(size) => patch({ size })} />
     <Switch label={tr("显示名字")} on={s.showName} set={(showName) => patch({ showName })} />
-    <Switch label={tr("逐字出现")} on={s.typewriter} set={(typewriter) => patch({ typewriter })} hint={tr("跟着说话的速度一个字一个字出来")} />
+    <Switch label={tr("逐字出现")} on={s.typewriter} set={(typewriter) => patch({ typewriter })} />
     <Slider label={tr("说完后停留")} value={s.linger} min={0.5} max={8} step={0.5} show={tr("{0} 秒", s.linger)} set={(linger) => patch({ linger })} />
   </Section>
 }
 
 function TextPanel({ t, patch }: { t: TextItem; patch: (p: Partial<TextItem>) => void }) {
   return <Section title={tr("文字")}>
-    <label className="field"><span>{tr("内容（也可以在舞台上双击改）")}</span><textarea rows={2} value={t.text} onChange={(e) => patch({ text: e.target.value })} /></label>
+    <label className="field"><span>{tr("内容")}</span><textarea rows={2} value={t.text} onChange={(e) => patch({ text: e.target.value })} /></label>
     <Slider label={tr("字号")} value={t.size} min={16} max={160} show={String(t.size)} set={(size) => patch({ size })} />
     <div className="field"><span>{tr("颜色")}</span>
       <div className="row">
@@ -410,10 +411,10 @@ function SceneSettings() {
       </div>
       {(pictureError || background.error) && <p className="error" role="alert">{pictureError || background.error}</p>}
       <button className="wide" disabled={!characters(scene).length} onClick={() => store.set({ items: arrange(scene) }, 'arrange')}><LayoutGrid size={14} />{tr("自动排好角色")}</button>
-      <Switch label={tr("安全区参考线")} on={scene.guides} set={(guides) => store.set({ guides })} hint={tr("标题安全区（90%）和动作安全区（93%）：字幕和角色别放到外面")} />
+      <Switch label={tr("安全区参考线")} on={scene.guides} set={(guides) => store.set({ guides })} hint={tr("标题安全区（90%）和动作安全区（93%）")} />
       {scene.height > scene.width
-        ? <Switch label={tr("抖音 / TikTok 界面遮罩")} on={scene.mask} set={(mask) => store.set({ mask })} hint={tr("竖屏发到短视频平台时，顶栏、评论区和右侧按钮会盖住的地方")} />
-        : <Switch label={tr("9:16 裁切框")} on={scene.crop} set={(crop) => store.set({ crop })} hint={tr("同一场再剪竖屏时，中间这一块会留下")} />}
+        ? <Switch label={tr("抖音 / TikTok 界面遮罩")} on={scene.mask} set={(mask) => store.set({ mask })} hint={tr("顶栏、评论区和右侧按钮会盖住的地方")} />
+        : <Switch label={tr("9:16 裁切框")} on={scene.crop} set={(crop) => store.set({ crop })} hint={tr("剪竖屏时留下的部分")} />}
     </Section>
     <Layers />
   </>

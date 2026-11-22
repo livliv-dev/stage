@@ -15,7 +15,6 @@ export function AccountPanel({ onAdd }: { onAdd: () => void }) {
       <span className="account-spark" aria-hidden="true"><Sparkles size={24} /></span>
       <span className="account-site">livliv.ai</span>
       <h3>{tr("你的角色，来 Stage 同台")}</h3>
-      <p>{account.status === 'in' ? tr("在 Stage 使用你的 livliv.ai 角色与声音。") : tr("登录后，把 livliv.ai 的角色与声音带到舞台。")}</p>
       {account.status === 'in' && <span className="account-connected"><Check size={12} />{tr("已连接")}</span>}
     </div>
     {account.status === 'in' ? <div className="account-profile">

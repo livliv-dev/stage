@@ -48,7 +48,7 @@ try {
   await page.waitForFunction(() => window.__stage.actors.size === 1 && [...window.__stage.actors.values()].every(a => a.status === 'ready'))
   // the voice is set on the character card's 人设和声音 page
   await page.locator('.panel .card-pages').getByRole('tab', { name: '人设和声音', exact: true }).click()
-  const api = page.getByRole('button', { name: '我的接口', exact: true })
+  const api = page.getByRole('button', { name: '自己的服务', exact: true })
   assert.equal(await api.isEnabled(), true, 'An unconfigured voice API must guide setup instead of disabling the entry')
   await api.click()
   const settings = page.locator('.settings'), speech = settings.locator('[data-section="speech"]')

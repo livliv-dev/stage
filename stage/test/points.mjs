@@ -1,10 +1,11 @@
-// LivLiv's points AI on the site's build (VITE_STAGE_HOST=livliv): what Stage asks the site for. A line is asked for
-// with its voice (voice: true) only when it will be heard in the character's LivLiv voice; 仅字幕, a character on the
-// system voice and a muted one ask for none, and no line is voiced a second time (no /say call). Space never starts
-// paid lines: with the demo's three on the stage it plays the free demo, and with a model of one's own in the LivLiv voice it starts nothing. 对谈 answers a waiting viewer, and a clip that won't
-// play doesn't end it. In 持续聊天 with a model of one's own, a line in the LivLiv voice is one /say call, not one a sentence. Offline, a line fails in words (连不上 livliv.ai, 请检查网络后再试), never the
-// browser's "Failed to fetch". In the desktop app showing the site, a member is signed in by the site's cookie as in a
-// browser. The site is faked: nothing is spent.
+// livliv.ai on, on the site's build (VITE_STAGE_HOST=livliv): what Stage asks the site for. Each line is written by
+// livliv.ai's text (/api/stage/v1) and voiced by one /say call only when it will be heard in the character's livliv.ai
+// voice; 仅字幕, a character on the system voice and a muted one ask for no voice. Space never starts paid lines: with the
+// demo's three on the stage it plays the free demo, and with a model of one's own in a livliv.ai voice it starts nothing.
+// 对谈 answers a waiting viewer, and a clip that won't play doesn't end it. In 持续聊天 a reply is said sentence by
+// sentence, its sentences' /say calls sharing one line id (a livliv.ai voice is paid by the line). Offline, a line fails
+// in words (连不上 livliv.ai，请检查网络后再试), never the browser's "Failed to fetch". In the desktop app showing the
+// site, a member is signed in by the site's cookie as in a browser. The site is faked: nothing is spent.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { readFile } from 'node:fs/promises'
@@ -16,8 +17,8 @@ const root = fileURLToPath(new URL('..', import.meta.url)), errors = []
 const FLAGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required']
 const clip = await readFile(join(root, 'public/demo/trio/01.mp3'))
 let server, browser, page
-const asked = [], said = [], requests = []
-let badClips = 0, sayOk = false, offline = false  // sayOk: /say answers (持续聊天 with a model of one's own and the LivLiv voice)  // the next n line clips come back as bytes no player can play
+const asked = [], said = [], lineIds = [], requests = []
+let badClips = 0, offline = false  // the next n line clips come back as bytes no player can play; offline: the site never answers
 try {
   const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: 'livliv' } })
   const origin = 'http://127.0.0.1:' + port
@@ -27,18 +28,18 @@ try {
   await context.route('**/*', async (route) => {
     const req = route.request(), url = new URL(req.url())
     if (url.pathname === '/api/me') return route.fulfill({ json: { signed_in: true, email: 'member@example.test', points: 10, plan: 'plus', record_seconds: 300, record_mark: false, stage_line_points: 0.5, stage_silent_free: true } })
-    if (/^\/api\/chat\/[^/]+\/stage-line$/.test(url.pathname)) {
+    if (url.pathname === '/api/stage/v1/chat/completions') {
       if (offline) return route.abort('internetdisconnected')
-      const body = req.postDataJSON(); requests.push(body); asked.push({ who: url.pathname.split('/')[3], voice: body.voice })
-      return route.fulfill({ json: { text: '今天的风好舒服。', emotion: 'happy', action: 'none', to: null, look: null, audio: body.voice ? '/api/chat/say/line.mp3' : null, points: 10 } })
+      const body = req.postDataJSON(); requests.push(body); asked.push(body)
+      return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: '今天的风好舒服。', emotion: 'happy', action: 'none', to: null, look: null }) } }] } })
     }
     if (url.pathname === '/api/chat/say/line.mp3') {
       if (badClips > 0) { badClips--; return route.fulfill({ body: Buffer.from('not a sound'), contentType: 'audio/mpeg' }) }
       return route.fulfill({ body: clip, contentType: 'audio/mpeg' })
     }
     if (/^\/api\/chat\/[^/]+\/say$/.test(url.pathname)) {
-      said.push(url.pathname)
-      return sayOk ? route.fulfill({ json: { lines: [{ audio: '/api/chat/say/line.mp3', expression: null }], points: 9 } }) : route.fulfill({ status: 500, json: { detail: 'not expected' } })
+      said.push(url.pathname); lineIds.push(req.postDataJSON().line)
+      return route.fulfill({ json: { lines: [{ audio: '/api/chat/say/line.mp3', expression: null }], points: 9 } })
     }
     if (url.pathname === '/fixture-ai/chat/completions') {
       return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: '你好呀。今天想聊点什么？我们慢慢说。', emotion: 'happy', action: 'none', to: null, look: null }) } }] } })
@@ -52,20 +53,21 @@ try {
   await page.goto(origin + '/', { waitUntil: 'networkidle' })
   // the first visit: the demo's three on the stage, signed in, LivLiv the AI's model
   await page.waitForFunction(() => { const a = [...window.__stage.actors.values()]; return a.length === 3 && a.every((x) => x.status === 'ready') }, null, { timeout: 60000 })
-  // the first visit's start page over them, closed: the console's model tag says LivLiv
+  // the first visit's start page over them, closed: the console's model tag says livliv.ai
   await page.locator('.start-overlay .start-page [data-close]').click()
-  await page.locator('.status-line .st-tag', { hasText: 'LivLiv' }).waitFor()
+  await page.locator('.status-line .st-tag', { hasText: 'livliv.ai' }).waitFor()
   const conv = () => page.evaluate(() => { const c = window.__stage.conversation(); return { running: c.running, error: c.error } })
   const ai = () => page.evaluate(() => window.__stage.store.get().items.filter((i) => i.kind === 'character' && i.lines === 'ai').map((i) => i.id))
   const patchAll = (p) => page.evaluate(({ ids, p }) => { for (const id of ids) { const c = window.__stage.store.get().items.find((i) => i.id === id); window.__stage.store.patch(id, typeof p === 'string' ? { voice: { ...c.voice, source: p } } : p) } }, { ids: p.ids, p: p.patch })
-  /** starts a run, waits for its first ask of the site, stops it: what it asked */
+  /** starts a run, waits for its first line to be said, stops it: whether that line was voiced by livliv.ai */
   async function first(start) {
-    asked.length = 0
+    asked.length = 0; said.length = 0
     await page.evaluate(start)
-    for (let i = 0; i < 200 && !asked.length; i++) await page.waitForTimeout(100)
+    for (let i = 0; i < 300 && !(asked.length && (said.length || (await page.evaluate(() => window.__stage.conversation().lines.some((l) => !l.human))))); i++) await page.waitForTimeout(100)
+    await page.waitForTimeout(300)
     await page.evaluate(() => window.__stage.talk.stop())
     assert.ok(asked.length, 'a line was asked for: ' + JSON.stringify(await conv()))
-    return asked[0]
+    return { voice: said.length > 0 }
   }
   const ids = await ai()
   assert.equal(ids.length, 3)
@@ -80,9 +82,11 @@ try {
   // the demo set the brain to the demo for this run: back to LivLiv, as the model card's LivLiv does
   await page.evaluate(async () => (await import('/src/brain.ts')).playDemo(false))
 
-  // 对谈, the LivLiv voice: the voice comes with the line
+  // 对谈, the livliv.ai voice: the line from livliv.ai's text, its voice from /say in the character's own
   const talkLine = await first(() => window.__stage.talk.start())
-  assert.equal(talkLine.voice, true, '对谈 with the LivLiv voice asks for it')
+  assert.equal(talkLine.voice, true, '对谈 with the livliv.ai voice asks for it')
+  assert.equal(asked[0].model, 'livliv', "livliv.ai's model writes the line")
+  assert.ok(said.every((path) => /^\/api\/chat\/(d03ft|k01|v04)\/say$/.test(path)), 'each in its own voice on the site: ' + JSON.stringify(said))
   // 对谈 with a viewer waiting (对谈时回应弹幕 on): the public session, and the line answers them
   {
     const from = requests.length
@@ -92,7 +96,7 @@ try {
     })
     await first(() => window.__stage.talk.start())
     await page.evaluate(() => { Math.random = window.__realRandom; window.__stage.store.setTalk({ danmaku: 1 }) })
-    assert.ok(requests.slice(from).some((r) => r.viewer?.text === '主播们好'), '对谈 answers a waiting viewer: ' + JSON.stringify(requests.slice(from).map((r) => r.viewer)))
+    assert.ok(requests.slice(from).some((r) => JSON.stringify(r.messages).includes('主播们好')), '对谈 answers a waiting viewer')
   }
   // 对谈: a clip that won't play keeps its subtitle, and the talk goes on to the next line
   {
@@ -116,18 +120,16 @@ try {
   await patchAll({ ids, patch: 'system' })
   const system = await first(() => window.__stage.talk.start())
   assert.equal(system.voice, false, 'a character on the system voice asks for no LivLiv voice')
-  // muted: not heard, so not voiced (and not voiced again by /say)
+  // muted: not heard, so not voiced
   await patchAll({ ids, patch: 'livliv' }); await patchAll({ ids, patch: { muted: true } })
   const muted = await first(() => window.__stage.talk.start())
   assert.equal(muted.voice, false, 'a muted character asks for no voice')
-  await page.waitForTimeout(500)
-  assert.deepEqual(said, [], 'no line is voiced a second time through /say')
-  // 持续聊天 with a model of one's own and the LivLiv voice: a three-sentence reply is one /say, as each call is charged
+  // 持续聊天 with a model of one's own (livliv.ai's text off) and its voices on: a three-sentence reply is said sentence by
+  // sentence, its three /say calls under one line id (paid once)
   {
-    sayOk = true
     await patchAll({ ids, patch: { muted: false } }); await patchAll({ ids, patch: 'livliv' })
-    await page.evaluate(async () => (await import('/src/brain.ts')).saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' }))
-    // Space with a model of one's own but the LivLiv voice: every line would be a paid /say, so Space starts nothing
+    await page.evaluate(async () => { const b = await import('/src/brain.ts'); b.saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' }); b.setLivLiv({ voice: true }) })
+    // Space with a model of one's own but livliv.ai's voices: every line would be a paid /say, so Space starts nothing
     said.length = 0
     await page.evaluate(() => document.activeElement?.blur?.()); await page.keyboard.press('Space')
     await page.locator('.toast').filter({ hasText: '用积分的台词' }).waitFor()
@@ -137,12 +139,12 @@ try {
     await page.evaluate(() => { void window.__stage.talk.startChat('private') })
     await page.waitForFunction(() => window.__stage.conversation().waitingInput, null, { timeout: 60000 })
     const before = await page.evaluate(() => window.__stage.conversation().turns)
-    said.length = 0
+    said.length = 0; lineIds.length = 0
     await page.evaluate(() => window.__stage.talk.say('你好'))
     await page.waitForFunction((t) => { const c = window.__stage.conversation(); return c.turns > t && c.waitingInput && !c.speaking }, before, { timeout: 60000 })
     await page.evaluate(() => window.__stage.talk.stop())
-    assert.equal(said.length, 1, 'one /say for the three-sentence line: ' + JSON.stringify(said))
-    sayOk = false
+    assert.equal(said.length, 3, 'a /say a sentence: ' + JSON.stringify(said))
+    assert.ok(lineIds[0] && lineIds.every((id) => id === lineIds[0]), 'all under one line id: ' + JSON.stringify(lineIds))
     await page.evaluate(async () => (await import('/src/brain.ts')).saveBrainConfig({ kind: 'livliv' }))
   }
   // offline: a line the site never answers says so in words, never the browser's "Failed to fetch"
@@ -181,33 +183,8 @@ try {
     await app.close()
   }
   assert.deepEqual(errors, [])
-  await page.evaluate(async () => {
-    const { makeBrain } = await import('/src/brain.ts'), me = [...window.__stage.actors.values()][0].item
-    const { memory } = await import('/src/memory.ts')
-    for (let i = 1; i <= 4; i++) {
-      await memory.remember({ profileId: me.profileId ?? me.id, scope: 'public', text: '背景记忆' + i })
-      await new Promise((resolve) => setTimeout(resolve, 5))
-    }
-    const context = await memory.context([me.profileId ?? me.id], 'public')
-    const lines = Array.from({ length: 20 }, (_, i) => ({ id: String(i), who: i % 2 ? me.id : 'me', name: i % 2 ? me.name : '我', text: '最近的对话' + i, emotion: 'neutral', action: 'none', to: null }))
-    await makeBrain({ kind: 'livliv' }).reply({ me, others: [], humans: ['我'], topic: '继续聊', lines, layout: [me.name], role: null, cutIn: false, language: 'zh', viewer: null,
-      summary: { text: '先前聊过烘焙', sourceIds: ['0'] }, memories: context.memories, depth: 'discussion',
-      event: { source: 'Game', message: '刚完成任务' }, voiced: false }, new AbortController().signal)
-  })
-  const background = requests.at(-1)
-  assert.equal(background.length, 'long', 'discussion uses the existing long-answer option')
-  assert.equal(background.lines.length, 14)
-  assert.deepEqual(background.lines.slice(0, 5), [
-    { name: '会话摘要', text: '先前聊过烘焙', me: false },
-    { name: '背景资料 · 已保存记忆', text: '背景记忆4', me: false },
-    { name: '背景资料 · 已保存记忆', text: '背景记忆3', me: false },
-    { name: '背景资料 · 已保存记忆', text: '背景记忆2', me: false },
-    { name: '外部事件 · Game', text: '刚完成任务', me: false },
-  ])
-  assert.equal(background.lines.at(-1).text, '最近的对话19')
-  assert.equal(background.lines.at(-1).me, true, 'real character lines retain their attribution')
-  // Space with 免按键 and no recognition API of one's own: what you say would be recognised through livliv.ai, which
-  // charges each utterance; from a key it starts nothing (the button does)
+  // Space with 免按键 while livliv.ai's voices are on: what you say would be recognised through livliv.ai, which charges
+  // each utterance; from a key it starts nothing (the button does)
   {
     await page.evaluate(() => window.__stage.talk.stop())
     await patchAll({ ids, patch: 'system' })

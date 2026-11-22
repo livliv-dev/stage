@@ -7,12 +7,15 @@ import { tr } from './i18n'
 // voice of its own (apiVoice).
 // In the desktop app, Voicebox running on this computer (voicebox.ts) is a voice too, free and local, and the one used
 // when no other is set.
-// Which voice a character speaks in (voiceRoute): the one chosen for it if it can be had, else your API, LivLiv's
-// voice (signed in, a LivLiv character), else none: its lines show as subtitles. The system's voice only if chosen.
+// Which voice a character speaks in (voiceRoute): with livliv.ai's voices on (Settings → 连接), livliv.ai's for every
+// character (its own on the site, else a system voice), unless its card says your own or the system's; off, your API,
+// else none: its lines show as subtitles. The system's voice only if chosen. A card set to your own never falls back to
+// livliv.ai's.
 import { useSyncExternalStore } from 'react'
-import { aiFetch, failed, loadBrainConfig, previousModelConfig, useBrainConfig, type BrainConfig } from './brain'
+import { bailianAudio } from './bailianAudio'
+import { aiFetch, failed, livlivNow, loadBrainConfig, ownVoicesKnown, previousModelConfig, useBrainConfig, type BrainConfig } from './brain'
 import type { Emotion, StreamingVoice } from './core/lines'
-import { modelId, signedIn } from './livliv'
+import { modelId } from './livliv'
 import type { CharacterItem } from './scene'
 import { features } from './core/platform'
 import { clearKey, readKeyed, writeKeyed } from './core/secrets'
@@ -51,7 +54,7 @@ export const useSpeech = () => useSyncExternalStore((f) => { subs.add(f); return
 /** the speech API that comes with this model's key: the same service, the same address and key (while the demo
  *  plays, the saved model's) */
 export function speechOfModel(c: BrainConfig = loadBrainConfig()): SpeechApi | null {
-  const b = c.kind === 'openai' ? c : previousModelConfig()  // the demo, LivLiv's points: the saved model's key
+  const b = c.kind === 'openai' ? c : previousModelConfig()  // the demo, livliv.ai's text: the saved model's key
   if (!b.key) return null
   const p = SPEECH_PROVIDERS.find((q) => q.id === b.provider && q.women && q.id !== 'openai')
   return p ? { provider: p.id, base: p.id === 'qwen' ? b.base.replace(/\/compatible-mode\/v1\/?$/, '/api/v1') : b.base, key: b.key, model: p.model, voice: '', asr: p.asr } : null
@@ -59,6 +62,11 @@ export function speechOfModel(c: BrainConfig = loadBrainConfig()): SpeechApi | n
 /** the speech API in use: the one set in settings; none set, the one that comes with the model's key, else Voicebox
  *  when it is running on this computer */
 export const activeSpeech = (s = config, b: BrainConfig = loadBrainConfig()): SpeechApi => (s.provider ? s : speechOfModel(b) ?? (voiceboxReady() ? VOICEBOX_SPEECH : s))
+// livliv.ai's voices never chosen are worked out once voices of one's own are known (brain.ts): at once on a web page; in
+// the desktop app once its first look for Voicebox has settled, or after 5 s
+const ownVoicesReady = () => { const s = activeSpeech(); return speechReady(s) || asrReady(s) }
+if (!voiceboxHere()) ownVoicesKnown(ownVoicesReady)
+else void Promise.race([detectVoicebox(), new Promise((resolve) => setTimeout(resolve, 5000))]).then(() => ownVoicesKnown(ownVoicesReady))
 export function useActiveSpeech() {
   const s = useSpeech(), b = useBrainConfig()
   useSyncExternalStore(onVoicebox, voiceboxState)
@@ -97,19 +105,16 @@ const TONE: Partial<Record<Emotion, string>> = { happy: '语气开心、轻快�
 export async function speakApi(s: SpeechApi, text: string, voice: string, emotion: Emotion, rate: number, signal?: AbortSignal): Promise<Blob> {
   if (s.provider === 'voicebox') return voiceboxSpeak(voice || s.voice || defaultProfile(0), text, signal)
   if (s.provider === 'qwen') {
+    // as a stream: the line comes in the answer's events, never from the file Bailian leaves on its storage (bailianAudio.ts)
     const r = await aiFetch(endpoint(s, '/services/audio/tts/SpeechSynthesizer'), {
-      method: 'POST', signal, headers: { 'Content-Type': 'application/json', ...auth(s) },
+      method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'X-DashScope-SSE': 'enable', ...auth(s) },
       body: JSON.stringify({ model: s.model, input: { text, voice: voice || s.voice || speechProviderOf(s).voices![0], format: 'wav', sample_rate: 24000, rate,
         ...(TONE[emotion] ? { instruction: TONE[emotion] } : {}) } }),
     })
     if (!r.ok) throw await failed(r)
-    const data = await r.json(), url = data?.output?.audio?.url
-    if (data?.code) throw new Error(data.message || data.code)
-    if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) throw new Error(tr('语音接口没有返回声音'))
-    // The generated file is fetched without forwarding the API key to its storage host.
-    const audio = await aiFetch(url, { signal })
-    if (!audio.ok) throw new Error(tr('声音文件读取失败（{0}）', audio.status))
-    return audio.blob()
+    const { blob } = finished(bailianAudio(await r.text()), 'audio/wav')
+    if (!blob.size) throw new Error(tr('语音接口没有返回声音'))
+    return blob
   }
   const tone = speechProviderOf(s).tone && TONE[emotion]
   const r = await aiFetch(endpoint(s, '/audio/speech'), {
@@ -232,14 +237,14 @@ export async function listVoices(s: SpeechApi, signal?: AbortSignal): Promise<st
 }
 
 export type { VoiceRoute }
-/** a character's voice for a line of the session running: never LivLiv's for points because its own went away
+/** a character's voice for a line of the session running: never livliv.ai's when the session started without it
  *  (sessions/spend.ts) */
 export const sessionRoute = (c: CharacterItem, s = activeSpeech()): VoiceRoute => voiceNow(c.id, voiceRoute(c, s), c.voice.source === 'livliv', current()?.spend)
-/** where a character's voice comes from now: its choice if it can be had, else your API, LivLiv's, else none */
+/** where a character's voice comes from now: the system's or your API's when its card says so, else livliv.ai's while
+ *  its voices are on, else your API, else none */
 export function voiceRoute(c: CharacterItem, s = activeSpeech()): VoiceRoute {
-  const livliv = !!modelId(c) && signedIn(), api = speechReady(s), want = c.voice.source
+  const api = speechReady(s), want = c.voice.source
   if (want === 'system') return 'system'
-  if (want === 'livliv' && livliv) return 'livliv'
-  if (want === 'api' && api) return 'api'
-  return livliv ? 'livliv' : api ? 'api' : 'none'
+  if (want === 'api') return api ? 'api' : 'none'
+  return livlivNow().voice ? 'livliv' : api ? 'api' : 'none'
 }

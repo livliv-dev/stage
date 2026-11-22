@@ -3,13 +3,13 @@ import { tr } from '../i18n'
 // starts in, and what it opens and closes (the record, the cast loaded, AIRI bound, a game connected). Then the runner
 // runs it with the policy (sessions/policies) over the stage (sessions/env.ts).
 import { actors } from '../actors'
-import { brainReady, loadBrainConfig, type ModelConfig } from '../brain'
+import { brainReady, demoRunsWhen, livlivNow, loadBrainConfig, modelOf, type ModelConfig } from '../brain'
 import { airiFits, chooseEngine } from '../brains/select'
 import { chatHistory } from '../chatHistory'
 import { features } from '../core/platform'
 import { desktop } from '../desktopBridge'
 import { participants, store, uid } from '../scene'
-import { activeSpeech, asrReady, voiceRoute } from '../voiceApi'
+import { voiceRoute } from '../voiceApi'
 import { airiGameError, airiGameText } from '../airiEngine'
 import type { MemoryScope } from '../memory'
 import type { ExternalEvent } from '../externalEvents'
@@ -29,18 +29,22 @@ import { current, finish, Run } from './run'
 import { pick } from './speakers'
 import { handOver, runSession } from './runner'
 import { conversation, set } from './state'
+import { spendAtStart } from './spend'
 import { sleep } from './wake'
 
 import { gameName } from './games'
 
+// a demo running is left one by livliv.ai's switches (brain.ts setLivLiv)
+demoRunsWhen(() => !!current()?.demo)
+
 /** a session of this kind takes over: on AIRI with this model, else on the brain set up turn by turn */
 function takeOver(kind: Run['kind'], airi: ModelConfig | null = null) {
   const run = new Run(kind)
-  // what it may spend: how you are heard and each AI character's voice, as it starts (sessions/spend.ts)
-  run.spend = {
-    hearing: asrReady(activeSpeech()) ? 'own' : 'points',
-    voices: Object.fromEntries(participants(store.get()).filter((c) => c.lines === 'ai').map((c) => [c.id, voiceRoute(c)])),
-  }
+  run.demo = loadBrainConfig().kind === 'demo'
+  // what it may spend: its lines, how you are heard and each voiced character's voice (an AI character's, or yours
+  // read aloud), as it starts; the demo nothing (sessions/spend.ts)
+  const voiced = participants(store.get()).filter((c) => c.lines === 'ai' || (c.lines === 'me' && c.readAloud))
+  run.spend = spendAtStart(livlivNow(), Object.fromEntries(voiced.map((c) => [c.id, voiceRoute(c)])), run.demo)
   handOver(run, stageEnv, airi)
   return run
 }
@@ -116,22 +120,19 @@ export async function startChat(chosen: MemoryScope = conversation().chatScope, 
 /** starts a 直播间 with these options (limits already in bounds); `event` hands a game's events to the session */
 export function startLive(options: LiveOptions, event: (event: ExternalEvent) => boolean) {
   const config = loadBrainConfig()
-  if (!brainReady(config) || config.kind === 'demo') { set({ error: tr("直播间需要接上模型，演示只能在「只有我」里看"), needModel: true, modelIntent: 'live' }); return }
+  if (!brainReady(config) || config.kind === 'demo') { set({ error: tr("直播间需要接上模型"), needModel: true, modelIntent: 'live' }); return }
   const cast = participants(store.get()).filter((c) => c.lines === 'ai')
   if (!cast.length) { set({ error: tr("先添加一个「AI 来演」的角色") }); return }
   // the start asked for AIRI: the one rule (brains/select.ts), a game or a window asking for it whatever the switch says
-  const choice = options.airi ? chooseEngine(config, cast, { kind: 'live', needsAiri: true, textOnly: options.textOnly, voice: voiceRoute(cast[0]) }, features) : null
+  const choice = options.airi ? chooseEngine(config, cast, { kind: 'live', needsAiri: true, textOnly: options.textOnly }, features) : null
   if (choice && !airiFits(choice)) {
     set({ error: tr('内置 AIRI 需要一个本地 AI 角色和流式模型接口') }); return
   }
   const gameHost = desktop?.airiGame, gameConfig = options.airi?.game
   if (gameConfig && !gameHost) { set({ error: tr('当前桌面版本不支持 AIRI 游戏') }); return }
-  if (choice?.reason === 'livliv-voice') {
-    set({ error: tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕') }); return
-  }
-  const airiModel = choice?.engine === 'airi' && config.kind === 'openai' ? config : null
+  const airiModel = choice?.engine === 'airi' ? modelOf(config) : null
   // a muted character speaks no line aloud: only the ones that speak need a voice, else the session is subtitles only
-  if (!options.textOnly && cast.some((c) => !c.muted && voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕") }); return }
+  if (!options.textOnly && cast.some((c) => !c.muted && voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音，在角色卡里选一个") }); return }
   const run = takeOver('live', airiModel), signal = run.signal
   inbox.clearViewers(); inbox.drop(YOURS); inbox.drop(EVENTS); holds.dialogue.clear()
   run.liveOptions = options

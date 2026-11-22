@@ -25,7 +25,7 @@ export function Cast({ guide, onFriend, friendOn }: { guide: ReactNode; onFriend
     <div className="cast-scroll">
       <header><span className="title">{tr('cast.title')}</span><span className="hint num">{cast.length}</span></header>
     <div id="stage-cast-list">
-      {!cast.length && <p className="hint">{tr("添加角色后，在这里选择。")}</p>}
+      {!cast.length && <p className="hint">{tr("还没有角色")}</p>}
       {cast.map((c) => {
         const state = c.remote ? (c.hidden ? tr("已隐藏") : tr("朋友 · ") + c.remote.person) : conv.speaking?.who === c.id ? tr("正在说话") : conv.thinking === c.id ? tr("正在思考") : conv.waiting === c.id ? tr("轮到你") : c.hidden ? tr("已隐藏") : c.lines === 'ai' ? 'AI' : c.lines === 'me' ? tr("我来演") : tr("只展示")
         return <div className={'actor-row' + (selected === c.id ? ' selected' : '') + (c.hidden ? ' hidden' : '')} key={c.id}>

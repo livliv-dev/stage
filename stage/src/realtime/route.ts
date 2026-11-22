@@ -23,10 +23,10 @@ export function realtimeRoute(provider: RealtimeProvider, base: string, model: s
 
 /** what to change when a call couldn't connect (`status`: the service's answer; 0: none) */
 export function realtimeFailure(provider: RealtimeProvider, status: number, detail = ''): string {
-  if (status === 401 || status === 403) return tr('实时通话的密钥不被接受（{0}）：在「设置 → 连接」检查密钥', status)
+  if (status === 401 || status === 403) return tr('实时通话密钥无效（{0}）', status)
   if (status === 404 || /model not exist|model.*not found/i.test(detail)) return provider === 'qwen'
-    ? tr('百炼找不到这个实时模型或地址：检查「设置 → 连接 → 实时通话」的模型名，和工作空间地址（如果填了）')
-    : tr('找不到这个实时模型（404）：检查「设置 → 连接 → 实时通话」的模型名')
+    ? tr('百炼找不到这个实时模型或地址')
+    : tr('找不到这个实时模型（404）')
   if (status === 429) return tr('实时通话太忙或额度用完了（429），稍后再试')
   return status ? tr('实时通话连接失败（{0}）', status) : tr('实时通话连接失败，请检查网络后重新开始')
 }

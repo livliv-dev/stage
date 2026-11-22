@@ -1,16 +1,14 @@
-// The forms for the services Stage talks to: the text model (a model of one's own, LivLiv's points on the site and in the
-// desktop app, or the demo) and the speech API (voices and recognition). Settings → 连接 shows them; so does the model
-// card the console opens.
+// The forms for your own services Stage talks to: the text model (a model of one's own, or the demo) and the speech API
+// (voices and recognition). Settings → 连接 shows them, below livliv.ai's switch (Connections.tsx).
 import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, LoaderCircle, Lock, Play, RefreshCw } from 'lucide-react'
 import { tr } from '../i18n'
-import { brainReady, clearBrainKey, listModels, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveBrainConfig, savedBrain, testModel, useBrainConfig, type ModelConfig } from '../brain'
+import { brainReady, clearBrainKey, listModels, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveOwnModel, testModel, useBrainConfig, type ModelConfig } from '../brain'
 import { talk } from '../conversation'
 import { testAiriModel } from '../airiEngine'
 import { chooseEngine } from '../brains/select'
 import { features } from '../core/platform'
 import { demoFor } from '../demo'
-import { cancelConnect, openConnect, useAccount } from '../livliv'
 import { participants, store, useScene } from '../scene'
 import { activeSpeech, asrReady, clearSpeechKey, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, transcribeApi, useSpeech, VOICEBOX_SPEECH, type SpeechApi } from '../voiceApi'
 import { detectVoicebox, OPEN_ENGINES, useVoicebox, VOICEBOX_SITE, voiceboxError, voiceboxHere, voiceboxReady } from '../voicebox'
@@ -18,18 +16,14 @@ import { wav16k } from '../audio'
 import { lostKey } from '../core/secrets'
 import { beginDemo } from './demoStart'
 
-/** where the AI characters' lines come from: your own model (a preset, or any OpenAI-compatible API), LivLiv's points
- *  on livliv.ai, or the demo (one more option in the row). onPick: what is chosen now, saved or not. own: opened to
- *  leave the demo, so the demo isn't the one chosen */
-export function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, onContinue, noDemo }: { forStart?: boolean; own?: boolean; done?: () => void; demoDone?: () => void; onPick?: (kind: 'demo' | 'livliv' | 'openai') => void; onAccount: () => void; onContinue?: () => void; noDemo?: boolean }) {
+/** your own model for the AI characters' lines (a preset, or any OpenAI-compatible API), or the demo (one more option
+ *  in the row). onPick: what is chosen now, saved or not. own: opened to leave the demo, so the demo isn't the one
+ *  chosen. Saved while livliv.ai gives the text, it is kept for when that is off */
+export function ModelForm({ forStart, own, done, demoDone, onPick, onContinue, noDemo }: { forStart?: boolean; own?: boolean; done?: () => void; demoDone?: () => void; onPick?: (kind: 'demo' | 'openai') => void; onAccount: () => void; onContinue?: () => void; noDemo?: boolean }) {
   const cur = useBrainConfig(), { scene } = useScene()
   const demoAvailable = demoFor(participants(scene))?.script.template === 'trio'
   const [demo, setDemo] = useState(!own && cur.kind === 'demo')
-  // livliv.ai/stage: LivLiv's points instead of a key of one's own (the site writes and voices the lines)
-  // LivLiv's points (the site writes and voices the lines): on livliv.ai/stage and in the desktop app
-  const [points, setPoints] = useState(features.points && (cur.kind === 'livliv' || !previousModelConfig().provider || (cur.kind === 'demo' && savedBrain().kind === 'livliv')))
-  const account = useAccount()
-  useEffect(() => { onPick?.(demo ? 'demo' : points ? 'livliv' : 'openai') }, [demo, points])  // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { onPick?.(demo ? 'demo' : 'openai') }, [demo])  // eslint-disable-line react-hooks/exhaustive-deps
   const [d, setD] = useState<ModelConfig>(() => (previousModelConfig().provider ? previousModelConfig() : { kind: 'openai', provider: PROVIDERS_HERE[0].id, base: PROVIDERS_HERE[0].base, key: '', model: '' }))
   const [models, setModels] = useState<string[]>([])
   const [st, setSt] = useState<{ busy?: 'list' | 'test' | 'demo'; ok?: number; batch?: boolean; err?: string }>({})
@@ -40,7 +34,7 @@ export function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, on
   const choose = (id: string) => {
     request.current?.abort(); request.current = null
     const q = PROVIDERS.find((x) => x.id === id)!
-    setDemo(false); setPoints(false); setModels([]); setSt({})
+    setDemo(false); setModels([]); setSt({})
     setD((x) => ({ ...x, provider: id, base: q.base || (x.provider === 'custom' ? x.base : ''), key: x.provider === id ? x.key : '', model: x.provider === id ? x.model : '' }))
   }
   const fetchModels = async (c = d) => {
@@ -68,28 +62,19 @@ export function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, on
     request.current?.abort(); request.current = null
     try {
       if (playDemo) { setSt({ busy: 'demo' }); await beginDemo(demoDone ?? done) }
-      else { if (cur.kind === 'demo') talk.stop(); saveBrainConfig(points ? { kind: 'livliv' } : d); done?.(); if (forStart) onContinue?.() }
+      else { if (cur.kind === 'demo') talk.stop(); saveOwnModel(d); done?.(); if (forStart) onContinue?.() }
       setSt({})
     } catch (error) { setSt({ err: (error as Error).message }) }
   }
   return <div className="model-form">
     {!noDemo && <div className="demo-launch"><div><b>{tr('三人聊天演示')}</b><span>{tr('无需密钥')}</span></div><button title={demoAvailable ? undefined : tr('打开演示舞台')} disabled={st.busy === 'demo'} onClick={() => void save(true)}>{st.busy === 'demo' ? <LoaderCircle size={14} className="spin" /> : <Play size={14} />}{tr('看演示')}</button></div>}
     <div className="providers">
-      {features.points && <button className={!demo && points ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(false); setPoints(true); setSt({}); if (account.status !== 'in') onAccount() }}>livliv.ai</button>}
-      {PROVIDERS_HERE.map((q) => <button key={q.id} className={!demo && !points && d.provider === q.id ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
+      {PROVIDERS_HERE.map((q) => <button key={q.id} className={!demo && d.provider === q.id ? 'on' : ''} disabled={st.busy === 'demo'} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
       {/* the three's prepared conversation in their recorded voices: no key, no model */}
       {!noDemo && <button className={`demo${demo ? ' on' : ''}`} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(true); setSt({}) }}>{tr("演示")}</button>}
     </div>
-    {demo ? null : points ? <>
-      <p className="hint">{tr("无需密钥。消耗 livliv.ai 积分，每句台词 {0} 积分，只能用于 LivLiv 的角色。", account.linePoints)}</p>
-      {/* signing in: the site's page on livliv.ai, a connect code in the desktop app (shown here while it waits) */}
-      {account.connect ? <div className="connect-wait">
-        <p className="hint"><LoaderCircle className="spin" size={12} /> {tr("在浏览器完成登录")} · <strong className="num">{account.connect.code}</strong></p>
-        <div className="row"><button onClick={openConnect}><ExternalLink size={14} />{tr("再打开网页")}</button><button onClick={cancelConnect}>{tr("取消")}</button></div>
-      </div> : account.status === 'out' && <button disabled={account.closed} onClick={onAccount}><ExternalLink size={14} />{tr("登录 livliv.ai")}</button>}
-      {account.status === 'out' && account.error && !account.closed && <p className="hint error" role="alert">{tr(account.error ?? '')}</p>}
-    </> : features.host === 'site' && <p className="hint">{tr("网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。")}</p>}
-    {!demo && !points && <>
+    {!demo && features.host === 'site' && <p className="hint">{tr("Ollama 等本机服务请用桌面版")}</p>}
+    {!demo && <>
       {(p.id === 'custom' || p.id === 'ollama') && <label className="field"><span>{tr("接口地址")}</span>
         <input value={d.base} placeholder="https://…/v1" onChange={(e) => change({ base: e.target.value, model: '' })} onBlur={() => void fetchModels()} /></label>}
       {!p.noKey && <label className="field"><span>{tr("密钥")}<span className="lock" title={tr("只存在这台电脑上")}><Lock size={11} /></span>
@@ -105,17 +90,17 @@ export function ModelForm({ forStart, own, done, demoDone, onPick, onAccount, on
         </div>
         <datalist id="model-list">{models.map((m) => <option key={m} value={m} />)}</datalist>
       </label>
-      {/* AIRI runs in the desktop app; on the web the switch is there, off, with where it works */}
+      {/* AIRI runs in the desktop app and on any web page (持续聊天 there); an older desktop app without window capture shows the switch off, marked 桌面版 */}
       <label className="switch"><span>{tr('单角色会话优先使用 AIRI')}{!features.airi && <span className="desk-tag">{tr('桌面版')}</span>}</span><input type="checkbox" disabled={!features.airi} checked={features.airi && d.airi !== false} onChange={(e) => change({ airi: e.target.checked })} /><i /></label>
     </>}
     {st.err && <p className="hint error" role="alert">{st.err}</p>}
     {st.batch && <p className="hint" role="status">{tr('可以聊天，连接游戏或发送画面需要流式输出。')}</p>}
     <div className="row end">
-      {!demo && !points && <button disabled={!brainReady(d) || st.busy === 'test'} onClick={() => void test()}>
+      {!demo && <button disabled={!brainReady(d) || st.busy === 'test'} onClick={() => void test()}>
         {st.busy === 'test' ? <LoaderCircle size={14} className="spin" /> : st.ok !== undefined ? <Check size={14} /> : null}
         {st.ok !== undefined ? tr("{0} 秒", st.ok.toFixed(1)) : tr("测试")}
       </button>}
-      <button className="primary" disabled={st.busy === 'demo' || (!demo && (points ? account.status !== 'in' : !brainReady(d)))} onClick={() => void save()}>
+      <button className="primary" disabled={st.busy === 'demo' || (!demo && !brainReady(d))} onClick={() => void save()}>
         {forStart || demo ? <>{st.busy === 'demo' ? <LoaderCircle size={14} className="spin" /> : <Play size={14} />}{demo ? tr("看演示") : tr("开始")}</> : tr("保存")}</button>
     </div>
   </div>
@@ -175,14 +160,13 @@ export function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; on
   }
   return <div className="model-form">
     <div className="providers">
-      {ofModel && <button className={mode === 'follow' ? 'on' : ''} title={tr("用 AI 模型的密钥，不用再填")} onClick={() => { modeEdited.current = true; setMode('follow'); setSt({}) }}>{tr("跟模型一样")}</button>}
+      {ofModel && <button className={mode === 'follow' ? 'on' : ''} title={tr("用文字模型的密钥")} onClick={() => { modeEdited.current = true; setMode('follow'); setSt({}) }}>{tr("跟模型一样")}</button>}
       {SPEECH_HERE.map((q) => <button key={q.id} className={!off && d.provider === q.id ? 'on' : ''} onClick={() => choose(q.id)}>{tr(q.label ?? '')}</button>)}
-      <button className={`demo${mode === 'off' ? ' on' : ''}`} title={tr("没有语音接口：角色用 LivLiv 的声音，没有就只出字幕")} onClick={() => { modeEdited.current = true; setMode('off'); setSt({}) }}>{tr("不用")}</button>
+      <button className={`demo${mode === 'off' ? ' on' : ''}`} title={tr("只出字幕")} onClick={() => { modeEdited.current = true; setMode('off'); setSt({}) }}>{tr("不用")}</button>
     </div>
-    {forCharacter && mode !== 'off' && <p className="hint">{tr('保存后，此角色会使用你的语音接口。')}</p>}
     {!off && p.id === 'voicebox' && <>
       <p className={`hint${voicebox.error ? ' error' : ''}`}>
-        {voicebox.checking ? tr('正在查找本机的 Voicebox…') : voicebox.status === 'on' ? tr('Voicebox 在运行：{0} 个声音，免费，在本机', voicebox.profiles.length)
+        {voicebox.checking ? tr('正在查找本机的 Voicebox…') : voicebox.status === 'on' ? <>{tr('Voicebox 在运行：{0} 个声音', voicebox.profiles.length)}<span className="chip">{tr('免费，在本机')}</span></>
           : voiceboxError(voicebox.error ?? 'not-running', voicebox.detail)}
         {voicebox.status !== 'on' && !voicebox.checking && <> <a href={VOICEBOX_SITE} target="_blank" rel="noreferrer">{tr('下载 Voicebox')}<ExternalLink size={11} /></a></>}
       </p>
@@ -191,7 +175,7 @@ export function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; on
           <option value="">{tr('按角色分配')}</option>
           {voicebox.profiles.map((v) => <option key={v.id} value={v.id}>{v.name}{OPEN_ENGINES.has(v.engine) ? '' : ` · ${v.engine}`}</option>)}
         </select></label>
-      <label className="switch"><span>{tr('也用它听你说话（Whisper，本机，免费）')}</span><input type="checkbox" checked={!!d.asr} onChange={(e) => setD({ ...d, asr: e.target.checked ? 'whisper' : '' })} /><i /></label>
+      <label className="switch"><span>{tr('也用它听你说话')}<span className="chip">{tr('Whisper，免费，在本机')}</span></span><input type="checkbox" checked={!!d.asr} onChange={(e) => setD({ ...d, asr: e.target.checked ? 'whisper' : '' })} /><i /></label>
       {st.err && <p className="hint error">{st.err}</p>}
     </>}
     {!off && p.id !== 'voicebox' && <>

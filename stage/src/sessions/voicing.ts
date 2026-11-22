@@ -1,13 +1,6 @@
-// How a reply is voiced, by the line or by the sentence. livliv.ai charges every /say call (a point at least), so a
-// line in a LivLiv voice is always voiced whole, one call; a chat with a model of one's own in any other voice is said
-// sentence by sentence, so the first is heard sooner. AIRI streams sentence by sentence, so it can't speak in the
-// LivLiv voice at all.
-import type { BrainConfig } from '../brain'
-import type { VoiceRoute } from '../voiceApi'
+// How a reply is voiced, by the line or by the sentence: a chat says a whole reply sentence by sentence, so the first is
+// heard sooner; the rest say it whole. A livliv.ai voice is paid by the line: a reply's sentences go with one line id
+// (livliv.ts voiceLine), so saying it sentence by sentence, or AIRI streaming it so, costs what one call would.
 
-/** a whole reply said sentence by sentence: a chat, with a model of one's own, in a voice that isn't LivLiv's */
-export const bySentence = (mode: 'conversation' | 'chat' | 'live' | 'realtime', brain: BrainConfig['kind'], voice: VoiceRoute) =>
-  mode === 'chat' && brain !== 'livliv' && voice !== 'livliv'
-
-/** a streamed reply (AIRI) can be voiced: any voice but LivLiv's (each sentence would be a paid call) */
-export const streamable = (voice: VoiceRoute) => voice !== 'livliv'
+/** a whole reply said sentence by sentence: a chat */
+export const bySentence = (mode: 'conversation' | 'chat' | 'live' | 'realtime') => mode === 'chat'

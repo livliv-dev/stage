@@ -1,4 +1,4 @@
-{"scenario":"airi-chat","about":"Desktop, one AI character, a model of one's own: 持续聊天 runs on AIRI (streamed, sentence by sentence) with private memories by id"}
+{"scenario":"airi-chat","about":"Desktop, one AI character, a model of one's own: 持续聊天 runs on AIRI (streamed, sentence by sentence) with private memories in its index by short id"}
 {"t":"record","scope":"private","earlier":0}
 {"t":"start","mode":"chat","scope":"private","engine":"airi"}
 {"t":"record","scope":"private","earlier":0}

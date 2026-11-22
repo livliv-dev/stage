@@ -47,7 +47,8 @@
 .check-text small.ok { color: var(--ok); }
 .check-text .check-link { font-size: 12px; line-height: 18px; display: inline-flex; align-items: center; gap: 3px; width: fit-content; }
 .check > button:not(.icon) { flex: none; padding: 3px 10px; font-size: 12px; }
-.desk-tag { display: inline-block; font-style: normal; font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: 999px; background: var(--hover); color: var(--fg-3); font-weight: 400; }
+.desk-tag, .chip { display: inline-block; font-style: normal; font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: 999px; background: var(--hover); color: var(--fg-3); font-weight: 400; }
+.chip { margin-left: 6px; }
 .popover.checklist footer { margin-top: 10px; display: flex; justify-content: flex-end; align-items: center; }
 .popover.checklist footer .hint { font-size: 12px; color: var(--fg-3); }
 
@@ -116,6 +117,12 @@
 .connect-section .fold svg { transition: transform .12s; }
 .connect-section .fold svg.open { transform: rotate(90deg); }
 .connect-section .fold h3 { margin: 0; }
+.connect-section.covered .fold .hint { margin-left: 6px; font-size: 12px; color: var(--fg-3); }
+.connect-section.livliv .switch.main > span { flex: 1; font-size: 14px; font-weight: 600; }
+.connect-section.livliv .switch.main small { font-weight: 400; }
+.connect-section.livliv .balance { font-size: 12px; font-weight: 500; color: var(--fg-2); }
+.connect-section.livliv .livliv-parts { margin: 4px 0 0 14px; padding-left: 10px; border-left: 2px solid var(--line); }
+.connect-section.livliv .connect-wait { margin-top: 6px; }
 .shots-menu .shot-start { width: calc(100% - 16px); margin: 8px 8px 0; justify-content: flex-start; border-radius: 10px; }
 
 /* ---------------------------------------------------------------- a phone or a narrow window */

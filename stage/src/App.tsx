@@ -15,7 +15,7 @@ import { LivePanel } from './LivePanel'
 import { RealtimePanel } from './RealtimePanel'
 import { CollabPanel } from './CollabPanel'
 import { connectDesktop } from './desktop'
-import { ageGate, refresh, setAge } from './livliv'
+import { ageGate, refresh, setAge, watchSiteCards } from './livliv'
 import { cancel as pttCancel, holdKey } from './ptt'
 import { buildTemplate, TEMPLATES, type TemplateId } from './templates'
 import { demoFor } from './demo'
@@ -88,7 +88,8 @@ export default function App() {
   // the site's 开播 (?c=<id>&as=face): its card, where the first-visit checklist goes
   const [goLive, setGoLive] = useState<string | null>(null)
   useEffect(() => { void refresh() }, [])  // the LivLiv account, if one is connected
-  // LivLiv's points AI asks the site's age question once (livliv.ts stageLine): answered here
+  useEffect(() => watchSiteCards(), [])  // an account's own characters: their chat cards from the site
+  // livliv.ai's text asks the site's age question once (brain.ts livlivFetch): answered here
   // (one question at a time: a second line asking while it is open waits for the same answer)
   const [ageAsk, setAgeAsk] = useState<((adult: boolean) => void) | null>(null)
   const agePending = useRef<Promise<boolean> | null>(null)
@@ -151,8 +152,12 @@ export default function App() {
   const noticeShown = notice && staged && !pop && !gated && !ageAsk
   useEffect(() => {
     if (!conv.needModel) return
-    talk.modelAsked(); store.setMode('edit'); ui.openModels('chat', conv.modelIntent !== 'input')
-  }, [conv.needModel])
+    talk.modelAsked()
+    // a phone on show keeps its own view, whose intro says a model is set up on a computer: the editor and its model
+    // card are a computer's
+    if (phone && store.mode() === 'show') return
+    store.setMode('edit'); ui.openModels('chat', conv.modelIntent !== 'input')
+  }, [conv.needModel])  // eslint-disable-line react-hooks/exhaustive-deps
   const continueAfterModel = () => {
     if (conv.modelIntent === 'chat') void talk.startChat().catch(() => {})
     else if (conv.modelIntent === 'live') startNow()

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { airiIdentity, brainPersona, named, personaOf, realtimeInstructions } from '../src/brains/persona'
+import { CARD_LIMITS } from '../src/characterCard'
 
 // the cards test/prompts.mjs renders through brain.ts, airiEngine.ts and realtime.ts; the AIRI identity and the
 // realtime instructions are whole there, so the renderers must give the same text here
@@ -33,6 +34,15 @@ test('Stage\'s brain: the persona opens its prompt', () => {
   assert.ok(!brainPersona(personaOf(nana, 'auto', 'private'), 'en').some((line) => line.includes('只学语气')), 'Chinese examples only for a Chinese reply')
 })
 
+test('asked in earnest whether it is a real person or an AI, a character says it is a virtual one: Stage\'s brain, AIRI and a realtime call, every language and scope', () => {
+  for (const language of ['zh', 'en', 'ja', 'auto'] as const) for (const scope of ['private', 'public'] as const) {
+    const p = personaOf(card('Mio'), language, scope)
+    for (const said of ['zh', 'en', 'ja'] as const) assert.ok(brainPersona(p, said).includes('你可以一直保持角色；但有人认真问你是真人还是 AI 时，要说明你是虚拟角色，绝不声称自己是真人。'), `${language} ${scope} ${said}`)
+    assert.ok(airiIdentity(p).split('\n').includes('Stay in character, but when someone sincerely asks whether you are a real person or an AI, say you are a virtual character; never claim to be a real human.'), `${language} ${scope}`)
+    assert.ok(realtimeInstructions(p, { topic: '' }).split('\n').includes('你可以一直保持角色；但有人认真问你是真人还是 AI 时，要说明你是虚拟角色，绝不声称自己是真人。'), `realtime ${language} ${scope}`)
+  }
+})
+
 test('what each engine is told of the card', () => {
   const p = personaOf(nana, 'zh', 'public')
   const realtime = realtimeInstructions(p, { topic: '' }), airi = airiIdentity(p), brain = brainPersona(p, 'zh').join('\n')
@@ -55,4 +65,15 @@ test('an imported card\'s first message opens the talk; its example lines go in 
   assert.ok(airiIdentity(p).includes('Your first message, said when nothing has been said yet: Hi! I\'m Iru Mk2. Ready?'))
   assert.ok(!brainPersona(personaOf(nana, 'zh', 'private'), 'zh', true).some((line) => line.includes('开场白')), 'a card without one: as before')
   assert.ok(!airiIdentity(personaOf(nana, 'zh', 'private')).includes('first message'))
+})
+
+test('a typed persona and style are held to an imported card\'s length in every prompt', () => {
+  const long = { name: 'Nana', persona: '长'.repeat(9000), style: '慢'.repeat(3000), examples: [] }
+  const p = personaOf(long, 'zh', 'private')
+  assert.equal(p.persona.length, CARD_LIMITS.persona)
+  assert.equal(p.style?.length, CARD_LIMITS.style)
+  assert.ok(brainPersona(p, 'zh').join('').length < CARD_LIMITS.persona + CARD_LIMITS.style + 200, "Stage's own brain")
+  assert.ok(airiIdentity(p).length < CARD_LIMITS.persona + CARD_LIMITS.style + 1500, 'AIRI')
+  assert.deepEqual([CARD_LIMITS.persona, CARD_LIMITS.style], [4000, 1500], 'the caps an imported card has')
+  assert.equal(personaOf({ name: 'Kai', persona: '短', examples: [] }, 'zh', 'private').persona, '短', 'a short one as it is')
 })

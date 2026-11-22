@@ -11,7 +11,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "好友联播的角色": {"zh-Hans":"好友联播的角色","zh-Hant":"好友聯播的角色","en":"a friend's character","ja":"フレンドのキャラクター"},
   "AIRI 已关闭": {"zh-Hans":"AIRI 已关闭","zh-Hant":"AIRI 已關閉","en":"AIRI is off","ja":"AIRI はオフ"},
   "选中的不是这位角色": {"zh-Hans":"选中的不是这位角色","zh-Hant":"選中的不是這位角色","en":"another character was chosen","ja":"別のキャラクターが選ばれている"},
-  "LivLiv 声音": {"zh-Hans":"LivLiv 声音","zh-Hant":"LivLiv 聲音","en":"a LivLiv voice","ja":"LivLiv の音声"},
   "AI 搭档的声音": {"zh-Hans":"AI 搭档的声音","zh-Hant":"AI 搭檔的聲音","en":"AI partner's voice","ja":"AI パートナーの声"},
   "AI 搭档的文字模型": {"zh-Hans":"AI 搭档的文字模型","zh-Hant":"AI 搭檔的文字模型","en":"AI partner's text model","ja":"AI パートナーのテキストモデル"},
   "AI 来开播": {"zh-Hans":"AI 来开播","zh-Hant":"AI 來開播","en":"AI goes live","ja":"AI が配信"},
@@ -27,7 +26,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "不对外：私聊时只有你看得到": {"zh-Hans":"不对外：私聊时只有你看得到","zh-Hant":"不對外：私聊時只有你看得到","en":"Not shown to anyone: in private chat only you see it","ja":"公開しない：プライベート会話は自分だけが見られる"},
   "不接弹幕": {"zh-Hans":"不接弹幕","zh-Hant":"不接彈幕","en":"no chat","ja":"コメントなし"},
   "不接弹幕也能开播": {"zh-Hans":"不接弹幕也能开播","zh-Hant":"不接彈幕也能開播","en":"You can go live without chat","ja":"コメントなしでも配信できます"},
-  "人设只在「AI 来演」时用到。": {"zh-Hans":"人设只在「AI 来演」时用到。","zh-Hant":"人設只在「AI 來演」時用到。","en":"The persona is used only when AI performs.","ja":"人物設定は「AI が演じる」ときだけ使います。"},
+  "「AI 来演」时才有人设": {"zh-Hans":"「AI 来演」时才有人设","zh-Hant":"「AI 來演」時才有人設","en":"Personas apply when AI performs","ja":"人物設定は「AI が演じる」ときだけ"},
   "今天做什么": {"zh-Hans":"今天做什么","zh-Hant":"今天做什麼","en":"What are we making today?","ja":"今日は何をする？"},
   "你参与吗": {"zh-Hans":"你参与吗","zh-Hant":"你參與嗎","en":"Do you join?","ja":"あなたは参加する？"},
   "你的角色跟着摄像头动，你说话": {"zh-Hans":"你的角色跟着摄像头动，你说话","zh-Hant":"你的角色跟著攝影機動，你說話","en":"Your character follows your camera, and you speak","ja":"あなたのキャラがカメラに合わせて動き、あなたが話す"},
@@ -42,23 +41,20 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "准备清单": {"zh-Hans":"准备清单","zh-Hant":"準備清單","en":"Checklist","ja":"準備リスト"},
   "加一个 AI 搭档": {"zh-Hans":"加一个 AI 搭档","zh-Hant":"加一個 AI 搭檔","en":"Add an AI partner","ja":"AI パートナーを追加"},
   "去设置": {"zh-Hans":"去设置","zh-Hant":"去設定","en":"Open setting","ja":"設定を開く"},
-  "另一种聊法：要自己的 OpenAI 或百炼密钥，用服务商的声音，只和一个角色": {"zh-Hans":"另一种聊法：要自己的 OpenAI 或百炼密钥，用服务商的声音，只和一个角色","zh-Hant":"另一種聊法：要自己的 OpenAI 或百鍊金鑰，用服務商的聲音，只和一個角色","en":"Another way to chat: your own OpenAI or Bailian key, the provider's voice, one character","ja":"別の話し方：自分の OpenAI または百錬のキー、サービスの声、キャラクター1人"},
+  "可选：需要 OpenAI 或百炼密钥": {"zh-Hans":"可选：需要 OpenAI 或百炼密钥","zh-Hant":"可選：需要 OpenAI 或百鍊金鑰","en":"Optional: needs an OpenAI or Bailian key","ja":"任意：OpenAI または百錬のキーが必要"},
   "只有字幕": {"zh-Hans":"只有字幕","zh-Hant":"只有字幕","en":"Subtitles only","ja":"字幕のみ"},
   "只有我": {"zh-Hans":"只有我","zh-Hant":"只有我","en":"Just me","ja":"自分だけ"},
   "只读弹幕，不需要登录": {"zh-Hans":"只读弹幕，不需要登录","zh-Hant":"只讀彈幕，不需要登入","en":"Reads chat only, no sign-in needed","ja":"コメントを読むだけ、ログイン不要"},
   "可以按住说和免按键": {"zh-Hans":"可以按住说和免按键","zh-Hant":"可以按住說和免按鍵","en":"Push to talk and hands-free work","ja":"押して話す・ハンズフリーが使えます"},
   "可录的声音": {"zh-Hans":"可录的声音","zh-Hant":"可錄的聲音","en":"A voice that records","ja":"録画できる声"},
-  "可选：Minecraft（Airicraft）或 Factorio（Autorio）": {"zh-Hans":"可选：Minecraft（Airicraft）或 Factorio（Autorio）","zh-Hant":"可選：Minecraft（Airicraft）或 Factorio（Autorio）","en":"Optional: Minecraft (Airicraft) or Factorio (Autorio)","ja":"任意：Minecraft（Airicraft）または Factorio（Autorio）"},
-  "可选：不接弹幕也能开播": {"zh-Hans":"可选：不接弹幕也能开播","zh-Hant":"可選：不接彈幕也能開播","en":"Optional: you can go live without chat","ja":"任意：コメントなしでも配信できます"},
+  "可选：Minecraft 或 Factorio": {"zh-Hans":"可选：Minecraft 或 Factorio","zh-Hant":"可選：Minecraft 或 Factorio","en":"Optional: Minecraft or Factorio","ja":"任意：Minecraft または Factorio"},
   "可选：口型跟着你的声音": {"zh-Hans":"可选：口型跟着你的声音","zh-Hant":"可選：口型跟著你的聲音","en":"Optional: the mouth follows your voice","ja":"任意：口の動きがあなたの声に合わせる"},
   "可选：说话代替打字": {"zh-Hans":"可选：说话代替打字","zh-Hant":"可選：說話代替打字","en":"Optional: speak instead of typing","ja":"任意：入力のかわりに話す"},
   "和 AI 搭档": {"zh-Hans":"和 AI 搭档","zh-Hant":"和 AI 搭檔","en":"with an AI partner","ja":"AI パートナーと"},
-  "和一个角色直接通话：用服务商自己的声音，要自己的 OpenAI 或阿里云百炼密钥。": {"zh-Hans":"和一个角色直接通话：用服务商自己的声音，要自己的 OpenAI 或阿里云百炼密钥。","zh-Hant":"和一個角色直接通話：用服務商自己的聲音，要自己的 OpenAI 或阿里雲百鍊金鑰。","en":"Talk with one character directly, in the provider's own voice. Needs your own OpenAI or Alibaba Bailian key.","ja":"キャラクター1人と直接通話：サービス自身の声を使い、自分の OpenAI または Alibaba 百錬のキーが必要です。"},
   "和角色聊天": {"zh-Hans":"和角色聊天","zh-Hant":"和角色聊天","en":"Chat with a character","ja":"キャラと話す"},
-  "回应观众（接上 Twitch，或不接弹幕）": {"zh-Hans":"回应观众（接上 Twitch，或不接弹幕）","zh-Hant":"回應觀眾（接上 Twitch，或不接彈幕）","en":"Answers an audience (with Twitch chat, or without chat)","ja":"視聴者に応える（Twitch のコメントあり、またはなし）"},
+  "回应观众": {"zh-Hans":"回应观众","zh-Hant":"回應觀眾","en":"Answers an audience","ja":"視聴者に応える"},
   "在 livliv.ai 创建角色": {"zh-Hans":"在 livliv.ai 创建角色","zh-Hant":"在 livliv.ai 建立角色","en":"Create a character on livliv.ai","ja":"livliv.ai でキャラを作る"},
   "在控制台打字": {"zh-Hans":"在控制台打字","zh-Hant":"在控制台打字","en":"Type in the console","ja":"コンソールに入力"},
-  "声音、语音识别和实时通话用文字模型的密钥": {"zh-Hans":"声音、语音识别和实时通话用文字模型的密钥","zh-Hant":"聲音、語音辨識和即時通話用文字模型的金鑰","en":"Voices, speech recognition and realtime calls use the text model's key","ja":"声・音声認識・リアルタイム通話にテキストモデルのキーを使う"},
   "声音与语音识别": {"zh-Hans":"声音与语音识别","zh-Hant":"聲音與語音辨識","en":"Voices and speech recognition","ja":"声と音声認識"},
   "实时通话": {"zh-Hans":"实时通话","zh-Hant":"即時通話","en":"Realtime call","ja":"リアルタイム通話"},
   "已打开": {"zh-Hans":"已打开","zh-Hant":"已開啟","en":"On","ja":"オン"},
@@ -79,7 +75,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "按住按钮或 ` 键说话": {"zh-Hans":"按住按钮或 ` 键说话","zh-Hant":"按住按鈕或 ` 鍵說話","en":"Hold the button or the ` key to speak","ja":"ボタンか ` キーを押している間に話す"},
   "按住说": {"zh-Hans":"按住说","zh-Hant":"按住說","en":"Push to talk","ja":"押して話す"},
   "按住说和免按键需要语音识别": {"zh-Hans":"按住说和免按键需要语音识别","zh-Hant":"按住說和免按鍵需要語音辨識","en":"Push to talk and hands-free need speech recognition","ja":"押して話す・ハンズフリーには音声認識が必要です"},
-  "按住说话：在「设置 → 连接」接上语音识别后可用": {"zh-Hans":"按住说话：在「设置 → 连接」接上语音识别后可用","zh-Hant":"按住說話：在「設定 → 連接」接上語音辨識後可用","en":"Push to talk: available once speech recognition is set up in Settings → Connections","ja":"押して話す：「設定 → 接続」で音声認識を設定すると使えます"},
+  "需要语音识别": {"zh-Hans":"需要语音识别","zh-Hant":"需要語音辨識","en":"Needs speech recognition","ja":"音声認識が必要です"},
   "控制接口": {"zh-Hans":"控制接口","zh-Hant":"控制介面","en":"Control API","ja":"コントロール API"},
   "搜索设置": {"zh-Hans":"搜索设置","zh-Hant":"搜尋設定","en":"Search settings","ja":"設定を検索"},
   "收起": {"zh-Hans":"收起","zh-Hant":"收起","en":"Close","ja":"閉じる"},
@@ -90,18 +86,17 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "标准": {"zh-Hans":"标准","zh-Hant":"標準","en":"Standard","ja":"標準"},
   "标准（{0}）": {"zh-Hans":"标准（{0}）","zh-Hant":"標準（{0}）","en":"Standard ({0})","ja":"標準（{0}）"},
   "桌面版": {"zh-Hans":"桌面版","zh-Hant":"桌面版","en":"Desktop","ja":"デスクトップ版"},
-  "桌面版可以让角色玩 Minecraft 或 Factorio": {"zh-Hans":"桌面版可以让角色玩 Minecraft 或 Factorio","zh-Hant":"桌面版可以讓角色玩 Minecraft 或 Factorio","en":"In the desktop app a character can play Minecraft or Factorio","ja":"デスクトップ版ではキャラが Minecraft や Factorio を遊べます"},
+  "Minecraft 或 Factorio": {"zh-Hans":"Minecraft 或 Factorio","zh-Hant":"Minecraft 或 Factorio","en":"Minecraft or Factorio","ja":"Minecraft または Factorio"},
   "没有找到": {"zh-Hans":"没有找到","zh-Hant":"沒有找到","en":"Nothing found","ja":"見つかりません"},
-  "没有看到脸：看向镜头，或在角色卡的「谁来演」里选摄像头": {"zh-Hans":"没有看到脸：看向镜头，或在角色卡的「谁来演」里选摄像头","zh-Hant":"沒有看到臉：看向鏡頭，或在角色卡的「誰來演」裡選攝影機","en":"No face seen: look at the camera, or pick the camera under Who performs on the character card","ja":"顔が見えません：カメラを見るか、キャラカードの「誰が演じる」でカメラを選んでください"},
+  "没有看到脸": {"zh-Hans":"没有看到脸","zh-Hant":"沒有看到臉","en":"No face seen","ja":"顔が見えません"},
   "游戏": {"zh-Hans":"游戏","zh-Hant":"遊戲","en":"Game","ja":"ゲーム"},
   "状态": {"zh-Hans":"状态","zh-Hant":"狀態","en":"Status","ja":"状態"},
   "现在只有字幕": {"zh-Hans":"现在只有字幕","zh-Hant":"現在只有字幕","en":"Subtitles only for now","ja":"今は字幕のみ"},
-  "用 livliv.ai 积分时，开始后才会生成台词": {"zh-Hans":"用 livliv.ai 积分时，开始后才会生成台词","zh-Hant":"用 livliv.ai 積分時，開始後才會生成台詞","en":"With livliv.ai points, lines are made once you start","ja":"livliv.ai ポイントでは、開始してから台詞を作ります"},
-  "用你的脸和声音演角色，可以加一个 AI 搭档": {"zh-Hans":"用你的脸和声音演角色，可以加一个 AI 搭档","zh-Hant":"用你的臉和聲音演角色，可以加一個 AI 搭檔","en":"Play a character with your face and voice, with an AI partner if you like","ja":"顔と声でキャラを演じる。AI パートナーも追加できる"},
+  "用你的脸和声音演角色": {"zh-Hans":"用你的脸和声音演角色","zh-Hant":"用你的臉和聲音演角色","en":"Play a character with your face and voice","ja":"顔と声でキャラを演じる"},
   "直接说，停顿后自动发送": {"zh-Hans":"直接说，停顿后自动发送","zh-Hant":"直接說，停頓後自動送出","en":"Just speak; it sends when you pause","ja":"そのまま話す。間を置くと送信"},
   "直播间": {"zh-Hans":"直播间","zh-Hant":"直播間","en":"Live audience","ja":"配信の視聴者"},
   "直播间弹幕": {"zh-Hans":"直播间弹幕","zh-Hant":"直播間彈幕","en":"Audience chat","ja":"配信のコメント"},
-  "直播间需要接上模型，演示只能在「只有我」里看": {"zh-Hans":"直播间需要接上模型，演示只能在「只有我」里看","zh-Hant":"直播間需要接上模型，演示只能在「只有我」裡看","en":"A live audience needs a model; the demo plays for Just me","ja":"配信にはモデルが必要です。デモは「自分だけ」で見られます"},
+  "直播间需要接上模型": {"zh-Hans":"直播间需要接上模型","zh-Hant":"直播間需要接上模型","en":"A live audience needs a model","ja":"配信にはモデルが必要です"},
   "看向镜头，校准正面": {"zh-Hans":"看向镜头，校准正面","zh-Hant":"看向鏡頭，校準正面","en":"Look at the camera to calibrate","ja":"カメラを見て正面を合わせる"},
   "系统朗读录不进视频": {"zh-Hans":"系统朗读录不进视频","zh-Hant":"系統朗讀錄不進影片","en":"The system voice is not recorded","ja":"システムの読み上げは録画に入りません"},
   "结束": {"zh-Hans":"结束","zh-Hant":"結束","en":"End","ja":"終了"},
@@ -109,8 +104,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "舞台上还没有角色": {"zh-Hans":"舞台上还没有角色","zh-Hant":"舞台上還沒有角色","en":"No character on the stage yet","ja":"ステージにまだキャラクターがいません"},
   "角色之间聊": {"zh-Hans":"角色之间聊","zh-Hant":"角色之間聊","en":"The characters talk among themselves","ja":"キャラ同士で話す"},
   "角色卡": {"zh-Hans":"角色卡","zh-Hant":"角色卡","en":"Character card","ja":"キャラカード"},
-  "角色念台词，和你说话变成文字。每个角色用哪个音色，在角色卡里选。": {"zh-Hans":"角色念台词，和你说话变成文字。每个角色用哪个音色，在角色卡里选。","zh-Hant":"角色念台詞，和你說話變成文字。每個角色用哪個音色，在角色卡裡選。","en":"Characters speak their lines, and what you say becomes text. Each character's voice is chosen on its card.","ja":"キャラが台詞を話し、あなたの声を文字にします。各キャラの声はキャラカードで選びます。"},
-  "角色想台词用的模型，所有角色共用一个。": {"zh-Hans":"角色想台词用的模型，所有角色共用一个。","zh-Hant":"角色想台詞用的模型，所有角色共用一個。","en":"The model the characters think with; one for all of them.","ja":"キャラが台詞を考えるモデル。全員でひとつ。"},
   "让几个角色聊一段，录下来": {"zh-Hans":"让几个角色聊一段，录下来","zh-Hant":"讓幾個角色聊一段，錄下來","en":"Let a few characters talk, and record it","ja":"何人かのキャラに話させて録画する"},
   "语音识别": {"zh-Hans":"语音识别","zh-Hant":"語音辨識","en":"Speech recognition","ja":"音声認識"},
   "说点什么…": {"zh-Hans":"说点什么…","zh-Hant":"說點什麼…","en":"Say something…","ja":"何か話す…"},
@@ -118,27 +111,25 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "谁上场": {"zh-Hans":"谁上场","zh-Hant":"誰上場","en":"Who takes part","ja":"誰が出る"},
   "谁在看": {"zh-Hans":"谁在看","zh-Hant":"誰在看","en":"Who watches","ja":"誰が見る"},
   "跳过这句": {"zh-Hans":"跳过这句","zh-Hant":"跳過這句","en":"Skip this line","ja":"この台詞を飛ばす"},
-  "输出开着（OBS、录制、好友联播或直播间）：只用公开记忆": {"zh-Hans":"输出开着（OBS、录制、好友联播或直播间）：只用公开记忆","zh-Hant":"輸出開著（OBS、錄製、好友聯播或直播間）：只用公開記憶","en":"An output is on (OBS, a recording, a friend collab or a live audience): public memory only","ja":"出力中（OBS、録画、フレンドコラボ、視聴者あり）：公開の記憶だけを使います"},
+  "输出开着，只用公开记忆": {"zh-Hans":"输出开着，只用公开记忆","zh-Hant":"輸出開著，只用公開記憶","en":"An output is on: public memory only","ja":"出力中：公開の記憶だけを使います"},
   "还没有": {"zh-Hans":"还没有","zh-Hant":"還沒有","en":"nobody yet","ja":"まだいない"},
-  "这个角色不出声：「只展示」，或者你自己说话。": {"zh-Hans":"这个角色不出声：「只展示」，或者你自己说话。","zh-Hant":"這個角色不出聲：「只展示」，或者你自己說話。","en":"This character makes no sound: display only, or you speak for it.","ja":"このキャラは声を出しません：表示のみ、またはあなたが話します。"},
+  "这个角色不出声": {"zh-Hans":"这个角色不出声","zh-Hant":"這個角色不出聲","en":"This character makes no sound","ja":"このキャラは声を出しません"},
   "连接失败": {"zh-Hans":"连接失败","zh-Hant":"連接失敗","en":"Connection failed","ja":"接続に失敗"},
   "需要设置": {"zh-Hans":"需要设置","zh-Hant":"需要設定","en":"needs setup","ja":"設定が必要"},
   "谁来演": {"zh-Hans":"谁来演","zh-Hant":"誰來演","en":"Who performs","ja":"誰が演じる"},
   "人设和声音": {"zh-Hans":"人设和声音","zh-Hant":"人設和聲音","en":"Persona and voice","ja":"人物設定と声"},
 
-  "桌面版接收手机和 VMC 的面捕": {"zh-Hans":"桌面版接收手机和 VMC 的面捕","zh-Hant":"桌面版接收手機和 VMC 的面捕","en":"The desktop app receives face tracking from a phone or VMC","ja":"デスクトップ版はスマホや VMC のフェイストラッキングを受け取れます"},
-  "只有一个 AI 角色：它会一个人说下去": {"zh-Hans":"只有一个 AI 角色：它会一个人说下去","zh-Hant":"只有一個 AI 角色：它會一個人說下去","en":"Only one AI character: it talks on its own","ja":"AI キャラクターは1人だけ：ひとりで話し続けます"},
+  "角色会一个人说下去": {"zh-Hans":"角色会一个人说下去","zh-Hant":"角色會一個人說下去","en":"The character talks on its own","ja":"キャラクターがひとりで話し続けます"},
   "角色回应直播间": {"zh-Hans":"角色回应直播间","zh-Hant":"角色回應直播間","en":"The characters answer the audience","ja":"キャラクターが視聴者に応える"},
   "录视频时只用公开记忆": {"zh-Hans":"录视频时只用公开记忆","zh-Hant":"錄影片時只用公開記憶","en":"A video uses only the public memory","ja":"動画の録画中は公開の記憶だけを使います"},
   "对直播间时只用公开记忆": {"zh-Hans":"对直播间时只用公开记忆","zh-Hant":"對直播間時只用公開記憶","en":"With a live audience, only the public memory is used","ja":"視聴者がいるときは公開の記憶だけを使います"},
-  "开播前的时长、句数和 Twitch 在开始按钮旁的选项里。": {"zh-Hans":"开播前的时长、句数和 Twitch 在开始按钮旁的选项里。","zh-Hant":"開播前的時長、句數和 Twitch 在開始按鈕旁的選項裡。","en":"Time, line limits and Twitch for going live are in the options next to the start button.","ja":"配信の時間・セリフ数・Twitch は開始ボタン横のオプションにあります。"},
   "这次不说": {"zh-Hans":"这次不说","zh-Hant":"這次不說","en":"Skip my turn","ja":"今回は話さない"},
-  "Twitch 频道（可选，只读弹幕，不需要登录）": {"zh-Hans":"Twitch 频道（可选，只读弹幕，不需要登录）","zh-Hant":"Twitch 頻道（可選，只讀彈幕，不需要登入）","en":"Twitch channel (optional; reads chat only, no sign-in)","ja":"Twitch チャンネル（任意。コメントを読むだけ、ログイン不要）"},
-  "角色之间聊时，你在控制台说话": {"zh-Hans":"角色之间聊时，你在控制台说话","zh-Hant":"角色之間聊時，你在控制台說話","en":"When you type while the characters talk","ja":"キャラ同士の会話中に入力すると"},
+  "Twitch 频道（可选）": {"zh-Hans":"Twitch 频道（可选）","zh-Hant":"Twitch 頻道（可選）","en":"Twitch channel (optional)","ja":"Twitch チャンネル（任意）"},
+  "你插话时": {"zh-Hans":"你插话时","zh-Hant":"你插話時","en":"When you cut in","ja":"あなたが割り込むとき"},
   "角色之间聊时回应弹幕": {"zh-Hans":"角色之间聊时回应弹幕","zh-Hant":"角色之間聊時回應彈幕","en":"Answer chat while the characters talk","ja":"キャラ同士の会話中にコメントへ応える"},
   "实时通话中": {"zh-Hans":"实时通话中","zh-Hant":"即時通話中","en":"In a realtime call","ja":"リアルタイム通話中"},
   "游戏需要内置 AIRI：{0}": {"zh-Hans":"游戏需要内置 AIRI：{0}","zh-Hant":"遊戲需要內建 AIRI：{0}","en":"A game needs the built-in AIRI: {0}","ja":"ゲームには内蔵 AIRI が必要です：{0}"},
-  "Nana、Sena 与 Kai 三人聊天 · 不用任何设置": {"zh-Hans":"Nana、Sena 与 Kai 三人聊天 · 不用任何设置","zh-Hant":"Nana、Sena 與 Kai 三人聊天 · 不用任何設定","en":"Nana, Sena and Kai talk · nothing to set up","ja":"Nana・Sena・Kai の三人トーク · 設定不要"},
+  "Nana、Sena、Kai 三人聊天 · 免设置": {"zh-Hans":"Nana、Sena、Kai 三人聊天 · 免设置","zh-Hant":"Nana、Sena、Kai 三人聊天 · 免設定","en":"Nana, Sena and Kai talk · no setup","ja":"Nana・Sena・Kai の三人トーク · 設定不要"},
   "连接好友联播服务超时，请确认服务地址、网络和防火墙设置。": {"zh-Hans":"连接好友联播服务超时，请确认服务地址、网络和防火墙设置。","zh-Hant":"連線至好友聯播服務逾時，請確認服務位址、網路和防火牆設定。","en":"The connection timed out. Check the server address, network and firewall settings.","ja":"接続がタイムアウトしました。サーバーのアドレス、ネットワーク、ファイアウォールを確認してください。"},
   "好友联播连接方式": {"zh-Hans":"好友联播连接方式","zh-Hant":"好友聯播連線方式","en":"Friend collab connection","ja":"フレンドコラボの接続方法"},
   "本机好友联播服务": {"zh-Hans":"本机好友联播服务","zh-Hant":"本機好友聯播服務","en":"Local friend collab server","ja":"ローカル配信サーバー"},
@@ -158,7 +149,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "结束好友联播": {"zh-Hans":"结束好友联播","zh-Hant":"結束好友聯播","en":"End collab","ja":"コラボを終了"},
   "离开好友联播": {"zh-Hans":"离开好友联播","zh-Hant":"離開好友聯播","en":"Leave collab","ja":"コラボから退出"},
   "好友联播角色": {"zh-Hans":"好友联播角色","zh-Hant":"好友聯播角色","en":"Friend’s avatar","ja":"コラボキャラクター"},
-  "演示是两段准备好的对话：放上「双人聊天」或「三人闲聊」模板再开始": {"zh-Hans":"演示是两段准备好的对话：放上「双人聊天」或「三人闲聊」模板再开始","zh-Hant":"演示是兩段準備好的對話：放上「雙人聊天」或「三人閒聊」範本再開始","en":"For the demo, start with Two-avatar chat or Three-avatar chat","ja":"デモは「2人で会話」または「3人で対話」のテンプレートで体験できます"},
+  "演示要用「双人聊天」或「三人闲聊」模板": {"zh-Hans":"演示要用「双人聊天」或「三人闲聊」模板","zh-Hant":"演示要用「雙人聊天」或「三人閒聊」範本","en":"The demo needs the Two-avatar chat or Three-avatar chat template","ja":"デモは「2人で会話」か「3人で対話」のテンプレートで見られます"},
   "好友联播角色不能超过 64 MB": {"zh-Hans":"好友联播角色不能超过 64 MB","zh-Hant":"好友聯播角色不能超過 64 MB","en":"Collab avatars must be under 64 MB","ja":"コラボのモデルは64MB以下にしてください"},
   "这个角色的文件数量超出好友联播限制": {"zh-Hans":"这个角色的文件数量超出好友联播限制","zh-Hant":"這個角色的檔案數量超出好友聯播限制","en":"This avatar has too many files for collab","ja":"コラボ用モデルのファイル数が上限を超えています"},
   "这个角色超出好友联播限制（64 MB、512 个文件）": {"zh-Hans":"这个角色超出好友联播限制（64 MB、512 个文件）","zh-Hant":"這個角色超出好友聯播限制（64 MB、512 個檔案）","en":"This avatar exceeds collab limits (64 MB, 512 files)","ja":"コラボの上限（64MB・512ファイル）を超えています"},
@@ -182,12 +173,12 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "房主已移除你的好友联播连接": {"zh-Hans":"房主已移除你的好友联播连接","zh-Hant":"房主已移除你的好友聯播連接","en":"The host removed you from the collab","ja":"ホストによってコラボから退出しました"},
   "好友联播人数已满": {"zh-Hans":"好友联播人数已满","zh-Hant":"好友聯播人數已滿","en":"The collab is full","ja":"コラボの定員に達しました"},
   "暂时无法创建好友联播": {"zh-Hans":"暂时无法创建好友联播","zh-Hant":"暫時無法創建好友聯播","en":"Could not create a collab right now","ja":"現在コラボを作成できません"},
-  "好友联播后在这里调整朋友的声音": {"zh-Hans":"好友联播后在这里调整朋友的声音","zh-Hant":"好友聯播後在這裡調整朋友的聲音","en":"Friends' audio appears here when connected","ja":"コラボに参加すると音声を調整できます"},
+  "还没有朋友上台": {"zh-Hans":"还没有朋友上台","zh-Hant":"還沒有朋友上台","en":"No friends on stage yet","ja":"まだ友だちはステージにいません"},
   "Nana、Sena 与 Kai 三人聊天": {"zh-Hans":"Nana、Sena 与 Kai 三人聊天","zh-Hant":"Nana、Sena 與 Kai 三人聊天","en":"A chat with Nana, Sena & Kai","ja":"Nana・Sena・Kaiの3人トーク"},
   "三人聊天演示": {"zh-Hans":"三人聊天演示","zh-Hant":"三人聊天演示","en":"Three-character demo","ja":"3人の会話デモ"},
   "和角色聊天需要接上 AI 模型": {"zh-Hans":"和角色聊天需要接上 AI 模型","zh-Hant":"和角色聊天需要接上 AI 模型","en":"Connect an AI model to chat with a character","ja":"キャラと話すには AI モデルを設定してください"},
-  "桌面版可以让 Stream Deck 等本机工具控制角色。": {"zh-Hans":"桌面版可以让 Stream Deck 等本机工具控制角色。","zh-Hant":"桌面版可以讓 Stream Deck 等本機工具控制角色。","en":"In the desktop app, tools on this computer such as Stream Deck can control the characters.","ja":"デスクトップ版では Stream Deck などのローカルツールでキャラクターを操作できます。"},
-  "先在「设置 → 连接」设好实时通话，再开始通话。": {"zh-Hans":"先在「设置 → 连接」设好实时通话，再开始通话。","zh-Hant":"先在「設定 → 連接」設好即時通話，再開始通話。","en":"Set up the realtime call in Settings → Connections to start a call.","ja":"「設定 → 接続」でリアルタイム通話を設定すると通話を開始できます。"},
+  "Stream Deck 等本机工具可以控制角色": {"zh-Hans":"Stream Deck 等本机工具可以控制角色","zh-Hant":"Stream Deck 等本機工具可以控制角色","en":"Tools on this computer such as Stream Deck can control the characters","ja":"Stream Deck などのローカルツールでキャラクターを操作できます"},
+  "先设好实时通话": {"zh-Hans":"先设好实时通话","zh-Hant":"先設好即時通話","en":"Set up the realtime call first","ja":"先にリアルタイム通話を設定してください"},
   "实时通话服务": {"zh-Hans":"实时通话服务","zh-Hant":"即時通話服務","en":"Realtime call service","ja":"音声サービス"},
   "开始实时通话": {"zh-Hans":"开始实时通话","zh-Hant":"開始即時通話","en":"Start realtime call","ja":"リアルタイム通話を開始"},
   "正在连接实时通话…": {"zh-Hans":"正在连接实时通话…","zh-Hant":"正在連接即時通話…","en":"Connecting the call…","ja":"音声に接続中…"},
@@ -207,10 +198,9 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "去「设置 → 连接」": {"zh-Hans":"去「设置 → 连接」","zh-Hant":"去「設定 → 連接」","en":"Open Settings → Connections","ja":"「設定 → 接続」を開く"},
   "对话记录已删除，请重新开始实时通话": {"zh-Hans":"对话记录已删除，请重新开始实时通话","zh-Hant":"對話記錄已刪除，請重新開始即時通話","en":"The conversation was deleted. Start a new realtime call.","ja":"会話記録が削除されました。通話を開始し直してください。"},
   "记忆已更新，请重新开始实时通话": {"zh-Hans":"记忆已更新，请重新开始实时通话","zh-Hant":"記憶已更新，請重新開始即時通話","en":"Memory changed. Start a new realtime call.","ja":"記憶が更新されました。通話を開始し直してください。"},
-  "可选：弹幕可以触发角色的表情和动作": {"zh-Hans":"可选：弹幕可以触发角色的表情和动作","zh-Hant":"可選：彈幕可以觸發角色的表情和動作","en":"Optional: chat can trigger your character's expressions and moves","ja":"任意：コメントでキャラクターの表情や動きを動かせます"},
-  "内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕": {"zh-Hans":"内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕","zh-Hant":"內建 AIRI 支援自訂語音介面和系統朗讀；靜音的角色只出字幕","en":"Built-in AIRI works with your own speech API or system speech; a muted character shows subtitles only","ja":"内蔵 AIRI は独自の音声 API とシステム音声に対応します。ミュートしたキャラクターは字幕だけになります"},
-  "角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕": {"zh-Hans":"角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕","zh-Hant":"角色還沒有聲音：在角色卡「人設和聲音」裡選一個，或者把它靜音，只出字幕","en":"This character has no voice yet: pick one on its card under Persona and voice, or mute it to show subtitles only","ja":"このキャラクターにはまだ声がありません：カードの「人物設定と声」で選ぶか、ミュートして字幕だけにしてください"},
-  "AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕": {"zh-Hans":"AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕","zh-Hant":"AI 角色還沒有聲音：在角色卡「人設和聲音」裡選一個，或者把它靜音，只出字幕","en":"An AI character has no voice yet: pick one on its card under Persona and voice, or mute it to show subtitles only","ja":"AI キャラクターにまだ声がありません：カードの「人物設定と声」で選ぶか、ミュートして字幕だけにしてください"},
+  "可选：弹幕触发表情和动作": {"zh-Hans":"可选：弹幕触发表情和动作","zh-Hant":"可選：彈幕觸發表情和動作","en":"Optional: chat triggers expressions and moves","ja":"任意：コメントで表情や動きを出す"},
+  "角色还没有声音，在角色卡里选一个": {"zh-Hans":"角色还没有声音，在角色卡里选一个","zh-Hant":"角色還沒有聲音，在角色卡裡選一個","en":"This character has no voice yet. Pick one on its card.","ja":"このキャラクターにはまだ声がありません。カードで選んでください"},
+  "AI 角色还没有声音，在角色卡里选一个": {"zh-Hans":"AI 角色还没有声音，在角色卡里选一个","zh-Hant":"AI 角色還沒有聲音，在角色卡裡選一個","en":"An AI character has no voice yet. Pick one on its card.","ja":"AI キャラクターにまだ声がありません。カードで選んでください"},
   "更多": {"zh-Hans":"更多","zh-Hant":"更多","en":"More","ja":"その他"},
   "撤销": {"zh-Hans":"撤销","zh-Hant":"復原","en":"Undo","ja":"元に戻す"},
   "重做": {"zh-Hans":"重做","zh-Hant":"重做","en":"Redo","ja":"やり直す"},
@@ -303,9 +293,8 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "启动服务": {"zh-Hans":"启动服务","zh-Hant":"啟動服務","en":"Start server","ja":"サーバーを起動"},
   "停止服务": {"zh-Hans":"停止服务","zh-Hant":"停止服務","en":"Stop server","ja":"サーバーを停止"},
   "关闭应用或重载编辑器会停止服务。": {"zh-Hans":"关闭应用或重载编辑器会停止服务。","zh-Hant":"關閉應用程式或重新載入編輯器會停止服務。","en":"Closing the app or reloading the editor stops the server.","ja":"アプリを閉じるか編集画面を再読み込みすると停止します。"},
-  "应用内直接托管，无需源码或额外安装 Node。": {"zh-Hans":"应用内直接托管，无需源码或额外安装 Node。","zh-Hant":"直接在應用程式中託管，無需原始碼或另行安裝 Node。","en":"Host directly in the app. No source code or separate Node installation needed.","ja":"アプリ内でホストできます。ソースコードやNodeの別途インストールは不要です。"},
   "朋友连接的地址": {"zh-Hans":"朋友连接的地址","zh-Hant":"朋友連線的位址","en":"Address for friends","ja":"友だちの接続先"},
-  "朋友需连接同一网络。公网访问需要另行配置。": {"zh-Hans":"朋友需连接同一网络。公网访问需要另行配置。","zh-Hant":"朋友需連接同一網路。網際網路存取需另行設定。","en":"Friends must be on the same network. Internet access needs additional setup.","ja":"友だちは同じネットワークに接続してください。インターネット経由には別途設定が必要です。"},
+  "朋友需连接同一网络": {"zh-Hans":"朋友需连接同一网络","zh-Hant":"朋友需連接同一網路","en":"Friends must be on the same network","ja":"友だちは同じネットワークに接続してください"},
   "仅本机测试，邀请码不能用于其他电脑。": {"zh-Hans":"仅本机测试，邀请码不能用于其他电脑。","zh-Hant":"僅供本機測試，邀請碼無法用於其他電腦。","en":"This computer only. The invitation will not work on another computer.","ja":"このパソコンでのテスト専用です。他のパソコンでは招待を使えません。"},
   "服务设置": {"zh-Hans":"服务设置","zh-Hant":"服務設定","en":"Server settings","ja":"サーバー設定"},
   "允许同一网络的朋友加入": {"zh-Hans":"允许同一网络的朋友加入","zh-Hant":"允許同一網路的朋友加入","en":"Allow friends on the same network","ja":"同じネットワークの友だちを許可"},
@@ -316,7 +305,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "停止服务失败，请重试。": {"zh-Hans":"停止服务失败，请重试。","zh-Hant":"停止服務失敗，請重試。","en":"Could not stop the server. Try again.","ja":"サーバーを停止できませんでした。再試行してください。"},
   "游戏动作决策需要使用自己的模型接口": {"zh-Hans":"游戏动作决策需要使用自己的模型接口","zh-Hant":"遊戲動作決策需要使用自己的模型介面","en":"Use your own model API for game action decisions","ja":"ゲームのアクション選択には独自のモデルAPIを設定してください"},
   "聆听时回应": {"zh-Hans": "聆听时回应", "zh-Hant": "聆聽時回應", "en": "React while listening", "ja": "聞いているときの反応"},
-  "根据聊天内容回应其他角色；没有合适的反应时保持安静。": {"zh-Hans": "根据聊天内容回应其他角色；没有合适的反应时保持安静。", "zh-Hant": "根據聊天內容回應其他角色；沒有合適的反應時保持安靜。", "en": "React to other characters when the conversation calls for it. Otherwise, stay quiet.", "ja": "会話の内容に応じて他のキャラクターに反応します。必要のない場面では静かに聞きます。"},
   "小动作幅度": {"zh-Hans": "小动作幅度", "zh-Hant": "小動作幅度", "en": "Gesture strength", "ja": "しぐさの大きさ"},
   "肩膀与身体摆动": {"zh-Hans": "肩膀与身体摆动", "zh-Hant": "肩膀與身體擺動", "en": "Shoulder & body sway", "ja": "肩・体の揺れ"},
   "三种声音、表情与动作 · 约 20 秒": {"zh-Hans":"三种声音、表情与动作 · 约 20 秒","zh-Hant":"三種聲音、表情與動作 · 約 20 秒","en":"3 voices, expressions & motion · About 20 sec","ja":"3人の声・表情と動き・約20秒"},
@@ -338,28 +326,23 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "当前帐号暂无可用官方模型": {"zh-Hans": "当前帐号暂无可用官方模型", "zh-Hant": "目前帳號暫無可用官方模型", "en": "No LivLiv models are available for this account", "ja": "このアカウントで利用できる公式モデルはありません"},
   "管理 LivLiv 帐号": {"zh-Hans": "管理 LivLiv 帐号", "zh-Hant": "管理 LivLiv 帳號", "en": "Manage LivLiv account", "ja": "LivLivアカウントを管理"},
   "刷新模型": {"zh-Hans": "刷新模型", "zh-Hant": "重新整理模型", "en": "Refresh models", "ja": "モデルを更新"},
-  "登录后可试听和使用官方音色。": {"zh-Hans": "登录后可试听和使用官方音色。", "zh-Hant": "登入後可試聽和使用官方音色。", "en": "Sign in to preview and use LivLiv voices.", "ja": "ログインすると公式の声を試聴・使用できます。"},
-  "浏览官方音色": {"zh-Hans": "浏览官方音色", "zh-Hant": "瀏覽官方音色", "en": "Browse LivLiv voices", "ja": "公式の声を見る"},
-  "LivLiv 官方音色": {"zh-Hans": "LivLiv 官方音色", "zh-Hant": "LivLiv 官方音色", "en": "LivLiv voices", "ja": "LivLiv公式の声"},
-  "可先浏览音色，登录后试听和使用。": {"zh-Hans": "可先浏览音色，登录后试听和使用。", "zh-Hant": "可先瀏覽音色，登入後試聽和使用。", "en": "Browse voices now. Sign in to preview and use them.", "ja": "声の一覧は閲覧できます。試聴・使用にはログインしてください。"},
-  "登录使用": {"zh-Hans": "登录使用", "zh-Hant": "登入使用", "en": "Sign in to use", "ja": "ログインして使用"},
   "识别暂时跟不上，请稍后重新开启免按键语音": {"zh-Hans": "识别暂时跟不上，请稍后重新开启免按键语音", "zh-Hant": "辨識暫時跟不上，請稍後重新開啟免按鍵語音", "en": "Speech recognition is falling behind. Restart hands-free voice shortly.", "ja": "音声認識が追いついていません。少し待ってハンズフリー音声を再開してください"},
   "免按键语音": {"zh-Hans": "免按键语音", "zh-Hant": "免按鍵語音", "en": "Hands-free voice", "ja": "ハンズフリー音声"},
   "免按键": {"zh-Hans": "免按键", "zh-Hant": "免按鍵", "en": "Hands-free", "ja": "ハンズフリー"},
   "关闭免按键": {"zh-Hans": "关闭免按键", "zh-Hant": "關閉免按鍵", "en": "Stop listening", "ja": "音声入力を停止"},
-  "自动判断说完；外放时建议戴耳机。": {"zh-Hans": "自动判断说完；外放时建议戴耳机。", "zh-Hant": "自動判斷說完；外放時建議戴耳機。", "en": "Send when you pause. Headphones help when using speakers.", "ja": "話し終わると自動送信します。音の回り込みにはヘッドホンをお試しください。"},
+  "建议戴耳机": {"zh-Hans": "建议戴耳机", "zh-Hant": "建議戴耳機", "en": "Headphones recommended", "ja": "ヘッドホン推奨"},
   "正在听，停顿后自动发送": {"zh-Hans": "正在听，停顿后自动发送", "zh-Hant": "正在聽，停頓後自動傳送", "en": "Listening. Pause to send.", "ja": "聞いています。間を置くと送信します"},
   "免按键已开启，直接说话": {"zh-Hans": "免按键已开启，直接说话", "zh-Hant": "免按鍵已開啟，直接說話", "en": "Hands-free is on. Start speaking.", "ja": "ハンズフリー入力中。そのまま話しかけてください"},
-  "已暂停收音，继续后恢复": {"zh-Hans": "已暂停收音，继续后恢复", "zh-Hant": "已暫停收音，繼續後恢復", "en": "Listening paused. Resume to continue.", "ja": "音声入力を一時停止中。続行すると再開します"},
-  "免按键已开启 · 停顿后自动发送 · Esc 关闭": {"zh-Hans": "免按键已开启 · 停顿后自动发送 · Esc 关闭", "zh-Hant": "免按鍵已開啟 · 停頓後自動傳送 · Esc 關閉", "en": "Hands-free on · Pause to send · Esc to stop", "ja": "ハンズフリー入力中 · 話し終わると送信 · Escで停止"},
+  "已暂停收音": {"zh-Hans": "已暂停收音", "zh-Hant": "已暫停收音", "en": "Listening paused", "ja": "音声入力を一時停止中"},
+  "免按键 · Esc 关闭": {"zh-Hans": "免按键 · Esc 关闭", "zh-Hant": "免按鍵 · Esc 關閉", "en": "Hands-free · Esc to stop", "ja": "ハンズフリー · Escで停止"},
   "麦克风已断开，请重新选择设备": {"zh-Hans": "麦克风已断开，请重新选择设备", "zh-Hant": "麥克風已斷開，請重新選擇裝置", "en": "Microphone disconnected. Choose a device again.", "ja": "マイクが切断されました。デバイスを選び直してください"},
   "录音失败：{0}": {"zh-Hans": "录音失败：{0}", "zh-Hant": "錄音失敗：{0}", "en": "Recording failed: {0}", "ja": "録音に失敗しました：{0}"},
   "请先取消麦克风静音，再开启免按键语音": {"zh-Hans": "请先取消麦克风静音，再开启免按键语音", "zh-Hant": "請先取消麥克風靜音，再開啟免按鍵語音", "en": "Unmute your microphone before enabling hands-free voice.", "ja": "マイクのミュートを解除してからハンズフリー音声を有効にしてください"},
   "麦克风已静音，免按键语音已关闭": {"zh-Hans": "麦克风已静音，免按键语音已关闭", "zh-Hant": "麥克風已靜音，免按鍵語音已關閉", "en": "Microphone muted. Hands-free voice is off.", "ja": "マイクがミュートされたため、ハンズフリー音声を停止しました"},
-  "通话音色单独设置，需选择实时模型支持的音色。": {"zh-Hans": "通话音色单独设置，需选择实时模型支持的音色。", "zh-Hant": "通話音色另行設定，請選擇即時模型支援的音色。", "en": "Choose a voice supported by the realtime model. Regular speech uses a separate voice.", "ja": "通話用の声は別設定です。リアルタイムモデル対応の声を選んでください。"},
+  "需选实时模型支持的音色": {"zh-Hans": "需选实时模型支持的音色", "zh-Hant": "需選即時模型支援的音色", "en": "Choose a voice the realtime model supports", "ja": "リアルタイムモデル対応の声を選んでください"},
   "麦克风已静音": {"zh-Hans": "麦克风已静音", "zh-Hant": "麥克風已靜音", "en": "Microphone muted", "ja": "マイクをミュート中"},
   "结束通话后可删除这句记录": {"zh-Hans": "结束通话后可删除这句记录", "zh-Hant": "結束通話後可刪除這句記錄", "en": "End the call before removing this message", "ja": "この記録は通話終了後に削除できます"},
-  "持续语音通话，支持自然接话和插话。结束后关闭麦克风。": {"zh-Hans": "持续语音通话，支持自然接话和插话。结束后关闭麦克风。", "zh-Hant": "持續語音通話，支援自然接話和插話。結束後關閉麥克風。", "en": "Keep talking naturally and interrupt at any time. Ending the call releases your microphone.", "ja": "自然に会話を続け、途中で話しかけられます。通話終了時にマイクを停止します。"},
+  "持续语音通话，结束后关闭麦克风": {"zh-Hans": "持续语音通话，结束后关闭麦克风", "zh-Hant": "持續語音通話，結束後關閉麥克風", "en": "An ongoing voice call; ending it releases your microphone", "ja": "続けて話せる音声通話。終了するとマイクを停止します"},
   "通话角色": {"zh-Hans": "通话角色", "zh-Hant": "通話角色", "en": "Character", "ja": "通話するキャラクター"},
   "千问 3.8 实时模型需要百炼工作空间的专属域名。": {"zh-Hans": "千问 3.8 实时模型需要百炼工作空间的专属域名。", "zh-Hant": "千問 3.8 即時模型需要百煉工作空間的專屬網域。", "en": "Qwen 3.8 requires your Model Studio workspace endpoint.", "ja": "Qwen 3.8 には Model Studio のワークスペース専用ドメインが必要です。"},
   "复用已配置的密钥": {"zh-Hans": "复用已配置的密钥", "zh-Hant": "沿用已設定的金鑰", "en": "Use the configured API key", "ja": "設定済みの API キーを使用"},
@@ -372,10 +355,9 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "先选择一个已载入的 AI 角色": {"zh-Hans": "先选择一个已载入的 AI 角色", "zh-Hant": "先選擇一個已載入的 AI 角色", "en": "Select a loaded AI character first", "ja": "読み込み済みの AI キャラクターを選んでください"},
   "服务商按实时模型的用量计费，到达时长上限自动结束。": {"zh-Hans": "服务商按实时模型的用量计费，到达时长上限自动结束。", "zh-Hant": "服務商依即時模型的用量計費，達到時長上限會自動結束。", "en": "Your provider charges for realtime usage. The call ends automatically at its time limit.", "ja": "リアルタイムモデルの使用量に応じて料金が発生します。制限時間になると自動終了します。"},
   "结束通话": {"zh-Hans": "结束通话", "zh-Hant": "結束通話", "en": "End call", "ja": "通話を終了"},
-  "角色正在说话，你可以随时插话": {"zh-Hans": "角色正在说话，你可以随时插话", "zh-Hant": "角色正在說話，你可以隨時插話", "en": "Speaking — you can interrupt at any time", "ja": "キャラクターが発話中です。いつでも話しかけられます"},
+  "角色正在说话": {"zh-Hans": "角色正在说话", "zh-Hant": "角色正在說話", "en": "Speaking", "ja": "キャラクターが発話中です"},
   "正在回应…": {"zh-Hans": "正在回应…", "zh-Hant": "正在回應…", "en": "Responding…", "ja": "応答中…"},
   "已暂停收音和回应": {"zh-Hans": "已暂停收音和回应", "zh-Hant": "已暫停收音和回應", "en": "Microphone and responses paused", "ja": "マイクと応答を一時停止中"},
-  "正在听，直接说话就可以": {"zh-Hans": "正在听，直接说话就可以", "zh-Hant": "正在聽，直接說話就可以", "en": "Listening — just start talking", "ja": "聞いています。そのまま話してください"},
   "语音通话中": {"zh-Hans": "语音通话中", "zh-Hant": "語音通話中", "en": "Voice call active", "ja": "音声通話中"},
   "通话已结束": {"zh-Hans": "通话已结束", "zh-Hant": "通話已結束", "en": "Call ended", "ja": "通話終了"},
   "麦克风已断开，请重新开始": {"zh-Hans": "麦克风已断开，请重新开始", "zh-Hant": "麥克風已中斷，請重新開始", "en": "Microphone disconnected. Start a new call.", "ja": "マイクが切断されました。通話を開始し直してください"},
@@ -391,11 +373,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "{0} imported avatars need their model files again on another computer.",
     "ja": "別のパソコンでは、読み込んだ{0}体のモデルを再度インポートしてください。"
   },
-  "有 {0} 个从文件导入的角色这台电脑上没有，要重新导入": {
-    "zh-Hans": "有 {0} 个从文件导入的角色这台电脑上没有，要重新导入",
-    "zh-Hant": "有 {0} 個從檔案導入的角色這台電腦上沒有，要重新導入",
-    "en": "{0} imported avatars are missing on this computer. Import their files again.",
-    "ja": "このパソコンに{0}体のモデルがありません。再度インポートしてください。"
+  "{0} 个角色要重新导入": {
+    "zh-Hans": "{0} 个角色要重新导入",
+    "zh-Hant": "{0} 個角色要重新導入",
+    "en": "{0} characters need importing again",
+    "ja": "{0}体のキャラクターを再インポートしてください"
   },
   "舞台名字": {
     "zh-Hans": "舞台名字",
@@ -559,11 +541,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Model folder",
     "ja": "モデルフォルダー"
   },
-  "LivLiv 模型包（.livliv 或 zip），或 VRM（VRoid 等）": {
-    "zh-Hans": "LivLiv 模型包（.livliv 或 zip），或 VRM（VRoid 等）",
-    "zh-Hant": "LivLiv 模型包（.livliv 或 zip），或 VRM（VRoid 等）",
-    "en": "LivLiv package (.livliv or ZIP), or VRM",
-    "ja": "LivLivモデル（.livliv・ZIP）またはVRM"
+  ".livliv、zip 或 VRM 文件": {
+    "zh-Hans": ".livliv、zip 或 VRM 文件",
+    "zh-Hant": ".livliv、zip 或 VRM 檔案",
+    "en": ".livliv, ZIP or VRM file",
+    "ja": ".livliv・ZIP・VRM ファイル"
   },
   "PNG 立绘": {
     "zh-Hans": "PNG 立绘",
@@ -589,11 +571,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "PNG avatar",
     "ja": "PNGアバター"
   },
-  "从这台电脑上删掉（用到它的角色会显示要重新导入）": {
-    "zh-Hans": "从这台电脑上删掉（用到它的角色会显示要重新导入）",
-    "zh-Hant": "從這台電腦上刪掉（用到它的角色會顯示要重新導入）",
-    "en": "Remove from this device; scenes using it will need the files again",
-    "ja": "この端末から削除します。使用中のシーンでは再インポートが必要です。"
+  "从本机删除（用到它的角色要重新导入）": {
+    "zh-Hans": "从本机删除（用到它的角色要重新导入）",
+    "zh-Hant": "從本機刪除（用到它的角色要重新導入）",
+    "en": "Remove from this computer (characters using it need importing again)",
+    "ja": "この端末から削除（使っているキャラクターは再インポートが必要）"
   },
   "按 ID 添加": {
     "zh-Hans": "按 ID 添加",
@@ -661,11 +643,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Cast",
     "ja": "キャスト"
   },
-  "添加角色后，在这里选择。": {
-    "zh-Hans": "添加角色后，在这里选择。",
-    "zh-Hant": "新增角色後，在這裡選擇。",
-    "en": "Add a avatar to select it here.",
-    "ja": "追加したキャラクターをここで選べます。"
+  "还没有角色": {
+    "zh-Hans": "还没有角色",
+    "zh-Hant": "還沒有角色",
+    "en": "No characters yet",
+    "ja": "キャラクターはまだいません"
   },
   "已隐藏": {
     "zh-Hans": "已隐藏",
@@ -789,12 +771,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Resume",
     "ja": "再開"
   },
-  "下一句：跳过等待，或者让正在说的停下": {
-    "zh-Hans": "下一句：跳过等待，或者让正在说的停下",
-    "zh-Hant": "下一句：跳過等待，或者讓正在說的停下",
-    "en": "Next line: skip the wait or interrupt the current speaker",
-    "ja": "次の発言：待ち時間を省略するか、現在の発言を中断します"
-  },
   "停止": {
     "zh-Hans": "停止",
     "zh-Hant": "停止",
@@ -861,11 +837,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Transcribing; Esc to cancel",
     "ja": "文字起こし中（Escでキャンセル）"
   },
-  "按住说话，松开说出去（也可以按住 ` 键）": {
-    "zh-Hans": "按住说话，松开说出去（也可以按住 ` 键）",
-    "zh-Hant": "按住說話，松開說出去（也可以按住 ` 鍵）",
-    "en": "Hold to speak, release to send (or hold `)",
-    "ja": "押して話し、離すと送信（`キーでも操作できます）"
+  "也可以按住 ` 键": {
+    "zh-Hans": "也可以按住 ` 键",
+    "zh-Hant": "也可以按住 ` 鍵",
+    "en": "Or hold `",
+    "ja": "`キーでも話せます"
   },
   "按住说话：在设置里接上语音识别后可用": {
     "zh-Hans": "按住说话：在设置里接上语音识别后可用",
@@ -878,12 +854,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "按住說話",
     "en": "Push to talk",
     "ja": "押して話す"
-  },
-  "这次不说，跳过": {
-    "zh-Hans": "这次不说，跳过",
-    "zh-Hant": "這次不說，跳過",
-    "en": "Skip your turn",
-    "ja": "自分の番をスキップ"
   },
   "说": {
     "zh-Hans": "说",
@@ -1263,11 +1233,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "lines",
     "ja": "発言"
   },
-  "视频没有透明通道：透明背景录成绿幕": {
-    "zh-Hans": "视频没有透明通道：透明背景录成绿幕",
-    "zh-Hant": "影片沒有透明通道：透明背景錄成綠幕",
-    "en": "Video uses a green screen for transparent backgrounds",
-    "ja": "透明背景はグリーンバックで書き出します"
+  "透明背景会录成绿幕": {
+    "zh-Hans": "透明背景会录成绿幕",
+    "zh-Hant": "透明背景會錄成綠幕",
+    "en": "Transparent backgrounds record as green screen",
+    "ja": "透明背景はグリーンバックで録画されます"
   },
   "绿幕": {
     "zh-Hans": "绿幕",
@@ -1275,29 +1245,17 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Green screen",
     "ja": "グリーンバック"
   },
-  "没有声音，只出字幕：设置里接上语音": {
-    "zh-Hans": "没有声音，只出字幕：设置里接上语音",
-    "zh-Hant": "沒有聲音，只出字幕：設置里接上語音",
-    "en": "Captions only; connect a voice in Settings",
-    "ja": "字幕のみです。設定で音声を接続できます"
-  },
-  "系统朗读录不进声音：设置里接上语音": {
-    "zh-Hans": "系统朗读录不进声音：设置里接上语音",
-    "zh-Hant": "系統朗讀錄不進聲音：設置里接上語音",
-    "en": "System speech cannot be recorded; connect a voice in Settings",
-    "ja": "システム読み上げは録音できません。設定で音声を接続できます"
+  "没有声音": {
+    "zh-Hans": "没有声音",
+    "zh-Hant": "沒有聲音",
+    "en": "No voice",
+    "ja": "声なし"
   },
   "同时开始对话": {
     "zh-Hans": "同时开始对话",
     "zh-Hant": "同時開始對話",
     "en": "Start chat with recording",
     "ja": "録画と同時に対話を開始"
-  },
-  "建议戴耳机，不然角色的声音会被录两遍": {
-    "zh-Hans": "建议戴耳机，不然角色的声音会被录两遍",
-    "zh-Hant": "建議戴耳機，不然角色的聲音會被錄兩遍",
-    "en": "Use headphones to avoid recording the avatar’s voice twice",
-    "ja": "キャラクターの音声が二重に録音されないよう、ヘッドホンを使ってください"
   },
   "录进麦克风": {
     "zh-Hans": "录进麦克风",
@@ -1449,23 +1407,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Heard: {0}",
     "ja": "認識結果：{0}"
   },
-  "用 AI 模型的密钥，不用再填": {
-    "zh-Hans": "用 AI 模型的密钥，不用再填",
-    "zh-Hant": "用 AI 模型的金鑰，不用再填",
-    "en": "Use the AI model’s key without entering it again",
-    "ja": "AIモデルと同じAPIキーを使用"
-  },
   "跟模型一样": {
     "zh-Hans": "跟模型一样",
     "zh-Hant": "跟模型一樣",
     "en": "Same as model",
     "ja": "モデルと共通"
-  },
-  "没有语音接口：角色用 LivLiv 的声音，没有就只出字幕": {
-    "zh-Hans": "没有语音接口：角色用 LivLiv 的声音，没有就只出字幕",
-    "zh-Hant": "沒有語音介面：角色用 LivLiv 的聲音，沒有就只出字幕",
-    "en": "Without a speech API, use LivLiv voices or captions",
-    "ja": "音声APIなしでは、LivLivの音声または字幕を使用します"
   },
   "不用": {
     "zh-Hans": "不用",
@@ -1797,12 +1743,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Connect a voice API",
     "ja": "音声APIを接続"
   },
-  "保存后，此角色会使用你的语音接口。": {
-    "zh-Hans": "保存后，此角色会使用你的语音接口。",
-    "zh-Hant": "儲存後，此角色會使用你的語音介面。",
-    "en": "Save to use this voice API for this character.",
-    "ja": "保存すると、このキャラクターで設定した音声APIを使用します。"
-  },
   "分享麦克风": {
     "zh-Hans": "分享麦克风",
     "zh-Hant": "分享麥克風",
@@ -1959,12 +1899,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Opening device…",
     "ja": "デバイスを接続中…"
   },
-  "面捕回放 · 无需摄像头": {
-    "zh-Hans": "面捕回放 · 无需摄像头",
-    "zh-Hant": "面捕回放 · 無需攝影機",
-    "en": "Face replay · no camera needed",
-    "ja": "フェイス再生 · カメラ不要"
-  },
   "画面偏暗，请增加面部光照": {
     "zh-Hans": "画面偏暗，请增加面部光照",
     "zh-Hant": "畫面偏暗，請增加面部光照",
@@ -1989,11 +1923,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Microphone connected",
     "ja": "マイク接続済み"
   },
-  "在下方选择动作驱动，或使用「我来演」开启面捕": {
-    "zh-Hans": "在下方选择动作驱动，或使用「我来演」开启面捕",
-    "zh-Hant": "在下方選擇動作驅動，或使用「我來演」開啓面捕",
-    "en": "Choose a driver below, or select You control for face tracking",
-    "ja": "下で動きの入力を選ぶか、「自分で操作」でフェイストラッキングを開始"
+  "没有在用摄像头或麦克风": {
+    "zh-Hans": "没有在用摄像头或麦克风",
+    "zh-Hant": "沒有在用攝影機或麥克風",
+    "en": "No camera or microphone in use",
+    "ja": "カメラもマイクも使っていません"
   },
   "系统默认": {
     "zh-Hans": "系统默认",
@@ -2049,23 +1983,17 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Reconnect",
     "ja": "再接続"
   },
-  "嘴型与眨眼通过切换立绘表现。": {
-    "zh-Hans": "嘴型与眨眼通过切换立绘表现。",
-    "zh-Hant": "嘴型與眨眼通過切換立繪表現。",
-    "en": "Mouths and blinks use your avatar’s images.",
-    "ja": "口やまばたきはアバター画像の切り替えで表現します。"
+  "切到游戏窗口也能控制角色": {
+    "zh-Hans": "切到游戏窗口也能控制角色",
+    "zh-Hant": "切到遊戲視窗也能控制角色",
+    "en": "Control characters even from a game window",
+    "ja": "ゲーム画面に切り替えても操作できます"
   },
-  "全局热键在桌面版中可用，切到游戏窗口后仍能控制角色。网页中的编辑快捷键见「快捷键」。": {
-    "zh-Hans": "全局热键在桌面版中可用，切到游戏窗口后仍能控制角色。网页中的编辑快捷键见「快捷键」。",
-    "zh-Hant": "全局熱鍵在桌面版中可用，切到遊戲視窗後仍能控制角色。網頁中的編輯快捷鍵見「快捷鍵」。",
-    "en": "Global hotkeys work in the desktop app, including while gaming. See Shortcuts for browser editing keys.",
-    "ja": "グローバルキーはデスクトップ版で利用できます。ゲーム中も操作できます。ブラウザーの操作は「ショートカット」を参照してください。"
-  },
-  "表情和校准作用于选中的角色；未选中时，优先控制「我来演」的角色。语音输入按一次开始，再按一次结束。": {
-    "zh-Hans": "表情和校准作用于选中的角色；未选中时，优先控制「我来演」的角色。语音输入按一次开始，再按一次结束。",
-    "zh-Hant": "表情和校准作用於選中的角色；未選中時，優先控制「我來演」的角色。語音輸入按一次開始，再按一次結束。",
-    "en": "Expressions and calibration use the selected avatar, or your own avatar if none is selected. Press once to record voice, again to finish.",
-    "ja": "表情と正面調整は選択中のキャラクターに適用します。未選択時は「自分で操作」のキャラクターが対象です。音声入力は1回押して開始し、もう1回で終了します。"
+  "作用于选中的角色，没选时是「我来演」的角色": {
+    "zh-Hans": "作用于选中的角色，没选时是「我来演」的角色",
+    "zh-Hant": "作用於選中的角色，沒選時是「我來演」的角色",
+    "en": "Applies to the selected character, or to the one you perform when none is selected",
+    "ja": "選択中のキャラクターに適用。未選択時は「自分で演じる」キャラクター"
   },
   "热键": {
     "zh-Hans": "热键",
@@ -2145,12 +2073,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Connect your livliv.ai account in Settings",
     "ja": "設定でlivliv.aiアカウントにログインすると利用できます"
   },
-  "我的接口": {
-    "zh-Hans": "我的接口",
-    "zh-Hant": "我的介面",
-    "en": "My API",
-    "ja": "自分のAPI"
-  },
   "在设置里接上语音接口后可用": {
     "zh-Hans": "在设置里接上语音接口后可用",
     "zh-Hant": "在設置里接上語音介面後可用",
@@ -2210,12 +2132,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "音調",
     "en": "Pitch",
     "ja": "声の高さ"
-  },
-  "当前只显示字幕。选择系统朗读，或在设置里接入语音接口后出声。": {
-    "zh-Hans": "当前只显示字幕。选择系统朗读，或在设置里接入语音接口后出声。",
-    "zh-Hant": "當前只顯示字幕。選擇系統朗讀，或在設置里接入語音介面後出聲。",
-    "en": "Captions only. Choose system speech or connect a voice API in Settings.",
-    "ja": "現在は字幕のみです。システム読み上げを選ぶか、設定で音声APIを接続できます。"
   },
   "上一句没有出声：": {
     "zh-Hans": "上一句没有出声：",
@@ -2283,12 +2199,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Caption color",
     "ja": "字幕の色"
   },
-  "身后一层柔和的影子，浅色背景上更立体": {
-    "zh-Hans": "身后一层柔和的影子，浅色背景上更立体",
-    "zh-Hant": "身後一層柔和的影子，淺色背景上更立體",
-    "en": "A soft shadow, especially visible on light backgrounds",
-    "ja": "明るい背景で見やすい、柔らかな影"
-  },
   "给它加一个字幕气泡": {
     "zh-Hans": "给它加一个字幕气泡",
     "zh-Hant": "給它加一個字幕氣泡",
@@ -2355,11 +2265,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Read lines in the avatar’s voice",
     "ja": "キャラクターの声で読み上げる"
   },
-  "关掉：你自己对着麦克风说，控制台打的字只当字幕": {
-    "zh-Hans": "关掉：你自己对着麦克风说，控制台打的字只当字幕",
-    "zh-Hant": "關掉：你自己對著麥克風說，控制台打的字只當字幕",
-    "en": "Off: speak into your microphone; typed lines appear as captions",
-    "ja": "オフの場合は自分のマイクで話し、入力した文字は字幕として表示します"
+  "关掉时，打的字只当字幕": {
+    "zh-Hans": "关掉时，打的字只当字幕",
+    "zh-Hant": "關掉時，打的字只當字幕",
+    "en": "Off: typed lines are captions only",
+    "ja": "オフ：入力した文字は字幕だけになります"
   },
   "动作与更多设置": {
     "zh-Hans": "动作与更多设置",
@@ -2511,23 +2421,17 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Typewriter effect",
     "ja": "一文字ずつ表示"
   },
-  "跟着说话的速度一个字一个字出来": {
-    "zh-Hans": "跟着说话的速度一个字一个字出来",
-    "zh-Hant": "跟著說話的速度一個字一個字出來",
-    "en": "Reveal text in time with speech",
-    "ja": "話す速さに合わせて字幕を表示します"
-  },
   "说完后停留": {
     "zh-Hans": "说完后停留",
     "zh-Hant": "說完後停留",
     "en": "Keep after speaking",
     "ja": "発言後の表示時間"
   },
-  "内容（也可以在舞台上双击改）": {
-    "zh-Hans": "内容（也可以在舞台上双击改）",
-    "zh-Hant": "內容（也可以在舞台上雙擊改）",
-    "en": "Text (or double-click on stage)",
-    "ja": "テキスト（舞台でダブルクリックでも編集）"
+  "内容": {
+    "zh-Hans": "内容",
+    "zh-Hant": "內容",
+    "en": "Text",
+    "ja": "テキスト"
   },
   "颜色": {
     "zh-Hans": "颜色",
@@ -2649,11 +2553,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Safe area guides",
     "ja": "セーフエリア"
   },
-  "标题安全区（90%）和动作安全区（93%）：字幕和角色别放到外面": {
-    "zh-Hans": "标题安全区（90%）和动作安全区（93%）：字幕和角色别放到外面",
-    "zh-Hant": "標題安全區（90%）和動作安全區（93%）：字幕和角色別放到外面",
-    "en": "Title safe (90%) and action safe (93%): keep captions and avatars inside",
-    "ja": "タイトル90%・アクション93%の範囲内に字幕やキャラクターを配置します"
+  "标题安全区（90%）和动作安全区（93%）": {
+    "zh-Hans": "标题安全区（90%）和动作安全区（93%）",
+    "zh-Hant": "標題安全區（90%）和動作安全區（93%）",
+    "en": "Title safe (90%) and action safe (93%)",
+    "ja": "タイトルセーフ（90%）とアクションセーフ（93%）"
   },
   "抖音 / TikTok 界面遮罩": {
     "zh-Hans": "抖音 / TikTok 界面遮罩",
@@ -2661,11 +2565,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Douyin / TikTok overlay",
     "ja": "抖音・TikTokのUIガイド"
   },
-  "竖屏发到短视频平台时，顶栏、评论区和右侧按钮会盖住的地方": {
-    "zh-Hans": "竖屏发到短视频平台时，顶栏、评论区和右侧按钮会盖住的地方",
-    "zh-Hant": "竪屏發到短影片平台時，頂欄、評論區和右側按鈕會蓋住的地方",
-    "en": "Areas covered by app headers, comments and buttons in portrait videos",
-    "ja": "縦動画でアプリの見出し、コメント、ボタンに隠れる範囲"
+  "顶栏、评论区和右侧按钮会盖住的地方": {
+    "zh-Hans": "顶栏、评论区和右侧按钮会盖住的地方",
+    "zh-Hant": "頂欄、評論區和右側按鈕會蓋住的地方",
+    "en": "Areas covered by app headers, comments and buttons",
+    "ja": "アプリの見出し、コメント、ボタンに隠れる範囲"
   },
   "9:16 裁切框": {
     "zh-Hans": "9:16 裁切框",
@@ -2673,11 +2577,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "9:16 crop guide",
     "ja": "9:16の切り抜きガイド"
   },
-  "同一场再剪竖屏时，中间这一块会留下": {
-    "zh-Hans": "同一场再剪竖屏时，中间这一块会留下",
-    "zh-Hant": "同一場再剪竪屏時，中間這一塊會留下",
-    "en": "This area remains when cropping to portrait",
-    "ja": "縦動画に切り抜くと、この範囲が残ります"
+  "剪竖屏时留下的部分": {
+    "zh-Hans": "剪竖屏时留下的部分",
+    "zh-Hant": "剪竪屏時留下的部分",
+    "en": "What remains when cropped to portrait",
+    "ja": "縦動画に切り抜くと残る範囲"
   },
   "对话设置": {
     "zh-Hans": "对话设置",
@@ -2979,12 +2883,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Connecting to stage…",
     "ja": "舞台に接続中…"
   },
-  "· 输出画面不含编辑工具": {
-    "zh-Hans": "· 输出画面不含编辑工具",
-    "zh-Hant": "· 輸出畫面不含編輯工具",
-    "en": "· Editing tools are hidden from output",
-    "ja": "· 出力に編集ツールは表示されません"
-  },
   "透明背景": {
     "zh-Hans": "透明背景",
     "zh-Hant": "透明背景",
@@ -3171,17 +3069,17 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Too many avatars to show this one",
     "ja": "キャラクターが多すぎて表示できません"
   },
-  "舞台上的角色太多，这个浏览器显示不过来。浏览器里大约 {0} 个能正常显示，桌面版可以更多。请隐藏或移除一些角色。": {
-    "zh-Hans": "舞台上的角色太多，这个浏览器显示不过来。浏览器里大约 {0} 个能正常显示，桌面版可以更多。请隐藏或移除一些角色。",
-    "zh-Hant": "舞台上的角色太多，這個瀏覽器顯示不過來。瀏覽器裡大約 {0} 個能正常顯示，桌面版可以更多。請隱藏或移除一些角色。",
-    "en": "Too many avatars on stage for this browser. About {0} work well in a browser, more in the desktop app. Hide or remove some.",
-    "ja": "ステージのキャラクターが多すぎて、このブラウザーでは表示しきれません。ブラウザーでは{0}体ほどまで、デスクトップ版ではもっと表示できます。いくつか非表示にするか削除してください。"
+  "角色太多，浏览器最多显示约 {0} 个，请隐藏一些": {
+    "zh-Hans": "角色太多，浏览器最多显示约 {0} 个，请隐藏一些",
+    "zh-Hant": "角色太多，瀏覽器最多顯示約 {0} 個，請隱藏一些",
+    "en": "Too many characters: a browser shows about {0}. Hide some.",
+    "ja": "キャラクターが多すぎます。ブラウザーでは約{0}体まで。いくつか非表示にしてください"
   },
-  "舞台上的角色太多，显示不过来。桌面版大约 {0} 个能正常显示。请隐藏或移除一些角色。": {
-    "zh-Hans": "舞台上的角色太多，显示不过来。桌面版大约 {0} 个能正常显示。请隐藏或移除一些角色。",
-    "zh-Hant": "舞台上的角色太多，顯示不過來。桌面版大約 {0} 個能正常顯示。請隱藏或移除一些角色。",
-    "en": "Too many avatars on stage. About {0} work well in the desktop app. Hide or remove some.",
-    "ja": "ステージのキャラクターが多すぎて表示しきれません。デスクトップ版では{0}体ほどまで表示できます。いくつか非表示にするか削除してください。"
+  "角色太多，最多显示约 {0} 个，请隐藏一些": {
+    "zh-Hans": "角色太多，最多显示约 {0} 个，请隐藏一些",
+    "zh-Hant": "角色太多，最多顯示約 {0} 個，請隱藏一些",
+    "en": "Too many characters: about {0} can show. Hide some.",
+    "ja": "キャラクターが多すぎます。表示できるのは約{0}体まで。いくつか非表示にしてください"
   },
   "这个模型超出了播放器的大小限制": {
     "zh-Hans": "这个模型超出了播放器的大小限制",
@@ -3525,11 +3423,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Chat · {0}",
     "ja": "コメント · {0}"
   },
-  "舞台上还没有会说话的角色：给角色选「AI」或「我来说」": {
-    "zh-Hans": "舞台上还没有会说话的角色：给角色选「AI」或「我来说」",
-    "zh-Hant": "舞台上還沒有會說話的角色：給角色選「AI」或「我來說」",
-    "en": "Choose AI or You control for a avatar first",
-    "ja": "キャラクターに「AIで操作」または「自分で操作」を選んでください"
+  "舞台上还没有会说话的角色": {
+    "zh-Hans": "舞台上还没有会说话的角色",
+    "zh-Hant": "舞台上還沒有會說話的角色",
+    "en": "No character on stage can speak yet",
+    "ja": "まだ話せるキャラクターがいません"
   },
   "先添加一个「AI 来演」的角色": {
     "zh-Hans": "先添加一个「AI 来演」的角色",
@@ -3759,12 +3657,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "No audio was generated for this line",
     "ja": "この台詞の音声を生成できませんでした"
   },
-  "在设置里接上语音识别后可用": {
-    "zh-Hans": "在设置里接上语音识别后可用",
-    "zh-Hant": "在設置里接上語音識別後可用",
-    "en": "Connect speech recognition in Settings",
-    "ja": "設定で音声認識を接続すると利用できます"
-  },
   "麦克风没有打开：{0}": {
     "zh-Hans": "麦克风没有打开：{0}",
     "zh-Hant": "麥克風沒有打開：{0}",
@@ -3975,11 +3867,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Free",
     "ja": "自由"
   },
-  "被点名的人接话，否则看谁话多、谁沉默得久；你随时可以插话": {
-    "zh-Hans": "被点名的人接话，否则看谁话多、谁沉默得久；你随时可以插话",
-    "zh-Hant": "被點名的人接話，否則看誰話多、誰沈默得久；你隨時可以插話",
-    "en": "Answer when called on, or take turns naturally; you can join anytime",
-    "ja": "呼ばれた人が答え、ほかは自然に発言します。いつでも参加できます"
+  "被点名的人接话，你随时可以插话": {
+    "zh-Hans": "被点名的人接话，你随时可以插话",
+    "zh-Hant": "被點名的人接話，你隨時可以插話",
+    "en": "Whoever is named answers; you can join anytime",
+    "ja": "呼ばれた人が答えます。いつでも参加できます"
   },
   "轮流": {
     "zh-Hans": "轮流",
@@ -3987,11 +3879,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Round-robin",
     "ja": "順番"
   },
-  "按舞台上从左到右轮流说；轮到你扮演的角色时等你": {
-    "zh-Hans": "按舞台上从左到右轮流说；轮到你扮演的角色时等你",
-    "zh-Hant": "按舞台上從左到右輪流說；輪到你扮演的角色時等你",
-    "en": "Speak from left to right; wait for you on your turn",
-    "ja": "舞台の左から順に話し、自分の番は入力を待ちます"
+  "从左到右轮流说": {
+    "zh-Hans": "从左到右轮流说",
+    "zh-Hant": "從左到右輪流說",
+    "en": "Take turns from left to right",
+    "ja": "左から順に話します"
   },
   "主持": {
     "zh-Hans": "主持",
@@ -3999,11 +3891,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Hosted",
     "ja": "司会あり"
   },
-  "主持人和嘉宾一来一回，主持人决定问谁": {
-    "zh-Hans": "主持人和嘉宾一来一回，主持人决定问谁",
-    "zh-Hant": "主持人和嘉賓一來一回，主持人決定問誰",
-    "en": "The host and guests alternate; the host chooses the next speaker",
-    "ja": "司会とゲストが交互に話し、司会が次の人を選びます"
+  "主持人决定问谁": {
+    "zh-Hans": "主持人决定问谁",
+    "zh-Hant": "主持人決定問誰",
+    "en": "The host picks who speaks next",
+    "ja": "司会が次の人を選びます"
   },
   "未命名舞台": {
     "zh-Hans": "未命名舞台",
@@ -4186,18 +4078,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Your avatars, together on Stage",
     "ja": "あなたのキャラクターを、Stageへ"
   },
-  "在 Stage 使用你的 livliv.ai 角色与声音。": {
-    "zh-Hans": "在 Stage 使用你的 livliv.ai 角色与声音。",
-    "zh-Hant": "在 Stage 使用你的 livliv.ai 角色與聲音。",
-    "en": "Bring your livliv.ai avatars and voices to Stage.",
-    "ja": "livliv.aiのキャラクターと声を、Stageで使えます。"
-  },
-  "登录后，把 livliv.ai 的角色与声音带到舞台。": {
-    "zh-Hans": "登录后，把 livliv.ai 的角色与声音带到舞台。",
-    "zh-Hant": "登錄後，把 livliv.ai 的角色與聲音帶到舞台。",
-    "en": "Sign in to bring your livliv.ai avatars and voices to the stage.",
-    "ja": "ログインして、livliv.aiのキャラクターと声を舞台へ。"
-  },
   "带入云端角色": {
     "zh-Hans": "带入云端角色",
     "zh-Hant": "帶入雲端角色",
@@ -4257,18 +4137,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "網頁需要驗證碼時，輸入這串代碼",
     "en": "Enter this code if the website asks for it.",
     "ja": "コードが必要な場合は、ブラウザーで入力してください。"
-  },
-  "在设置里连上 livliv.ai 帐号后可用": {
-    "zh-Hans": "在设置里连上 livliv.ai 帐号后可用",
-    "zh-Hant": "在設置里連上 livliv.ai 帳號後可用",
-    "en": "Sign in to livliv.ai in Settings to use this",
-    "ja": "設定でlivliv.aiにログインすると利用できます"
-  },
-  "角色在 livliv.ai 上的声音": {
-    "zh-Hans": "角色在 livliv.ai 上的声音",
-    "zh-Hant": "角色在 livliv.ai 上的聲音",
-    "en": "This avatar’s voice on livliv.ai",
-    "ja": "livliv.aiで設定したキャラクターの声"
   },
   "设置：AI 用什么想台词、livliv.ai 帐号": {
     "zh-Hans": "设置：AI 用什么想台词、livliv.ai 帐号",
@@ -4615,7 +4483,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "收起{0}": {"zh-Hans": "收起{0}", "zh-Hant": "收合{0}", "en": "Collapse {0}", "ja": "{0}を閉じる"},
   "阿里云百炼": {"zh-Hans": "阿里云百炼", "zh-Hant": "阿里雲百煉", "en": "Alibaba Model Studio", "ja": "Alibaba Model Studio"},
   "按角色自动分配": {"zh-Hans": "按角色自动分配", "zh-Hant": "按角色自動分配", "en": "Assign per character", "ja": "キャラごとに自動設定"},
-  "声音文件读取失败（{0}）": {"zh-Hans": "声音文件读取失败（{0}）", "zh-Hant": "聲音檔案讀取失敗（{0}）", "en": "Could not load audio ({0})", "ja": "音声を読み込めません（{0}）"},
   "让角色第一次开口": {"zh-Hans": "让角色第一次开口", "zh-Hant": "讓角色第一次開口", "en": "Meet your first characters", "ja": "キャラクターに会ってみよう"},
   "角色声音、动作与字幕": {"zh-Hans": "角色声音、动作与字幕", "zh-Hant": "角色聲音、動作與字幕", "en": "Voices, motion and captions", "ja": "声・動き・字幕を体験"},
   "中文演示": {"zh-Hans": "中文演示", "zh-Hant": "中文示範", "en": "Chinese demo", "ja": "中国語デモ"},
@@ -4648,7 +4515,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "重新做视频": {"zh-Hans": "重新做视频", "zh-Hant": "重新製作影片", "en": "Make video again", "ja": "動画を作り直す"},
   "启用全局热键": {"zh-Hans": "启用全局热键", "zh-Hant": "啟用全域熱鍵", "en": "Turn on global hotkeys", "ja": "グローバルホットキーを有効にする"},
   "在 livliv.ai 管理": {"zh-Hans": "在 livliv.ai 管理", "zh-Hant": "在 livliv.ai 管理", "en": "Manage on livliv.ai", "ja": "livliv.aiで管理"},
-  "网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。": {"zh-Hans": "网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。", "zh-Hant": "網頁版只列出能在瀏覽器裡直接呼叫的服務。本機的 Ollama 和其他介面，請用桌面版。", "en": "The web version lists only services a browser can call directly. For Ollama on your computer or other APIs, use the desktop app.", "ja": "Web版にはブラウザから直接呼び出せるサービスだけを表示しています。ローカルのOllamaやその他のAPIはデスクトップ版で使えます。"},
   "{0} 已经在舞台上": {"zh-Hans": "{0} 已经在舞台上", "zh-Hant": "{0} 已經在舞台上", "en": "{0} is already on the stage", "ja": "{0}はもうステージにいます"},
   "{0} 上台了": {"zh-Hans": "{0} 上台了", "zh-Hant": "{0} 上台了", "en": "{0} is on the stage", "ja": "{0}がステージに上がりました"},
   "最长 {0} 秒": {"zh-Hans": "最长 {0} 秒", "zh-Hant": "最長 {0} 秒", "en": "Up to {0} s", "ja": "最長{0}秒"},
@@ -4669,7 +4535,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "编辑、摄像头和接模型，请在电脑上打开这个页面。": {"zh-Hans": "编辑、摄像头和接模型，请在电脑上打开这个页面。", "zh-Hant": "編輯、攝影機和接模型，請在電腦上打開這個頁面。", "en": "To edit, use your camera or connect a model, open this page on a computer.", "ja": "編集、カメラ、モデル接続はパソコンでこのページを開いてください。"},
   "复制链接": {"zh-Hans": "复制链接", "zh-Hant": "複製連結", "en": "Copy link", "ja": "リンクをコピー"},
   "Stage 已在另一个标签页打开": {"zh-Hans": "Stage 已在另一个标签页打开", "zh-Hant": "Stage 已在另一個分頁打開", "en": "Stage is open in another tab", "ja": "Stageは別のタブで開いています"},
-  "同一个浏览器一次只在一个标签页里编辑，免得两边互相覆盖。": {"zh-Hans": "同一个浏览器一次只在一个标签页里编辑，免得两边互相覆盖。", "zh-Hant": "同一個瀏覽器一次只在一個分頁裡編輯，免得兩邊互相覆蓋。", "en": "One browser edits in one tab at a time, so two tabs don’t save over each other.", "ja": "同じブラウザで編集できるのは一度にひとつのタブです。互いに上書きしないためです。"},
+  "一次只能在一个标签页里编辑": {"zh-Hans": "一次只能在一个标签页里编辑", "zh-Hant": "一次只能在一個分頁裡編輯", "en": "You can edit in one tab at a time", "ja": "編集できるのは一度にひとつのタブです"},
   "那边正在{0}：移到这里会停下来。": {"zh-Hans": "那边正在{0}：移到这里会停下来。", "zh-Hant": "那邊正在{0}：移到這裡會停下來。", "en": "That tab is busy with {0}: moving here stops it.", "ja": "向こうのタブで{0}中です。こちらに移すと止まります。"},
   "OBS 输出": {"zh-Hans": "OBS 输出", "zh-Hant": "OBS 輸出", "en": "OBS output", "ja": "OBS出力"},
   "、": {"zh-Hans": "、", "zh-Hant": "、", "en": ", ", "ja": "、"},
@@ -4697,24 +4563,18 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "按住时显示": {"zh-Hans": "按住时显示", "zh-Hant": "按住時顯示", "en": "While held", "ja": "押している間だけ"},
   "显示 {0} 秒": {"zh-Hans": "显示 {0} 秒", "zh-Hant": "顯示 {0} 秒", "en": "For {0} s", "ja": "{0}秒間"},
   "麦克风对口型": {"zh-Hans": "麦克风对口型", "zh-Hant": "麥克風對口型", "en": "Mouth follows the mic", "ja": "マイクで口を動かす"},
-  "说话时嘴跟着声音动，和摄像头一起用": {"zh-Hans": "说话时嘴跟着声音动，和摄像头一起用", "zh-Hant": "說話時嘴跟著聲音動，和攝影機一起用", "en": "Your voice moves the mouth too, along with the camera", "ja": "話すと声に合わせて口が動きます（カメラと一緒に）"},
   "离开后自动暂离": {"zh-Hans": "离开后自动暂离", "zh-Hant": "離開後自動暫離", "en": "Away when you step out", "ja": "離れたら自動で離席"},
-  "摄像头 {0} 秒看不到你，角色就闭眼打瞌睡，回来就醒": {"zh-Hans": "摄像头 {0} 秒看不到你，角色就闭眼打瞌睡，回来就醒", "zh-Hant": "攝影機 {0} 秒看不到你，角色就閉眼打瞌睡，回來就醒", "en": "After {0} s without you in the camera, the character dozes off; it wakes when you’re back", "ja": "カメラに{0}秒映らないとキャラクターが居眠りし、戻ると起きます"},
+  "摄像头 {0} 秒看不到你就暂离": {"zh-Hans": "摄像头 {0} 秒看不到你就暂离", "zh-Hant": "攝影機 {0} 秒看不到你就暫離", "en": "Away after {0} s out of the camera", "ja": "カメラに{0}秒映らないと離席"},
   "别让其他窗口完全盖住输出窗口，否则画面会停住。": {"zh-Hans": "别让其他窗口完全盖住输出窗口，否则画面会停住。", "zh-Hant": "別讓其他視窗完全蓋住輸出視窗，否則畫面會停住。", "en": "Don’t let another window cover the output window completely, or its picture stops.", "ja": "ほかのウィンドウで出力ウィンドウを完全に隠すと、映像が止まります。"},
   "未满 18 岁不能用 AI 让角色说话": {"zh-Hans": "未满 18 岁不能用 AI 让角色说话", "zh-Hant": "未滿 18 歲不能用 AI 讓角色說話", "en": "You need to be 18 or over to let AI speak for characters", "ja": "18 歳未満は AI でキャラクターを話させることはできません"},
-  "积分用完了，或者今天、这个月的次数到了上限": {"zh-Hans": "积分用完了，或者今天、这个月的次数到了上限", "zh-Hant": "積分用完了，或者今天、這個月的次數到了上限", "en": "Out of points, or today’s or this month’s limit is reached", "ja": "ポイントが足りないか、今日または今月の上限に達しました"},
-  "只有作者能在 Stage 里用这个角色": {"zh-Hans": "只有作者能在 Stage 里用这个角色", "zh-Hant": "只有作者能在 Stage 裡用這個角色", "en": "Only its author can use this character in Stage", "ja": "このキャラクターを Stage で使えるのは作者だけです"},
   "说得太快了，歇一下再继续": {"zh-Hans": "说得太快了，歇一下再继续", "zh-Hant": "說得太快了，歇一下再繼續", "en": "Too fast. Take a moment, then continue", "ja": "速すぎます。少し待ってから続けてください"},
   "角色暂时没有回应，稍后再试": {"zh-Hans": "角色暂时没有回应，稍后再试", "zh-Hant": "角色暫時沒有回應，稍後再試", "en": "The character isn’t answering right now. Try again later", "ja": "キャラクターが応答していません。しばらくしてからもう一度お試しください"},
   "确认年龄": {"zh-Hans": "确认年龄", "zh-Hant": "確認年齡", "en": "Confirm your age", "ja": "年齢の確認"},
-  "用 AI 让角色说话前，请确认你已年满 18 岁。": {"zh-Hans": "用 AI 让角色说话前，请确认你已年满 18 岁。", "zh-Hant": "用 AI 讓角色說話前，請確認你已年滿 18 歲。", "en": "Before AI speaks for characters, please confirm you are 18 or over.", "ja": "AI でキャラクターを話させる前に、18 歳以上であることを確認してください。"},
+  "AI 对话需年满 18 岁": {"zh-Hans": "AI 对话需年满 18 岁", "zh-Hant": "AI 對話需年滿 18 歲", "en": "AI chat is for ages 18 and over", "ja": "AI との会話は 18 歳以上が対象です"},
   "未满 18 岁": {"zh-Hans": "未满 18 岁", "zh-Hant": "未滿 18 歲", "en": "Under 18", "ja": "18 歳未満"},
   "已满 18 岁": {"zh-Hans": "已满 18 岁", "zh-Hant": "已滿 18 歲", "en": "18 or over", "ja": "18 歳以上"},
-  "LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型": {"zh-Hans": "LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型", "zh-Hant": "LivLiv 只能讓 LivLiv 的角色說話：給「{0}」接上你自己的模型", "en": "LivLiv works for LivLiv characters only: connect your own model for “{0}”", "ja": "LivLiv で話せるのは LivLiv のキャラクターだけです。「{0}」には自分のモデルをつないでください"},
   "登录 livliv.ai 后可用": {"zh-Hans": "登录 livliv.ai 后可用", "zh-Hant": "登入 livliv.ai 後可用", "en": "Available after you sign in to livliv.ai", "ja": "livliv.ai にログインすると使えます"},
-  "这句的声音没有生成": {"zh-Hans": "这句的声音没有生成", "zh-Hant": "這句的聲音沒有生成", "en": "This line’s voice wasn’t made", "ja": "このセリフの音声は作られませんでした"},
   "用积分的台词，请点按钮开始": {"zh-Hans": "用积分的台词，请点按钮开始", "zh-Hant": "用積分的台詞，請點按鈕開始", "en": "Lines paid with points start from a button, not from Space", "ja": "ポイントを使うセリフはボタンから始めてください"},
-  "无需密钥。消耗 livliv.ai 积分，每句台词 {0} 积分，只能用于 LivLiv 的角色。": {"zh-Hans": "无需密钥。消耗 livliv.ai 积分，每句台词 {0} 积分，只能用于 LivLiv 的角色。", "zh-Hant": "無需金鑰。消耗 livliv.ai 積分，每句台詞 {0} 積分，只能用於 LivLiv 的角色。", "en": "No key needed. Uses your livliv.ai points, {0} points a line. LivLiv characters only.", "ja": "キー不要。livliv.ai のポイントを使います。1 行あたり {0} ポイント。LivLiv のキャラクターのみ。"},
   "登录 livliv.ai，用你自己的角色和声音": {"zh-Hans": "登录 livliv.ai，用你自己的角色和声音", "zh-Hant": "登入 livliv.ai，用你自己的角色和聲音", "en": "Sign in to livliv.ai to use your own avatars and voices", "ja": "livliv.ai にログインして、自分のキャラクターと声を使おう"},
   "注册免费，还送积分。": {"zh-Hans": "注册免费，还送积分。", "zh-Hant": "註冊免費，還送積分。", "en": "Signing up is free, and comes with points.", "ja": "登録は無料で、ポイントももらえます。"},
   "先逛逛": {"zh-Hans": "先逛逛", "zh-Hant": "先逛逛", "en": "Not now", "ja": "あとで"},
@@ -4740,8 +4600,8 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "角色 {0}": {"zh-Hans": "角色 {0}", "zh-Hant": "角色 {0}", "en": "Character {0}", "ja": "キャラクター {0}"},
   "在对话中使用长期记忆": {"zh-Hans": "在对话中使用长期记忆", "zh-Hant": "在對話中使用長期記憶", "en": "Use long-term memory in conversations", "ja": "会話で長期記憶を使う"},
   "这里只显示可在直播中使用的记忆。": {"zh-Hans": "这里只显示可在直播中使用的记忆。", "zh-Hant": "這裡只顯示可在直播中使用的記憶。", "en": "Only memories available for live sessions appear here.", "ja": "ここには配信で使える記憶だけを表示します。"},
-  "私聊记忆只用于私聊。设为公开后，角色才能在直播中使用。": {"zh-Hans": "私聊记忆只用于私聊。设为公开后，角色才能在直播中使用。", "zh-Hant": "私聊記憶只用於私聊。設為公開後，角色才能在直播中使用。", "en": "Private memories stay in private conversations. Make a memory public to use it in live sessions.", "ja": "非公開の記憶は個別の会話だけで使います。公開にすると配信でも使えます。"},
-  "长期记忆已关闭，已保存的条目仍可管理。": {"zh-Hans": "长期记忆已关闭，已保存的条目仍可管理。", "zh-Hant": "長期記憶已關閉，已儲存的項目仍可管理。", "en": "Long-term memory is off. You can still manage saved entries.", "ja": "長期記憶はオフです。保存済みの項目は引き続き管理できます。"},
+  "私聊记忆只用于私聊": {"zh-Hans": "私聊记忆只用于私聊", "zh-Hant": "私聊記憶只用於私聊", "en": "Private memories stay in private chats", "ja": "非公開の記憶は個別の会話だけで使います"},
+  "长期记忆已关闭": {"zh-Hans": "长期记忆已关闭", "zh-Hant": "長期記憶已關閉", "en": "Long-term memory is off", "ja": "長期記憶はオフです"},
   "正在读取记忆…": {"zh-Hans": "正在读取记忆…", "zh-Hant": "正在讀取記憶…", "en": "Loading memories…", "ja": "記憶を読み込み中…"},
   "还没有长期记忆": {"zh-Hans": "还没有长期记忆", "zh-Hant": "還沒有長期記憶", "en": "No long-term memories yet", "ja": "長期記憶はまだありません"},
   "公开": {"zh-Hans": "公开", "zh-Hant": "公開", "en": "Public", "ja": "公開"},
@@ -4766,7 +4626,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "聊天原文仍保留，可在对话记录中单独删除。": {"zh-Hans": "聊天原文仍保留，可在对话记录中单独删除。", "zh-Hant": "聊天原文仍保留，可在對話記錄中單獨刪除。", "en": "The original chat stays in the transcript. You can delete it there.", "ja": "元の会話は履歴に残ります。履歴から個別に削除できます。"},
   "用你的模型重来一遍": {"zh-Hans": "用你的模型重来一遍", "zh-Hant": "用你的模型重來一遍", "en": "Run it with your own model", "ja": "自分のモデルでもう一度"},
   "公开记忆": {"zh-Hans": "公开记忆", "zh-Hant": "公開記憶", "en": "Public memory", "ja": "公開の記憶"},
-  "点一下在私聊和公开记忆之间切换": {"zh-Hans": "点一下在私聊和公开记忆之间切换", "zh-Hant": "點一下在私聊和公開記憶之間切換", "en": "Click to switch between private chat and public memory", "ja": "クリックでプライベート会話と公開の記憶を切り替え"},
+  "切换私聊 / 公开记忆": {"zh-Hans": "切换私聊 / 公开记忆", "zh-Hant": "切換私聊 / 公開記憶", "en": "Switch between private chat and public memory", "ja": "プライベート会話 / 公開の記憶を切り替え"},
   "输出已打开，还没说出的私聊输入已丢弃": {"zh-Hans": "输出已打开，还没说出的私聊输入已丢弃", "zh-Hant": "輸出已開啟，還沒說出的私聊輸入已丟棄", "en": "An output came on, so private input not yet said was dropped", "ja": "出力が始まったため、まだ話していないプライベートの入力を破棄しました"},
   "输出已打开，私聊通话已结束": {"zh-Hans": "输出已打开，私聊通话已结束", "zh-Hant": "輸出已開啟，私聊通話已結束", "en": "An output came on, so the private call ended", "ja": "出力が始まったため、プライベート通話を終了しました"},
   "私聊": {"zh-Hans": "私聊", "zh-Hant": "私聊", "en": "Private chat", "ja": "プライベート会話"},
@@ -4803,7 +4663,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "主动续聊": {"zh-Hans": "主动续聊", "zh-Hant": "主動續聊", "en": "Proactive conversation", "ja": "自分から話しかける"},
   "等我说话": {"zh-Hans": "等我说话", "zh-Hant": "等我說話", "en": "Wait for me", "ja": "私が話すまで待つ"},
   "安静 {0} 秒后接话": {"zh-Hans": "安静 {0} 秒后接话", "zh-Hant": "安靜 {0} 秒後接話", "en": "Speak after {0} quiet seconds", "ja": "{0}秒間静かなら話す"},
-  "没有回应时最多主动接话一次，然后继续等待。": {"zh-Hans": "没有回应时最多主动接话一次，然后继续等待。", "zh-Hant": "沒有回應時最多主動接話一次，然後繼續等待。", "en": "One follow-up at most without a reply, then wait.", "ja": "返事がなければ一度だけ話しかけ、その後は待ちます。"},
   "对话未保存：{0}": {"zh-Hans": "对话未保存：{0}", "zh-Hant": "對話未儲存：{0}", "en": "Conversation not saved: {0}", "ja": "会話を保存できませんでした：{0}"},
   "记忆已更新，请重新发送这一句": {"zh-Hans": "记忆已更新，请重新发送这一句", "zh-Hant": "記憶已更新，請重新傳送這一句", "en": "Memory changed. Please send your message again.", "ja": "記憶が更新されました。もう一度送信してください。"},
   "请先停止当前会话": {"zh-Hans": "请先停止当前会话", "zh-Hant": "請先停止目前會話", "en": "Stop the current conversation first", "ja": "現在の会話を停止してください"},
@@ -4834,7 +4693,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "跟随角色的默认设置": {"zh-Hans":"跟随角色的默认设置","zh-Hant":"跟隨角色的預設設定","en":"Follow the character’s default","ja":"キャラクターの標準設定を使う"},
   "这个角色自己的声音": {"zh-Hans":"这个角色自己的声音","zh-Hant":"這個角色自己的聲音","en":"The voice made for this character","ja":"このキャラクター専用の声"},
   "已保存的音色": {"zh-Hans":"已保存的音色","zh-Hant":"已儲存的音色","en":"Saved voice","ja":"保存済みの声"},
-  "先选一个试听，满意后再应用。": {"zh-Hans":"先选一个试听，满意后再应用。","zh-Hant":"先選一個試聽，滿意後再套用。","en":"Try a voice, then apply your choice.","ja":"試聴してから、気に入った声を適用できます。"},
   "搜索音色": {"zh-Hans":"搜索音色","zh-Hant":"搜尋音色","en":"Search voices","ja":"声を検索"},
   "搜名字或声音特点，如温柔、低沉": {"zh-Hans":"搜名字或声音特点，如温柔、低沉","zh-Hant":"搜尋名字或聲音特點，如溫柔、低沉","en":"Search by name or description","ja":"名前や声の特徴で検索"},
   "音色分类": {"zh-Hans":"音色分类","zh-Hant":"音色分類","en":"Voice categories","ja":"声のカテゴリ"},
@@ -4853,7 +4711,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "查看全部音色": {"zh-Hans":"查看全部音色","zh-Hant":"查看全部音色","en":"Show all voices","ja":"すべての声を見る"},
   "使用中": {"zh-Hans":"使用中","zh-Hant":"使用中","en":"In use","ja":"使用中"},
   "停止试听 {0}": {"zh-Hans":"停止试听 {0}","zh-Hant":"停止試聽 {0}","en":"Stop previewing {0}","ja":"{0}の試聴を停止"},
-  "试听会生成一句角色语音，按 LivLiv 的用量规则计费。": {"zh-Hans":"试听会生成一句角色语音，按 LivLiv 的用量规则计费。","zh-Hant":"試聽會生成一句角色語音，按 LivLiv 的用量規則計費。","en":"Previews generate a short line and follow LivLiv’s usage pricing.","ja":"試聴用の短い音声を生成します。LivLivの利用料金が適用されます。"},
   "试听失败：{0}": {"zh-Hans":"试听失败：{0}","zh-Hant":"試聽失敗：{0}","en":"Preview failed: {0}","ja":"試聴できませんでした：{0}"},
   "请选择音色": {"zh-Hans":"请选择音色","zh-Hant":"請選擇音色","en":"Choose a voice","ja":"声を選んでください"},
   "应用音色": {"zh-Hans":"应用音色","zh-Hant":"套用音色","en":"Apply voice","ja":"この声を使う"},
@@ -4864,12 +4721,8 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "预览反应": {"zh-Hans":"预览反应","zh-Hant":"預覽反應","en":"Preview reaction","ja":"反応をプレビュー"},
   "正在预览反应": {"zh-Hans":"正在预览反应","zh-Hant":"正在預覽反應","en":"Previewing reaction","ja":"反応をプレビュー中"},
   "请先恢复手动表情，或稍后再试。": {"zh-Hans":"请先恢复手动表情，或稍后再试。","zh-Hant":"請先恢復手動表情，或稍後再試。","en":"Clear the manual expression, or try again shortly.","ja":"手動の表情を解除するか、少し待ってお試しください。"},
-  "当前由面捕或其他输入控制，自动反应暂不接管。": {"zh-Hans":"当前由面捕或其他输入控制，自动反应暂不接管。","zh-Hant":"目前由面捕或其他輸入控制，自動反應暫不接管。","en":"Face tracking or another input currently controls movement.","ja":"現在はフェイストラッキングなどの入力で動作を操作しています。"},
-  "随聊天做点头、歪头等小动作。": {"zh-Hans":"随聊天做点头、歪头等小动作。","zh-Hant":"隨聊天做點頭、歪頭等小動作。","en":"Add small movements such as nods and head tilts during chat.","ja":"会話に合わせて、うなずきや首をかしげる動きを加えます。"},
-  "随聊天使用角色已有表情，配合点头等小动作。": {"zh-Hans":"随聊天使用角色已有表情，配合点头等小动作。","zh-Hant":"隨聊天使用角色已有表情，配合點頭等小動作。","en":"Use the character’s expressions with small movements during chat.","ja":"会話に合わせて、モデルにある表情やうなずきなどを使います。"},
+  "面捕等输入控制中，不自动反应": {"zh-Hans":"面捕等输入控制中，不自动反应","zh-Hant":"面捕等輸入控制中，不自動反應","en":"Face tracking or another input is in control: no automatic reactions","ja":"フェイストラッキングなどで操作中：自動リアクションなし"},
   "聊天方式": {"zh-Hans":"聊天方式","zh-Hant":"聊天方式","en":"Chat style","ja":"会話のスタイル"},
-  "轻松接话，回复简短自然。": {"zh-Hans":"轻松接话，回复简短自然。","zh-Hant":"輕鬆接話，回覆簡短自然。","en":"Relaxed chat with short, natural replies.","ja":"気軽な会話で、短く自然に返答します。"},
-  "围绕观点和理由继续聊，回复可以更充分。": {"zh-Hans":"围绕观点和理由继续聊，回复可以更充分。","zh-Hant":"圍繞觀點和理由繼續聊，回覆可以更充分。","en":"Explore views and reasons with fuller replies.","ja":"意見や理由を掘り下げ、詳しく話します。"},
   "主动接话": {"zh-Hans":"主动接话","zh-Hant":"主動接話","en":"Start a follow-up","ja":"自分から話しかける"},
   "使用上限 · {0} 分钟 / {1} 次": {"zh-Hans":"使用上限 · {0} 分钟 / {1} 次","zh-Hant":"使用上限 · {0} 分鐘 / {1} 次","en":"Limits · {0} minutes / {1} generations","ja":"利用上限 · {0}分 / {1}回"},
   "记录与记忆": {"zh-Hans":"记录与记忆","zh-Hant":"記錄與記憶","en":"History and memory","ja":"履歴と記憶"},
@@ -4878,12 +4731,12 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "已保存 {0} 条记忆": {"zh-Hans":"已保存 {0} 条记忆","zh-Hant":"已儲存 {0} 條記憶","en":"{0} saved memories","ja":"保存済みの記憶：{0}件"},
   "添加记忆": {"zh-Hans":"添加记忆","zh-Hant":"新增記憶","en":"Add memory","ja":"記憶を追加"},
   "搜索记忆": {"zh-Hans":"搜索记忆","zh-Hant":"搜尋記憶","en":"Search memories","ja":"記憶を検索"},
-  "聊天时说“记住：……”就能保存，也可以点击添加记忆。": {"zh-Hans":"聊天时说“记住：……”就能保存，也可以点击添加记忆。","zh-Hant":"聊天時說「記住：……」就能儲存，也可以點擊新增記憶。","en":"Say “remember …” during chat, or select Add memory.","ja":"会話で「remember …」と伝えるか、「記憶を追加」を押してください。"},
+  "聊天时说“记住：……”就能保存": {"zh-Hans":"聊天时说“记住：……”就能保存","zh-Hant":"聊天時說「記住：……」就能儲存","en":"Say “remember …” in a chat to save one","ja":"会話で「remember …」と伝えると保存されます"},
   "没有找到匹配的记忆": {"zh-Hans":"没有找到匹配的记忆","zh-Hant":"沒有找到符合的記憶","en":"No matching memories","ja":"一致する記憶はありません"},
   "游戏互动": {"zh-Hans":"游戏互动","zh-Hant":"遊戲互動","en":"Game interaction","ja":"ゲーム連携"},
   "未开启": {"zh-Hans":"未开启","zh-Hant":"尚未開啟","en":"Off","ja":"オフ"},
   "已连接游戏": {"zh-Hans":"已连接游戏","zh-Hant":"已連接遊戲","en":"Game connected","ja":"ゲーム接続済み"},
-  "连接支持 Neuro SDK 的游戏，让角色参与互动。": {"zh-Hans":"连接支持 Neuro SDK 的游戏，让角色参与互动。","zh-Hant":"連接支援 Neuro SDK 的遊戲，讓角色參與互動。","en":"Connect a game that supports Neuro SDK to involve your character.","ja":"Neuro SDK対応のゲームに接続して、キャラクターを参加させます。"},
+  "连接支持 Neuro SDK 的游戏": {"zh-Hans":"连接支持 Neuro SDK 的游戏","zh-Hant":"連接支援 Neuro SDK 的遊戲","en":"Connect a game that supports Neuro SDK","ja":"Neuro SDK対応のゲームに接続"},
   "开始后使用公开会话，私聊记忆不会传入。": {"zh-Hans":"开始后使用公开会话，私聊记忆不会传入。","zh-Hant":"開始後使用公開對話，私聊記憶不會傳入。","en":"Uses a public conversation. Private memories stay excluded.","ja":"公開の会話を使用します。非公開の記憶は含まれません。"},
   "端口需为 0 到 65535 的整数。": {"zh-Hans":"端口需为 0 到 65535 的整数。","zh-Hant":"連接埠需為 0 到 65535 的整數。","en":"Use a whole-number port from 0 to 65535.","ja":"ポートは0から65535までの整数にしてください。"},
   "请稍候…": {"zh-Hans":"请稍候…","zh-Hant":"請稍候…","en":"Please wait…","ja":"お待ちください…"},
@@ -4893,16 +4746,13 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "回应直播间的观众弹幕": {"zh-Hans": "回应直播间的观众弹幕", "zh-Hant": "回應直播間的觀眾彈幕", "en": "Respond to live chat", "ja": "配信のコメントに応答"},
   "让多位角色轮流聊起来": {"zh-Hans": "让多位角色轮流聊起来", "zh-Hant": "讓多位角色輪流聊起來", "en": "Have characters take turns talking", "ja": "複数のキャラクターが交代で話す"},
   "Voicebox 只能在 LivLiv Stage 桌面版里用": {"zh-Hans": "Voicebox 只能在 LivLiv Stage 桌面版里用", "zh-Hant": "Voicebox 只能在 LivLiv Stage 桌面版裡使用", "en": "Voicebox works only in the LivLiv Stage desktop app", "ja": "Voicebox は LivLiv Stage デスクトップ版でのみ使えます"},
-  "Voicebox 在运行：{0} 个声音，免费，在本机": {"zh-Hans": "Voicebox 在运行：{0} 个声音，免费，在本机", "zh-Hant": "Voicebox 正在執行：{0} 個聲音，免費，在本機", "en": "Voicebox is running: {0} voices, free, on this computer", "ja": "Voicebox は起動中です：{0} 個の声、無料、このコンピューターで動作"},
-  "Voicebox 没有在运行：打开 Voicebox 后再试": {"zh-Hans": "Voicebox 没有在运行：打开 Voicebox 后再试", "zh-Hant": "Voicebox 沒有在執行：打開 Voicebox 後再試", "en": "Voicebox isn't running. Open Voicebox and try again", "ja": "Voicebox が起動していません。Voicebox を開いてからもう一度試してください"},
+  "Voicebox 没有在运行": {"zh-Hans": "Voicebox 没有在运行", "zh-Hant": "Voicebox 沒有在執行", "en": "Voicebox isn't running", "ja": "Voicebox が起動していません"},
   "Voicebox 没有说出这句：{0}": {"zh-Hans": "Voicebox 没有说出这句：{0}", "zh-Hant": "Voicebox 沒有說出這句：{0}", "en": "Voicebox couldn't say this line: {0}", "ja": "Voicebox はこのセリフを読み上げられませんでした：{0}"},
   "Voicebox 的声音": {"zh-Hans": "Voicebox 的声音", "zh-Hant": "Voicebox 的聲音", "en": "Voicebox voice", "ja": "Voicebox の声"},
-  "Voicebox 还在下载模型，下载好后再试": {"zh-Hans": "Voicebox 还在下载模型，下载好后再试", "zh-Hant": "Voicebox 還在下載模型，下載好後再試", "en": "Voicebox is still downloading a model. Try again once it's done", "ja": "Voicebox はまだモデルをダウンロード中です。完了してからもう一度試してください"},
-  "Voicebox 里还没有声音：在 Voicebox 里添加一个预设声音或克隆一个": {"zh-Hans": "Voicebox 里还没有声音：在 Voicebox 里添加一个预设声音或克隆一个", "zh-Hant": "Voicebox 裡還沒有聲音：在 Voicebox 裡新增一個預設聲音或複製一個", "en": "Voicebox has no voice yet. Add a preset voice or clone one in Voicebox", "ja": "Voicebox にまだ声がありません。Voicebox でプリセットの声を追加するか、声をクローンしてください"},
+  "Voicebox 还在下载模型": {"zh-Hans": "Voicebox 还在下载模型", "zh-Hant": "Voicebox 還在下載模型", "en": "Voicebox is still downloading a model", "ja": "Voicebox はまだモデルをダウンロード中です"},
+  "Voicebox 里还没有声音": {"zh-Hans": "Voicebox 里还没有声音", "zh-Hant": "Voicebox 裡還沒有聲音", "en": "Voicebox has no voice yet", "ja": "Voicebox にまだ声がありません"},
   "下载 Voicebox": {"zh-Hans": "下载 Voicebox", "zh-Hant": "下載 Voicebox", "en": "Get Voicebox", "ja": "Voicebox を入手"},
-  "也用它听你说话（Whisper，本机，免费）": {"zh-Hans": "也用它听你说话（Whisper，本机，免费）", "zh-Hant": "也用它聽你說話（Whisper，本機，免費）", "en": "Also use it to hear you (Whisper, on this computer, free)", "ja": "あなたの声の認識にも使う（Whisper、このコンピューター、無料）"},
   "克隆": {"zh-Hans": "克隆", "zh-Hant": "複製", "en": "Cloned", "ja": "クローン"},
-  "声音在 Voicebox 里添加：预设，或用你的录音克隆。": {"zh-Hans": "声音在 Voicebox 里添加：预设，或用你的录音克隆。", "zh-Hant": "聲音在 Voicebox 裡新增：預設，或用你的錄音複製。", "en": "Add voices in Voicebox: a preset, or one cloned from your recording.", "ja": "声は Voicebox で追加します：プリセット、または録音からクローン。"},
   "按角色分配": {"zh-Hans": "按角色分配", "zh-Hant": "依角色分配", "en": "One per character", "ja": "キャラクターごとに割り当て"},
   "未知原因": {"zh-Hans": "未知原因", "zh-Hant": "未知原因", "en": "unknown reason", "ja": "原因不明"},
   "正在查找本机的 Voicebox…": {"zh-Hans": "正在查找本机的 Voicebox…", "zh-Hant": "正在尋找本機的 Voicebox…", "en": "Looking for Voicebox on this computer…", "ja": "このコンピューターの Voicebox を探しています…"},
@@ -4915,12 +4765,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "音量": {"zh-Hans": "音量", "zh-Hant": "音量", "en": "Volumes", "ja": "音量"},
   "面板布局": {"zh-Hans": "面板布局", "zh-Hant": "面板佈局", "en": "Panel layout", "ja": "パネルのレイアウト"},
   "导入角色卡": {"zh-Hans": "导入角色卡", "zh-Hant": "匯入角色卡", "en": "Import character card", "ja": "キャラクターカードを読み込む"},
-  "SillyTavern 或 AIRI 导出的角色卡（.png / .json），只导入人设": {"zh-Hans": "SillyTavern 或 AIRI 导出的角色卡（.png / .json），只导入人设", "zh-Hant": "SillyTavern 或 AIRI 匯出的角色卡（.png / .json），只匯入人設", "en": "A card exported from SillyTavern or AIRI (.png / .json). Only the persona is imported.", "ja": "SillyTavern や AIRI から書き出したキャラクターカード（.png / .json）。人物設定だけを読み込みます。"},
+  "SillyTavern、AIRI 角色卡，只导入人设": {"zh-Hans": "SillyTavern、AIRI 角色卡，只导入人设", "zh-Hant": "SillyTavern、AIRI 角色卡，只匯入人設", "en": "SillyTavern or AIRI cards: only the persona is imported", "ja": "SillyTavern・AIRI のキャラクターカード。人物設定だけを読み込みます"},
   "已导入「{0}」：{1}": {"zh-Hans": "已导入「{0}」：{1}", "zh-Hant": "已匯入「{0}」：{1}", "en": "Imported {0}: {1}", "ja": "「{0}」を読み込みました：{1}"},
   "开场白": {"zh-Hans": "开场白", "zh-Hant": "開場白", "en": "Greeting", "ja": "最初のひとこと"},
   "示例对话 {0} 句": {"zh-Hans": "示例对话 {0} 句", "zh-Hant": "範例對話 {0} 句", "en": "{0} example lines", "ja": "会話例 {0} 件"},
   "没有导入：{0}": {"zh-Hans": "没有导入：{0}", "zh-Hant": "沒有匯入：{0}", "en": "Not imported: {0}", "ja": "読み込まなかったもの：{0}"},
-  "这个角色的身体和声音保持不变。": {"zh-Hans": "这个角色的身体和声音保持不变。", "zh-Hant": "這個角色的身體和聲音保持不變。", "en": "This character keeps its body and voice.", "ja": "このキャラクターの体と声はそのままです。"},
   "有些内容太长，已截短。": {"zh-Hans": "有些内容太长，已截短。", "zh-Hant": "有些內容太長，已截短。", "en": " Some parts were too long and were shortened.", "ja": "長すぎる部分は短くしました。"},
   "撤销导入": {"zh-Hans": "撤销导入", "zh-Hant": "撤銷匯入", "en": "Undo import", "ja": "読み込みを取り消す"},
   "没人说话时，它开口的第一句": {"zh-Hans": "没人说话时，它开口的第一句", "zh-Hant": "沒人說話時，它開口的第一句", "en": "The first thing it says when no one has spoken yet", "ja": "まだ誰も話していないときの最初のひとこと"},
@@ -4938,23 +4787,46 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "图片素材": {"zh-Hans": "图片素材", "zh-Hant": "圖片素材", "en": "Pictures", "ja": "画像素材"},
   "模型未下载": {"zh-Hans": "模型未下载", "zh-Hant": "模型未下載", "en": "model not downloaded", "ja": "モデル未ダウンロード"},
   "这台电脑上保存的密钥读不出来了，请重新填写": {"zh-Hans": "这台电脑上保存的密钥读不出来了，请重新填写", "zh-Hant": "這台電腦上保存的密鑰讀不出來了，請重新填寫", "en": "The key saved on this computer can no longer be read. Please enter it again.", "ja": "このコンピューターに保存したキーが読み取れなくなりました。もう一度入力してください。"},
-  "它的声音接口停了：这句只出字幕，不会改用积分的声音": {"zh-Hans": "它的声音接口停了：这句只出字幕，不会改用积分的声音", "zh-Hant": "它的聲音介面停了：這句只出字幕，不會改用積分的聲音", "en": "Its voice service stopped: this line is shown as subtitles only, never voiced with points.", "ja": "音声サービスが止まりました。このセリフは字幕だけで表示し、ポイントの音声には切り替えません。"},
   "这台电脑上保存的登录读不出来了，请重新登录": {"zh-Hans": "这台电脑上保存的登录读不出来了，请重新登录", "zh-Hant": "這台電腦上保存的登入讀不出來了，請重新登入", "en": "The sign-in saved on this computer can no longer be read. Please sign in again.", "ja": "このコンピューターに保存したログインが読み取れなくなりました。もう一度ログインしてください。"},
-  "自己的语音识别不可用了：已停止听你说话，不会改用积分识别": {"zh-Hans": "自己的语音识别不可用了：已停止听你说话，不会改用积分识别", "zh-Hant": "自己的語音辨識不可用了：已停止聽你說話，不會改用積分辨識", "en": "Your own speech recognition is no longer available: listening stopped, and it won't switch to recognition with points.", "ja": "自分の音声認識が使えなくなりました。聞き取りを止めました。ポイントの認識には切り替えません。"},
-  "Voicebox 里还没下载这个声音的模型：在 Voicebox 里用这个声音生成一句（它会先下载模型），或在它的模型设置里下载，再回来试": {"zh-Hans": "Voicebox 里还没下载这个声音的模型：在 Voicebox 里用这个声音生成一句（它会先下载模型），或在它的模型设置里下载，再回来试", "zh-Hant": "Voicebox 裡還沒下載這個聲音的模型：在 Voicebox 裡用這個聲音生成一句（它會先下載模型），或在它的模型設定裡下載，再回來試", "en": "Voicebox hasn't downloaded this voice's model yet: generate a line with this voice in Voicebox (it downloads the model first), or download it in its model settings, then try again.", "ja": "Voicebox にこの声のモデルがまだありません。Voicebox でこの声で一度生成するか（先にモデルをダウンロードします）、モデル設定でダウンロードしてから、もう一度試してください。"},
-  "这一句的工具调用出错（模型服务返回 {0}），这一轮先停下；再说一次就好": {"zh-Hans": "这一句的工具调用出错（模型服务返回 {0}），这一轮先停下；再说一次就好", "zh-Hant": "這一句的工具呼叫出錯（模型服務返回 {0}），這一輪先停下；再說一次就好", "en": "A tool call in this line failed (the model service returned {0}). This turn stopped; just say it again.", "ja": "このセリフのツール呼び出しに失敗しました（モデルサービスが {0} を返しました）。このターンは止めました。もう一度話してください。"},
-  "模型服务不接受这个密钥（{0}）：在「设置 → 连接」检查密钥": {"zh-Hans": "模型服务不接受这个密钥（{0}）：在「设置 → 连接」检查密钥", "zh-Hant": "模型服務不接受這個密鑰（{0}）：在「設定 → 連接」檢查密鑰", "en": "The model service doesn't accept this key ({0}): check it in Settings → Connections", "ja": "モデルサービスがこのキーを受け付けません（{0}）。「設定 → 接続」でキーを確認してください"},
-  "模型服务找不到这个模型或地址（404）：在「设置 → 连接」检查模型名": {"zh-Hans": "模型服务找不到这个模型或地址（404）：在「设置 → 连接」检查模型名", "zh-Hant": "模型服務找不到這個模型或位址（404）：在「設定 → 連接」檢查模型名", "en": "The model service can't find this model or address (404): check the model name in Settings → Connections", "ja": "モデルサービスがこのモデルかアドレスを見つけられません（404）。「設定 → 接続」でモデル名を確認してください"},
+  "语音识别停了，已停止听你说话": {"zh-Hans": "语音识别停了，已停止听你说话", "zh-Hant": "語音辨識停了，已停止聽你說話", "en": "Speech recognition stopped: no longer listening", "ja": "音声認識が止まったため、聞き取りを止めました"},
+  "Voicebox 还没下载这个声音的模型": {"zh-Hans": "Voicebox 还没下载这个声音的模型", "zh-Hant": "Voicebox 還沒下載這個聲音的模型", "en": "Voicebox hasn't downloaded this voice's model yet", "ja": "Voicebox にこの声のモデルがまだありません"},
+  "工具调用出错（{0}），请再说一次": {"zh-Hans": "工具调用出错（{0}），请再说一次", "zh-Hant": "工具呼叫出錯（{0}），請再說一次", "en": "A tool call failed ({0}). Please say it again.", "ja": "ツール呼び出しに失敗しました（{0}）。もう一度話してください"},
+  "密钥无效（{0}）": {"zh-Hans": "密钥无效（{0}）", "zh-Hant": "金鑰無效（{0}）", "en": "Invalid key ({0})", "ja": "キーが無効です（{0}）"},
+  "找不到这个模型（404）": {"zh-Hans": "找不到这个模型（404）", "zh-Hant": "找不到這個模型（404）", "en": "Model not found (404)", "ja": "モデルが見つかりません（404）"},
   "模型服务太忙或额度用完了（429），稍后再试": {"zh-Hans": "模型服务太忙或额度用完了（429），稍后再试", "zh-Hant": "模型服務太忙或額度用完了（429），稍後再試", "en": "The model service is busy or out of quota (429). Try again later.", "ja": "モデルサービスが混雑しているか上限に達しました（429）。しばらくしてから試してください"},
   "模型服务暂时出错（{0}），稍后再试": {"zh-Hans": "模型服务暂时出错（{0}），稍后再试", "zh-Hant": "模型服務暫時出錯（{0}），稍後再試", "en": "The model service had a temporary error ({0}). Try again later.", "ja": "モデルサービスで一時的なエラーが起きました（{0}）。しばらくしてから試してください"},
   "模型服务拒绝了这次请求（{0}）：{1}": {"zh-Hans": "模型服务拒绝了这次请求（{0}）：{1}", "zh-Hant": "模型服務拒絕了這次請求（{0}）：{1}", "en": "The model service refused this request ({0}): {1}", "ja": "モデルサービスがこのリクエストを拒否しました（{0}）：{1}"},
-  "百炼用标准密钥即可（桌面版经 WebSocket 连接）；填了工作空间地址（….maas.aliyuncs.com）则改走 WebRTC。": {"zh-Hans": "百炼用标准密钥即可（桌面版经 WebSocket 连接）；填了工作空间地址（….maas.aliyuncs.com）则改走 WebRTC。", "zh-Hant": "百煉用標準密鑰即可（桌面版經 WebSocket 連接）；填了工作空間位址（….maas.aliyuncs.com）則改走 WebRTC。", "en": "A standard Bailian key is enough (the desktop app connects over a WebSocket); with a workspace address (….maas.aliyuncs.com) the call uses WebRTC instead.", "ja": "百炼は標準のキーで使えます（デスクトップ版は WebSocket で接続）。ワークスペースのアドレス（….maas.aliyuncs.com）を入れると WebRTC を使います。"},
-  "网页版的百炼实时通话要用百炼工作空间的专属地址（….maas.aliyuncs.com）；桌面版用标准密钥即可。": {"zh-Hans": "网页版的百炼实时通话要用百炼工作空间的专属地址（….maas.aliyuncs.com）；桌面版用标准密钥即可。", "zh-Hant": "網頁版的百煉即時通話要用百煉工作空間的專屬位址（….maas.aliyuncs.com）；桌面版用標準密鑰即可。", "en": "On the web, a Bailian realtime call needs your Bailian workspace's own address (….maas.aliyuncs.com); the desktop app works with a standard key.", "ja": "Web 版の百炼リアルタイム通話には、ワークスペース専用のアドレス（….maas.aliyuncs.com）が必要です。デスクトップ版は標準のキーで使えます。"},
-  "网页版的百炼实时通话要用百炼工作空间的专属地址（….maas.aliyuncs.com）；桌面版用标准密钥即可": {"zh-Hans": "网页版的百炼实时通话要用百炼工作空间的专属地址（….maas.aliyuncs.com）；桌面版用标准密钥即可", "zh-Hant": "網頁版的百煉即時通話要用百煉工作空間的專屬位址（….maas.aliyuncs.com）；桌面版用標準密鑰即可", "en": "On the web, a Bailian realtime call needs your Bailian workspace's own address (….maas.aliyuncs.com); the desktop app works with a standard key", "ja": "Web 版の百炼リアルタイム通話には、ワークスペース専用のアドレス（….maas.aliyuncs.com）が必要です。デスクトップ版は標準のキーで使えます"},
-  "实时通话的密钥不被接受（{0}）：在「设置 → 连接」检查密钥": {"zh-Hans": "实时通话的密钥不被接受（{0}）：在「设置 → 连接」检查密钥", "zh-Hant": "即時通話的密鑰不被接受（{0}）：在「設定 → 連接」檢查密鑰", "en": "The realtime call's key was not accepted ({0}): check it in Settings → Connections", "ja": "リアルタイム通話のキーが受け付けられません（{0}）。「設定 → 接続」でキーを確認してください"},
-  "百炼找不到这个实时模型或地址：检查「设置 → 连接 → 实时通话」的模型名，和工作空间地址（如果填了）": {"zh-Hans": "百炼找不到这个实时模型或地址：检查「设置 → 连接 → 实时通话」的模型名，和工作空间地址（如果填了）", "zh-Hant": "百煉找不到這個即時模型或位址：檢查「設定 → 連接 → 即時通話」的模型名，和工作空間位址（如果填了）", "en": "Bailian can't find this realtime model or address: check the model name in Settings → Connections → Realtime call, and the workspace address if you entered one", "ja": "百炼がこのリアルタイムモデルかアドレスを見つけられません。「設定 → 接続 → リアルタイム通話」のモデル名と、入力していればワークスペースのアドレスを確認してください"},
-  "找不到这个实时模型（404）：检查「设置 → 连接 → 实时通话」的模型名": {"zh-Hans": "找不到这个实时模型（404）：检查「设置 → 连接 → 实时通话」的模型名", "zh-Hant": "找不到這個即時模型（404）：檢查「設定 → 連接 → 即時通話」的模型名", "en": "This realtime model wasn't found (404): check the model name in Settings → Connections → Realtime call", "ja": "このリアルタイムモデルが見つかりません（404）。「設定 → 接続 → リアルタイム通話」のモデル名を確認してください"},
+  "网页版需填百炼工作空间地址（….maas.aliyuncs.com）": {"zh-Hans": "网页版需填百炼工作空间地址（….maas.aliyuncs.com）", "zh-Hant": "網頁版需填百煉工作空間位址（….maas.aliyuncs.com）", "en": "On the web, enter your Bailian workspace address (….maas.aliyuncs.com)", "ja": "Web 版では百炼のワークスペースのアドレス（….maas.aliyuncs.com）が必要です"},
+  "实时通话密钥无效（{0}）": {"zh-Hans": "实时通话密钥无效（{0}）", "zh-Hant": "即時通話金鑰無效（{0}）", "en": "Invalid realtime call key ({0})", "ja": "リアルタイム通話のキーが無効です（{0}）"},
+  "百炼找不到这个实时模型或地址": {"zh-Hans": "百炼找不到这个实时模型或地址", "zh-Hant": "百煉找不到這個即時模型或位址", "en": "Bailian can't find this realtime model or address", "ja": "百炼がこのリアルタイムモデルかアドレスを見つけられません"},
+  "找不到这个实时模型（404）": {"zh-Hans": "找不到这个实时模型（404）", "zh-Hant": "找不到這個即時模型（404）", "en": "Realtime model not found (404)", "ja": "リアルタイムモデルが見つかりません（404）"},
   "实时通话太忙或额度用完了（429），稍后再试": {"zh-Hans": "实时通话太忙或额度用完了（429），稍后再试", "zh-Hant": "即時通話太忙或額度用完了（429），稍後再試", "en": "The realtime service is busy or out of quota (429). Try again later.", "ja": "リアルタイム通話が混雑しているか上限に達しました（429）。しばらくしてから試してください"},
   "实时通话连接失败，请检查网络后重新开始": {"zh-Hans": "实时通话连接失败，请检查网络后重新开始", "zh-Hant": "即時通話連接失敗，請檢查網路後重新開始", "en": "The realtime call couldn't connect. Check the network and start again.", "ja": "リアルタイム通話に接続できませんでした。ネットワークを確認してからもう一度始めてください"},
   "实时通话连接超时，请检查网络": {"zh-Hans": "实时通话连接超时，请检查网络", "zh-Hant": "即時通話連接逾時，請檢查網路", "en": "The realtime call timed out connecting. Check the network.", "ja": "リアルタイム通話の接続がタイムアウトしました。ネットワークを確認してください"},
+  "自己的服务": {"zh-Hans": "自己的服务", "zh-Hant": "自己的服務", "en": "Your own", "ja": "自分のサービス"},
+  "livliv.ai 音色": {"zh-Hans": "livliv.ai 音色", "zh-Hant": "livliv.ai 音色", "en": "livliv.ai voices", "ja": "livliv.ai の声"},
+  "试听按积分": {"zh-Hans": "试听按积分", "zh-Hant": "試聽按積分", "en": "Previews use credits", "ja": "試聴はポイントを使います"},
+  "这次会话开始时它没用 livliv.ai 的声音：这句只出字幕": {"zh-Hans": "这次会话开始时它没用 livliv.ai 的声音：这句只出字幕", "zh-Hant": "這次會話開始時它沒用 livliv.ai 的聲音：這句只出字幕", "en": "It wasn't on a livliv.ai voice when this session started: subtitles only", "ja": "このセッションの開始時は livliv.ai の声ではありませんでした：字幕のみ"},
+  "积分用完了，或者这个月的额度到了上限": {"zh-Hans": "积分用完了，或者这个月的额度到了上限", "zh-Hant": "積分用完了，或者這個月的額度到了上限", "en": "Out of credits, or this month's limit is reached", "ja": "ポイントが足りないか、今月の上限に達しました"},
+  "Ollama 等本机服务请用桌面版": {"zh-Hans": "Ollama 等本机服务请用桌面版", "zh-Hant": "Ollama 等本機服務請用桌面版", "en": "For Ollama and other local services, use the desktop app", "ja": "Ollama などローカルのサービスはデスクトップ版で"},
+  "用文字模型的密钥": {"zh-Hans": "用文字模型的密钥", "zh-Hant": "用文字模型的金鑰", "en": "Uses the text model's key", "ja": "テキストモデルのキーを使う"},
+  "只出字幕": {"zh-Hans": "只出字幕", "zh-Hant": "只出字幕", "en": "Subtitles only", "ja": "字幕のみ"},
+  "Voicebox 在运行：{0} 个声音": {"zh-Hans": "Voicebox 在运行：{0} 个声音", "zh-Hant": "Voicebox 執行中：{0} 個聲音", "en": "Voicebox is running: {0} voices", "ja": "Voicebox 実行中：声 {0} 個"},
+  "也用它听你说话": {"zh-Hans": "也用它听你说话", "zh-Hant": "也用它聽你說話", "en": "Also use it to hear you", "ja": "聞き取りにも使う"},
+  "需要 OpenAI 或阿里云百炼密钥": {"zh-Hans": "需要 OpenAI 或阿里云百炼密钥", "zh-Hant": "需要 OpenAI 或阿里雲百煉金鑰", "en": "Needs an OpenAI or Alibaba Cloud Bailian key", "ja": "OpenAI または Alibaba Cloud 百煉のキーが必要"},
+  "由 livliv.ai 提供": {"zh-Hans": "由 livliv.ai 提供", "zh-Hant": "由 livliv.ai 提供", "en": "From livliv.ai", "ja": "livliv.ai が提供"},
+  "用 livliv.ai": {"zh-Hans": "用 livliv.ai", "zh-Hant": "用 livliv.ai", "en": "Use livliv.ai", "ja": "livliv.ai を使う"},
+  "按积分": {"zh-Hans": "按积分", "zh-Hant": "按積分", "en": "Uses credits", "ja": "ポイント制"},
+  "{0} 积分": {"zh-Hans": "{0} 积分", "zh-Hant": "{0} 積分", "en": "{0} credits", "ja": "{0} ポイント"},
+  "可以在角色卡里单独设置": {"zh-Hans": "可以在角色卡里单独设置", "zh-Hant": "可以在角色卡裡單獨設定", "en": "Can be set per character", "ja": "キャラクターごとに設定できます"},
+  "音色在角色卡里选": {"zh-Hans": "音色在角色卡里选", "zh-Hant": "音色在角色卡裡選", "en": "Pick voices on each character", "ja": "声はキャラクターごとに選びます"},
+  "这次对话太长了": {"zh-Hans": "这次对话太长了", "zh-Hant": "這次對話太長了", "en": "This conversation is too long", "ja": "会話が長すぎます"},
+  "所有角色共用": {"zh-Hans": "所有角色共用", "zh-Hant": "所有角色共用", "en": "Shared by all characters", "ja": "全キャラクター共通"},
+  "在 Voicebox 里添加声音": {"zh-Hans": "在 Voicebox 里添加声音", "zh-Hant": "在 Voicebox 裡新增聲音", "en": "Add voices in Voicebox", "ja": "声は Voicebox で追加"},
+  "它的声音接口停了，这句只出字幕": {"zh-Hans": "它的声音接口停了，这句只出字幕", "zh-Hant": "它的聲音介面停了，這句只出字幕", "en": "Its voice service stopped: subtitles only", "ja": "音声サービスが止まりました：字幕のみ"},
+  "livliv.ai 的文字已关闭，本次会话已停止": {"zh-Hans": "livliv.ai 的文字已关闭，本次会话已停止", "zh-Hant": "livliv.ai 的文字已關閉，本次會話已停止", "en": "livliv.ai text is off: this session stopped", "ja": "livliv.ai のテキストがオフになったため、このセッションを止めました"},
+  "{0} 积分/句": {"zh-Hans": "{0} 积分/句", "zh-Hant": "{0} 積分/句", "en": "{0} credits/line", "ja": "{0} ポイント/行"},
+  "免费，在本机": {"zh-Hans": "免费，在本机", "zh-Hant": "免費，在本機", "en": "Free, on this computer", "ja": "無料、このコンピューターで"},
+  "Whisper，免费，在本机": {"zh-Hans": "Whisper，免费，在本机", "zh-Hant": "Whisper，免費，在本機", "en": "Whisper, free, on this computer", "ja": "Whisper、無料、このコンピューターで"},
+  "你好，很高兴见到你。": {"zh-Hans": "你好，很高兴见到你。", "zh-Hant": "你好，很高興見到你。", "en": "Hi, nice to meet you.", "ja": "こんにちは、会えてうれしいです。"},
 }

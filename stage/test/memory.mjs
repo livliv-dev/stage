@@ -70,7 +70,7 @@ try {
   assert.equal(await first.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
   await first.screenshot({ path: join(artifacts, 'memory-mobile.png'), fullPage: true })
   await first.getByLabel('在对话中使用长期记忆', { exact: true }).uncheck()
-  await first.getByText('长期记忆已关闭，已保存的条目仍可管理。', { exact: true }).waitFor()
+  await first.getByText('长期记忆已关闭', { exact: true }).waitFor()
   assert.deepEqual(await second.evaluate(async () => (await (await import('/src/memory.ts')).memory.context(['nana'], 'private')).memories), [])
   assert.deepEqual(errors, [])
   console.log(JSON.stringify({ indexedDB: 'reload, cross-window revision ordering, public isolation and source exclusion passed', panel: 'remember, edit, publish, source preview and disable passed', artifacts }, null, 2))

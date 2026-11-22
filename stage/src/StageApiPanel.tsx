@@ -14,7 +14,7 @@ export function StageApiPanel() {
     return () => { active = false }
   }, [api])
   // the web: where it is in the desktop app
-  if (!api) return <section className="stage-api"><h3>{tr('外部控制 API')} <span className="desk-tag">{tr('桌面版')}</span></h3><p className="hint">{tr('桌面版可以让 Stream Deck 等本机工具控制角色。')}</p></section>
+  if (!api) return <section className="stage-api"><h3>{tr('外部控制 API')} <span className="desk-tag">{tr('桌面版')}</span></h3><p className="hint">{tr('Stream Deck 等本机工具可以控制角色')}</p></section>
   const change = async (operation: () => Promise<StageApiState>) => {
     setBusy(true); setError('')
     try { setState(await operation()) } catch (e) { setError((e as Error).message) } finally { setBusy(false) }

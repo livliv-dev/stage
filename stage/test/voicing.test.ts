@@ -1,20 +1,10 @@
-// A LivLiv voice is paid per /say call: a line in it is voiced whole, one call, however its reply comes (pinned here
-// for the decision; test:say-once pins the calls a session makes).
+// A livliv.ai voice is paid by the line (its sentences share one line id), so a chat says any reply sentence by
+// sentence, the first heard sooner (test:say-once pins the calls a session makes).
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { bySentence, streamable } from '../src/sessions/voicing'
+import { bySentence } from '../src/sessions/voicing'
 
-test('a line in the LivLiv voice is never split; other chats with a model of one\'s own are said sentence by sentence', () => {
-  assert.equal(bySentence('chat', 'openai', 'livliv'), false)
-  assert.equal(bySentence('chat', 'livliv', 'livliv'), false)
-  assert.equal(bySentence('chat', 'livliv', 'api'), false, "LivLiv's model brings its line whole")
-  assert.equal(bySentence('chat', 'openai', 'api'), true)
-  assert.equal(bySentence('chat', 'openai', 'system'), true)
-  assert.equal(bySentence('chat', 'openai', 'none'), true)
-  for (const mode of ['conversation', 'live', 'realtime'] as const) assert.equal(bySentence(mode, 'openai', 'api'), false, mode)
-})
-
-test('a streamed reply (AIRI) is never voiced in the LivLiv voice', () => {
-  assert.equal(streamable('livliv'), false)
-  for (const voice of ['api', 'system', 'none'] as const) assert.equal(streamable(voice), true)
+test('a chat says a whole reply sentence by sentence; the rest say it whole', () => {
+  assert.equal(bySentence('chat'), true)
+  for (const mode of ['conversation', 'live', 'realtime'] as const) assert.equal(bySentence(mode), false, mode)
 })

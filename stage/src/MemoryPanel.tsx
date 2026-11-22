@@ -74,8 +74,8 @@ export function MemoryPanel({ profileIds, profileNames, scope, source, onClose, 
   return <section className="memory-panel" aria-label={tr('记忆')} onPointerDown={(event) => event.stopPropagation()}>
     {!embedded && <header><span className="title">{tr('记忆')}</span>{onClose && <button className="icon" aria-label={tr('关闭')} onClick={onClose}>×</button>}</header>}
     <label className="memory-toggle"><input type="checkbox" checked={enabled} disabled={busy || loading} onChange={(event) => toggleMemory(event.target.checked)} />{tr('在对话中使用长期记忆')}</label>
-    <p className="hint">{tr(scope === 'public' ? '这里只显示可在直播中使用的记忆。' : '私聊记忆只用于私聊。设为公开后，角色才能在直播中使用。')}</p>
-    {!enabled && <p className="hint">{tr('长期记忆已关闭，已保存的条目仍可管理。')}</p>}
+    <p className="hint">{tr(scope === 'public' ? '这里只显示可在直播中使用的记忆。' : '私聊记忆只用于私聊')}</p>
+    {!enabled && <p className="hint">{tr('长期记忆已关闭')}</p>}
     <div className="memory-toolbar"><span>{loading ? tr('正在读取记忆…') : tr('已保存 {0} 条记忆', entries.length)}</span><button disabled={busy || !profileIds.length} onClick={() => { setAdding(true); setRememberSource(undefined); setText(''); setEntryScope(scope); setNotice('') }}>{tr('添加记忆')}</button></div>
     {adding && <div className="memory-add">
       {profileIds.length > 1 && <label className="field"><span>{tr('让角色记住')}</span><select aria-label={tr('记忆所属角色')} value={profileId} disabled={busy} onChange={(event) => setProfile(event.target.value)}>{profileIds.map((id) => <option value={id} key={id}>{name(id)}</option>)}</select></label>}
@@ -87,7 +87,7 @@ export function MemoryPanel({ profileIds, profileNames, scope, source, onClose, 
     {(entries.length > 5 || query) && <input className="memory-search" type="search" aria-label={tr('搜索记忆')} placeholder={tr('搜索记忆')} value={query} onChange={(event) => setQuery(event.target.value)} />}
     {loading && <p className="hint" role="status">{tr('正在读取记忆…')}</p>}
     <div className="memory-list">
-      {!loading && !entries.length && <div className="memory-empty"><b>{tr('还没有长期记忆')}</b><p>{tr('聊天时说“记住：……”就能保存，也可以点击添加记忆。')}</p></div>}
+      {!loading && !entries.length && <div className="memory-empty"><b>{tr('还没有长期记忆')}</b><p>{tr('聊天时说“记住：……”就能保存')}</p></div>}
       {!loading && !!entries.length && !shown.length && <p className="muted">{tr('没有找到匹配的记忆')}</p>}
       {shown.map((entry) => <article className="memory-entry" key={entry.id}>
         <div className="memory-entry-meta"><b>{name(entry.profileId)}</b><span>{tr(entry.scope === 'public' ? '公开' : '仅私聊')}</span></div>

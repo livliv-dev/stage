@@ -41,7 +41,7 @@ try {
     const pick = await fromPngs({ closed: new File([image], 'closed.png'), open: new File([image], 'open.png') }, 'Nana')
     window.__stage.talk.detach(); store.replace(emptyScene())
     const character = newCharacter(store.get(), 'Nana', pick.model, '喜欢具体的讨论。'); character.muted = true; store.add(character); store.add(captionBar(store.get())); store.select(null)
-    saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' })
+    saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model', airi: false })  // the standard engine's chat
     const profileId = character.profileId ?? character.id
     await memory.remember({ profileId, scope: 'private', text: '私人暗号是 ' + SECRET })
     await memory.remember({ profileId, scope: 'public', text: '公开爱好是 ' + PUBLIC })
