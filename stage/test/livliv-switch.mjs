@@ -193,7 +193,7 @@ try {
   const system = text[0].body.messages[0].content
   assert.ok(system.includes('Rio') && system.includes('海边长大的少年') && system.includes('走起'), 'written from its card here: ' + system.slice(0, 120))
   assert.ok(voiced.length >= 2 && voiced.every((c) => c.path === '/api/chat/say' && c.body.voice === 'longanyang_v3.1' && c.body.lines[0].text === LINE), 'voiced in the young men\'s system voice: ' + JSON.stringify(voiced.map((c) => [c.path, c.body.voice])))
-  assert.ok(voiced.every((c) => typeof c.body.line === 'string' && c.body.line), 'each with its line id (a livliv.ai voice is paid by the line)')
+  assert.ok(voiced.every((c) => typeof c.body.line === 'string' && c.body.line && c.body.stage === true), 'each with its line id, as Stage\'s (a livliv.ai voice is paid by the line)')
   assert.equal(calls.filter((c) => c.kind.startsWith('own')).length, 0, 'saved own keys unused')
   // livliv.ai refusing a call as too long: asked once more with the older half of the history left out, nothing shown
   calls.length = 0; refuseAt = 2
@@ -212,7 +212,8 @@ try {
   await page.evaluate((id) => window.__stage.store.patch(id, { lines: 'none' }), id)
   calls.length = 0
   await chat(page)
-  assert.ok(calls.filter((c) => c.kind === 'livliv-voice').every((c) => c.path === '/api/chat/k01/say'), 'a LivLiv character in its own voice: ' + JSON.stringify(calls.map((c) => c.path)))
+  const own = calls.filter((c) => c.kind === 'livliv-voice')
+  assert.ok(own.length && own.every((c) => c.path === '/api/chat/k01/say' && c.body.stage === true && c.body.line), 'a LivLiv character in its own voice, as Stage\'s (not a 录制 take): ' + JSON.stringify(own.map((c) => [c.path, c.body.stage])))
   // the card's override: 系统朗读 and 自己的服务 take no points for its voice
   await page.evaluate((id) => { const { store } = window.__stage, c = store.get().items.find((i) => i.id === id); store.patch(id, { voice: { ...c.voice, source: 'system' } }) }, k01)
   calls.length = 0
