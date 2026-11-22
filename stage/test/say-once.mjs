@@ -56,7 +56,7 @@ try {
   }
 
   // a model of one's own, the characters' livliv.ai voices: a /say a sentence, one line id a reply
-  await page.evaluate(async () => (await import('/src/brain.ts')).saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' }))
+  await page.evaluate(async () => { const b = await import('/src/brain.ts'); b.saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' }); b.setLivLiv({ voice: true }) })
   await voices('livliv')
   said.length = 0
   await chat()

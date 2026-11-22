@@ -240,7 +240,9 @@ const stage = (page, o) => page.evaluate(async (o) => {
   store.setTalk({ order: 'free', interrupt: 0, cutIn: false, danmaku: 0, language: 'zh', ...o.talk })
   if (o.topic) store.set({ topic: o.topic })
   saveBrainConfig(o.brain === 'livliv' ? { kind: 'livliv' } : { kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' })
-  if (o.livlivVoice !== undefined) (await import('/src/brain.ts')).setLivLiv({ voice: o.livlivVoice })
+  // livliv.ai's voices as chosen in 连接: on where a scenario's characters speak in them (never chosen, they stay off
+  // beside the speech service set up below)
+  ;(await import('/src/brain.ts')).setLivLiv({ voice: o.livlivVoice ?? (o.brain === 'livliv' || o.voice === 'livliv') })
   saveSpeech({ provider: 'openai', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-tts', voice: 'alloy', asr: 'fixture-asr' })
   for (const { scope, text } of o.memories ?? []) {
     const profileId = store.get().items.find((item) => item.id === ids[o.cast[0]]).profileId
