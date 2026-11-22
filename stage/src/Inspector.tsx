@@ -153,7 +153,7 @@ function VoiceSection({ c, patch, onVoice }: { c: CharacterItem; patch: (p: Part
             {voicebox.profiles.map((p) => <option key={p.id} value={p.id}>{p.name} · {tr(p.kind === 'preset' ? '预设' : p.kind === 'cloned' ? '克隆' : p.kind === 'designed' ? '设计' : '其他')}{OPEN_ENGINES.has(p.engine) ? '' : ` · ${p.engine}`}{p.ready ? '' : ` · ${tr('模型未下载')}`}</option>)}
           </select>
         </label>
-        {voicebox.error && <p className="hint">{voiceboxError(voicebox.error, voicebox.detail)}</p>}
+        <p className="hint">{voicebox.error ? voiceboxError(voicebox.error, voicebox.detail) : tr('在 Voicebox 里添加声音')}</p>
       </> : route === 'api' ? <>
         <label className="field spaced"><span>{tr("音色")}</span>
           <input list={`api-voices-${c.id}`} value={v.api} placeholder={tr("默认（{0}）", apiVoice(c, speech, participants(store.get())).split(':').at(-1) || tr("接口的"))} onChange={(e) => patch({ voice: { ...v, api: e.target.value } })} />

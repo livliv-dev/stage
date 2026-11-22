@@ -8,6 +8,7 @@
 //    recognition through livliv.ai, saved own keys unused
 //  - the card's override: 系统朗读 and 自己的服务 take no points
 //  - 文字 on, 声音 off: lines from livliv.ai, voices and recognition your own
+//  - livliv.ai refusing a call as too long: asked again with the older history left out, without a word
 //  - Space never starts paid recognition
 //  - signed out, turning it on signs in first and it comes on once that succeeds; both parts off is livliv.ai off; your
 //    own services fold to 由 livliv.ai 提供 while covered
@@ -25,7 +26,7 @@ const vrm = [...await readFile(join(root, 'test/fixtures/avatar.vrm'))]
 const OWN = { kind: 'openai', provider: 'custom', base: '', key: 'test-only', model: 'own-model' }
 const SPEECH = { provider: 'openai', base: '', key: 'test-only', model: 'own-tts', voice: 'alloy', asr: 'own-asr' }
 const LINE = '今天的风好舒服。'
-let signed = true
+let signed = true, refuseAt = 0  // refuseAt: the how-many-th livliv.ai text call from now is refused as too long
 const calls = []  // every request to livliv.ai's points routes and to your own services: { kind, path, body, auth }
 const POINTS = /^\/api\/(stage\/v1\/|chat\/(asr\/|say$|[^/]+\/say$|[^/]+\/stage-line$))/
 const paid = () => calls.filter((c) => POINTS.test(c.path))
@@ -67,7 +68,11 @@ try {
       const record = (kind) => calls.push({ kind, path, body: req.method() === 'POST' && !/asr|transcriptions/.test(path) ? req.postDataJSON() : null, auth })
       if (path === '/api/me') return route.fulfill({ json: signed ? { signed_in: true, email: 'member@example.test', points: 120, plan: 'free' } : { signed_in: false } })
       if (path === '/login') return route.fulfill({ contentType: 'text/html', body: '<p>sign in</p>' })
-      if (path === '/api/stage/v1/chat/completions') { record('livliv-text'); return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: LINE, emotion: 'happy', action: 'none', to: null, look: null }) } }] } }) }
+      if (path === '/api/stage/v1/chat/completions') {
+        record('livliv-text')
+        if (refuseAt && calls.filter((c) => c.kind === 'livliv-text').length === refuseAt) { calls.at(-1).refused = true; return route.fulfill({ status: 413, json: { detail: '这次对话太长了：最多约 32000 个 token' } }) }
+        return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: LINE, emotion: 'happy', action: 'none', to: null, look: null }) } }] } })
+      }
       if (path === '/api/chat/say' || /^\/api\/chat\/[^/]+\/say$/.test(path)) { record('livliv-voice'); return route.fulfill({ json: { lines: [{ audio: '/api/chat/say/line.mp3', expression: null }], points: 119 } }) }
       if (path === '/api/chat/asr/upload') { record('livliv-hearing'); return route.fulfill({ json: { text: '你好呀' } }) }
       if (/stage-line$/.test(path)) { record('stage-line'); return route.fulfill({ status: 410, json: { detail: 'not used' } }) }
@@ -188,7 +193,16 @@ try {
   const system = text[0].body.messages[0].content
   assert.ok(system.includes('Rio') && system.includes('海边长大的少年') && system.includes('走起'), 'written from its card here: ' + system.slice(0, 120))
   assert.ok(voiced.length >= 2 && voiced.every((c) => c.path === '/api/chat/say' && c.body.voice === 'longanyang_v3.1' && c.body.lines[0].text === LINE), 'voiced in the young men\'s system voice: ' + JSON.stringify(voiced.map((c) => [c.path, c.body.voice])))
+  assert.ok(voiced.every((c) => typeof c.body.line === 'string' && c.body.line), 'each with its line id (a livliv.ai voice is paid by the line)')
   assert.equal(calls.filter((c) => c.kind.startsWith('own')).length, 0, 'saved own keys unused')
+  // livliv.ai refusing a call as too long: asked once more with the older half of the history left out, nothing shown
+  calls.length = 0; refuseAt = 2
+  await chat(page)
+  refuseAt = 0
+  const asked = calls.filter((c) => c.kind === 'livliv-text'), history = (c) => JSON.parse(c.body.messages[1].content).history ?? ''
+  assert.ok(asked[1]?.refused && asked.length >= 3, 'the second call was refused and asked again: ' + asked.length)
+  assert.ok(history(asked[2]).length < history(asked[1]).length, 'asked again with less history: ' + JSON.stringify([history(asked[1]), history(asked[2])]))
+  assert.equal(await page.evaluate(() => window.__stage.conversation().error), '', 'nothing shown')
   // recognition through livliv.ai while its voices are on, though your own is set
   calls.length = 0
   await pushToTalk(page)

@@ -42,7 +42,7 @@ export function startCalls(input: StartInput): StartCalls {
   if (plan.session === 'chat') return { record, call: { kind: 'chat', firstLine: input.firstLine.trim() }, handsFree: plan.handsFree }
   // 直播间: AIRI when the rule picks it (brains/select.ts), which a game or a game window asks for
   const { needsAiri, game, windowId, portsReady } = liveGame(input.live)
-  const engine = chooseEngine(input.brain, input.ai, { kind: 'live', textOnly, needsAiri, voice: input.ai[0]?.voice }, input.features)
+  const engine = chooseEngine(input.brain, input.ai, { kind: 'live', textOnly, needsAiri }, input.features)
   if (needsAiri && engine.engine !== 'airi') return { blocked: '游戏需要内置 AIRI：{0}', args: [engineReason(engine, input.ai.length)] }
   if (!portsReady) return { blocked: '两个端口应连接同一个运行 Autorio 的存档。' }
   const options: LiveOptions = { minutes: input.live.minutes, maxGenerations: input.live.maxGenerations, warmupSeconds: input.live.warmupSeconds, textOnly, ...(engine.engine === 'airi' ? { airi: { windowId, game } } : {}) }

@@ -24,17 +24,17 @@ export function Connections({ focus, forStart, forVoice, onAccount, onContinue, 
   useEffect(() => { if (focus && focus !== 'model' && focus !== 'livliv') box.current?.querySelector(`[data-section="${focus}"]`)?.scrollIntoView({ block: 'start' }) }, [focus])
   return <div className="connections" ref={box}>
     {features.points && <LivLivSection forStart={forStart} onContinue={onContinue} onDone={onDone} />}
-    <Covered section="model" title="文字模型" covered={livliv.text} open={focus === 'model' && !!forStart}>
+    <Covered section="model" title="文字模型" hint="所有角色共用" covered={livliv.text} open={focus === 'model' && !!forStart}>
       <ModelForm forStart={forStart} done={onDone} onContinue={onContinue} demoDone={onDone} onAccount={onAccount} noDemo />
     </Covered>
     <Covered section="speech" title="声音与语音识别" hint="音色在角色卡里选" covered={livliv.voice} open={focus === 'speech' || !!forVoice}>
-      {shareable && <label className="switch"><span>{tr('一个密钥用于全部')}<small className="hint">{tr('用文字模型的密钥')}</small></span>
+      {shareable && <label className="switch"><span>{tr('一个密钥用于全部')}</span>
         <input type="checkbox" checked={shared} onChange={(e) => { if (e.target.checked) { saveSpeech(SPEECH_UNSET); setOwn(false) } else setOwn(true) }} /><i /></label>}
       {!shared && <SpeechForm forCharacter={forVoice} onDone={() => onDone?.()} />}
     </Covered>
     <section className="connect-section" data-section="realtime">
       <button className="fold" aria-expanded={realtimeOpen} onClick={() => setRealtimeOpen((open) => !open)}><ChevronRight size={14} className={realtimeOpen ? 'open' : ''} /><h3>{tr('实时通话')}</h3></button>
-      <p className="hint">{tr('用自己的 OpenAI 或百炼密钥')}</p>
+      <p className="hint">{tr('需要 OpenAI 或阿里云百炼密钥')}</p>
       {realtimeOpen && <RealtimeModelForm onSaved={onDone} />}
     </section>
   </div>

@@ -200,6 +200,14 @@ export async function aiFetch(url: string, init: RequestInit) {
     throw new Error(tr("连不上 {0}", host), { cause: e })
   }
 }
+/** livliv.ai refused a call as longer than it takes (its input limit): the turn is asked again with less, silently
+ *  (sessions/speak.ts replyOf) */
+export class TooLong extends Error { name = 'TooLong' }
+/** an error that is, or was caused by, livliv.ai's TooLong (AIRI's runtime may wrap it) */
+export function isTooLong(error: unknown): boolean {
+  for (let e = error, i = 0; e && i < 6; e = (e as { cause?: unknown }).cause, i++) if (e instanceof TooLong || (e as Error).name === 'TooLong') return true
+  return false
+}
 /** livliv.ai's text: on this page's own address (the desktop app passes /api on to LivLiv with its sign-in). The age
  *  question first, when the site asks it; a refusal for points or the sign-in has the account asked again */
 async function livlivFetch(url: string, init: RequestInit & { signal: AbortSignal }) {
@@ -211,6 +219,7 @@ async function livlivFetch(url: string, init: RequestInit & { signal: AbortSigna
     r = await send()
   }
   if (r.status === 401 || r.status === 402) void refresh()
+  if (r.status === 413) { await r.body?.cancel(); throw new TooLong(tr('这次对话太长了')) }
   return r
 }
 const endpoint = (c: ModelConfig, path: string) => `${c.base.replace(/\/+$/, '')}${path}`

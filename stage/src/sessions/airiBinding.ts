@@ -5,7 +5,6 @@ import { loadBrainConfig, modelOf, type ModelConfig } from '../brain'
 import { chooseEngine } from '../brains/select'
 import { features } from '../core/platform'
 import { participants, store, type CharacterItem } from '../scene'
-import { voiceRoute } from '../voiceApi'
 import { castKey } from './context'
 import { current, type Run } from './run'
 import { set } from './state'
@@ -25,7 +24,7 @@ export function bindAiri(run: Run, model: ModelConfig, actor: CharacterItem, win
 /** a chat on AIRI, when the one rule says so (brains/select.ts): its model and the character */
 export function preferredAiriForChat(config: ReturnType<typeof loadBrainConfig>, target?: string) {
   const cast = participants(store.get()).filter((character) => character.lines === 'ai'), actor = cast[0]
-  const choice = chooseEngine(config, cast, { kind: 'chat', target, voice: actor && voiceRoute(actor) }, features)
+  const choice = chooseEngine(config, cast, { kind: 'chat', target }, features)
   const model = choice.engine === 'airi' ? modelOf(config) : null
   return model ? { model, actor } : null
 }

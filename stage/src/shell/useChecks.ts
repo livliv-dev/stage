@@ -20,7 +20,7 @@ export function useChecks(goal: Goal, partner: boolean): Check[] {
   useEffect(() => { const timer = setInterval(() => redraw((n) => n + 1), 700); return () => clearInterval(timer) }, [])
   const cast = participants(scene).filter((c) => !c.remote), ai = cast.filter((c) => c.lines === 'ai'), me = cast.find((c) => c.lines === 'me')
   const actor = me && actors.get(me.id), realtime = realtimeCredentials(loadRealtime())
-  const engine = chooseEngine(brain, ai, { kind: 'live', needsAiri: true, voice: ai[0] && voiceRoute(ai[0], speech) }, features)
+  const engine = chooseEngine(brain, ai, { kind: 'live', needsAiri: true }, features)
   const context: CheckContext = {
     model: brain.kind === 'demo' || !brainReady(brain) ? null : brain.kind === 'livliv' ? 'livliv.ai' : brain.model,
     ai: ai.map((c) => ({ name: c.name, voice: voiceRoute(c, speech), muted: c.muted })),

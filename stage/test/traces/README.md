@@ -28,7 +28,7 @@ One file per scenario, one JSON event per line. The first line names the scenari
 | `pause`, `resume` | a running session is paused or resumed | |
 | `retry` | AI 直播 will try a failed turn again | `seconds` until it does |
 | `model` | a request to a model (each one is paid) | `engine` (`openai`: a model of one's own, `airi`, `livliv`: livliv.ai's text, points), `via` (`livliv` on an AIRI request to livliv.ai's text), `speaker`, `scope` (as the prompt says it), `memories` it carried (`scope: text`), `viewer`, `event`, `input` (AIRI's turn input) |
-| `voice` | a voice request | `via` (`livliv`: one `/say` call, points; `api`: your own speech API), `text` |
+| `voice` | a voice request | `via` (`livliv`: one `/say` call, points; `api`: your own speech API), `line` (`livliv`: which line, 1, 2, …, the call is a sentence of: a line is paid once), `text` |
 | `error`, `need-model` | the conversation shows an error, or asks for a model | `text`, `intent` |
 | `end` | a session ends | `mode`, `scope`, `turns`, `generations`, `ended` (the limit or reason shown), `error` |
 

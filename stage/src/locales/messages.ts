@@ -4085,18 +4085,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Your avatars, together on Stage",
     "ja": "あなたのキャラクターを、Stageへ"
   },
-  "在 Stage 使用你的 livliv.ai 角色与声音。": {
-    "zh-Hans": "在 Stage 使用你的 livliv.ai 角色与声音。",
-    "zh-Hant": "在 Stage 使用你的 livliv.ai 角色與聲音。",
-    "en": "Bring your livliv.ai avatars and voices to Stage.",
-    "ja": "livliv.aiのキャラクターと声を、Stageで使えます。"
-  },
-  "登录后，把 livliv.ai 的角色与声音带到舞台。": {
-    "zh-Hans": "登录后，把 livliv.ai 的角色与声音带到舞台。",
-    "zh-Hant": "登錄後，把 livliv.ai 的角色與聲音帶到舞台。",
-    "en": "Sign in to bring your livliv.ai avatars and voices to the stage.",
-    "ja": "ログインして、livliv.aiのキャラクターと声を舞台へ。"
-  },
   "带入云端角色": {
     "zh-Hans": "带入云端角色",
     "zh-Hant": "帶入雲端角色",
@@ -4818,16 +4806,19 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "这次会话开始时它没用 livliv.ai 的声音：这句只出字幕": {"zh-Hans": "这次会话开始时它没用 livliv.ai 的声音：这句只出字幕", "zh-Hant": "這次會話開始時它沒用 livliv.ai 的聲音：這句只出字幕", "en": "It wasn't on a livliv.ai voice when this session started: subtitles only", "ja": "このセッションの開始時は livliv.ai の声ではありませんでした：字幕のみ"},
   "积分用完了，或者这个月的额度到了上限": {"zh-Hans": "积分用完了，或者这个月的额度到了上限", "zh-Hant": "積分用完了，或者這個月的額度到了上限", "en": "Out of credits, or this month's limit is reached", "ja": "ポイントが足りないか、今月の上限に達しました"},
   "livliv.ai 声音": {"zh-Hans": "livliv.ai 声音", "zh-Hant": "livliv.ai 聲音", "en": "a livliv.ai voice", "ja": "livliv.ai の声"},
-  "本机 Ollama 等接口请用桌面版": {"zh-Hans": "本机 Ollama 等接口请用桌面版", "zh-Hant": "本機 Ollama 等介面請用桌面版", "en": "For Ollama and other local APIs, use the desktop app", "ja": "Ollama などローカルの API はデスクトップ版で"},
+  "Ollama 等本机服务请用桌面版": {"zh-Hans": "Ollama 等本机服务请用桌面版", "zh-Hant": "Ollama 等本機服務請用桌面版", "en": "For Ollama and other local services, use the desktop app", "ja": "Ollama などローカルのサービスはデスクトップ版で"},
   "用文字模型的密钥": {"zh-Hans": "用文字模型的密钥", "zh-Hant": "用文字模型的金鑰", "en": "Uses the text model's key", "ja": "テキストモデルのキーを使う"},
   "只出字幕": {"zh-Hans": "只出字幕", "zh-Hant": "只出字幕", "en": "Subtitles only", "ja": "字幕のみ"},
   "Voicebox 在运行：{0} 个声音": {"zh-Hans": "Voicebox 在运行：{0} 个声音", "zh-Hant": "Voicebox 執行中：{0} 個聲音", "en": "Voicebox is running: {0} voices", "ja": "Voicebox 実行中：声 {0} 個"},
   "也用它听你说话": {"zh-Hans": "也用它听你说话", "zh-Hant": "也用它聽你說話", "en": "Also use it to hear you", "ja": "聞き取りにも使う"},
-  "用自己的 OpenAI 或百炼密钥": {"zh-Hans": "用自己的 OpenAI 或百炼密钥", "zh-Hant": "用自己的 OpenAI 或百煉金鑰", "en": "Your own OpenAI or Bailian key", "ja": "自分の OpenAI または百煉のキー"},
+  "需要 OpenAI 或阿里云百炼密钥": {"zh-Hans": "需要 OpenAI 或阿里云百炼密钥", "zh-Hant": "需要 OpenAI 或阿里雲百煉金鑰", "en": "Needs an OpenAI or Alibaba Cloud Bailian key", "ja": "OpenAI または Alibaba Cloud 百煉のキーが必要"},
   "由 livliv.ai 提供": {"zh-Hans": "由 livliv.ai 提供", "zh-Hant": "由 livliv.ai 提供", "en": "From livliv.ai", "ja": "livliv.ai が提供"},
   "用 livliv.ai": {"zh-Hans": "用 livliv.ai", "zh-Hant": "用 livliv.ai", "en": "Use livliv.ai", "ja": "livliv.ai を使う"},
   "按积分": {"zh-Hans": "按积分", "zh-Hant": "按積分", "en": "Uses credits", "ja": "ポイント制"},
   "{0} 积分": {"zh-Hans": "{0} 积分", "zh-Hant": "{0} 積分", "en": "{0} credits", "ja": "{0} ポイント"},
   "可以在角色卡里单独设置": {"zh-Hans": "可以在角色卡里单独设置", "zh-Hant": "可以在角色卡裡單獨設定", "en": "Can be set per character", "ja": "キャラクターごとに設定できます"},
   "音色在角色卡里选": {"zh-Hans": "音色在角色卡里选", "zh-Hant": "音色在角色卡裡選", "en": "Pick voices on each character", "ja": "声はキャラクターごとに選びます"},
+  "这次对话太长了": {"zh-Hans": "这次对话太长了", "zh-Hant": "這次對話太長了", "en": "This conversation is too long", "ja": "会話が長すぎます"},
+  "所有角色共用": {"zh-Hans": "所有角色共用", "zh-Hant": "所有角色共用", "en": "Shared by all characters", "ja": "全キャラクター共通"},
+  "在 Voicebox 里添加声音": {"zh-Hans": "在 Voicebox 里添加声音", "zh-Hant": "在 Voicebox 裡新增聲音", "en": "Add voices in Voicebox", "ja": "声は Voicebox で追加"},
 }

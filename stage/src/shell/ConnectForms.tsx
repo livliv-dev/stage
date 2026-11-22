@@ -73,7 +73,7 @@ export function ModelForm({ forStart, own, done, demoDone, onPick, onContinue, n
       {/* the three's prepared conversation in their recorded voices: no key, no model */}
       {!noDemo && <button className={`demo${demo ? ' on' : ''}`} disabled={st.busy === 'demo'} onClick={() => { request.current?.abort(); setDemo(true); setSt({}) }}>{tr("演示")}</button>}
     </div>
-    {!demo && features.host === 'site' && <p className="hint">{tr("本机 Ollama 等接口请用桌面版")}</p>}
+    {!demo && features.host === 'site' && <p className="hint">{tr("Ollama 等本机服务请用桌面版")}</p>}
     {!demo && <>
       {(p.id === 'custom' || p.id === 'ollama') && <label className="field"><span>{tr("接口地址")}</span>
         <input value={d.base} placeholder="https://…/v1" onChange={(e) => change({ base: e.target.value, model: '' })} onBlur={() => void fetchModels()} /></label>}

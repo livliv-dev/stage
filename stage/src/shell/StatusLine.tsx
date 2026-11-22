@@ -23,7 +23,7 @@ export function StatusLine({ goal, partner, checks, onModel, onVoice, onAudience
   const session = conv.running ? conv.mode : 'blocked' in plan ? null : plan.session
   // running: the engine it started on (AIRI, or the standard one for the reason the rule gives); else the one it would
   const engine = session === 'chat' || session === 'live'
-    ? conv.running && conv.engine === 'airi' ? { engine: 'airi' as const, reason: 'airi' as const } : chooseEngine(brain, ai, { kind: session, voice: ai[0] && voiceRoute(ai[0], speech) }, features)
+    ? conv.running && conv.engine === 'airi' ? { engine: 'airi' as const, reason: 'airi' as const } : chooseEngine(brain, ai, { kind: session }, features)
     : null
   // the scope the session gets: public with any output on, and with what this start turns on itself (a 直播间, a recording)
   const goesOut = startGoesOut(goal, options)

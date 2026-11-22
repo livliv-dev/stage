@@ -427,8 +427,9 @@ export class Actor {
 
   retryInput() { this.driverKey = ''; void this.drive() }
 
-  /** recorded: its voice, made already (the demo's) */
-  async prepare(text: string, emotion: Emotion, aloud = true, signal?: AbortSignal, recorded?: string): Promise<Take> {
+  /** recorded: its voice, made already (the demo's); line: the line this is a sentence of (a livliv.ai voice is paid by
+   *  the line: the sentences of one share its charge) */
+  async prepare(text: string, emotion: Emotion, aloud = true, signal?: AbortSignal, recorded?: string, line?: string): Promise<Take> {
     const v = this.item.voice, wanted = aloud ? voiceRoute(this.item) : 'none', route = aloud ? sessionRoute(this.item) : 'none'
     // livliv.ai's voice wasn't this character's when the session started: subtitles, never points (sessions/spend.ts)
     this.voiceError = wanted !== route ? tr('这次会话开始时它没用 livliv.ai 的声音：这句只出字幕') : ''
@@ -440,7 +441,7 @@ export class Actor {
     }
     if (route === 'livliv' || route === 'api') {
       try {
-        const clip = route === 'livliv' ? await livlivLine(this.item, text, emotion, participants(store.get()), signal) : await this.fromApi(text, emotion, signal)
+        const clip = route === 'livliv' ? await livlivLine(this.item, text, emotion, participants(store.get()), signal, line) : await this.fromApi(text, emotion, signal)
         if (clip.seconds <= 0) throw new Error(tr("声音文件无法播放"))
         this.voiceError = ''; changed()
         return { text, seconds: clip.seconds, clip, aloud }

@@ -14,7 +14,7 @@ import { tr } from './i18n'
 import { useSyncExternalStore } from 'react'
 import { desktopFetch } from './request'
 import type { Emotion, StreamingVoice } from './core/lines'
-import { store, type CharacterItem } from './scene'
+import { store, uid, type CharacterItem } from './scene'
 import { SAMPLES } from './samples'
 import { signInUrl } from './host'
 import { features } from './core/platform'
@@ -217,29 +217,31 @@ export function systemVoiceOf(c: CharacterItem, cast: readonly CharacterItem[]):
   return list[i % list.length]
 }
 
-/** a line in livliv.ai's voice for this character: its own on the site, else its system voice */
-export function livlivLine(c: CharacterItem, text: string, emotion: Emotion, cast: readonly CharacterItem[], signal?: AbortSignal): Promise<Clip> {
+/** a line in livliv.ai's voice for this character: its own on the site, else its system voice. `line`: the line this is
+ *  a sentence of (its sentences share the line's price); none, a line of its own */
+export function livlivLine(c: CharacterItem, text: string, emotion: Emotion, cast: readonly CharacterItem[], signal?: AbortSignal, line?: string): Promise<Clip> {
   const mid = modelId(c)
-  return mid ? voiceLine(mid, text, emotion, c.voice.livliv, signal) : voiceLine(null, text, emotion, systemVoiceOf(c, cast), signal)
+  return mid ? voiceLine(mid, text, emotion, c.voice.livliv, signal, line) : voiceLine(null, text, emotion, systemVoiceOf(c, cast), signal, line)
 }
 
-/** a line in the character's voice (`voice`: one of its voices by id, '' its default); with no id, in a system voice */
-export async function voiceLine(mid: string | null, text: string, emotion: Emotion, voice: string, signal?: AbortSignal): Promise<Clip> {
+/** a line in the character's voice (`voice`: one of its voices by id, '' its default); with no id, in a system voice.
+ *  Stage's price: livliv.ai's by the line (`line`: the one this is a sentence of; none, a line of its own) */
+export async function voiceLine(mid: string | null, text: string, emotion: Emotion, voice: string, signal?: AbortSignal, line?: string): Promise<Clip> {
   let r
   try {
-    r = await answer(await post(mid ? `/api/chat/${encodeURIComponent(mid)}/say` : '/api/chat/say', { lines: [{ text, emotion }], voice: voice || null }, signal))
+    r = await answer(await post(mid ? `/api/chat/${encodeURIComponent(mid)}/say` : '/api/chat/say', { lines: [{ text, emotion }], voice: voice || null, line: line || uid() }, signal))
   } catch (e) {
     const status = (e as { status?: number }).status
     if (status === 401 || status === 402) void refresh()  // signed out elsewhere, or out of points
     throw e
   }
   if (typeof r.points === 'number') set({ points: r.points })
-  const line = r.lines?.[0]
-  if (!line?.audio) throw new Error(tr("这句没有配出声音"))
-  const a = await desktopFetch(line.audio, { signal })
+  const said = r.lines?.[0]
+  if (!said?.audio) throw new Error(tr("这句没有配出声音"))
+  const a = await desktopFetch(said.audio, { signal })
   if (!a.ok) throw new Error(tr("这句没有配出声音"))
   const blob = await a.blob()
-  return { blob, seconds: await length(blob), expression: line.expression ?? null }
+  return { blob, seconds: await length(blob), expression: said.expression ?? null }
 }
 
 /** what was said in a recording (a 16 kHz mono WAV, up to 30 s), by the site's speech recognition (the chat's push to
@@ -247,6 +249,7 @@ export async function voiceLine(mid: string | null, text: string, emotion: Emoti
 export async function recognize(wav: Blob, signal?: AbortSignal): Promise<string> {
   const fd = new FormData()
   fd.append('file', wav, 'say.wav')
+  fd.append('stage', '1')  // Stage's price: what it cost, no minimum
   try {
     const r = await answer(await api('/api/chat/asr/upload', { method: 'POST', body: fd, signal }))
     return String(r.text ?? '').trim()

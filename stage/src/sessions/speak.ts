@@ -1,11 +1,11 @@
 import { tr } from '../i18n'
 // One AI turn, said: the engine's answer (brains/engines) a line at a time, each voiced and played on the stage
 // (performance.ts). A whole reply from a model (one's own or livliv.ai's) or the demo is made first (with its voice); in
-// a chat it is said sentence by sentence, so the first is heard sooner (never in a livliv.ai voice: livliv.ai charges
-// every /say call, so a line in it is voiced whole, one call); AIRI's reply streams and each
+// a chat it is said sentence by sentence, so the first is heard sooner (a livliv.ai voice is paid by the line: its
+// sentences share one line id); AIRI's reply streams and each
 // sentence is said as it comes. In a 对谈 the next line is made while this one is said (one ahead).
 import { actors, type Take } from '../actors'
-import { brainReady, loadBrainConfig, previousModelConfig } from '../brain'
+import { brainReady, isTooLong, loadBrainConfig, previousModelConfig } from '../brain'
 import { chatHistory } from '../chatHistory'
 import { conversationContext, speechSegments } from '../chatContext'
 import { demoFor, demoSpeaker } from '../demo'
@@ -15,7 +15,7 @@ import type { Chat } from '../danmaku'
 import { participants, store, uid, type CharacterItem } from '../scene'
 import { sessionRoute } from '../voiceApi'
 import type { Line } from '../core/lines'
-import { brainEngine, type TurnRequest, type Utterance } from '../brains/engines'
+import { brainEngine, type Engine, type TurnRequest, type Utterance } from '../brains/engines'
 import { personaOf } from '../brains/persona'
 import { counted, GenerationLimit, spend, spent, turnLimit as linesFor } from './budget'
 import { castKey, NeedModel, played, TURN_INTERRUPTED, voices, VoiceFailed } from './context'
@@ -28,7 +28,7 @@ import { current, type Run } from './run'
 import { conversation, set } from './state'
 import { untilFree, waitWhile } from './wake'
 import { sayEach } from './stream'
-import { bySentence as sentenceBySentence, streamable } from './voicing'
+import { bySentence as sentenceBySentence } from './voicing'
 import { brainNow } from './spend'
 
 /** the lines a 对谈 runs to: a prepared demo always reaches its ending, paid conversations keep the user's limit */
@@ -57,6 +57,24 @@ function turnRequest(me: CharacterItem, cast: TurnRequest['cast'], context: Pick
   }
 }
 
+/** a request with the older half of its history and of its memories left out */
+export function shorter(request: TurnRequest): TurnRequest {
+  const { lines, memories } = request.context
+  return { ...request, context: { ...request.context, lines: lines.slice(Math.floor(lines.length / 2)), memories: memories.slice(0, Math.floor(memories.length / 2)) } }
+}
+
+/** the engine's answer. livliv.ai refusing the call as too long before anything came back: asked once more, shorter,
+ *  without a word to the user */
+async function* replyOf(engine: Engine, request: TurnRequest, signal: AbortSignal): AsyncGenerator<Utterance> {
+  let came = false
+  try {
+    for await (const said of engine.reply(request, signal)) { came = true; yield said }
+  } catch (error) {
+    if (came || signal.aborted || !isTooLong(error)) throw error
+    yield* engine.reply(shorter(request), signal)
+  }
+}
+
 /** the brain a turn of this session thinks with: the one set up now, but never livliv.ai's text in a session that
  *  started without it (sessions/spend.ts) */
 export const brainOf = (run: Run | null) => brainNow(loadBrainConfig(), previousModelConfig(), run?.spend)
@@ -82,7 +100,7 @@ async function makeLine(run: Run, me: CharacterItem, signal: AbortSignal, audien
     event: run.event ?? undefined, replyToOwner: false },
     { cutIn, allowBatch: false })
   const answer: Utterance[] = []
-  for await (const said of engine.reply(request, signal)) answer.push(said)
+  for await (const said of replyOf(engine, request, signal)) answer.push(said)
   signal.throwIfAborted()
   const r = answer[0]
   if (!r) throw new Error(tr('模型没有返回可播放的回复'))
@@ -91,7 +109,7 @@ async function makeLine(run: Run, me: CharacterItem, signal: AbortSignal, audien
     await chatHistory.summarize(summary, used.sourceIds, memoryIds, context.revision, sessionId, conversation().lines)
   }
   // its voice is made while it still shows 在想 (a livliv.ai voice takes about a second); the demo's comes recorded
-  const bySentence = sentenceBySentence(conversation().mode, sessionRoute(me))
+  const bySentence = sentenceBySentence(conversation().mode)
   const take = bySentence ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, r.audio)
   signal.throwIfAborted()
   if (run.liveOptions && !run.liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕"))
@@ -177,7 +195,7 @@ async function streamedTurn(run: Run, me: CharacterItem, chat: Chat | null | und
     lines: context.lines, summary: context.summary, memories, viewer: chat ? { id: chat.id, user: chat.user, text: chat.text } : null, event: event ?? undefined, replyToOwner,
     game: snapshot?.state, ...(frame ? { frame } : {}),
   }, { cutIn: false, allowBatch: !airi.game && !windowId, verifyMemory })
-  const answer = engine.reply(request, signal)[Symbol.asyncIterator]()
+  const answer = replyOf(engine, request, signal)
   const speech: LineSpeech = {
     final: false, onStart, onEnd,
     beforeStart: () => untilFree(speechHeld, wake, signal, async () => {
@@ -185,11 +203,12 @@ async function streamedTurn(run: Run, me: CharacterItem, chat: Chat | null | und
       await verifyMemory()
     }),
   }
-  // each sentence's voice is made while the one before is said; the turn counts once the first is said
+  // each sentence's voice is made while the one before is said, all under one line id (a livliv.ai voice is paid by the
+  // line); the turn counts once the first is said
+  const voiced = uid()
   const said = await sayEach(answer, signal, async (line) => {
     const aloud = !textOnly && !actor.item.muted
-    if (aloud && !streamable(sessionRoute(actor.item))) throw new Error(tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕'))
-    const take = await actor.prepare(line.text, line.emotion, aloud, signal)
+    const take = await actor.prepare(line.text, line.emotion, aloud, signal, undefined, voiced)
     signal.throwIfAborted()
     if (aloud && take.mute) throw new VoiceFailed(actor.voiceError || tr('声音播放失败，请检查声音设置'))
     return take
@@ -266,8 +285,8 @@ export async function speakTurn(run: Run, me: CharacterItem, parent: AbortSignal
  *  said, its reactions where they fall */
 async function bySentences(run: Run, me: CharacterItem, r: Utterance & Pick<Line, 'memoryIds' | 'memoryRevision'>, memoryRevision: number, signal: AbortSignal, speech: LineSpeech) {
   const segments = speechSegments(r.text), total = segments.reduce((sum, text) => sum + text.length, 0) || 1
-  const actor = actors.get(me.id)
-  let preparedVoice: Promise<Take> | undefined = actor?.prepare(segments[0], r.emotion, true, signal)
+  const actor = actors.get(me.id), voiced = uid()  // its sentences are one line (a livliv.ai voice is paid by the line)
+  let preparedVoice: Promise<Take> | undefined = actor?.prepare(segments[0], r.emotion, true, signal, undefined, voiced)
   let offset = 0
   for (let i = 0; i < segments.length; i++) {
     const text = segments[i]
@@ -277,7 +296,7 @@ async function bySentences(run: Run, me: CharacterItem, r: Utterance & Pick<Line
     signal.throwIfAborted()
     await checkMemory(memory, me.profileId ?? me.id, conversation().scope, memoryRevision)
     if (voice?.mute && sessionRoute(me) !== 'none') throw new Error(actor?.voiceError || tr('声音播放失败，请检查声音设置'))
-    preparedVoice = i + 1 < segments.length ? actor?.prepare(segments[i + 1], r.emotion, true, signal) : undefined
+    preparedVoice = i + 1 < segments.length ? actor?.prepare(segments[i + 1], r.emotion, true, signal, undefined, voiced) : undefined
     // A cancelled future sentence may reject before playback reaches it.
     void preparedVoice?.catch(() => {})
     const start = offset / total, width = text.length / total

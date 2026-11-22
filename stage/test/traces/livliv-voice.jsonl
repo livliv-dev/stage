@@ -1,15 +1,21 @@
-{"scenario":"livliv-voice","about":"Desktop, signed in, 持续聊天 with a model of one's own in livliv.ai's voices: the standard engine (not AIRI), each line voiced whole by one /say call"}
+{"scenario":"livliv-voice","about":"Desktop, signed in, 持续聊天 with a model of one's own in livliv.ai's voices: on AIRI, each sentence voiced by its own /say call, a reply's sentences one line"}
 {"t":"record","scope":"private","earlier":0}
-{"t":"start","mode":"chat","scope":"private"}
+{"t":"start","mode":"chat","scope":"private","engine":"airi"}
 {"t":"record","scope":"private","earlier":0}
-{"t":"model","engine":"openai","speaker":"Nana","scope":"private","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫"]}
-{"t":"voice","via":"livliv","text":"Nana的第1句。我接着说下去。"}
-{"t":"line","from":"ai","name":"Nana","text":"Nana的第1句。我接着说下去。","scope":"private"}
+{"t":"model","engine":"airi","speaker":"Nana","scope":"private","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫"],"input":"Start a short conversation with the user."}
+{"t":"voice","via":"livliv","line":1,"text":"Nana的第1句。"}
+{"t":"voice","via":"livliv","line":1,"text":"我接着说下去。"}
+{"t":"line","from":"ai","name":"Nana","text":"Nana的第1句。","scope":"private"}
 {"t":"save","scope":"private","lines":1}
-{"t":"line","from":"you","name":"旁白","text":"你好","scope":"private"}
+{"t":"line","from":"ai","name":"Nana","text":"我接着说下去。","scope":"private"}
 {"t":"save","scope":"private","lines":2}
-{"t":"model","engine":"openai","speaker":"Nana","scope":"private","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫"]}
-{"t":"voice","via":"livliv","text":"Nana的第2句。我接着说下去。"}
-{"t":"line","from":"ai","name":"Nana","text":"Nana的第2句。我接着说下去。","scope":"private"}
+{"t":"line","from":"you","name":"旁白","text":"你好","scope":"private"}
 {"t":"save","scope":"private","lines":3}
+{"t":"model","engine":"airi","speaker":"Nana","scope":"private","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫"],"input":"你好"}
+{"t":"voice","via":"livliv","line":2,"text":"Nana的第3句。"}
+{"t":"voice","via":"livliv","line":2,"text":"我接着说下去。"}
+{"t":"line","from":"ai","name":"Nana","text":"Nana的第3句。","scope":"private"}
+{"t":"save","scope":"private","lines":4}
+{"t":"line","from":"ai","name":"Nana","text":"我接着说下去。","scope":"private"}
+{"t":"save","scope":"private","lines":5}
 {"t":"end","mode":"chat","scope":"private","turns":2,"generations":2}

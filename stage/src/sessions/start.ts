@@ -122,15 +122,12 @@ export function startLive(options: LiveOptions, event: (event: ExternalEvent) =>
   const cast = participants(store.get()).filter((c) => c.lines === 'ai')
   if (!cast.length) { set({ error: tr("先添加一个「AI 来演」的角色") }); return }
   // the start asked for AIRI: the one rule (brains/select.ts), a game or a window asking for it whatever the switch says
-  const choice = options.airi ? chooseEngine(config, cast, { kind: 'live', needsAiri: true, textOnly: options.textOnly, voice: voiceRoute(cast[0]) }, features) : null
+  const choice = options.airi ? chooseEngine(config, cast, { kind: 'live', needsAiri: true, textOnly: options.textOnly }, features) : null
   if (choice && !airiFits(choice)) {
     set({ error: tr('内置 AIRI 需要一个本地 AI 角色和流式模型接口') }); return
   }
   const gameHost = desktop?.airiGame, gameConfig = options.airi?.game
   if (gameConfig && !gameHost) { set({ error: tr('当前桌面版本不支持 AIRI 游戏') }); return }
-  if (choice?.reason === 'livliv-voice') {
-    set({ error: tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕') }); return
-  }
   const airiModel = choice?.engine === 'airi' ? modelOf(config) : null
   // a muted character speaks no line aloud: only the ones that speak need a voice, else the session is subtitles only
   if (!options.textOnly && cast.some((c) => !c.muted && voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕") }); return }
