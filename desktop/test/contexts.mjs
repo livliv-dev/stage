@@ -81,7 +81,7 @@ try {
   let id = await lose(0)
   await notice.waitFor(); assert.equal(await crowdedBadge.count(), 1)
   report.notice = await notice.innerText()
-  assert.match(report.notice, /角色太多.*桌面版大约 30 个.*隐藏或移除/)
+  assert.match(report.notice, /角色太多.*最多显示约 30 个.*请隐藏一些/)
   await page.screenshot({ path: join(artifacts, 'notice.png') })
   await page.evaluate((id) => window.__stage.store.remove(id), id)
   await notice.waitFor({ state: 'detached' }); assert.equal(await crowdedBadge.count(), 0)

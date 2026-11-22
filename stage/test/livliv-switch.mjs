@@ -212,8 +212,8 @@ try {
   await page.evaluate((id) => window.__stage.store.patch(id, { lines: 'none' }), id)
   calls.length = 0
   await chat(page)
-  const own = calls.filter((c) => c.kind === 'livliv-voice')
-  assert.ok(own.length && own.every((c) => c.path === '/api/chat/k01/say' && c.body.stage === true && c.body.line), 'a LivLiv character in its own voice, as Stage\'s (not a 录制 take): ' + JSON.stringify(own.map((c) => [c.path, c.body.stage])))
+  const itsOwn = calls.filter((c) => c.kind === 'livliv-voice')
+  assert.ok(itsOwn.length && itsOwn.every((c) => c.path === '/api/chat/k01/say' && c.body.stage === true && c.body.line), 'a LivLiv character in its own voice, as Stage\'s (not a 录制 take): ' + JSON.stringify(itsOwn.map((c) => [c.path, c.body.stage])))
   // the card's override: 系统朗读 and 自己的服务 take no points for its voice
   await page.evaluate((id) => { const { store } = window.__stage, c = store.get().items.find((i) => i.id === id); store.patch(id, { voice: { ...c.voice, source: 'system' } }) }, k01)
   calls.length = 0
