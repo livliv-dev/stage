@@ -128,7 +128,7 @@ try {
   // sentence, its three /say calls under one line id (paid once)
   {
     await patchAll({ ids, patch: { muted: false } }); await patchAll({ ids, patch: 'livliv' })
-    await page.evaluate(async () => (await import('/src/brain.ts')).saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' }))
+    await page.evaluate(async () => { const b = await import('/src/brain.ts'); b.saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' }); b.setLivLiv({ voice: true }) })
     // Space with a model of one's own but livliv.ai's voices: every line would be a paid /say, so Space starts nothing
     said.length = 0
     await page.evaluate(() => document.activeElement?.blur?.()); await page.keyboard.press('Space')

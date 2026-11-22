@@ -65,6 +65,7 @@ try {
     const character = newCharacter(store.get(), 'Nana', { ...pick.model, livlivId: 'ux-nana' }, '喜欢具体的讨论。')
     character.voice.source = 'livliv'; store.add(character); store.select(character.id)
     saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' })
+    ;(await import('/src/brain.ts')).setLivLiv({ voice: true })  // livliv.ai's voices, chosen in 连接
   })
   await page.waitForFunction(() => [...window.__stage.actors.values()].length === 1 && [...window.__stage.actors.values()].every((actor) => actor.status === 'ready'))
   const currentVoice = () => page.evaluate(() => [...window.__stage.actors.values()][0].item.voice.livliv)

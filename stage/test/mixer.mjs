@@ -118,8 +118,13 @@ try {
   report.deviceSwitch = await page.evaluate(async () => {
     const { record } = await import('/src/tape.ts'), { setInput } = await import('/src/devices.ts')
     const r = await record(true), old = window.fixture.requests.at(-1).stream
-    await new Promise((r) => setTimeout(r, 500)); setInput({ microphone: 'tone-b' })
-    await new Promise((r) => setTimeout(r, 600)); const take = await r.stop(), values = await window.decode(take.mic.blob, [.2, .8])
+    await new Promise((r) => setTimeout(r, 800)); setInput({ microphone: 'tone-b' })
+    // the new device is asked for, then the take goes on long enough to hold its tone: on a busy machine the swap and
+    // the recorder's start come later than the wall clock says, so the take is read whole, a tenth of a second at a time
+    for (const until = performance.now() + 5000; !window.fixture.requests.some((q) => q.id === 'tone-b') && performance.now() < until;) await new Promise((r) => setTimeout(r, 20))
+    await new Promise((r) => setTimeout(r, 700)); const take = await r.stop()
+    const ctx = new AudioContext(), length = (await ctx.decodeAudioData(await take.mic.blob.arrayBuffer())).duration; await ctx.close()
+    const values = await window.decode(take.mic.blob, Array.from({ length: Math.max(0, Math.floor(length * 10) - 1) }, (_, i) => i / 10))
     const oldEnded = old.getAudioTracks().every((t) => t.readyState === 'ended')
     setInput({ microphone: '' }); const failed = await record(true); setInput({ microphone: 'missing' }); await new Promise((r) => setTimeout(r, 100))
     const error = failed.inputError?.message; await failed.stop()
@@ -127,7 +132,11 @@ try {
     const lateEnded = window.fixture.requests.filter((r) => r.id === 'slow').every((r) => r.stream.getAudioTracks().every((t) => t.readyState === 'ended')); setInput({ microphone: '' })
     return { values, oldEnded, error, lateEnded }
   })
-  assert.ok(Math.abs(report.deviceSwitch.values[0].frequency - 220) < 15); assert.ok(Math.abs(report.deviceSwitch.values[1].frequency - 880) < 15); assert.equal(report.deviceSwitch.oldEnded, true); assert.ok(report.deviceSwitch.error); assert.equal(report.deviceSwitch.lateEnded, true)
+  // the first device's tone, then the second's, never the first again: a tenth of a second that is neither (the start,
+  // the swap's quiet moment, the end) may come before, between and after
+  const tones = report.deviceSwitch.values.map((v) => v.rms < .01 ? '.' : Math.abs(v.frequency - 220) < 15 ? 'a' : Math.abs(v.frequency - 880) < 15 ? 'b' : '?').join('')
+  report.deviceSwitch.tones = tones; delete report.deviceSwitch.values
+  assert.match(tones, /^[.?]*a{2,}[.?]*b{3,}[.?]*$/, 'tone A, then tone B: ' + tones); assert.equal(report.deviceSwitch.oldEnded, true); assert.ok(report.deviceSwitch.error); assert.equal(report.deviceSwitch.lateEnded, true)
   report.friends = await page.evaluate(async () => {
     const { attachSound, removeSound, remoteSounds, volumeFor } = await import('/src/collab/streams.ts'), { setBus } = await import('/src/mixer.ts'), { record } = await import('/src/tape.ts'), { renderTake } = await import('/src/render.ts'), { audioRms } = await import('/test/media.ts')
     const stream = window.fixture.b.stream.clone(); attachSound('fixture-peer', stream); volumeFor('fixture-peer', .4); setBus('friends', { volume: .5 })
