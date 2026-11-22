@@ -23,7 +23,6 @@ import { connectNetworkTracking } from './networkTracking'
 import { connectAudienceActions } from './audienceControl'
 import { MixerPanel } from './MixerPanel'
 import { tr, useLocale } from './i18n'
-import { small } from './host'
 import { features } from './core/platform'
 import { linkedAs, linkedId, openLinked } from './entry'
 import { PhoneIntro } from './SiteIntro'
@@ -44,7 +43,7 @@ import { connectOutputFeed } from './outputFeed'
 import { GoLiveGuide } from './GoLive'
 import { connectNeuro } from './neuroBridge'
 import { ui, useUi } from './shell/ui'
-import { useNarrow, useShortcuts } from './shell/hooks'
+import { useNarrow, useShortcuts, useSmall } from './shell/hooks'
 import { TopBar } from './shell/TopBar'
 import { Rail, AddCharacter } from './shell/Rail'
 import { Cast, SoloStatus } from './shell/Cast'
@@ -80,7 +79,11 @@ export default function App() {
   const [menu, setMenu] = useState<MenuAt | null>(null)
   // livliv.ai/stage: a phone gets the demo to watch; a computer's first visit gets the demo's three on the stage and the
   // start page over them (none for a link to a character, which opens that one instead)
-  const phone = features.host === 'site' && small()
+  const smallNow = useSmall(), phone = features.host === 'site' && smallNow
+  // a page opened at a phone's size starts on show (the demo, the phone's intro); widened to a computer's size it goes
+  // to editing once, and opens the character it was linked to. Narrowing never changes the mode: the editor and what is
+  // open in it (a card, a key being typed, the selection) stay
+  const phoneShow = useRef(phone)
   const firstVisit = features.host === 'site' && !phone && !hadSaved && !linkedId()
   // the site's 开播 (?c=<id>&as=face): its card, where the first-visit checklist goes
   const [goLive, setGoLive] = useState<string | null>(null)
@@ -97,18 +100,28 @@ export default function App() {
     try { await setAge(adult) } catch { /* the line that asked says what went wrong */ }
     ageAsk?.(adult); setAgeAsk(null)
   }
-  useEffect(() => {
-    if (features.host === 'site' && (phone || (!hadSaved && !linkedId()))) void ensureTrio().then(() => { store.select(null); if (phone) store.setMode('show') }, () => {})
+  // the character the page was linked to (?c=<id>&as=…): opened as the editor starts (on a phone, once it is widened)
+  const openLink = () => {
     const id = linkedId(), as = linkedAs()
-    if (id && !phone) void openLinked(id, as).then(({ note, character }) => {
+    if (id) void openLinked(id, as).then(({ note, character }) => {
       if (note) ui.say(note)
       if (character && as === 'face') { setGoLive(character); setLeftFolded(false) }
       if (character && as === 'ai') { store.setTalk({ goal: 'live', ...goalOptions('live', false) }); ui.setPop('checklist') }
     })
+  }
+  useEffect(() => {
+    if (phoneShow.current) store.setMode('show')
+    if (features.host === 'site' && (phone || (!hadSaved && !linkedId()))) void ensureTrio().then(() => { store.select(null); if (phoneShow.current) store.setMode('show') }, () => {})
+    if (!phone) openLink()
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
   // on the site, signing in or out happens on its own pages, maybe in another tab: asked again when this one is back
   useEffect(() => { if (!(features.host === 'site')) return; const again = () => void refresh(); addEventListener('focus', again); return () => removeEventListener('focus', again) }, [])
-  useEffect(() => { if (phone && mode !== 'show') store.setMode('show') }, [phone, mode])
+  useEffect(() => {
+    if (phone || !phoneShow.current) return
+    phoneShow.current = false
+    if (store.mode() === 'show') store.setMode('edit')
+    openLink()
+  }, [phone])  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (firstVisit) ui.setPop('start') }, [])  // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(connectDesktop, [])
   useEffect(() => connectNeuro({ event: talk.externalEvent, dialogue: talk.externalDialogue, decide: talk.decideExternalAction, subscribeSpeech: talk.onSpeech }), [])

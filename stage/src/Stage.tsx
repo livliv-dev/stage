@@ -370,7 +370,7 @@ function CharacterView({ item }: { item: CharacterItem }) {
       return
     }
     let a: Actor
-    try { a = new Actor(canvas.current!, item); setError(''); crowd(item.id, false) } catch (e) { setError(refused(e)); crowd(item.id, crowdedOut(e)); return }
+    try { a = new Actor(canvas.current!, item); setError(''); crowd(item.id, false) } catch (e) { setError(refused(e, format)); crowd(item.id, crowdedOut(e)); return }
     actor.current = a
     const off = onActors(() => redraw((n) => n + 1))
     return () => { off(); a.dispose(); actor.current = null }

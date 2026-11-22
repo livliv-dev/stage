@@ -1,9 +1,10 @@
 // API keys and the sign-in in LivLiv Stage, kept encrypted by the system: those saved the old way (in the page's
 // storage) move to the app's encrypted file as it starts, each removed from the page's storage once written; the file
 // holds none in plain text; requests still carry the key to its own provider and nowhere else; a save whose write fails
-// keeps its plain copy, which moves on the next start; signing out and clearing a key stick even when the delete fails
-// to write (the old ones never come back from the file, and are deleted on a later start); a key the app can't decrypt
-// any more is reported; nothing logs them; a corrupted file starts the app with no keys.
+// keeps its plain copy, which moves on the next start; 清除 in the settings deletes a key from the file; signing out and
+// clearing a key stick even when the delete fails to write (the old ones never come back from the file, and are deleted
+// on a later start); a key the app can't decrypt any more is reported; nothing logs them; a corrupted file starts the
+// app with no keys.
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -77,6 +78,21 @@ try {
   await app.close()
   page = await open(origin)
   assert.equal(await page.evaluate(() => window.__stage.brain().key), KEY)
+  await app.close()
+
+  // 清除 in Settings › 连接: each key goes from the encrypted file (the delete the app does for any key emptied); the model
+  // and the speech API stay chosen; after a restart neither key comes back
+  page = await open(origin)
+  await page.locator('.topbar button[title="设置"]').click()
+  await page.locator('.settings-tabs button', { hasText: '连接' }).click()
+  for (const section of ['model', 'speech']) await page.locator(`[data-section="${section}"] button.clear-key`).click()
+  const stored = async () => Object.keys(JSON.parse(await readFile(join(artifacts, 'profile', 'keys.json'), 'utf8')).values)
+  for (let i = 0; i < 50 && (await stored()).some((name) => ['livliv-stage:brain', 'livliv-stage:speech'].includes(name)); i++) await new Promise((resolve) => setTimeout(resolve, 100))
+  assert.deepEqual((await stored()).filter((name) => ['livliv-stage:brain', 'livliv-stage:speech'].includes(name)), [], '清除 deletes them from the encrypted file')
+  assert.equal(await page.evaluate(() => localStorage.getItem('livliv-stage:keys-cleared')), null, 'the deletes were written: no marks left')
+  await app.close()
+  page = await open(origin)
+  assert.deepEqual(await page.evaluate(() => [window.__stage.brain().key, window.__stage.brain().model, window.__stage.voice.activeSpeech().key]), ['', 'fixture', ''], 'after a restart: no key, the model still chosen')
   await app.close()
 
   // the sign-in saved the old way moves too, and still signs in after a restart

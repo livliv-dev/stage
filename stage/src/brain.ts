@@ -12,9 +12,9 @@ import { tr } from './i18n'
 // In the desktop client a model's API is reached through the app (its /__ai pass-through, desktop stageApp.ts): no
 // CORS, so local servers (Ollama) and APIs without browser access work too
 import { useSyncExternalStore } from 'react'
-import { desktopFetch } from './request'
+import { desktopFetch, unreachable } from './request'
 import { features } from './core/platform'
-import { readKeyed, writeKeyed } from './core/secrets'
+import { clearKey, readKeyed, writeKeyed } from './core/secrets'
 import { hasSession, modelId, onAccount, signedIn, stageLine } from './livliv'
 import { demoReply } from './demo'
 import { LENGTHS, type CharacterItem, type Talk } from './scene'
@@ -95,6 +95,15 @@ export const loadBrainConfig = () => config
 export const previousModelConfig = (): ModelConfig => (saved.kind === 'openai' ? saved : UNSET)
 /** the saved choice: a model of one's own, or LivLiv's points */
 export const savedBrain = () => saved
+/** the text model's key cleared (Settings › 连接's 清除): from the saved model and from the one earlier versions kept
+ *  apart, here and in the desktop app's encrypted store. The model stays chosen, and needs a key again */
+export function clearBrainKey() {
+  for (const name of [KEY, LAST_MODEL] as const) { try { void clearKey(name) } catch { /* private mode */ } }
+  const was = saved
+  if (saved.kind === 'openai') saved = { ...saved, key: '' }
+  if (config === was) config = saved
+  subs.forEach((f) => f())
+}
 export function saveBrainConfig(c: ModelConfig | LivLivConfig) {
   saved = config = c
   try { void writeKeyed(KEY, c) } catch { /* private mode */ }
@@ -132,7 +141,7 @@ export async function aiFetch(url: string, init: RequestInit) {
     if (signal.aborted) throw signal.reason
     let host = url
     try { host = new URL(url).host } catch { /* not a URL */ }
-    throw new Error(tr("连不上 {0}", host), { cause: e })
+    throw unreachable(e, host)
   }
 }
 const endpoint = (c: ModelConfig, path: string) => `${c.base.replace(/\/+$/, '')}${path}`

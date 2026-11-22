@@ -68,7 +68,9 @@ test('metadata and the control API stay out of reach, also behind a DNS name', a
     'http://metadata.google.internal/computeMetadata/v1/', 'http://METADATA.google.internal./', 'http://rebind.example.com/',
     `http://127.0.0.1:${CONTROL}/api/stage/state`, `http://localhost:${CONTROL}/api/live/cmd?do=clear`, `http://[::1]:${CONTROL}/`])
     assert.equal((await send(to, deps)).status, 400, to)
-  assert.equal((await send('https://nowhere.invalid/', deps)).status, 502, 'a name that does not resolve')
+  const nowhere = await send('https://nowhere.invalid/', deps)
+  assert.equal(nowhere.status, 502, 'a name that does not resolve')
+  assert.equal(nowhere.headers.get('x-livliv-unreachable'), 'nowhere.invalid', 'named for the page to say in its own words')
   assert.equal(hops.length, 0)
 })
 
@@ -117,3 +119,11 @@ test('a cross-origin redirect cannot resend a model POST body', async () => {
   assert.equal(response.status, 400)
   assert.equal(hops.length, 1)
 })
+
+test('a service that never answers: a 502 naming its host, for the page to say in its own words', async () => {
+  const { deps } = network()
+  const r = await send('https://api.example.com/v1/chat', { ...deps, hop: async () => { throw new Error('connect ECONNREFUSED') } })
+  assert.equal(r.status, 502)
+  assert.equal(r.headers.get('x-livliv-unreachable'), 'api.example.com')
+})
+

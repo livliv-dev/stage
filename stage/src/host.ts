@@ -10,4 +10,5 @@ export const signInUrl = () => `/login?next=${encodeURIComponent(location.pathna
 export const signUpUrl = () => `/login?mode=signup&next=${encodeURIComponent(location.pathname + location.search)}`
 
 /** a phone or a small tablet: the site shows the demo and asks for a computer for the rest */
-export const small = () => typeof matchMedia === 'function' && matchMedia('(max-width: 760px), (pointer: coarse) and (max-width: 1024px)').matches
+export const SMALL = '(max-width: 760px), (pointer: coarse) and (max-width: 1024px)'
+export const small = () => typeof matchMedia === 'function' && matchMedia(SMALL).matches

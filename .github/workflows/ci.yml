@@ -49,7 +49,7 @@ jobs:
           - name: voice
             suites: handsfree voice-setup realtime journey goals voicebox-dropout
           - name: editor
-            suites: browser settings ux shots projects mixer profiles card-import
+            suites: browser settings ux shots projects mixer profiles card-import site-phone
           - name: live
             suites: audience props gamepad live collab collab-pose
           # every way a session starts, compared with its recorded behaviour (test/traces), and the persona prompts

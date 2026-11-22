@@ -7,6 +7,7 @@ import { forget, kept, type Kept } from '../vault'
 import { bubbleFor, captionBar, newCharacter, store, uid } from '../scene'
 import { checkConnect, openCreate, useAccount } from '../livliv'
 import { pictureFile } from '../assets'
+import { checkPicture } from '../modelCheck'
 import { SidebarToggle } from '../SidebarToggle'
 import { tr, getLocale } from '../i18n'
 import { features } from '../core/platform'
@@ -139,8 +140,11 @@ function PngForm({ onDone, onError }: { onDone: (p: Pick) => void; onError: (m: 
     return () => { for (const u of urls.current.values()) URL.revokeObjectURL(u) }
   }, [])
   const url = (f: File) => { let u = urls.current.get(f); if (!u) urls.current.set(f, (u = URL.createObjectURL(f))); return u }
-  const put = (slot: PngSlot, f: File | undefined) => {
-    if (!f || !f.type.startsWith('image/')) return
+  const put = async (slot: PngSlot, f: File | undefined) => {
+    if (!f) return
+    // what the slots take (modelCheck.ts checkPicture): anything else is said as it is dropped or picked
+    try { await checkPicture(f, f.name) } catch (e) { onError((e as Error).message); return }
+    onError('')
     setPics((p) => ({ ...p, [slot]: f }))
     if (!name && slot === 'closed') setName(f.name.replace(/\.[^.]+$/, '').replace(/[-_ ]*(closed|idle|闭嘴)$/i, ''))
   }
@@ -154,10 +158,10 @@ function PngForm({ onDone, onError }: { onDone: (p: Pick) => void; onError: (m: 
       {PNG_SLOTS.map((s) => {
         const f = pics[s.id]
         return <label key={s.id} className={`slot${s.need ? ' need' : ''}${f ? ' set' : ''}`}
-          onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); e.stopPropagation(); put(s.id, e.dataTransfer.files[0]) }}>
+          onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); e.stopPropagation(); void put(s.id, e.dataTransfer.files[0]) }}>
           {f ? <img src={url(f)} alt="" /> : <Plus size={18} />}
           <span>{tr(s.label ?? '')}</span>
-          <input type="file" accept="image/png,image/webp,image/gif" hidden onChange={(e) => { put(s.id, e.target.files?.[0]); e.target.value = '' }} />
+          <input type="file" accept="image/png,image/webp,image/gif" hidden onChange={(e) => { void put(s.id, e.target.files?.[0]); e.target.value = '' }} />
           {f && !s.need && <button className="icon clear" aria-label={tr("去掉{0}", s.label)} onClick={(e) => { e.preventDefault(); setPics((p) => ({ ...p, [s.id]: undefined })) }}><X size={12} /></button>}
         </label>
       })}

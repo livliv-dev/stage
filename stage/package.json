@@ -38,6 +38,7 @@
     "test:goals": "node test/goals.mjs",
     "test:live": "node test/live.mjs",
     "test:points": "node test/points.mjs",
+    "test:site-phone": "node test/site-phone.mjs",
     "test:guest": "node test/guest.mjs",
     "test:create": "node test/create.mjs",
     "test:desktop-notice": "node test/desktop-notice.mjs",
