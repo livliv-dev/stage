@@ -12385,7 +12385,7 @@ const READ_MEMORY_TOOL_NAME = "builtIn_readMemory";
 const WRITE_MEMORY_TOOL_NAME = "builtIn_writeMemory";
 const FORGET_MEMORY_TOOL_NAME = "builtIn_forgetMemory";
 const idSchema = (0, import_dist.pipe)((0, import_dist.string)(), (0, import_dist.minLength)(1), (0, import_dist.description)("The entry id, as the memory index shows it."));
-const readParameters = (0, import_dist.strictObject)({ ids: (0, import_dist.pipe)((0, import_dist.array)(idSchema), (0, import_dist.minLength)(1), (0, import_dist.maxLength)(4), (0, import_dist.description)("Up to four entries that the reply needs, so one call reads them all.")) });
+const readParameters = (0, import_dist.strictObject)({ ids: (0, import_dist.pipe)((0, import_dist.array)(idSchema), (0, import_dist.minLength)(1), (0, import_dist.description)("Up to four entries that the reply needs, so one call reads them all.")) });
 const forgetParameters = (0, import_dist.strictObject)({ id: idSchema });
 const entrySchema = (0, import_dist.strictObject)({
 	id: (0, import_dist.pipe)((0, import_dist.nullable)((0, import_dist.string)()), (0, import_dist.description)("The id of the entry to change, as the memory index shows it. Null for a new entry.")),
@@ -12401,8 +12401,8 @@ async function createMemoryTools(options) {
 			parameters: await toJsonSchema(readParameters),
 			execute: async (rawInput) => {
 				const parsed = (0, import_dist.safeParse)(readParameters, rawInput);
-				if (!parsed.success) return "Give one to four entry ids from the memory index.";
-				return parsed.output.ids.map((id) => {
+				if (!parsed.success) return "Give at least one entry id from the memory index.";
+				return parsed.output.ids.slice(0, 4).map((id) => {
 					const entry = options.read(id);
 					return entry ? `${entry.id} (${entry.persona ? "yours" : "general"}): ${entry.body}` : `No memory entry with id "${id}".`;
 				}).join("\n");
