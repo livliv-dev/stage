@@ -26,9 +26,9 @@ test('a workspace address, any other address, and OpenAI: WebRTC as before', () 
 
 test('a failure to connect says what to change', () => {
   assert.match(realtimeFailure('qwen', 401), /密钥/)
-  assert.match(realtimeFailure('qwen', 404), /模型名.*工作空间地址/)
-  assert.match(realtimeFailure('qwen', 0, 'Model not exist.'), /模型名/)
-  assert.match(realtimeFailure('openai', 404), /模型名/)
+  assert.match(realtimeFailure('qwen', 404), /实时模型或地址/)
+  assert.match(realtimeFailure('qwen', 0, 'Model not exist.'), /实时模型或地址/)
+  assert.match(realtimeFailure('openai', 404), /实时模型（404）/)
   assert.match(realtimeFailure('qwen', 429), /稍后再试/)
   assert.match(realtimeFailure('qwen', 0), /检查网络/)
 })

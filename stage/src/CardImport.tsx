@@ -37,7 +37,7 @@ export function CardImport({ c, patch }: { c: CharacterItem; patch: (p: Partial<
   return <div className="card-import">
     <button onClick={() => file.current?.click()}><Upload size={13} />{tr('导入角色卡')}</button>
     <input ref={file} type="file" accept=".png,.json,application/json,image/png" hidden onChange={(e) => { void chosen(e.target.files?.[0]); e.target.value = '' }} />
-    {!read && <p className="hint">{tr('SillyTavern 或 AIRI 导出的角色卡（.png / .json），只导入人设')}</p>}
+    {!read && <p className="hint">{tr('SillyTavern、AIRI 角色卡，只导入人设')}</p>}
     {read && !read.ok && <p className="hint error" role="alert">{tr(ERRORS[read.error])}</p>}
     {read?.ok && <div className="card-import-result" role="status">
       <p>{tr('已导入「{0}」：{1}', read.card.name, [
@@ -45,7 +45,7 @@ export function CardImport({ c, patch }: { c: CharacterItem; patch: (p: Partial<
         read.card.examples.length && tr('示例对话 {0} 句', read.card.examples.length),
       ].filter(Boolean).join(tr('、')))}</p>
       {read.left.length > 0 && <p className="hint">{tr('没有导入：{0}', read.left.map((l) => tr(LEFT[l])).join(tr('、')))}</p>}
-      <p className="hint">{tr('这个角色的身体和声音保持不变。')}{read.trimmed ? tr('有些内容太长，已截短。') : ''}</p>
+      {read.trimmed && <p className="hint">{tr('有些内容太长，已截短。')}</p>}
       {result?.before && <button className="link" onClick={() => { patch(result.before!); setResult(null) }}><Undo2 size={13} />{tr('撤销导入')}</button>}
     </div>}
   </div>

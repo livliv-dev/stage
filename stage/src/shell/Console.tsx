@@ -6,10 +6,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, LoaderCircle, MessagesSquare, Mic, Pause, Play, Send, SkipForward, Square } from 'lucide-react'
 import { tr } from '../i18n'
-import { useBrainConfig } from '../brain'
+import { useBrainConfig, useLivLiv } from '../brain'
 import { talk, useConversation } from '../conversation'
-import { useAccount } from '../livliv'
-import { cancel as pttCancel, clearError as pttClear, press as pttPress, release as pttRelease, setHandsFree, usePtt } from '../ptt'
+import { cancel as pttCancel, clearError as pttClear, press as pttPress, release as pttRelease, setHandsFree, stopHearing, usePtt } from '../ptt'
 import { useRealtime } from '../realtime'
 import { participants, store, useScene, type Goal } from '../scene'
 import { asrReady, useActiveSpeech } from '../voiceApi'
@@ -26,9 +25,9 @@ export type ConsoleProps = {
 }
 
 export function Console({ goal, partner, checks, optionsOpen, onOptions, onChecklist, onStart, onOwnModel, onModel, onVoice, onRoom, onRealtime, onLog, onMemory }: ConsoleProps) {
-  const { scene } = useScene(), conv = useConversation(), ptt = usePtt(), account = useAccount(), speech = useActiveSpeech(), brain = useBrainConfig(), realtime = useRealtime()
-  const hear = asrReady(speech) || account.status === 'in'
-  useEffect(() => { if (ptt.automatic && !hear) pttCancel() }, [hear, ptt.automatic])
+  const { scene } = useScene(), conv = useConversation(), ptt = usePtt(), livliv = useLivLiv(), speech = useActiveSpeech(), brain = useBrainConfig(), realtime = useRealtime()
+  const hear = livliv.voice || asrReady(speech)
+  useEffect(() => { if (ptt.automatic && !hear) stopHearing() }, [hear, ptt.automatic])
   const [mine, setMine] = useState(''), input = useRef<HTMLInputElement>(null), [first, setFirst] = useState('')
   const typed = brain.kind !== 'demo' && firstLineStart(goal, optionsOf(scene.talk, goal, partner))
   const start = () => { const line = typed ? first : ''; if (line) setFirst(''); onStart(line) }
@@ -76,19 +75,19 @@ export function Console({ goal, partner, checks, optionsOpen, onOptions, onCheck
         onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) void send() }} />
       <button className="icon" title={tr('说')} aria-label={tr('说')} disabled={!mine.trim() || closed} onClick={() => void send()}><Send size={15} /></button>
       {!ptt.automatic && <button className={`hold mic ${ptt.phase}`} aria-label={tr('按住说话')} disabled={!hear || inRealtime || ptt.phase === 'recognizing'} style={{ ['--level' as string]: ptt.level }}
-        title={tr(ptt.phase === 'recognizing' ? '正在识别，Esc 取消' : hear ? '按住说话，松开说出去（也可以按住 ` 键）' : '按住说话：在「设置 → 连接」接上语音识别后可用')}
+        title={tr(ptt.phase === 'recognizing' ? '正在识别，Esc 取消' : hear ? '也可以按住 ` 键' : '需要语音识别')}
         onPointerDown={(e) => { e.currentTarget.setPointerCapture?.(e.pointerId); void pttPress() }} onPointerUp={() => void pttRelease()} onPointerCancel={pttCancel} onContextMenu={(e) => e.preventDefault()}>
         {ptt.phase === 'recognizing' ? <LoaderCircle size={15} className="spin" /> : <Mic size={15} />}{tr('按住说话')}</button>}
       {(ptt.automatic || (hear && !inRealtime && conv.mode !== 'conversation')) && <button className={`handsfree${ptt.automatic ? ' on' : ''}`} aria-label={tr('免按键语音')} aria-pressed={ptt.automatic}
-        title={tr('自动判断说完；外放时建议戴耳机。')} onClick={() => void setHandsFree(!ptt.automatic)}>{tr(ptt.automatic ? '关闭免按键' : '免按键')}</button>}
-      {conv.waiting && <button onClick={talk.skip} title={tr('这次不说，跳过')}><SkipForward size={14} />{tr('这次不说')}</button>}
-      {!conv.waiting && !inRealtime && <button onClick={talk.next} title={tr('下一句：跳过等待，或者让正在说的停下')}><SkipForward size={14} />{tr('跳过这句')}</button>}
+        title={tr('建议戴耳机')} onClick={() => void setHandsFree(!ptt.automatic)}>{tr(ptt.automatic ? '关闭免按键' : '免按键')}</button>}
+      {conv.waiting && <button onClick={talk.skip}><SkipForward size={14} />{tr('这次不说')}</button>}
+      {!conv.waiting && !inRealtime && <button onClick={talk.next}><SkipForward size={14} />{tr('跳过这句')}</button>}
       {conv.paused ? <button onClick={talk.resume} disabled={inRealtime && realtime.phase === 'connecting'}><Play size={14} />{tr('继续')}</button> : <button onClick={talk.pause} disabled={inRealtime && realtime.phase === 'connecting'}><Pause size={14} />{tr('暂停')}</button>}
       <button className="danger" onClick={() => { pttCancel(); talk.stop() }}><Square size={13} />{tr('结束')}</button>
       <button className="icon" title={tr('对话记录')} aria-label={tr('对话记录')} onClick={onLog}><MessagesSquare size={16} />{conv.lines.length > 0 && <em>{conv.lines.length}</em>}</button>
       <button className="console-memory" onClick={onMemory}>{tr('记忆')}</button>
     </div>
-    {ptt.automatic && <p className="handsfree-status" role="status">{tr(conv.paused ? '已暂停收音，继续后恢复' : '免按键已开启 · 停顿后自动发送 · Esc 关闭')}</p>}
+    {ptt.automatic && <p className="handsfree-status" role="status">{tr(conv.paused ? '已暂停收音' : '免按键 · Esc 关闭')}</p>}
     {status}
     {errors}
   </div>

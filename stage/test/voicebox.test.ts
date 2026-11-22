@@ -80,7 +80,7 @@ test('readable errors: not running, no voice, a model downloading; the web has n
   setVoiceboxBridge(undefined)
   await assert.rejects(voiceboxSpeak('lily', '你好'), /桌面版/)
   assert.notEqual(voiceboxError('no-profiles'), voiceboxError('downloading'))
-  assert.match(voiceboxError('no-model'), /在 Voicebox 里用这个声音生成一句/, 'how to get the model: Stage starts no download')
+  assert.match(voiceboxError('no-model'), /还没下载这个声音的模型/, 'the voice\'s model is missing: Stage starts no download')
 })
 
 test('as the speech API: no key, ready to speak; its Whisper off until you switch it on, then your own recognition', () => {

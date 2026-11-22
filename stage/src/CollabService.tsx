@@ -55,14 +55,14 @@ export function CollabService({ service, active, server, setServer, onStop }: { 
     {service.native && (service.local || service.state.enabled) && <section className="collab-host" aria-label={tr('本机好友联播服务')}>
       <div className="collab-host-status"><b role="status">{tr(service.busy ? '请稍候…' : service.state.enabled ? '本机服务运行中' : '创建时自动启动本机服务')}</b>
         <button disabled={service.busy || !service.ready || (!service.state.enabled && !service.validPort)} onClick={() => void (service.state.enabled ? onStop() : service.start())}>{service.busy && <LoaderCircle size={12} className="spin" />}{tr(service.state.enabled ? '停止服务' : '启动服务')}</button></div>
-      <p className="hint">{tr(service.state.enabled ? '关闭应用或重载编辑器会停止服务。' : '应用内直接托管，无需源码或额外安装 Node。')}</p>
+      {service.state.enabled && <p className="hint">{tr('关闭应用或重载编辑器会停止服务。')}</p>}
       {service.state.enabled ? <>
         {service.state.urls.length > 0 && <label className="field"><span>{tr('朋友连接的地址')}</span><select aria-label={tr('朋友连接的地址')} value={service.selected} disabled={active} onChange={(event) => service.setAddress(event.target.value)}>{service.state.urls.map((url) => <option key={url} value={url}>{url}</option>)}</select></label>}
-        <p className="hint">{tr(service.state.network ? '朋友需连接同一网络。公网访问需要另行配置。' : '仅本机测试，邀请码不能用于其他电脑。')}</p>
+        <p className="hint">{tr(service.state.network ? '朋友需连接同一网络' : '仅本机测试，邀请码不能用于其他电脑。')}</p>
         {active && <p className="hint">{tr('停止服务会结束该服务上的所有好友联播。')}</p>}
       </> : <details className="collab-host-options"><summary>{tr('服务设置')}</summary>
         <label className="switch"><span>{tr('允许同一网络的朋友加入')}</span><input type="checkbox" checked={service.network} disabled={service.busy || !service.ready} onChange={(event) => service.setNetwork(event.target.checked)} /><i /></label>
-        <p className="hint">{tr(service.network ? '朋友需连接同一网络。公网访问需要另行配置。' : '仅本机测试，邀请码不能用于其他电脑。')}</p>
+        <p className="hint">{tr(service.network ? '朋友需连接同一网络' : '仅本机测试，邀请码不能用于其他电脑。')}</p>
         <label className="field"><span>{tr('本机端口（0 为自动）')}</span><input type="number" min={0} max={65535} value={service.port} aria-invalid={!service.validPort} disabled={service.busy} onChange={(event) => service.setPort(event.target.value)} /></label>
         {!service.validPort && <p className="error" role="alert">{tr('端口需为 0 到 65535 的整数。')}</p>}
       </details>}

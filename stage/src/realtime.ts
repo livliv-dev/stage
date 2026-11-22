@@ -73,7 +73,7 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
   if (conversation().running) return
   const actor = actors.get(characterId), character = actor?.item, config = realtimeCredentials(settings)
   if (!character || actor.status !== 'ready' || character.remote || character.lines !== 'ai') { set({ phase: 'error', error: tr('先选择一个已载入的 AI 角色') }); return }
-  if (settings.provider === 'qwen' && config.standard && !config.base) { set({ phase: 'error', error: tr('网页版的百炼实时通话要用百炼工作空间的专属地址（….maas.aliyuncs.com）；桌面版用标准密钥即可') }); return }
+  if (settings.provider === 'qwen' && config.standard && !config.base) { set({ phase: 'error', error: tr('网页版需填百炼工作空间地址（….maas.aliyuncs.com）') }); return }
   if (!config.key || !config.base || !config.model) { set({ phase: 'error', error: tr('请配置实时通话的接口地址、模型和密钥') }); return }
   try { saveRealtime(settings) } catch { /* The active call can use unsaved settings. */ }
   cancelPtt()

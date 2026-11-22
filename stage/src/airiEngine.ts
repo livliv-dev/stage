@@ -6,7 +6,8 @@ import type { MemoryRecord, MemoryScope } from './memory'
 import type { ReactionCue } from './reactions'
 import type { CharacterItem, Talk } from './scene'
 import type { AiriGameFrame, AiriGameMessage } from '../../protocol/src/airiGame'
-import { aiFetch } from './brain'
+import { aiFetch, failed, isTooLong, LIVLIV } from './brain'
+import { trimCall } from './brains/trimCall'
 import { firstSeen, historyText, windowStart } from './brains/airiHistory'
 import { airiSystemPrompt, MAX_REQUESTS, memoryBody, memoryIndexOf } from './brains/airiMemory'
 import { memoryBrief } from './brains/memoryBrief'
@@ -103,9 +104,28 @@ function provider(config: ModelConfig, signal: AbortSignal, options: {
             if (forceTool && body.tools?.some((tool: { function?: { name?: string } }) => tool.function?.name === forceTool)) body.tool_choice = { type: 'function', function: { name: forceTool } }
             else if (requests >= MAX_REQUESTS && body.tools?.length) body.tool_choice = 'none'
             if (batchOnly) { body.stream = false; delete body.stream_options }
-            return aiFetch(String(url), { ...init, headers, body: JSON.stringify(body), signal })
+            return post()
           }
-          let response = await send()
+          const post = () => aiFetch(String(url), { ...init, headers, body: JSON.stringify(body), signal })
+          // livliv.ai refusing the call as too long: the same call again, shorter, twice at most (brains/trimCall.ts; a
+          // level that leaves nothing out is skipped), never the turn from its start (that would ask a tool round again);
+          // still too long, said so (not asked again)
+          const sent = async () => {
+            const whole = body.messages, size = (messages: unknown) => JSON.stringify(messages).length
+            let length = size(whole)
+            for (const level of [0, 1, 2] as const) {
+              if (level) {
+                const shorter = trimCall(whole, level)
+                if (size(shorter) >= length) continue
+                body.messages = shorter; length = size(shorter)
+              }
+              try { return level ? await post() : await send() } catch (error) {
+                if (!isTooLong(error) || signal.aborted) throw error
+              }
+            }
+            throw new Error(tr('这次对话太长了'))
+          }
+          let response = await sent()
           if (allowBatch && response.status === 400 && body.stream) {
             const problem = await response.clone().json().catch(() => null)
             const error = problem?.error
@@ -117,6 +137,9 @@ function provider(config: ModelConfig, signal: AbortSignal, options: {
               response = await send(true)
             }
           }
+          // livliv.ai's own refusals (sign-in, points, the age question, its limits) in its words, as the standard engine
+          // says them, never as a key error
+          if (config.provider === LIVLIV && !response.ok && response.status < 500 && response.status !== 429) throw await failed(response)
           if (response.ok && (!response.body || !response.headers.get('content-type')?.includes('text/event-stream'))) {
             if (allowBatch && response.headers.get('content-type')?.includes('application/json')) {
               const adapted = await batchAsStream(response, model)

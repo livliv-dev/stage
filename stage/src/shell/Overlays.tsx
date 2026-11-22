@@ -21,8 +21,8 @@ export function CrowdNotice({ insets }: { insets: Insets }) {
   return (
     <div className="crowd-notice" role="status" style={{ left: insets.left + 16, right: insets.right + 16 }}>
       <p><CircleAlert size={15} />{features.shell
-        ? tr("舞台上的角色太多，显示不过来。桌面版大约 {0} 个能正常显示。请隐藏或移除一些角色。", ROOM)
-        : tr("舞台上的角色太多，这个浏览器显示不过来。浏览器里大约 {0} 个能正常显示，桌面版可以更多。请隐藏或移除一些角色。", ROOM)}</p>
+        ? tr("角色太多，最多显示约 {0} 个，请隐藏一些", ROOM)
+        : tr("角色太多，浏览器最多显示约 {0} 个，请隐藏一些", ROOM)}</p>
     </div>
   )
 }
@@ -67,7 +67,7 @@ export function AgeDialog({ onAnswer }: { onAnswer: (adult: boolean) => void }) 
     <div className="scrim" />
     <div className="card popover settings age-check" role="dialog" aria-modal="true" aria-labelledby="age-title" onPointerDown={(e) => e.stopPropagation()}>
       <header><span className="title" id="age-title">{tr("确认年龄")}</span></header>
-      <p className="hint">{tr("用 AI 让角色说话前，请确认你已年满 18 岁。")}</p>
+      <p className="hint">{tr("AI 对话需年满 18 岁")}</p>
       <div className="row end"><button onClick={() => onAnswer(false)}>{tr("未满 18 岁")}</button><button className="primary" autoFocus onClick={() => onAnswer(true)}>{tr("已满 18 岁")}</button></div>
     </div>
   </>

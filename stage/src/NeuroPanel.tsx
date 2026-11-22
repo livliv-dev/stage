@@ -20,7 +20,7 @@ export function NeuroPanel({ characters, onStart }: { characters: NeuroCharacter
   const character = characters.find((entry) => entry.id === selected) ?? characters[0]
   const requestedPort = Number(port), validPort = port.trim() !== '' && Number.isInteger(requestedPort) && requestedPort >= 0 && requestedPort <= 65535
   // the web: where it is in the desktop app
-  if (!neuro) return <section className="neuro-panel"><h3>{tr('游戏互动')} <span className="desk-tag">{tr('桌面版')}</span></h3><p className="hint">{tr('连接支持 Neuro SDK 的游戏，让角色参与互动。')}</p></section>
+  if (!neuro) return <section className="neuro-panel"><h3>{tr('游戏互动')} <span className="desk-tag">{tr('桌面版')}</span></h3><p className="hint">{tr('连接支持 Neuro SDK 的游戏')}</p></section>
   const toggle = async () => {
     setBusy(true); setError('')
     try {
@@ -34,7 +34,7 @@ export function NeuroPanel({ characters, onStart }: { characters: NeuroCharacter
   return <section className="neuro-panel">
     <details open={expanded} onToggle={(event) => setExpanded(event.currentTarget.open)}>
     <summary><span>{tr('游戏互动')}</span><small>{tr(state.enabled ? state.connections.length ? '已连接游戏' : '等待游戏连接' : '未开启')}</small></summary>
-    <p className="hint">{tr('连接支持 Neuro SDK 的游戏，让角色参与互动。')}</p>
+    <p className="hint">{tr('连接支持 Neuro SDK 的游戏')}</p>
     <p className="hint">{tr('开始后使用公开会话，私聊记忆不会传入。')}</p>
     <label className="field"><span>{tr('参与角色')}</span><select value={character?.id ?? ''} disabled={busy || state.enabled} onChange={(event) => setSelected(event.target.value)}>
       {characters.length ? characters.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>) : <option value="">{tr('先添加一个 AI 角色')}</option>}

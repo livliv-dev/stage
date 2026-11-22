@@ -1,9 +1,9 @@
-// LivLiv's points AI in the desktop app (core/platform.ts features.points, brain.ts, shell/ConnectForms.tsx ModelForm), on Stage's own build with the
-// app's bridge stood in for (window.livlivDesktop) and the site faked. Signed out: LivLiv is the first option, chosen it
-// says the site's price and offers 登录 livliv.ai, which starts the connect code (shown in the form, the site's page
-// opened), and once allowed LivLiv becomes the model. Signed in (a kept token): LivLiv is the model from the start and a
-// line is asked of the site with the app's token, voice true in its LivLiv voice, false on the system voice. A copy
-// hosted anywhere else offers no LivLiv. Nothing is spent.
+// livliv.ai in the desktop app (core/platform.ts features.points, brain.ts, shell/Connections.tsx), on Stage's own build
+// with the app's bridge stood in for (window.livlivDesktop) and the site faked. Signed out: Settings → 连接 starts with
+// livliv.ai's switch, off; turned on, it starts the connect code (shown in its row, the site's page opened), and once
+// allowed livliv.ai is on, its text and its voices. Signed in (a kept token): on from the start, a line is asked of
+// livliv.ai's text with the app's token and voiced by /say in its own voice, and on the system voice not. A copy hosted
+// anywhere else offers no livliv.ai. Nothing is spent.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { readFile } from 'node:fs/promises'
@@ -15,7 +15,7 @@ const root = fileURLToPath(new URL('..', import.meta.url)), errors = []
 const TOKEN = 'app.test-token'
 const clip = await readFile(join(root, 'public/demo/trio/01.mp3'))
 let server, browser
-const asked = []
+const asked = [], said = []
 let allowAfter = Infinity, polls = 0
 try {
   const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: '' } })
@@ -39,9 +39,13 @@ try {
       if (url.pathname === '/api/me') return route.fulfill({ json: member ? { signed_in: true, email: 'member@example.test', name: '', points: 10, stage_line_points: 0.3 } : { signed_in: false } })
       if (url.pathname === '/api/connect/start') return route.fulfill({ json: { code: 'ABCD-1234', poll: 'poll-1', url: 'https://livliv.ai/connect?code=ABCD1234', expires_in: 600, interval: 1 } })
       if (url.pathname === '/api/connect/poll') { polls += 1; return route.fulfill({ json: polls >= allowAfter ? { status: 'ok', token: TOKEN } : { status: 'pending' } }) }
-      if (/^\/api\/chat\/[^/]+\/stage-line$/.test(url.pathname)) {
-        const body = req.postDataJSON(); asked.push({ who: url.pathname.split('/')[3], voice: body.voice, auth })
-        return route.fulfill(member ? { json: { text: '今天的风好舒服。', emotion: 'happy', action: 'none', to: null, look: null, audio: body.voice ? '/api/chat/say/line.mp3' : null, points: 10 } } : { status: 402, json: { detail: '登录后即可使用' } })
+      if (url.pathname === '/api/stage/v1/chat/completions') {
+        asked.push({ model: req.postDataJSON().model, auth })
+        return route.fulfill(member ? { json: { choices: [{ message: { content: JSON.stringify({ text: '今天的风好舒服。', emotion: 'happy', action: 'none', to: null, look: null }) } }] } } : { status: 402, json: { detail: '登录后即可使用' } })
+      }
+      if (/^\/api\/chat\/[^/]+\/say$/.test(url.pathname)) {
+        said.push({ who: url.pathname.split('/')[3], auth })
+        return route.fulfill(member ? { json: { lines: [{ audio: '/api/chat/say/line.mp3', expression: null }], points: 9 } } : { status: 402, json: { detail: '登录后即可使用' } })
       }
       if (url.pathname === '/api/chat/say/line.mp3') return route.fulfill({ body: clip, contentType: 'audio/mpeg' })
       if (/^\/api\/chat\/[^/]+\/voices$/.test(url.pathname)) return route.fulfill({ json: { voices: [{ id: 'Cherry', name: 'Cherry', desc: '' }], voice: 'Cherry', own: null } })
@@ -54,53 +58,57 @@ try {
     return { page, context }
   }
   const row = (page) => page.locator('.model-form .providers button').allInnerTexts()
+  const livliv = (page) => page.locator('.connect-section.livliv')
   /** livliv.ai/stage's own parts (the web branch): the way to make a character, the logo link */
   const siteOnly = (page) => page.locator('.topbar .create-button, .topbar a.mark-link, .create-link').count()
   /** the console's model tag (the status line's first) and the way into Settings → 连接 */
   const chip = (page) => page.locator('.status-line .st-tag').first().innerText()
   const models = (page) => page.locator('.status-line .st-tag').first().click()
 
-  // the desktop app, signed out, nothing chosen: LivLiv first, the price, sign in with a code; allowed, it is the model
+  // the desktop app, signed out, nothing chosen: livliv.ai's switch first, off; turned on, a code; allowed, it is on
   let { page, context } = await open({ app: true }, '/?c=k01&as=ai')
   await models(page)
-  assert.equal((await row(page))[0], 'livliv.ai', 'LivLiv is the first option in the app')
-  await page.locator('.model-form .providers button', { hasText: 'livliv.ai' }).click()
-  await page.locator('.account-panel').waitFor()
+  assert.equal(await livliv(page).locator('.switch.main input').isChecked(), false, 'signed out: off')
+  assert.ok(!(await row(page)).includes('livliv.ai'), 'livliv.ai is its own switch, not a text model')
   allowAfter = 2
-  await page.locator('.account-panel').getByRole('button', { name: '登录 livliv.ai', exact: true }).click()
-  await page.locator('.account-connect', { hasText: 'ABCD-1234' }).waitFor()
+  await livliv(page).locator('.switch.main').click()
+  await livliv(page).locator('.connect-wait', { hasText: 'ABCD-1234' }).waitFor()
   assert.deepEqual(await page.evaluate(() => window.opened), ['https://livliv.ai/connect?code=ABCD1234'], "the site's page is opened in the browser")
-  await page.waitForFunction(() => !document.querySelector('.account-connect'), null, { timeout: 15000 })
+  await page.waitForFunction(() => !document.querySelector('.connect-section.livliv .connect-wait'), null, { timeout: 15000 })
   assert.equal(await page.evaluate(() => localStorage.getItem('livliv-stage:session')), TOKEN, 'the connect token is kept')
+  await page.waitForFunction(() => document.querySelector('.connect-section.livliv .switch.main input')?.checked)
+  assert.equal(await livliv(page).locator('.livliv-parts input:checked').count(), 2, 'on: its text and its voices')
   await page.keyboard.press('Escape')
-  await page.waitForFunction(() => document.querySelector('.status-line .st-tag')?.textContent?.includes('LivLiv'))
-  assert.match(await chip(page), /LivLiv/, 'signed in with nothing chosen yet: LivLiv is the model')
+  await page.waitForFunction(() => document.querySelector('.status-line .st-tag')?.textContent?.includes('livliv.ai'))
+  assert.match(await chip(page), /livliv\.ai/, 'signed in: livliv.ai gives the text')
   await context.close()
 
-  // the desktop app, signed in (a kept token): LivLiv from the start; a line asked with the app's token
+  // the desktop app, signed in (a kept token): livliv.ai from the start; a line asked with the app's token, voiced in its own voice
   ;({ page, context } = await open({ app: true, token: TOKEN }, '/?c=k01&as=ai'))
   await page.waitForFunction(() => [...window.__stage.actors.values()].some((a) => a.status === 'ready'), null, { timeout: 60000 })
-  await page.waitForFunction(() => document.querySelector('.status-line .st-tag')?.textContent?.includes('LivLiv'))
+  await page.waitForFunction(() => document.querySelector('.status-line .st-tag')?.textContent?.includes('livliv.ai'))
   const first = async (start) => {
-    asked.length = 0
+    asked.length = 0; said.length = 0
     await page.evaluate(start)
-    for (let i = 0; i < 200 && !asked.length; i++) await page.waitForTimeout(100)
+    for (let i = 0; i < 300 && !(asked.length && (said.length || (await page.evaluate(() => window.__stage.conversation().lines.some((l) => !l.human))))); i++) await page.waitForTimeout(100)
+    await page.waitForTimeout(300)
     await page.evaluate(() => window.__stage.talk.stop())
     assert.ok(asked.length, 'a line was asked for')
-    return asked[0]
+    return { text: asked[0], voice: said[0] ?? null }
   }
   const voiced = await first(() => window.__stage.talk.start())
-  assert.deepEqual(voiced, { who: 'k01', voice: true, auth: `Bearer ${TOKEN}` }, "with the app's token, its LivLiv voice")
+  assert.deepEqual(voiced, { text: { model: 'livliv', auth: `Bearer ${TOKEN}` }, voice: { who: 'k01', auth: `Bearer ${TOKEN}` } }, "with the app's token, its own voice")
   await page.evaluate(() => { for (const c of window.__stage.store.get().items.filter((i) => i.kind === 'character')) window.__stage.store.patch(c.id, { voice: { ...c.voice, source: 'system' } }) })
   const system = await first(() => window.__stage.talk.start())
-  assert.deepEqual(system, { who: 'k01', voice: false, auth: `Bearer ${TOKEN}` }, 'on the system voice: no voice asked of the site')
+  assert.deepEqual(system, { text: { model: 'livliv', auth: `Bearer ${TOKEN}` }, voice: null }, 'on the system voice: no voice asked of the site')
   assert.equal(await siteOnly(page), 0, "main has none of livliv.ai/stage's own parts (they live on the web branch)")
   await context.close()
 
-  // a copy of Stage hosted anywhere else (neither the site nor the app): no LivLiv
+  // a copy of Stage hosted anywhere else (neither the site nor the app): no livliv.ai
   ;({ page, context } = await open({ app: false }, '/?c=k01&as=ai'))
   await models(page)
-  assert.ok(!(await row(page)).includes('LivLiv'), 'no LivLiv outside the site and the app')
+  assert.equal(await livliv(page).count(), 0, 'no livliv.ai outside the site and the app')
+  assert.ok(!(await row(page)).includes('livliv.ai'))
   assert.equal(await siteOnly(page), 0, "nor the site's own parts")
   await context.close()
 

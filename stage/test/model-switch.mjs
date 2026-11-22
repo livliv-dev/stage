@@ -1,4 +1,4 @@
-// The model set up answers the next line, even mid-session: a chat on LivLiv's points (each line paid) whose model is
+// The model set up answers the next line, even mid-session: a chat on livliv.ai's text (each line paid) whose model is
 // switched to one of one's own answers the next line from that model, and nothing more is asked of livliv.ai. A game
 // action asked during a realtime call (the Neuro bridge) is decided by the model set up. On the site's build, signed
 // in (the site is faked: nothing is spent).
@@ -16,9 +16,9 @@ try {
   await context.route('**/*', async (route) => {
     const req = route.request(), url = new URL(req.url())
     if (url.pathname === '/api/me') return route.fulfill({ json: { signed_in: true, email: 'member@example.test', points: 10, plan: 'plus', record_seconds: 300, record_mark: false, stage_line_points: 0.5, stage_silent_free: true } })
-    if (/^\/api\/chat\/[^/]+\/stage-line$/.test(url.pathname)) {
+    if (url.pathname === '/api/stage/v1/chat/completions') {
       paid.push(req.postDataJSON())
-      return route.fulfill({ json: { text: '这一句来自 LivLiv。', emotion: 'neutral', action: 'none', to: null, look: null, audio: null, points: 9 } })
+      return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: '这一句来自 LivLiv。', emotion: 'neutral', action: 'none', to: null, look: null }) } }] } })
     }
     if (url.pathname === '/fixture-ai/chat/completions') {
       const body = req.postData() ?? ''; own.push(body)
@@ -43,7 +43,7 @@ try {
   const aiLines = () => page.evaluate(() => window.__stage.conversation().lines.filter((l) => !l.human).map((l) => l.text))
   const answered = (n) => page.waitForFunction((n) => { const c = window.__stage.conversation(); return c.waitingInput && !c.speaking && c.lines.filter((l) => !l.human).length >= n }, n)
 
-  // a chat on LivLiv's points; the model is switched to one's own mid-chat: the next line is from it, and nothing more is paid
+  // a chat on livliv.ai's text; the model is switched to one's own mid-chat: the next line is from it, and nothing more is paid
   await brain({ kind: 'livliv' })
   await page.evaluate(async () => { const { talk } = window.__stage; await talk.newChat(); await talk.startChat('private') })
   await page.waitForFunction(() => window.__stage.conversation().waitingInput)

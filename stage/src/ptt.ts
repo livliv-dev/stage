@@ -3,7 +3,8 @@ import { useSyncExternalStore } from 'react'
 import { wav16k } from './audio'
 import { inputs, microphoneConstraints, onInputs, refreshDevices } from './devices'
 import { conversation, onConv, sessionScope, talk } from './conversation'
-import { recognize, signedIn } from './livliv'
+import { recognize } from './livliv'
+import { livlivNow } from './brain'
 import { busGain, onMixer } from './mixer'
 import { routeMicrophone } from './microphone'
 import { activeSpeech, asrReady, transcribeApi } from './voiceApi'
@@ -18,7 +19,7 @@ const subs = new Set<() => void>()
 const set = (change: Partial<PttState>) => { state = { ...state, ...change }; subs.forEach((f) => f()) }
 export const pttState = () => state
 export const usePtt = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => state)
-export const canHear = () => asrReady(activeSpeech()) || signedIn()
+export const canHear = () => livlivNow().voice || asrReady(activeSpeech())
 
 const MAX = 30, MIN = .4, WARM = 30_000
 // The session owns the device; each capture owns only its recording. ASR never stops the next capture.
@@ -113,10 +114,10 @@ async function drain(run: MicSession) {
         const pcm = buffer.getChannelData(0).slice(0, Math.round(MAX * buffer.sampleRate))
         const wav = await wav16k(pcm, buffer.sampleRate), speech = activeSpeech()
         signal.throwIfAborted()
-        // a session that started on your own recognition never turns to LivLiv's (points) when yours goes away: hearing
-        // stops instead (sessions/spend.ts)
-        const hearing = hearingNow(asrReady(speech), current()?.spend)
-        if (hearing === 'stop') { cancel(); set({ error: tr('自己的语音识别不可用了：已停止听你说话，不会改用积分识别') }); return }
+        // livliv.ai's recognition while its voices are on, else your own; a session that started on your own never turns
+        // to livliv.ai's (points): hearing stops instead (sessions/spend.ts)
+        const hearing = hearingNow(livlivNow().voice, asrReady(speech), current()?.spend)
+        if (hearing === 'stop') { stopHearing(); return }
         const said = hearing === 'own' ? await transcribeApi(speech, wav, signal) : await recognize(wav, signal)
         signal.throwIfAborted()
         if (said) talk.say(said, { transcribed: run.automatic, respond: !run.automatic || !isBackchannel(said, capture.seconds, capture.duringReply) })
@@ -179,7 +180,7 @@ async function arm() {
 export async function setHandsFree(on: boolean) {
   if (!on) { cancel(); return }
   if (state.automatic) return
-  if (!canHear()) { set({ error: tr('在设置里接上语音识别后可用') }); return }
+  if (!canHear()) { set({ error: tr('需要语音识别') }); return }
   const conv = conversation()
   if (!conv.running || !['chat', 'live'].includes(conv.mode)) { set({ error: tr('先开始聊天，再开启免按键语音') }); return }
   if (!busGain('microphone')) { set({ error: tr('请先取消麦克风静音，再开启免按键语音') }); return }
@@ -190,7 +191,7 @@ export async function press(toggle = false) {
   if (conversation().running && conversation().mode === 'realtime') return
   if (state.automatic) cancel()
   if (state.phase !== 'idle') return
-  if (!canHear()) { set({ error: tr('在设置里接上语音识别后可用') }); return }
+  if (!canHear()) { set({ error: tr('需要语音识别') }); return }
   await begin(toggle, false)
 }
 
@@ -239,6 +240,9 @@ onMixer(() => {
 })
 
 export const clearError = () => { if (state.error) set({ error: '' }) }
+/** nothing can hear you any more (your own recognition gone, livliv.ai's voices off or started without): hands-free
+ *  stops, and says why */
+export function stopHearing() { cancel(); set({ error: tr('语音识别停了，已停止听你说话') }) }
 export const togglePtt = () => state.automatic ? press(true) : state.phase === 'recognizing' ? cancel() : state.phase === 'idle' ? press(true) : release()
 
 export function holdKey() {

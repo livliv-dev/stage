@@ -83,7 +83,7 @@ export function AddCharacter({ left, onClose, onSignIn }: { left: number; onClos
       <p className="label first">{tr("导入")}</p>
       <div className="row imports">
         <button title={tr("LivLiv 模型包（文件夹）")} onClick={() => folder.current?.click()}><FolderOpen size={15} />{tr("模型文件夹")}</button>
-        <button title={tr("LivLiv 模型包（.livliv 或 zip），或 VRM（VRoid 等）")} onClick={() => file.current?.click()}><FileBox size={15} />.livliv / VRM</button>
+        <button title={tr(".livliv、zip 或 VRM 文件")} onClick={() => file.current?.click()}><FileBox size={15} />.livliv / VRM</button>
         <button className={png ? 'on' : ''} aria-expanded={png} onClick={() => setPng((v) => !v)}><ImageIcon size={15} />{tr("PNG 立绘")}</button>
         <input ref={folder} type="file" hidden {...{ webkitdirectory: '' }} onChange={(e) => { void files(e.target.files); e.target.value = '' }} />
         <input ref={file} type="file" accept=".livliv,.zip,.vrm" hidden onChange={(e) => { void files(e.target.files); e.target.value = '' }} />
@@ -106,7 +106,7 @@ export function AddCharacter({ left, onClose, onSignIn }: { left: number; onClos
                 {k.name}{k.format && k.format !== 'livliv' && <i className="fmt">{k.format === 'vrm' ? 'VRM' : tr("立绘")}</i>}
               </button>
               <span>{new Date(k.at).toLocaleDateString(getLocale())}</span>
-              <button className="icon" title={tr("从这台电脑上删掉（用到它的角色会显示要重新导入）")}
+              <button className="icon" title={tr("从本机删除（用到它的角色要重新导入）")}
                 onClick={() => { void forget(k.key).then(() => setMine((m) => m.filter((x) => x.key !== k.key))) }}><X size={13} /></button>
             </div>
           ))}

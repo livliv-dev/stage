@@ -16,7 +16,6 @@ type Props = {
   value: string; catalog: Voices | null; loading: boolean; error: string; disabledReason?: string
   onRetry(): void; onChange(voice: string): void
   onPreview(voice: string, signal: AbortSignal): Promise<void>
-  onSignIn?: () => void
 }
 
 export function VoicePicker(props: Props) {
@@ -27,14 +26,14 @@ export function VoicePicker(props: Props) {
   const current = value ? name(value) ?? tr('已保存的音色') : tr('默认声音')
   const detail = value ? value === own?.id ? own.name : catalog?.voices.find((voice) => voice.id === value)?.desc : catalog ? tr('跟随角色设置 · {0}', name(catalog.voice) ?? tr('默认')) : tr('跟随角色设置')
   return <div className="voice-picker">
-    <button className="voice-current" aria-haspopup="dialog" aria-label={tr(props.onSignIn ? '浏览官方音色' : '更换音色')} onClick={() => setOpen(true)}>
-      <span><b>{props.onSignIn ? tr('LivLiv 官方音色') : current}</b><small>{props.onSignIn ? tr('可先浏览音色，登录后试听和使用。') : detail}</small></span><ChevronDown size={16} />
+    <button className="voice-current" aria-haspopup="dialog" aria-label={tr('更换音色')} onClick={() => setOpen(true)}>
+      <span><b>{current}</b><small>{detail}</small></span><ChevronDown size={16} />
     </button>
     {open && <VoiceDialog {...props} onClose={() => setOpen(false)} />}
   </div>
 }
 
-function VoiceDialog({ value, catalog, loading, error, disabledReason, onRetry, onChange, onPreview, onSignIn, onClose }: Props & { onClose(): void }) {
+function VoiceDialog({ value, catalog, loading, error, disabledReason, onRetry, onChange, onPreview, onClose }: Props & { onClose(): void }) {
   const dialog = useRef<HTMLDialogElement>(null), preview = useRef<AbortController | null>(null), group = useId(), title = useId()
   const [draft, setDraft] = useState(value), [query, setQuery] = useState(''), [filter, setFilter] = useState('all')
   const [recent] = useState(recentVoices), [playing, setPlaying] = useState<string | null>(null), [previewError, setPreviewError] = useState('')
@@ -66,8 +65,8 @@ function VoiceDialog({ value, catalog, loading, error, disabledReason, onRetry, 
     const rect = event.currentTarget.getBoundingClientRect()
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) close()
   }}>
-    <header><div><h2 id={title}>{tr('选择角色音色')}</h2><p>{tr(onSignIn ? '可先浏览音色，登录后试听和使用。' : '先选一个试听，满意后再应用。')}</p></div><button className="icon" aria-label={tr('关闭')} onClick={close}><X size={18} /></button></header>
-    <p className="voice-provider">{tr('LivLiv 官方音色')}</p>
+    <header><div><h2 id={title}>{tr('选择角色音色')}</h2></div><button className="icon" aria-label={tr('关闭')} onClick={close}><X size={18} /></button></header>
+    <p className="voice-provider">{tr('livliv.ai 音色')}</p>
     <div className="voice-search"><Search size={16} /><input autoFocus type="search" aria-label={tr('搜索音色')} placeholder={tr('搜名字或声音特点，如温柔、低沉')} value={query} onChange={(event) => setQuery(event.target.value)} /></div>
     <div className="voice-filters" aria-label={tr('音色分类')}>
       {[{ id: 'all', label: '全部' }, { id: 'recent', label: '最近使用' }, ...GROUPS.filter((entry) => catalog?.voices.some((voice) => voice.group === entry.id))].map((entry) => <button key={entry.id} aria-pressed={filter === entry.id} onClick={() => setFilter(entry.id)}>{tr(entry.label)}</button>)}
@@ -82,12 +81,11 @@ function VoiceDialog({ value, catalog, loading, error, disabledReason, onRetry, 
         </article>)}</div>
       </>}
     </div>
-    <div className="voice-preview-note"><p className="hint">{disabledReason ?? tr('试听会生成一句角色语音，按 LivLiv 的用量规则计费。')}</p>{previewError && <p className="error" role="alert">{tr('试听失败：{0}', previewError)}</p>}</div>
-    <footer><span>{picked?.name ?? tr('请选择音色')}</span><button onClick={close}>{tr('取消')}</button><button className="primary" disabled={!onSignIn && (!picked || loading || !!error)} onClick={() => {
-      if (onSignIn) { close(); onSignIn(); return }
+    <div className="voice-preview-note"><p className="hint">{disabledReason ?? tr('试听按积分')}</p>{previewError && <p className="error" role="alert">{tr('试听失败：{0}', previewError)}</p>}</div>
+    <footer><span>{picked?.name ?? tr('请选择音色')}</span><button onClick={close}>{tr('取消')}</button><button className="primary" disabled={!picked || loading || !!error} onClick={() => {
       stop(); onChange(draft)
       try { localStorage.setItem(RECENT, JSON.stringify([draft, ...recent.filter((id) => id !== draft)].slice(0, 6))) } catch { /* The voice is selected even if recent choices cannot be saved. */ }
       onClose()
-    }}><Check size={14} />{tr(onSignIn ? '登录使用' : '应用音色')}</button></footer>
+    }}><Check size={14} />{tr('应用音色')}</button></footer>
   </dialog>, document.body)
 }

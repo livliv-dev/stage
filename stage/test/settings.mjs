@@ -73,7 +73,7 @@ try {
   await page.waitForFunction(() => window.__stage.actors.size === 1 && [...window.__stage.actors.values()].every(actor => actor.status === 'ready'))
 
   // No provider configured: the user chooses a model before being asked to sign in. The goal is 和角色聊天; its start
-  // opens Settings → 连接 at the text model.
+  // opens Settings → 连接 at the text model, below livliv.ai's switch (off: signed out).
   const startChat = page.locator('.console .start-button')
   assert.equal((await startChat.innerText()).trim(), '开始聊天')
   await startChat.click()
@@ -83,11 +83,12 @@ try {
   assert.equal(await page.locator('.account-panel').count(), 0, 'Continuous chat must first show model settings')
   assert.equal(calls.length, 0)
   await page.screenshot({ path: join(artifacts, 'chat-model-settings.png') })
-  await model.locator('.providers').getByRole('button', { name: 'livliv.ai', exact: true }).click()
-  await settings.locator('.account-panel').waitFor()
-  await page.keyboard.press('Escape')
-  await startChat.click()
-  await model.waitFor()
+  // livliv.ai turned on signed out asks to sign in first (the fixture site gives no code): it stays off
+  const livliv = settings.locator('.connect-section.livliv')
+  await livliv.locator('.switch.main').click()
+  await livliv.locator('[role="alert"]').waitFor()
+  assert.equal(await livliv.locator('.switch.main input').isChecked(), false, 'livliv.ai stays off until signed in')
+  assert.equal(await model.locator('.providers').getByRole('button', { name: 'livliv.ai', exact: true }).count(), 0, 'livliv.ai is no text model of its own here')
   await model.locator('.providers').getByRole('button', { name: '其他', exact: true }).click()
   await model.getByLabel('接口地址', { exact: true }).fill(`http://127.0.0.1:${port}/fixture-ai`)
   await model.getByLabel('密钥').fill('fixture-model-key')

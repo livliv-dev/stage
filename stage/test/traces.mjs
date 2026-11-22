@@ -6,7 +6,7 @@
 //   npm run test:traces -- chat duet         only these
 //   npm run test:traces -- --update [names]  writes the files anew from this run: read the diff before keeping it
 // Scenarios drive Stage the way its console does (talk.*, the hands-free switch, a recording), never through the UI,
-// so a new console keeps them. Model, voice, recognition and LivLiv calls go to fixtures that answer from what they
+// so a new console keeps them. Model, voice, recognition and livliv.ai calls go to fixtures that answer from what they
 // are asked, so a run gives the same lines every time.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
@@ -47,7 +47,8 @@ const readMemory = (ids) => chunk({ role: 'assistant', tool_calls: [{ index: 0, 
 async function serve(route, world) {
   const request = route.request(), url = new URL(request.url())
   const json = (body) => route.fulfill({ json: body }).catch(() => {})
-  if (url.pathname === '/fixture-ai/chat/completions') {
+  // a model of one's own, and livliv.ai's text: the same OpenAI-compatible answer
+  if (url.pathname === '/fixture-ai/chat/completions' || url.pathname === '/api/stage/v1/chat/completions') {
     const body = request.postDataJSON()
     if (world.modelDelay) await new Promise((resolve) => setTimeout(resolve, world.modelDelay))
     if (world.modelFailures > 0) { world.modelFailures--; return route.fulfill({ status: 503, json: { error: { message: 'Fixture model unavailable' } } }).catch(() => {}) }
@@ -68,13 +69,7 @@ async function serve(route, world) {
   if (url.pathname === '/fixture-ai/audio/speech' || url.pathname === '/api/chat/say/line.mp3') return route.fulfill({ contentType: 'audio/wav', body: wav(world.voiceSeconds) }).catch(() => {})
   if (url.pathname === '/fixture-ai/audio/transcriptions') return json({ text: world.transcript ?? '' })
   if (url.pathname === '/api/me') return json(world.signedIn ? { signed_in: true, email: 'trace@example.test', points: 1000, plan: 'plus', stage_line_points: 0.5 } : { signed_in: false })
-  const stageLine = /^\/api\/chat\/([^/]+)\/stage-line$/.exec(url.pathname)
-  if (stageLine) {
-    const body = request.postDataJSON(), name = world.livliv[stageLine[1]] ?? stageLine[1]
-    const n = body.lines.filter((line) => line.me).length + 1
-    return json({ text: replyText(name, n), emotion: 'happy', action: 'nod', to: null, look: null, audio: body.voice ? '/api/chat/say/line.mp3' : null, points: 999 })
-  }
-  if (/^\/api\/chat\/[^/]+\/say$/.test(url.pathname)) return json({ lines: [{ audio: '/api/chat/say/line.mp3', expression: null }], points: 999 })
+  if (/^\/api\/chat\/([^/]+\/)?say$/.test(url.pathname)) return json({ lines: [{ audio: '/api/chat/say/line.mp3', expression: null }], points: 999 })
   if (/^\/api\/chat\/[^/]+\/voices$/.test(url.pathname)) return json({ voices: [{ id: 'Cherry', name: 'Cherry', desc: '' }], voice: 'Cherry', own: null })
   if (url.pathname.startsWith('/api/')) return route.fulfill({ status: 404, json: { detail: 'none' } }).catch(() => {})
   if (['127.0.0.1', 'localhost'].includes(url.hostname) || ['data:', 'blob:'].includes(url.protocol)) return route.continue().catch(() => {})
@@ -102,13 +97,13 @@ function beforeApp({ desktop, signedIn }) {
     return destination.stream
   }
   navigator.mediaDevices.enumerateDevices = async () => []
-  const trace = window.__trace = { on: false, events: [], memories: [], names: {} }
+  const trace = window.__trace = { on: false, events: [], memories: [], names: {}, lines: [] }
   const push = (event) => { if (trace.on) trace.events.push(event) }
   /** a memory a request carried, by its id: its scope and text */
   const request = (url, init) => {
     const path = new URL(url, location.href).pathname, body = typeof init?.body === 'string' ? init.body : ''
-    if (path === '/fixture-ai/chat/completions') {
-      const sent = JSON.parse(body)
+    if (path === '/fixture-ai/chat/completions' || path === '/api/stage/v1/chat/completions') {
+      const sent = JSON.parse(body), via = path.startsWith('/api/') ? 'livliv' : null
       if (sent.stream) {
         const text = JSON.stringify(sent.messages), user = sent.messages.findLast((m) => m.role === 'user')
         const said = textOf(user)?.replace(/^\[[^\]]*\d{2}:\d{2}[^\]]*\]\s*/, '')
@@ -118,18 +113,18 @@ function beforeApp({ desktop, signedIn }) {
         const note = shown >= 0 ? JSON.parse(said.slice(0, shown)).notify?.note : undefined
         const input = shown >= 0 ? undefined : said?.split('\n[Context]')[0].trim()
         const read = readByAiri(sent.messages)
-        push({ t: 'model', engine: 'airi', speaker: /You are \\"([^\\]+)\\"/.exec(text)?.[1] ?? '?', scope: text.includes('in a private LivLiv Stage conversation') ? 'private' : 'public', memories: carriedByAiri(sent.messages),
+        push({ t: 'model', engine: 'airi', ...(via ? { via } : {}), speaker: /You are \\"([^\\]+)\\"/.exec(text)?.[1] ?? '?', scope: text.includes('in a private LivLiv Stage conversation') ? 'private' : 'public', memories: carriedByAiri(sent.messages),
           ...(read.length ? { read } : {}), ...(input ? { input } : {}), ...(note ? { event: note } : {}) })
         return
       }
       const payload = JSON.parse(sent.messages[1].content), system = sent.messages[0].content
-      push({ t: 'model', engine: 'openai', speaker: payload.speaker, scope: system.includes('正在与用户和在场角色聊天') ? 'private' : 'public', memories: carriedByBrain(payload.memories ?? []),
+      push({ t: 'model', engine: via ?? 'openai', speaker: payload.speaker, scope: system.includes('正在与用户和在场角色聊天') ? 'private' : 'public', memories: carriedByBrain(payload.memories ?? []),
         ...(payload.viewer ? { viewer: `${payload.viewer.user}: ${payload.viewer.text}` } : {}), ...(payload.event ? { event: payload.event.message } : {}) })
     } else if (path === '/fixture-ai/audio/speech') push({ t: 'voice', via: 'api', text: JSON.parse(body).input })
-    else if (/^\/api\/chat\/[^/]+\/say$/.test(path)) push({ t: 'voice', via: 'livliv', text: JSON.parse(body).lines.map((line) => line.text).join(' ') })
-    else if (/\/stage-line$/.test(path)) {
-      const sent = JSON.parse(body), background = sent.lines.filter((line) => line.name.startsWith('背景资料')).map((line) => line.text).join('\n')
-      push({ t: 'model', engine: 'livliv', speaker: trace.names[path.split('/')[3]] ?? '?', memories: trace.memories.filter((m) => background.includes(m.text)).map((m) => m.label), voiced: sent.voice })
+    else if (/^\/api\/chat\/([^/]+\/)?say$/.test(path)) {
+      // a livliv.ai voice is paid by the line: which line (1, 2, …) each call is a sentence of
+      const sent = JSON.parse(body), line = trace.on ? (trace.lines.includes(sent.line) ? 0 : trace.lines.push(sent.line), trace.lines.indexOf(sent.line) + 1) : 0
+      push({ t: 'voice', via: 'livliv', line, text: sent.lines.map((one) => one.text).join(' ') })
     }
   }
   // which memories a request carried, read only where the code puts them, each as the code writes it (the app's own
@@ -245,6 +240,9 @@ const stage = (page, o) => page.evaluate(async (o) => {
   store.setTalk({ order: 'free', interrupt: 0, cutIn: false, danmaku: 0, language: 'zh', ...o.talk })
   if (o.topic) store.set({ topic: o.topic })
   saveBrainConfig(o.brain === 'livliv' ? { kind: 'livliv' } : { kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' })
+  // livliv.ai's voices as chosen in 连接: on where a scenario's characters speak in them (never chosen, they stay off
+  // beside the speech service set up below)
+  ;(await import('/src/brain.ts')).setLivLiv({ voice: o.livlivVoice ?? (o.brain === 'livliv' || o.voice === 'livliv') })
   saveSpeech({ provider: 'openai', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-tts', voice: 'alloy', asr: 'fixture-asr' })
   for (const { scope, text } of o.memories ?? []) {
     const profileId = store.get().items.find((item) => item.id === ids[o.cast[0]]).profileId
@@ -436,7 +434,7 @@ const SCENARIOS = [
     },
   },
   {
-    name: 'livliv-points', about: 'Desktop, signed in to LivLiv, 对谈 with LivLiv\'s points model: each line is one stage-line request that brings its voice (no /say)',
+    name: 'livliv-points', about: 'Desktop, signed in, livliv.ai on: 对谈 on livliv.ai\'s text, written from Stage\'s card with its memories, each line voiced whole by one /say call',
     desktop: true, signedIn: true,
     async run(page) {
       await stage(page, { cast: ['Nana', 'Kai'], brain: 'livliv', voice: 'livliv', livliv: true, talk: { order: 'round' }, memories: MEMORIES })
@@ -449,7 +447,7 @@ const SCENARIOS = [
     },
   },
   {
-    name: 'livliv-voice', about: 'Desktop, signed in, 持续聊天 with a model of one\'s own in the LivLiv voice: the standard engine (not AIRI), each line voiced whole by one /say call',
+    name: 'livliv-voice', about: 'Desktop, signed in, 持续聊天 with a model of one\'s own in livliv.ai\'s voices: on AIRI, each sentence voiced by its own /say call, a reply\'s sentences one line',
     desktop: true, signedIn: true,
     async run(page) {
       await stage(page, { cast: ['Nana'], voice: 'livliv', livliv: true, memories: MEMORIES })
@@ -473,6 +471,35 @@ const SCENARIOS = [
       await waiting(page)
       await say(page, '你好呀')
       await page.evaluate(() => window.__stage.talk.stop())
+      await idle(page)
+    },
+  },
+  {
+    name: 'livliv-airi', about: 'Desktop, signed in, livliv.ai on (its text and its voices): 持续聊天 runs on AIRI with livliv.ai\'s text, each sentence voiced by livliv.ai, a reply\'s sentences one line',
+    desktop: true, signedIn: true,
+    async run(page) {
+      await stage(page, { cast: ['Nana'], brain: 'livliv', voice: 'auto', memories: MEMORIES })
+      await ready(page)
+      await begin(page)
+      await page.evaluate(() => window.__stage.talk.startChat())
+      await waiting(page)
+      await say(page, '你好呀')
+      await page.evaluate(() => window.__stage.talk.stop())
+      await idle(page)
+    },
+  },
+  {
+    name: 'livliv-airi-off', about: 'Desktop, signed in, livliv.ai on: an AIRI chat on livliv.ai\'s text whose text is turned off mid-chat stops at once, nothing more asked of livliv.ai',
+    desktop: true, signedIn: true,
+    async run(page) {
+      await stage(page, { cast: ['Nana'], brain: 'livliv', voice: 'auto', memories: MEMORIES })
+      await ready(page)
+      await begin(page)
+      await page.evaluate(() => window.__stage.talk.startChat())
+      await waiting(page)
+      await page.evaluate(async () => (await import('/src/brain.ts')).setLivLiv({ text: false }))
+      await page.waitForFunction(() => !window.__stage.conversation().running)
+      await page.evaluate(() => window.__stage.talk.say('还在吗'))
       await idle(page)
     },
   },

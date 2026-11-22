@@ -17,7 +17,7 @@ export function OutputPanel({ open, onClose }: { open: boolean; onClose: () => v
   if (!open) return null
   return <div className="card popover output-settings" onPointerDown={(e) => e.stopPropagation()}>
     <header><span className="title">{tr("输出到 OBS")}</span><button className="icon" data-close="true" aria-label={tr("关闭")} onClick={onClose}><X size={16} /></button></header>
-    <p className="hint">{scene.width} × {scene.height} {tr("· 输出画面不含编辑工具")}</p>
+    <p className="hint">{scene.width} × {scene.height}</p>
     <div className="row">{!(features.host === 'site') && <button className={scene.background === 'transparent' ? 'on' : ''} onClick={() => store.set({ background: 'transparent' })}>{tr("透明背景")}</button>}
       <button className={scene.background === '#00b140' ? 'on' : ''} onClick={() => store.set({ background: '#00b140' })}>{tr("绿幕")}</button></div>
     <ol className="output-steps">

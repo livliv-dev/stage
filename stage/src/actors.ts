@@ -15,7 +15,7 @@ import { AUTO_AWAY, participants, store, type CharacterItem, type ModelRef } fro
 import { ReactionDirector, type ReactionCue, type ReactionMove, type ReactionPhase } from './reactions'
 import { estimate, say, type Utterance } from './speech'
 import { isOutput, outputOpen, post } from './link'
-import { length, modelId, voiceLine, type Clip } from './livliv'
+import { length, livlivLine, type Clip } from './livliv'
 import { activeSpeech, apiVoice, sessionRoute, speakApi, speakLive, speechProviderOf, voiceRoute } from './voiceApi'
 import { crowd, released } from './contexts'
 import { mediapipeBase } from './host'
@@ -421,16 +421,14 @@ export class Actor {
 
   retryInput() { this.driverKey = ''; void this.drive() }
 
-  /** recorded: its voice, made already (the demo's, or the site's with the line); null: the site was asked for it with
-   *  the line and made none, so it isn't asked for again */
-  async prepare(text: string, emotion: Emotion, aloud = true, signal?: AbortSignal, recorded?: string | null): Promise<Take> {
+  /** recorded: its voice, made already (the demo's); line: the line this is a sentence of (a livliv.ai voice is paid by
+   *  the line: the sentences of one share its charge) */
+  async prepare(text: string, emotion: Emotion, aloud = true, signal?: AbortSignal, recorded?: string, line?: string): Promise<Take> {
     const v = this.item.voice, wanted = aloud ? voiceRoute(this.item) : 'none', route = aloud ? sessionRoute(this.item) : 'none'
-    // its own voice went away while the session runs: subtitles, never LivLiv's voice for points (sessions/spend.ts)
-    this.voiceError = wanted !== route ? tr('它的声音接口停了：这句只出字幕，不会改用积分的声音') : ''
-    if (recorded === null && route === 'livliv') {
-      this.voiceError = tr("这句的声音没有生成"); changed()
-      return { text, seconds: estimate(text), clip: null, aloud: false, mute: true }
-    }
+    // livliv.ai's voice wasn't this character's when the session started: subtitles, never points (sessions/spend.ts);
+    // its card says your own service, which has stopped: subtitles too
+    this.voiceError = wanted !== route ? tr('这次会话开始时它没用 livliv.ai 的声音：这句只出字幕')
+      : aloud && v.source === 'api' && route === 'none' ? tr('它的声音接口停了，这句只出字幕') : ''
     if (recorded && aloud) {
       const r = await fetch(recorded, { signal })
       if (!r.ok) throw new Error(tr("演示声音读取失败（") + r.status + '）')
@@ -439,7 +437,7 @@ export class Actor {
     }
     if (route === 'livliv' || route === 'api') {
       try {
-        const clip = route === 'livliv' ? await voiceLine(modelId(this.item)!, text, emotion, v.livliv, signal) : await this.fromApi(text, emotion, signal)
+        const clip = route === 'livliv' ? await livlivLine(this.item, text, emotion, participants(store.get()), signal, line) : await this.fromApi(text, emotion, signal)
         if (clip.seconds <= 0) throw new Error(tr("声音文件无法播放"))
         this.voiceError = ''; changed()
         return { text, seconds: clip.seconds, clip, aloud }

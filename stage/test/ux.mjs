@@ -65,6 +65,7 @@ try {
     const character = newCharacter(store.get(), 'Nana', { ...pick.model, livlivId: 'ux-nana' }, '喜欢具体的讨论。')
     character.voice.source = 'livliv'; store.add(character); store.select(character.id)
     saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' })
+    ;(await import('/src/brain.ts')).setLivLiv({ voice: true })  // livliv.ai's voices, chosen in 连接
   })
   await page.waitForFunction(() => [...window.__stage.actors.values()].length === 1 && [...window.__stage.actors.values()].every((actor) => actor.status === 'ready'))
   const currentVoice = () => page.evaluate(() => [...window.__stage.actors.values()][0].item.voice.livliv)
@@ -198,7 +199,11 @@ try {
   assert.equal(await page.evaluate(() => window.uxMediaRequests), 0)
   assert.deepEqual(await page.evaluate(() => [localStorage.getItem('livliv-stage:brain'), localStorage.getItem('livliv-stage:speech')]), originalModels)
   await page.locator('.realtime-settings').getByRole('button', { name: '去「设置 → 连接」', exact: true }).click()
-  // one page: the voices and recognition, the text model and the realtime call
+  // one page: the voices and recognition, the text model and the realtime call. Signed in, livliv.ai's voices are on:
+  // your own folds to one line, which opens it
+  const covered = modelSettings.locator('.connect-section.covered[data-section="speech"]')
+  assert.match(await covered.innerText(), /由 livliv\.ai 提供/)
+  await covered.locator('.fold').click()
   await modelSettings.locator('[data-section="speech"]').getByRole('button', { name: 'OpenAI', exact: true }).click()
   await modelSettings.locator('[data-section="speech"]').getByText('识别模型', { exact: true }).waitFor()
   await modelSettings.locator('[data-section="model"]').getByRole('button', { name: '其他', exact: true }).waitFor()

@@ -32,10 +32,10 @@ export function lineLanguage(text: string, voice = '') {
 
 /** why Voicebox couldn't do it, in words people can act on */
 export function voiceboxError(error: VoiceboxFailure, detail = '') {
-  if (error === 'not-running') return tr('Voicebox 没有在运行：打开 Voicebox 后再试')
-  if (error === 'no-profiles') return tr('Voicebox 里还没有声音：在 Voicebox 里添加一个预设声音或克隆一个')
-  if (error === 'no-model') return tr('Voicebox 里还没下载这个声音的模型：在 Voicebox 里用这个声音生成一句（它会先下载模型），或在它的模型设置里下载，再回来试')
-  if (error === 'downloading') return tr('Voicebox 还在下载模型，下载好后再试')
+  if (error === 'not-running') return tr('Voicebox 没有在运行')
+  if (error === 'no-profiles') return tr('Voicebox 里还没有声音')
+  if (error === 'no-model') return tr('Voicebox 还没下载这个声音的模型')
+  if (error === 'downloading') return tr('Voicebox 还在下载模型')
   return tr('Voicebox 没有说出这句：{0}', detail || tr('未知原因'))
 }
 
