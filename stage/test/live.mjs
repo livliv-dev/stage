@@ -46,6 +46,18 @@ try {
   const live = (id) => page.waitForFunction((id) => { const a = id ? window.__stage.actors.get(id) : [...window.__stage.actors.values()].find((a) => !a.item.hidden); return a?.status === 'ready' && (a.item.driver !== 'face' || a.inputPhase === 'on') }, id, { timeout: 45000 })
   const shot = () => page.evaluate(() => { const s = window.__stage.store, scene = s.get(); return { id: scene.id, name: scene.name, background: scene.background, scenes: s.project().scenes.length, seen: scene.items.filter((i) => !i.hidden).map((i) => ({ kind: i.kind, id: i.id, name: i.name, lines: i.lines, driver: i.driver, faceMic: i.faceMic, x: i.x, w: i.w, h: i.h, smooth: i.smooth, talk: i.talk, autoAway: i.autoAway, exprModes: i.exprModes, follow: i.tuning?.faceFollow, bounce: i.tuning?.bounce })), width: scene.width, height: scene.height } })
   const actor = (id) => page.evaluate((id) => { const a = window.__stage.actors.get(id); return { expression: a.expression, away: a.away } }, id)
+  // a timed expression's key, pressed: what it set and when, recorded in the page as it happens (a slow machine may read
+  // the actor after a short one has already timed out); resolves once it is gone again, with how long it showed
+  const timed = async (id, key) => {
+    await page.evaluate((id) => {
+      const a = window.__stage.actors.get(id), set = a.setExpression, seen = window.timedSeen = []
+      a.setExpression = function (x, w) { seen.push([x, performance.now()]); return set.call(this, x, w) }
+      window.timedDone = () => { a.setExpression = set; return { shown: seen.map(([x]) => x), ms: seen.at(-1)[1] - seen[0][1] } }
+    }, id)
+    await page.keyboard.press(key)
+    await page.waitForFunction(() => window.timedSeen.length > 1 && window.timedSeen.at(-1)[0] === null, null, { timeout: 10000 })
+    return page.evaluate(() => window.timedDone())
+  }
 
   // 开播 with a featured character: green, alone, big in the middle, your face and microphone on it, the card
   await page.goto(origin + '/?c=k01&as=face', { waitUntil: 'networkidle' })
@@ -76,8 +88,7 @@ try {
   await page.locator('.solo-status', { hasText: '暂离中，按 B 回来' }).waitFor()
   await page.keyboard.press('b'); assert.equal((await actor(sena.id)).away, false)
   // timed (the card's sad: 2 s)
-  await page.keyboard.press('4'); assert.equal((await actor(sena.id)).expression, 'sad')
-  await page.waitForFunction((id) => window.__stage.actors.get(id).expression === null, sena.id, { timeout: 4000 })
+  const sad = await timed(sena.id, '4'); assert.deepEqual(sad.shown, ['sad', null]); assert.ok(sad.ms >= 1950 && sad.ms < 4000, `sad shown ${sad.ms} ms`)
   // typing in a field is typing; Shift+1 stays the zoom
   await page.getByLabel('舞台名字').focus(); await page.keyboard.press('2'); assert.equal((await actor(sena.id)).expression, null)
   await page.evaluate(() => document.activeElement.blur()); await page.keyboard.press('Shift+1'); assert.equal((await actor(sena.id)).expression, null)
@@ -100,8 +111,7 @@ try {
   await page.evaluate(() => window.dispatchEvent(new Event('blur'))); assert.equal((await actor(one.id)).expression, null, 'blur releases a held one')
   await page.keyboard.up('1')
   await page.keyboard.press('3'); assert.equal((await actor(one.id)).expression, 'smile', 'its own key 3 is smile')
-  await page.keyboard.press('2'); assert.equal((await actor(one.id)).expression, 'angry')
-  await page.waitForFunction((id) => window.__stage.actors.get(id).expression === null, one.id, { timeout: 3000 })
+  const angry = await timed(one.id, '2'); assert.deepEqual(angry.shown, ['angry', null], 'its card\'s angry: timed, 1 s'); assert.ok(angry.ms >= 950 && angry.ms < 3000, `angry shown ${angry.ms} ms`)
   // the inspector shows each one's key and mode (the card's 身体 page)
   await page.getByRole('tab', { name: '身体', exact: true }).click()
   await page.locator('.key-modes > summary').click()
