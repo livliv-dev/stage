@@ -2,6 +2,7 @@
 // with its feeling and move; it sees a game's frame or window, and decides game actions with tools. A turn asks it what
 // to answer (a viewer's message, your last line, else to start talking) apart from the history, which it reads without
 // those, with at most 48 memories.
+import { firstSeen } from '../airiHistory'
 import { asEmotion } from '../../core/lines'
 import { conversationContext } from '../../chatContext'
 import { chooseAiriGameAction, streamAiriReply, type AiriSentence, type AiriTurn } from '../../airiEngine'
@@ -25,12 +26,14 @@ export function airiTurnOf({ speaker, persona, context, constraints }: TurnReque
   const input = viewer ? `Viewer ${viewer.user}: ${viewer.text}` : latest?.text
     ?? (context.mode === 'live' ? 'The livestream is quiet. Start a short conversation about the show.' : 'Start a short conversation with the user.')
   const used = conversationContext(context.lines, context.summary)
+  // the owner's line (or the viewer's) is this turn's input: its time in AIRI's history is now, when it was said
+  for (const line of [latest?.id, viewer?.id]) if (line) firstSeen(line)
   return {
     sessionId: context.sessionId, scope: context.scope, actor: speaker, persona, model, input, verifyMemory: constraints.verifyMemory ?? (async () => {}),
     allowBatch: constraints.allowBatch, ...(context.frame ? { frame: context.frame } : {}), ...(context.event ? { event: context.event } : {}),
     lines: context.lines.filter((line) => line.id !== latest?.id && line.id !== viewer?.id),
     language: constraints.language,
-    context: { topic: context.topic, game: context.game, summary: used.earlier, memories: context.memories },
+    context: { topic: context.topic, game: context.game, summary: used.earlier, memories: context.memories, memoryCount: context.memoryCount },
   }
 }
 

@@ -49,6 +49,7 @@
     "test:privacy": "node test/privacy.mjs",
     "test:traces": "node test/traces.mjs",
     "test:prompts": "node test/prompts.mjs",
+    "test:budget": "node test/budget.mjs",
     "test:card-import": "node test/card-import.mjs",
     "test:voicebox-dropout": "node test/voicebox-dropout.mjs",
     "test:realtime": "node test/with-vite.mjs test/realtime.mjs",

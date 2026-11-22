@@ -52,10 +52,10 @@ jobs:
             suites: browser settings ux shots projects mixer profiles card-import site-phone
           - name: live
             suites: audience props gamepad live collab collab-pose
-          # every way a session starts, compared with its recorded behaviour (test/traces), and the persona prompts
-          # word for word (test/prompts)
+          # every way a session starts, compared with its recorded behaviour (test/traces), the persona prompts word for
+          # word (test/prompts), and how much one model call carries at most (test/budget)
           - name: traces
-            suites: traces prompts
+            suites: traces prompts budget
     defaults:
       run:
         working-directory: stage
