@@ -3,16 +3,12 @@
 // the GitHub mark at the bar's far end, and on a phone the intro's link; each opens in a new tab, so the stage stays.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
-import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
-const root = fileURLToPath(new URL('..', import.meta.url)), errors = []
+const errors = []
 let server, browser
 try {
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, VITE_STAGE_HOST: 'livliv' } })
-  await new Promise((resolve, reject) => { const t = setTimeout(() => reject(new Error('Vite timeout')), 15000); server.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(t); resolve() } }); server.once('exit', (c) => { clearTimeout(t); reject(new Error('Vite exited ' + c)) }) })
+  const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: 'livliv' } })
   const origin = 'http://127.0.0.1:' + port
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
   const open = async (locale, size = { width: 1440, height: 900 }, phone = false) => {
@@ -29,7 +25,7 @@ try {
       return url.hostname === '127.0.0.1' || ['blob:', 'data:'].includes(url.protocol) ? route.continue() : route.abort()
     })
     const page = await context.newPage()
-    page.setDefaultTimeout(30000); page.on('pageerror', (e) => errors.push(e.message))
+    page.setDefaultTimeout(testTimeout(30000)); page.on('pageerror', (e) => errors.push(e.message))
     await page.goto(origin + '/', { waitUntil: 'networkidle' })
     await page.locator('.start-overlay .start-page .close').click().catch(() => {})
     return { page, context }

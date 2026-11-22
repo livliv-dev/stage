@@ -51,11 +51,22 @@ try {
     })
     const page = await context.newPage()
     page.setDefaultTimeout(testTimeout(30000)); page.on('pageerror', (e) => errors.push(e.message))
+    await page.clock.install()  // runs as usual; siteOnly moves it past the guest prompt's three minutes
     await page.goto(origin + path, { waitUntil: 'networkidle' })
     return { page, context }
   }
   const row = (page) => page.locator('.model-form .providers button').allInnerTexts()
-  /** livliv.ai/stage's own parts (the web branch): the way to make a character, the logo link */
+  /** livliv.ai/stage's own parts in a browser (the web branch), none of which the app or a copy hosted elsewhere shows:
+   *  the GitHub mark, the note on the desktop app, the guest's sign-in prompt (past its three minutes), About's 桌面版 */
+  const siteOnly = async (page) => {
+    await page.clock.fastForward(181_000); await page.waitForTimeout(300)
+    await page.locator('.topbar button[title="设置"]').click()
+    await page.locator('.settings-tabs button', { hasText: '通用' }).click()
+    const about = await page.locator('.general-about button.link', { hasText: '桌面版' }).count()
+    await page.keyboard.press('Escape')
+    return { github: await page.locator('.topbar a.github-link').count(), notice: await page.locator('.desktop-notice').count(), prompt: await page.locator('.guest-gate').count(), about }
+  }
+  const none = { github: 0, notice: 0, prompt: 0, about: 0 }
   /** the console's model tag (the status line's first) and the way into Settings → 连接 */
   const chip = (page) => page.locator('.status-line .st-tag').first().innerText()
   const models = (page) => page.locator('.status-line .st-tag').first().click()
@@ -98,6 +109,10 @@ try {
   await page.locator('.topbar .create-button').click()
   assert.deepEqual((await page.evaluate(() => window.opened)).at(-1), 'https://livliv.ai/discover?new=1')
   assert.equal(await page.locator('.topbar a.mark-link').getAttribute('href'), 'https://livliv.ai/')
+  await page.locator('.rail button.tool', { hasText: '角色' }).click()
+  assert.equal(await page.locator('.popover.add .create-link').count(), 1, 'the add card\'s way too')
+  await page.keyboard.press('Escape')
+  assert.deepEqual(await siteOnly(page), none, "none of the site's own parts in the app")
   await context.close()
 
   // a copy of Stage hosted anywhere else (neither the site nor the app): no LivLiv
@@ -106,6 +121,11 @@ try {
   assert.ok(!(await row(page)).includes('LivLiv'), 'no LivLiv outside the site and the app')
   assert.equal(await page.locator('.topbar .create-button').count(), 0, 'no way to livliv.ai either')
   assert.equal(await page.locator('.topbar a.mark-link').count(), 0)
+  await page.keyboard.press('Escape')
+  await page.locator('.rail button.tool', { hasText: '角色' }).click()
+  assert.equal(await page.locator('.popover.add .create-link').count(), 0, 'nor in the add card')
+  await page.keyboard.press('Escape')
+  assert.deepEqual(await siteOnly(page), none, "nor the site's own parts")
   await context.close()
 
   assert.deepEqual(errors, [])

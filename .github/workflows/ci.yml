@@ -56,6 +56,10 @@ jobs:
           # word for word (test/prompts)
           - name: traces
             suites: traces prompts
+          # livliv.ai/stage's own parts (this web branch): the guest's sign-in prompt, the ways to livliv.ai, the note on
+          # the desktop app
+          - name: site
+            suites: guest create desktop-notice
     defaults:
       run:
         working-directory: stage
