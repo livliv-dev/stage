@@ -55,7 +55,7 @@ VRM 或 PNGTuber。
 
 ## 开发
 
-需要 Node.js 22.18 或更新版本。
+需要 Node.js 22.18 或更新版本。在 Player 下一个版本发布前，Stage 使用一个临时的 LivLiv Player 构建（[vendor/player-temporary](vendor/player-temporary/README.md)）。
 
 ```sh
 git clone https://github.com/livliv-dev/stage
