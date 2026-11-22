@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { rolldown } from 'rolldown'
+import { patch } from './patches.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 if (!process.argv[2]) throw new Error('Pass the path to the upstream Project AIRI source checkout')
@@ -77,7 +78,8 @@ try {
   }
   await copyFile(join(upstream, 'LICENSE'), join(here, 'LICENSE'))
   await writeFile(join(here, 'DEPENDENCY-NOTICES.txt'), notices.join('\n\n'))
-  await writeFile(join(here, 'core.mjs'), '// Project AIRI and dependencies. See LICENSE and DEPENDENCY-NOTICES.txt.\n' + chunk.code)
+  // Stage's fixes to the bundled code (patches.mjs), applied on every build
+  await writeFile(join(here, 'core.mjs'), '// Project AIRI and dependencies. See LICENSE and DEPENDENCY-NOTICES.txt.\n' + patch(chunk.code))
 } finally {
   await bundle.close()
 }

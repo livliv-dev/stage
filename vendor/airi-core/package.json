@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "patch": "node patches.mjs"
   },
   "devDependencies": {
     "@moeru/std": "0.1.0-beta.17",

@@ -25919,11 +25919,13 @@ const streamText = (options) => {
 							type: "tool-call.delta"
 						});
 					} else {
-						tool_calls[index].function.arguments += toolCall.function.arguments;
-						pushEvent({
-							delta: toolCall.function.arguments,
-							type: "tool-call.delta"
-						});
+						if (toolCall.function.arguments != null && toolCall.function.arguments !== "") {
+	tool_calls[index].function.arguments += toolCall.function.arguments;
+	pushEvent({
+		delta: toolCall.function.arguments,
+		type: "tool-call.delta"
+	});
+}
 					}
 				}
 			}
