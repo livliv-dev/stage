@@ -38,7 +38,7 @@ AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）か�
 - **オンライン（Web版・機能制限あり）**：[livliv.ai/stage](https://livliv.ai/stage)
 - **ソースから**：[開発](#開発)を参照
 
-<p align="center"><img src="media/editor.jpg" alt="Stage のエディター：6 体のキャラクターが同じステージに。Ruri が話しているところ" width="720"></p>
+<p align="center"><img src="media/editor.jpg" alt="Stage 1.0：Sena、Nana、Kai が同じステージに。Nana が話しているところ" width="720"></p>
 
 ## キャラクター
 

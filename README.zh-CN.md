@@ -38,7 +38,7 @@ AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等）�
 - **在线（网页版，功能受限）**：[livliv.ai/stage](https://livliv.ai/stage)
 - **从源码运行**：见[开发](#开发)
 
-<p align="center"><img src="media/editor.jpg" alt="Stage 编辑器：六个角色同台，Ruri 正在说话" width="720"></p>
+<p align="center"><img src="media/editor.jpg" alt="Stage 1.0：Sena、Nana 和 Kai 同台，Nana 正在说话" width="720"></p>
 
 ## 角色
 

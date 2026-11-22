@@ -38,7 +38,7 @@ The AI runs on your own model key (OpenAI, Qwen, DeepSeek and more) or your LivL
 - **Online (Web, limited features)**: [livliv.ai/stage](https://livliv.ai/stage)
 - **From source**: see [Develop](#develop)
 
-<p align="center"><img src="media/editor.jpg" alt="The Stage editor: six characters on one stage, Ruri saying a line" width="720"></p>
+<p align="center"><img src="media/editor.jpg" alt="Stage 1.0: Sena, Nana and Kai on stage, Nana saying a line" width="720"></p>
 
 ## Characters
 
