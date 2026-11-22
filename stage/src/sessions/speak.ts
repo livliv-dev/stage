@@ -47,7 +47,7 @@ function castFor(me: CharacterItem): TurnRequest['cast'] {
 }
 
 /** a turn as every engine is asked it: the speaker and its card, the cast, what it answers from, how to answer */
-function turnRequest(me: CharacterItem, cast: TurnRequest['cast'], context: Pick<TurnRequest['context'], 'lines' | 'summary' | 'memories' | 'viewer' | 'event' | 'replyToOwner' | 'game' | 'frame'>,
+function turnRequest(me: CharacterItem, cast: TurnRequest['cast'], context: Pick<TurnRequest['context'], 'lines' | 'summary' | 'memories' | 'memoryCount' | 'viewer' | 'event' | 'replyToOwner' | 'game' | 'frame'>,
   constraints: Pick<TurnRequest['constraints'], 'cutIn' | 'allowBatch' | 'verifyMemory'>): TurnRequest {
   const s = store.get(), { sessionId, scope, mode } = conversation()
   return {
@@ -192,7 +192,7 @@ async function streamedTurn(run: Run, me: CharacterItem, chat: Chat | null | und
   set(counted(conversation()))
   addViewer(chat)
   const request = turnRequest(me, castFor(me), {
-    lines: context.lines, summary: context.summary, memories, viewer: chat ? { id: chat.id, user: chat.user, text: chat.text } : null, event: event ?? undefined, replyToOwner,
+    lines: context.lines, summary: context.summary, memories, memoryCount: context.memories.length, viewer: chat ? { id: chat.id, user: chat.user, text: chat.text } : null, event: event ?? undefined, replyToOwner,
     game: snapshot?.state, ...(frame ? { frame } : {}),
   }, { cutIn: false, allowBatch: !airi.game && !windowId, verifyMemory })
   const answer = replyOf(engine, request, signal)

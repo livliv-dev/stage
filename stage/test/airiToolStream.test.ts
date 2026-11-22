@@ -44,10 +44,26 @@ test('a tool call ended by a null arguments delta keeps its arguments as JSON', 
 })
 
 test('the build\'s patch step: applied once, left alone when already in, and loud when the code moved', () => {
-  const upstream = 'a();\ntool_calls[index].function.arguments += toolCall.function.arguments;\n\t\tpushEvent({\n\t\t\tdelta: toolCall.function.arguments,\n\t\t\ttype: "tool-call.delta"\n\t\t});\nb();'
+  // the three pieces of upstream code Stage fixes (patches.mjs), as the bundle has them before the fixes
+  const nullDelta = 'tool_calls[index].function.arguments += toolCall.function.arguments;\n\t\tpushEvent({\n\t\t\tdelta: toolCall.function.arguments,\n\t\t\ttype: "tool-call.delta"\n\t\t});'
+  const readIds = 'const readParameters = (0, import_dist.strictObject)({ ids: (0, import_dist.pipe)((0, import_dist.array)(idSchema), (0, import_dist.minLength)(1), (0, import_dist.description)("Every entry that the reply needs, so one call reads them all.")) });'
+  const readEach = 'return parsed.output.ids.map((id) => {'
+  const upstream = ['a();', nullDelta, readIds, readEach, 'b();'].join('\n')
   const fixed = patch(upstream)
   assert.ok(fixed.includes('toolCall.function.arguments != null && toolCall.function.arguments !== ""'))
+  assert.ok(fixed.includes('"Up to four entries that the reply needs'))
+  assert.ok(fixed.includes('parsed.output.ids.slice(0, 4).map('))
   assert.equal(patch(fixed), fixed, 'already patched: unchanged')
   assert.throws(() => patch('nothing of it here'), new RegExp(PATCHES[0].name.split(':')[0]))
   assert.throws(() => patch(upstream + upstream), /found it 2 times/)
+})
+
+test('the memory read tool says it takes up to four ids, and reads the first four of a call that gives more', async () => {
+  const tools = await core.createMemoryTools({ read: (id: string) => ({ id, body: `body of ${id}`, persona: 'nana' }), write: async () => undefined, forget: async () => false })
+  const read = tools.find((tool) => tool.function.name === 'builtIn_readMemory')!
+  assert.match(JSON.stringify(read.function.parameters), /Up to four entries/, 'the model is told')
+  assert.match(String(await read.execute({ ids: ['m1', 'm2'] }, {} as never)), /m1 \(yours\): body of m1\nm2/)
+  const five = String(await read.execute({ ids: ['m1', 'm2', 'm3', 'm4', 'm5'] }, {} as never))
+  assert.equal(five.split('\n').length, 4, 'four read, no refusal (which would take another call)')
+  assert.ok(!five.includes('m5'))
 })

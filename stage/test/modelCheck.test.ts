@@ -37,6 +37,8 @@ test('what is not a readable package is refused in words, never the player\'s En
   await fails(checkPackage(zip([['model.json', '{"format": "some-other-thing", "version": 1}']])), '这不是 LivLiv 模型包：请选 LivLiv 导出的 .livliv、zip 或文件夹')
   await fails(checkPackage(zip([['model.json', '{"format": "livliv-model", "version": 99}']])), '这个模型需要更新版本的 Stage')
   assert.equal(modelJsonOf(['notes.txt', 'a/b.png']), undefined, 'a folder without model.json: library.ts says so')
+  // the player's rule: the shortest path, even when another one is in fewer folders
+  assert.equal(modelJsonOf(['a-very-long-folder-name/model.json', 'a/b/model.json']), 'a/b/model.json')
 })
 
 test('a VRM is a binary glTF 2.0 whose first chunk is its JSON', async () => {

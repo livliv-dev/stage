@@ -70,7 +70,7 @@ try {
   await page.evaluate(() => window.__stage.talk.newChat())
   holdSpeech = true; speechHeld = false
   await page.evaluate(() => window.__stage.talk.startChat('public')); await until(() => speechHeld)
-  assert.ok(calls.at(-1).memories.some((memory) => memory.text.includes('橘子')))
+  assert.ok(calls.at(-1).memories.some((memory) => memory.includes('橘子')), 'memories reach the model as their text')
   await page.evaluate(() => window.__stage.talk.pause())
   holdSpeech = false; releaseSpeech(); await delay(350)
   await page.evaluate(async (id) => (await import('/src/memory.ts')).memory.forgetMemory(id), memoryId)

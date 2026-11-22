@@ -4806,4 +4806,8 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "在 Voicebox 里添加声音": {"zh-Hans": "在 Voicebox 里添加声音", "zh-Hant": "在 Voicebox 裡新增聲音", "en": "Add voices in Voicebox", "ja": "声は Voicebox で追加"},
   "它的声音接口停了，这句只出字幕": {"zh-Hans": "它的声音接口停了，这句只出字幕", "zh-Hant": "它的聲音介面停了，這句只出字幕", "en": "Its voice service stopped: subtitles only", "ja": "音声サービスが止まりました：字幕のみ"},
   "livliv.ai 的文字已关闭，本次会话已停止": {"zh-Hans": "livliv.ai 的文字已关闭，本次会话已停止", "zh-Hant": "livliv.ai 的文字已關閉，本次會話已停止", "en": "livliv.ai text is off: this session stopped", "ja": "livliv.ai のテキストがオフになったため、このセッションを止めました"},
+  "{0} 积分/句": {"zh-Hans": "{0} 积分/句", "zh-Hant": "{0} 積分/句", "en": "{0} credits/line", "ja": "{0} ポイント/行"},
+  "免费，在本机": {"zh-Hans": "免费，在本机", "zh-Hant": "免費，在本機", "en": "Free, on this computer", "ja": "無料、このコンピューターで"},
+  "Whisper，免费，在本机": {"zh-Hans": "Whisper，免费，在本机", "zh-Hant": "Whisper，免費，在本機", "en": "Whisper, free, on this computer", "ja": "Whisper、無料、このコンピューターで"},
+  "你好，很高兴见到你。": {"zh-Hans": "你好，很高兴见到你。", "zh-Hant": "你好，很高興見到你。", "en": "Hi, nice to meet you.", "ja": "こんにちは、会えてうれしいです。"},
 }

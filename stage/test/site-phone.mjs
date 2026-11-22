@@ -1,8 +1,8 @@
 // livliv.ai/stage (the site's build, VITE_STAGE_HOST=livliv) at a phone's width and a computer's. A page opened narrow
 // starts on show with the phone's intro; widened to a computer's size it goes to editing once, and opens the character
 // it was linked to (?c=). Narrowing never changes the mode: an editing page keeps its editor and what is open in it (the
-// add card here), and a preview chosen with 预览 stays one through a narrow window and back. The site is faked: signed
-// out, nothing is spent.
+// add card here), and a preview chosen with 预览 stays one through a narrow window and back. A phone that starts
+// something needing a model keeps its own view. The site is faked: signed out, nothing is spent.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { freePort, startVite, testTimeout } from './vite.mjs'
@@ -62,6 +62,21 @@ try {
     await page.setViewportSize(wide)
     await page.waitForFunction(() => !document.querySelector('.phone-intro'))
     assert.equal(await mode(page), 'show', 'a preview of one\'s own is kept')
+    await context.close()
+  }
+
+  {
+    // a phone that starts something needing a model (signed out, none of one's own): it keeps the phone's view, whose
+    // intro says a model is set up on a computer, not the editor and its model card
+    const { context, page } = await open('/')
+    await page.locator('.phone-intro').waitFor()
+    await page.evaluate(() => { void window.__stage.talk.startChat().catch(() => {}) })
+    await page.waitForFunction(() => window.__stage.conversation().needModel === false || !window.__stage.conversation().running)
+    await page.waitForTimeout(500)
+    assert.equal(await mode(page), 'show', 'still the phone\'s view')
+    assert.equal(await page.locator('.topbar').count(), 0, 'not the editor')
+    assert.equal(await page.locator('.popover.settings').count(), 0, 'no model card')
+    assert.match(await page.locator('.phone-intro').innerText(), /请在电脑上打开/)
     await context.close()
   }
 

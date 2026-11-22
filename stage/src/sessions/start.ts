@@ -3,7 +3,7 @@ import { tr } from '../i18n'
 // starts in, and what it opens and closes (the record, the cast loaded, AIRI bound, a game connected). Then the runner
 // runs it with the policy (sessions/policies) over the stage (sessions/env.ts).
 import { actors } from '../actors'
-import { brainReady, livlivNow, loadBrainConfig, modelOf, type ModelConfig } from '../brain'
+import { brainReady, demoRunsWhen, livlivNow, loadBrainConfig, modelOf, type ModelConfig } from '../brain'
 import { airiFits, chooseEngine } from '../brains/select'
 import { chatHistory } from '../chatHistory'
 import { features } from '../core/platform'
@@ -29,20 +29,22 @@ import { current, finish, Run } from './run'
 import { pick } from './speakers'
 import { handOver, runSession } from './runner'
 import { conversation, set } from './state'
+import { spendAtStart } from './spend'
 import { sleep } from './wake'
 
 import { gameName } from './games'
 
+// a demo running is left one by livliv.ai's switches (brain.ts setLivLiv)
+demoRunsWhen(() => !!current()?.demo)
+
 /** a session of this kind takes over: on AIRI with this model, else on the brain set up turn by turn */
 function takeOver(kind: Run['kind'], airi: ModelConfig | null = null) {
   const run = new Run(kind)
-  // what it may spend: its lines, how you are heard and each AI character's voice, as it starts (sessions/spend.ts)
-  const livliv = livlivNow()
-  run.spend = {
-    text: livliv.text,
-    hearing: livliv.voice ? 'points' : 'own',
-    voices: Object.fromEntries(participants(store.get()).filter((c) => c.lines === 'ai').map((c) => [c.id, voiceRoute(c)])),
-  }
+  run.demo = loadBrainConfig().kind === 'demo'
+  // what it may spend: its lines, how you are heard and each voiced character's voice (an AI character's, or yours
+  // read aloud), as it starts; the demo nothing (sessions/spend.ts)
+  const voiced = participants(store.get()).filter((c) => c.lines === 'ai' || (c.lines === 'me' && c.readAloud))
+  run.spend = spendAtStart(livlivNow(), Object.fromEntries(voiced.map((c) => [c.id, voiceRoute(c)])), run.demo)
   handOver(run, stageEnv, airi)
   return run
 }

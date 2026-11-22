@@ -49,7 +49,7 @@ npm --prefix vendor/airi-core ci
 npm --prefix vendor/airi-core run build -- /path/to/airi
 ```
 
-构建时会对打包结果应用 Stage 自己的修正（`vendor/airi-core/patches.mjs`，每条写明修什么）。每条修正必须在打包代码里恰好找到一次，上游代码变了找不到时构建会失败，不会悄悄发出没修过的版本。`npm --prefix vendor/airi-core run patch` 把这些修正应用到已提交的 `core.mjs`。目前的修正：流式工具调用的参数增量为 `null` 时不再被拼成文本 `"null"`（百炼等 OpenAI 兼容服务会这样结束一次工具调用，@xsai/stream-text 0.5.1 会把参数拼坏）。
+构建时会对打包结果应用 Stage 自己的修正（`vendor/airi-core/patches.mjs`，每条写明修什么）。每条修正必须在打包代码里恰好找到一次，上游代码变了找不到时构建会失败，不会悄悄发出没修过的版本。`npm --prefix vendor/airi-core run patch` 把这些修正应用到已提交的 `core.mjs`。目前的修正：流式工具调用的参数增量为 `null` 时不再被拼成文本 `"null"`（百炼等 OpenAI 兼容服务会这样结束一次工具调用，@xsai/stream-text 0.5.1 会把参数拼坏）；读记忆的工具一次最多读 4 条（工具说明里写明；给了更多 id 时读前 4 条，不拒绝，免得再多一次调用），免得一次把索引里的记忆全读出来。
 
 在安装 Stage 和桌面的 npm 依赖之后，可运行本地 Electron 验收。脚本使用独立用户目录、本地流式模型测试服务和模拟弹幕。macOS 上可用 `STAGE_TEST_VOICES=1` 将测试音频换成系统语音。
 

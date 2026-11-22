@@ -166,7 +166,7 @@ export function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; on
     </div>
     {!off && p.id === 'voicebox' && <>
       <p className={`hint${voicebox.error ? ' error' : ''}`}>
-        {voicebox.checking ? tr('正在查找本机的 Voicebox…') : voicebox.status === 'on' ? tr('Voicebox 在运行：{0} 个声音', voicebox.profiles.length)
+        {voicebox.checking ? tr('正在查找本机的 Voicebox…') : voicebox.status === 'on' ? <>{tr('Voicebox 在运行：{0} 个声音', voicebox.profiles.length)}<span className="chip">{tr('免费，在本机')}</span></>
           : voiceboxError(voicebox.error ?? 'not-running', voicebox.detail)}
         {voicebox.status !== 'on' && !voicebox.checking && <> <a href={VOICEBOX_SITE} target="_blank" rel="noreferrer">{tr('下载 Voicebox')}<ExternalLink size={11} /></a></>}
       </p>
@@ -175,7 +175,7 @@ export function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; on
           <option value="">{tr('按角色分配')}</option>
           {voicebox.profiles.map((v) => <option key={v.id} value={v.id}>{v.name}{OPEN_ENGINES.has(v.engine) ? '' : ` · ${v.engine}`}</option>)}
         </select></label>
-      <label className="switch"><span>{tr('也用它听你说话')}</span><input type="checkbox" checked={!!d.asr} onChange={(e) => setD({ ...d, asr: e.target.checked ? 'whisper' : '' })} /><i /></label>
+      <label className="switch"><span>{tr('也用它听你说话')}<span className="chip">{tr('Whisper，免费，在本机')}</span></span><input type="checkbox" checked={!!d.asr} onChange={(e) => setD({ ...d, asr: e.target.checked ? 'whisper' : '' })} /><i /></label>
       {st.err && <p className="hint error">{st.err}</p>}
     </>}
     {!off && p.id !== 'voicebox' && <>

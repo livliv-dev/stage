@@ -67,6 +67,9 @@ try {
   assert.deepEqual(said.map((call) => call.lines.map((line) => line.text)), livliv.map((text) => [text]), 'each /say carries its sentence')
   const ids = said.map((call) => call.line)
   assert.ok(ids.every(Boolean) && new Set(ids).size === livliv.length / SENTENCES.length && ids.slice(0, 3).every((id) => id === ids[0]), 'one line id a reply: ' + JSON.stringify(ids))
+  const replies = livliv.length / SENTENCES.length, byReply = Array.from({ length: replies }, (_, k) => ids.slice(k * SENTENCES.length, (k + 1) * SENTENCES.length))
+  assert.ok(replies >= 2 && byReply.every((one) => new Set(one).size === 1), 'a reply\'s sentences share one id')
+  assert.equal(new Set(byReply.map((one) => one[0])).size, replies, 'each reply a fresh id (one id for all would be one paid line): ' + JSON.stringify(ids))
 
   // the same chat in the system voice: said sentence by sentence, nothing asked of /say
   await voices('system')

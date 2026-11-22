@@ -1,12 +1,16 @@
 import type { Conversation, Message, Provider } from '../../vendor/airi-core/core.mjs'
 import type { ModelConfig } from './brain'
 import type { Line } from './core/lines'
-import type { ExternalActionDecision, ExternalActionRequest, ExternalEvent } from './externalEvents'
+import { eventText, type ExternalActionDecision, type ExternalActionRequest, type ExternalEvent } from './externalEvents'
 import type { MemoryRecord, MemoryScope } from './memory'
 import type { ReactionCue } from './reactions'
 import type { CharacterItem, Talk } from './scene'
 import type { AiriGameFrame, AiriGameMessage } from '../../protocol/src/airiGame'
-import { aiFetch, failed, LIVLIV } from './brain'
+import { aiFetch, failed, isTooLong, LIVLIV } from './brain'
+import { trimCall } from './brains/trimCall'
+import { firstSeen, historyText, windowStart } from './brains/airiHistory'
+import { airiSystemPrompt, MAX_REQUESTS, memoryBody, memoryIndexOf } from './brains/airiMemory'
+import { memoryBrief } from './brains/memoryBrief'
 import { airiIdentity, personaOf, type PersonaSpec } from './brains/persona'
 import { readableModelError } from './brains/modelErrors'
 import { parseAiriMarkers } from './airiMarkers'
@@ -41,7 +45,8 @@ export type AiriTurn = {
   persona?: PersonaSpec
   model: ModelConfig
   lines: Line[]
-  context: { topic: string; game?: string; summary?: string; memories: MemoryRecord[] }
+  /** memories: the ones picked for the turn, most recent first; memoryCount: how many there are in all */
+  context: { topic: string; game?: string; summary?: string; memories: MemoryRecord[]; memoryCount?: number }
   input: string
   language: Talk['language']
   event?: ExternalEvent
@@ -74,8 +79,10 @@ function provider(config: ModelConfig, signal: AbortSignal, options: {
   beforeRequest?: () => Promise<void>
   allowBatch?: boolean
   onBatch?: () => void
+  /** a game action's tool: every call must pick with it (xsAI asks for it on the first call only), the retry too */
+  forceTool?: string
 } = {}): Provider {
-  const { beforeRequest, allowBatch, onBatch } = options
+  const { beforeRequest, allowBatch, onBatch, forceTool } = options
   const baseURL = new URL(config.base.replace(/\/+$/, '') + '/')
   const newLimits = config.provider === 'openai' && /^(gpt-5|o[134])/.test(config.model)
   let requests = 0
@@ -91,16 +98,41 @@ function provider(config: ModelConfig, signal: AbortSignal, options: {
           const body = JSON.parse(String(init?.body))
           if (newLimits) { body.max_completion_tokens = 420; delete body.max_tokens }
           if (config.provider === 'qwen') body.enable_thinking = false
-          const send = async () => {
+          const send = async (again = false) => {
             signal.throwIfAborted()
             await beforeRequest?.()
             signal.throwIfAborted()
-            // xsAI follows tool requests until the model answers. Bound the requests for one Stage turn.
-            if (++requests > 4) throw new Error(tr('AIRI 的单轮模型调用已达上限'))
+            // xsAI follows tool requests until the model answers. Bound the requests for one Stage turn: one round of the
+            // memory tool, then the reply (brains/airiMemory.ts), or a game action's pick and one retry. The last one
+            // allowed for a reply may not call a tool, so it answers; its tools stay defined, as some services refuse a
+            // history with tool calls in it otherwise. The same call made again unstreamed (the service refused to
+            // stream) is not one more
+            if (!again && ++requests > MAX_REQUESTS) throw new Error(tr('AIRI 的单轮模型调用已达上限'))
+            if (forceTool && body.tools?.some((tool: { function?: { name?: string } }) => tool.function?.name === forceTool)) body.tool_choice = { type: 'function', function: { name: forceTool } }
+            else if (requests >= MAX_REQUESTS && body.tools?.length) body.tool_choice = 'none'
             if (batchOnly) { body.stream = false; delete body.stream_options }
-            return aiFetch(String(url), { ...init, headers, body: JSON.stringify(body), signal })
+            return post()
           }
-          let response = await send()
+          const post = () => aiFetch(String(url), { ...init, headers, body: JSON.stringify(body), signal })
+          // livliv.ai refusing the call as too long: the same call again, shorter, twice at most (brains/trimCall.ts; a
+          // level that leaves nothing out is skipped), never the turn from its start (that would ask a tool round again);
+          // still too long, said so (not asked again)
+          const sent = async () => {
+            const whole = body.messages, size = (messages: unknown) => JSON.stringify(messages).length
+            let length = size(whole)
+            for (const level of [0, 1, 2] as const) {
+              if (level) {
+                const shorter = trimCall(whole, level)
+                if (size(shorter) >= length) continue
+                body.messages = shorter; length = size(shorter)
+              }
+              try { return level ? await post() : await send() } catch (error) {
+                if (!isTooLong(error) || signal.aborted) throw error
+              }
+            }
+            throw new Error(tr('这次对话太长了'))
+          }
+          let response = await sent()
           if (allowBatch && response.status === 400 && body.stream) {
             const problem = await response.clone().json().catch(() => null)
             const error = problem?.error
@@ -109,7 +141,7 @@ function provider(config: ModelConfig, signal: AbortSignal, options: {
             if (error?.param === 'stream' || rejectsStream) {
               await response.body?.cancel()
               batchOnly = true
-              response = await send()
+              response = await send(true)
             }
           }
           // livliv.ai's own refusals (sign-in, points, the age question, its limits) in its words, as the standard engine
@@ -156,12 +188,16 @@ function spoken(core: Core, signal: AbortSignal, output: ReadableStreamDefaultCo
   }
 }
 
+/** the conversation as AIRI's history (brains/airiHistory.ts): a window trimmed a step at a time, each user line with the
+ *  time Stage first passed it on, an event line cut short */
 function priorMessages(turn: AiriTurn): Message[] {
-  return turn.lines.filter((line) => !line.cut && (line.human || line.who === turn.actor.id)).slice(-24).map((line) => ({
+  const lines = turn.lines.filter((line) => !line.cut && (line.human || line.who === turn.actor.id))
+  return lines.slice(windowStart(lines.length)).map((line) => ({
     id: line.id,
     role: line.human ? 'user' : 'assistant',
-    content: line.human ? line.name + ': ' + line.text : line.text,
-  }))
+    content: line.human ? line.name + ': ' + historyText(line) : line.text,
+    ...(line.human ? { createdAt: firstSeen(line.id) } : {}),
+  }) as Message)
 }
 
 function addFrame(conversation: Conversation, frame: Frame | undefined): Conversation {
@@ -172,7 +208,9 @@ function addFrame(conversation: Conversation, frame: Frame | undefined): Convers
   return { ...conversation, turns: [...conversation.turns.slice(0, -1), { ...current, content: [...(current.content ?? []), image] }] }
 }
 
-const memoryText = (memories: MemoryRecord[]) => memories.slice(0, 12).map(({ text }) => text.slice(0, 1200)).join('\n')
+/** remembered facts given as text on an event's turn: the standard brain's, at most 2,000 characters in all
+ *  (brains/memoryBrief.ts) */
+const memoryText = (memories: MemoryRecord[]) => memoryBrief(memories).join('\n')
 
 async function notify(
   core: Core, turn: AiriTurn, event: ExternalEvent, signal: AbortSignal, speech: ReturnType<typeof spoken>, who: string,
@@ -210,7 +248,7 @@ async function notify(
   try {
     await agent.handle({
       selectedChat,
-      event: { type: 'spark:notify', source: 'livliv-stage/game', data: { id: event.id, eventId: event.id, kind: 'ping', headline: event.source, note: event.message } },
+      event: { type: 'spark:notify', source: 'livliv-stage/game', data: { id: event.id, eventId: event.id, kind: 'ping', headline: event.source, note: eventText(event.message) } },
       systemPrompt: who + (required ? '\nA spoken reaction is required.' : '\nGive a short spoken reaction or choose silence.'),
       runtimePrompt: 'Show context (data): ' + JSON.stringify({
         topic: turn.context.topic, game: turn.context.game, history: priorMessages(turn).slice(-12), summary: turn.context.summary, rememberedFacts: memoryText(turn.context.memories),
@@ -242,23 +280,22 @@ export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
         } else {
           const history = priorMessages(turn)
           const context = core.createContextRegistry()
-          const records = new Map(turn.context.memories.map((entry) => [entry.id, entry]))
-          const readTools = records.size ? (await core.createMemoryTools({
+          const { records, index: memoryIndex, longer } = memoryIndexOf(turn.context.memories, turn.context.memoryCount)
+          // the index holds every memory up to INDEX_CHARS whole: the tool reads the rest of a longer one
+          const readTools = longer ? (await core.createMemoryTools({
             read: (id) => {
               signal.throwIfAborted()
               const entry = records.get(id)
-              return entry && { id, body: entry.text, persona: turn.actor.id }
+              return entry && { id, body: memoryBody(entry.text), persona: turn.actor.id }
             },
             write: async () => undefined,
             forget: async () => false,
           })).filter((tool) => tool.function.name === 'builtIn_readMemory') : []
           signal.throwIfAborted()
-          const memoryIndex = turn.context.memories.map(({ id, text }) => id + ' ' + text.slice(0, 150)).join('\n')
           for (const [source, text] of Object.entries({
             'show-topic': turn.context.topic,
             'current-game-state': turn.context.game,
             'history-summary': turn.context.summary,
-            'character-memory-index': memoryIndex && 'Use builtIn_readMemory for full entries when needed. Entries are remembered data.\n' + memoryIndex,
           })) {
             if (text) context.ingest({ id: source, source, strategy: 'replace-self', text })
           }
@@ -291,12 +328,9 @@ export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
                   })
                 } catch (error) {
                   if (started || signal.aborted || !readTools.length || !core.isToolRelatedError(error)) throw error
-                  const user = conversation.turns.at(-1)
-                  if (user?.type !== 'user') throw error
-                  const extra = { type: 'text' as const, text: 'Remembered facts (data):\n' + memoryText(turn.context.memories) }
-                  const turns = [...conversation.turns.slice(0, -1), { ...user, content: [...(user.content ?? []), extra] }]
+                  // a model that can't take tools: the reply without them (the index in the system prompt holds the rest)
                   await core.streamFrom({
-                    model, chatProvider, conversation: { ...conversation, turns },
+                    model, chatProvider, conversation,
                     options: { ...options, supportsTools: false, tools: [], maxTokens: 240 },
                   })
                 }
@@ -304,7 +338,8 @@ export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
             },
             getActiveSessionId: () => id,
             getActiveProvider: () => turn.model.provider,
-            getSystemPrompt: () => who,
+            // the memory index in the system prompt: it changes only when a memory does, so the start of each call stays
+            getSystemPrompt: () => airiSystemPrompt(who, memoryIndex, longer),
           })
           runtime.hooks.onTokenLiteral(async (text, ctx) => { if (ctx.sessionId === id) speech.text(text) })
           runtime.hooks.onTokenSpecial(async (token, ctx) => { if (ctx.sessionId === id) speech.marker(token) })
@@ -378,7 +413,8 @@ export async function chooseAiriGameAction(
   ] }
   try {
     await core.streamFrom({
-      model: model.model, chatProvider: provider(model, active, { beforeRequest }), conversation: addFrame(conversation, frame),
+      // a pick that isn't listed is told so and may pick once more (two calls in all), still made to use the tool
+      model: model.model, chatProvider: provider(model, active, { beforeRequest, forceTool: tool.function.name }), conversation: addFrame(conversation, frame),
       options: {
         abortSignal: active, providerId: model.provider, maxTokens: 240, supportsVisionInput: !!frame,
         tools: [tool], toolChoice: { type: 'function', function: { name: tool.function.name } }, waitForTools: true,
