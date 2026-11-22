@@ -41,14 +41,13 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "准备清单": {"zh-Hans":"准备清单","zh-Hant":"準備清單","en":"Checklist","ja":"準備リスト"},
   "加一个 AI 搭档": {"zh-Hans":"加一个 AI 搭档","zh-Hant":"加一個 AI 搭檔","en":"Add an AI partner","ja":"AI パートナーを追加"},
   "去设置": {"zh-Hans":"去设置","zh-Hant":"去設定","en":"Open setting","ja":"設定を開く"},
-  "另一种聊法：要自己的 OpenAI 或百炼密钥，用服务商的声音，只和一个角色": {"zh-Hans":"另一种聊法：要自己的 OpenAI 或百炼密钥，用服务商的声音，只和一个角色","zh-Hant":"另一種聊法：要自己的 OpenAI 或百鍊金鑰，用服務商的聲音，只和一個角色","en":"Another way to chat: your own OpenAI or Bailian key, the provider's voice, one character","ja":"別の話し方：自分の OpenAI または百錬のキー、サービスの声、キャラクター1人"},
+  "可选：需要 OpenAI 或百炼密钥": {"zh-Hans":"可选：需要 OpenAI 或百炼密钥","zh-Hant":"可選：需要 OpenAI 或百鍊金鑰","en":"Optional: needs an OpenAI or Bailian key","ja":"任意：OpenAI または百錬のキーが必要"},
   "只有字幕": {"zh-Hans":"只有字幕","zh-Hant":"只有字幕","en":"Subtitles only","ja":"字幕のみ"},
   "只有我": {"zh-Hans":"只有我","zh-Hant":"只有我","en":"Just me","ja":"自分だけ"},
   "只读弹幕，不需要登录": {"zh-Hans":"只读弹幕，不需要登录","zh-Hant":"只讀彈幕，不需要登入","en":"Reads chat only, no sign-in needed","ja":"コメントを読むだけ、ログイン不要"},
   "可以按住说和免按键": {"zh-Hans":"可以按住说和免按键","zh-Hant":"可以按住說和免按鍵","en":"Push to talk and hands-free work","ja":"押して話す・ハンズフリーが使えます"},
   "可录的声音": {"zh-Hans":"可录的声音","zh-Hant":"可錄的聲音","en":"A voice that records","ja":"録画できる声"},
-  "可选：Minecraft（Airicraft）或 Factorio（Autorio）": {"zh-Hans":"可选：Minecraft（Airicraft）或 Factorio（Autorio）","zh-Hant":"可選：Minecraft（Airicraft）或 Factorio（Autorio）","en":"Optional: Minecraft (Airicraft) or Factorio (Autorio)","ja":"任意：Minecraft（Airicraft）または Factorio（Autorio）"},
-  "可选：不接弹幕也能开播": {"zh-Hans":"可选：不接弹幕也能开播","zh-Hant":"可選：不接彈幕也能開播","en":"Optional: you can go live without chat","ja":"任意：コメントなしでも配信できます"},
+  "可选：Minecraft 或 Factorio": {"zh-Hans":"可选：Minecraft 或 Factorio","zh-Hant":"可選：Minecraft 或 Factorio","en":"Optional: Minecraft or Factorio","ja":"任意：Minecraft または Factorio"},
   "可选：口型跟着你的声音": {"zh-Hans":"可选：口型跟着你的声音","zh-Hant":"可選：口型跟著你的聲音","en":"Optional: the mouth follows your voice","ja":"任意：口の動きがあなたの声に合わせる"},
   "可选：说话代替打字": {"zh-Hans":"可选：说话代替打字","zh-Hant":"可選：說話代替打字","en":"Optional: speak instead of typing","ja":"任意：入力のかわりに話す"},
   "和 AI 搭档": {"zh-Hans":"和 AI 搭档","zh-Hant":"和 AI 搭檔","en":"with an AI partner","ja":"AI パートナーと"},
@@ -87,9 +86,10 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "标准": {"zh-Hans":"标准","zh-Hant":"標準","en":"Standard","ja":"標準"},
   "标准（{0}）": {"zh-Hans":"标准（{0}）","zh-Hant":"標準（{0}）","en":"Standard ({0})","ja":"標準（{0}）"},
   "桌面版": {"zh-Hans":"桌面版","zh-Hant":"桌面版","en":"Desktop","ja":"デスクトップ版"},
-  "桌面版可以让角色玩 Minecraft 或 Factorio": {"zh-Hans":"桌面版可以让角色玩 Minecraft 或 Factorio","zh-Hant":"桌面版可以讓角色玩 Minecraft 或 Factorio","en":"In the desktop app a character can play Minecraft or Factorio","ja":"デスクトップ版ではキャラが Minecraft や Factorio を遊べます"},
+  "Minecraft 或 Factorio": {"zh-Hans":"Minecraft 或 Factorio","zh-Hant":"Minecraft 或 Factorio","en":"Minecraft or Factorio","ja":"Minecraft または Factorio"},
   "没有找到": {"zh-Hans":"没有找到","zh-Hant":"沒有找到","en":"Nothing found","ja":"見つかりません"},
   "没有看到脸：看向镜头，或在角色卡的「谁来演」里选摄像头": {"zh-Hans":"没有看到脸：看向镜头，或在角色卡的「谁来演」里选摄像头","zh-Hant":"沒有看到臉：看向鏡頭，或在角色卡的「誰來演」裡選攝影機","en":"No face seen: look at the camera, or pick the camera under Who performs on the character card","ja":"顔が見えません：カメラを見るか、キャラカードの「誰が演じる」でカメラを選んでください"},
+  "没有看到脸": {"zh-Hans":"没有看到脸","zh-Hant":"沒有看到臉","en":"No face seen","ja":"顔が見えません"},
   "游戏": {"zh-Hans":"游戏","zh-Hant":"遊戲","en":"Game","ja":"ゲーム"},
   "状态": {"zh-Hans":"状态","zh-Hant":"狀態","en":"Status","ja":"状態"},
   "现在只有字幕": {"zh-Hans":"现在只有字幕","zh-Hant":"現在只有字幕","en":"Subtitles only for now","ja":"今は字幕のみ"},
@@ -120,7 +120,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "谁来演": {"zh-Hans":"谁来演","zh-Hant":"誰來演","en":"Who performs","ja":"誰が演じる"},
   "人设和声音": {"zh-Hans":"人设和声音","zh-Hant":"人設和聲音","en":"Persona and voice","ja":"人物設定と声"},
 
-  "桌面版接收手机和 VMC 的面捕": {"zh-Hans":"桌面版接收手机和 VMC 的面捕","zh-Hant":"桌面版接收手機和 VMC 的面捕","en":"The desktop app receives face tracking from a phone or VMC","ja":"デスクトップ版はスマホや VMC のフェイストラッキングを受け取れます"},
   "角色会一个人说下去": {"zh-Hans":"角色会一个人说下去","zh-Hant":"角色會一個人說下去","en":"The character talks on its own","ja":"キャラクターがひとりで話し続けます"},
   "角色回应直播间": {"zh-Hans":"角色回应直播间","zh-Hant":"角色回應直播間","en":"The characters answer the audience","ja":"キャラクターが視聴者に応える"},
   "录视频时只用公开记忆": {"zh-Hans":"录视频时只用公开记忆","zh-Hant":"錄影片時只用公開記憶","en":"A video uses only the public memory","ja":"動画の録画中は公開の記憶だけを使います"},
@@ -201,10 +200,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "去「设置 → 连接」": {"zh-Hans":"去「设置 → 连接」","zh-Hant":"去「設定 → 連接」","en":"Open Settings → Connections","ja":"「設定 → 接続」を開く"},
   "对话记录已删除，请重新开始实时通话": {"zh-Hans":"对话记录已删除，请重新开始实时通话","zh-Hant":"對話記錄已刪除，請重新開始即時通話","en":"The conversation was deleted. Start a new realtime call.","ja":"会話記録が削除されました。通話を開始し直してください。"},
   "记忆已更新，请重新开始实时通话": {"zh-Hans":"记忆已更新，请重新开始实时通话","zh-Hant":"記憶已更新，請重新開始即時通話","en":"Memory changed. Start a new realtime call.","ja":"記憶が更新されました。通話を開始し直してください。"},
-  "可选：弹幕可以触发角色的表情和动作": {"zh-Hans":"可选：弹幕可以触发角色的表情和动作","zh-Hant":"可選：彈幕可以觸發角色的表情和動作","en":"Optional: chat can trigger your character's expressions and moves","ja":"任意：コメントでキャラクターの表情や動きを動かせます"},
+  "可选：弹幕触发表情和动作": {"zh-Hans":"可选：弹幕触发表情和动作","zh-Hant":"可選：彈幕觸發表情和動作","en":"Optional: chat triggers expressions and moves","ja":"任意：コメントで表情や動きを出す"},
   "内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕": {"zh-Hans":"内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕","zh-Hant":"內建 AIRI 支援自訂語音介面和系統朗讀；靜音的角色只出字幕","en":"Built-in AIRI works with your own speech API or system speech; a muted character shows subtitles only","ja":"内蔵 AIRI は独自の音声 API とシステム音声に対応します。ミュートしたキャラクターは字幕だけになります"},
   "角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕": {"zh-Hans":"角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕","zh-Hant":"角色還沒有聲音：在角色卡「人設和聲音」裡選一個，或者把它靜音，只出字幕","en":"This character has no voice yet: pick one on its card under Persona and voice, or mute it to show subtitles only","ja":"このキャラクターにはまだ声がありません：カードの「人物設定と声」で選ぶか、ミュートして字幕だけにしてください"},
-  "AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕": {"zh-Hans":"AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕","zh-Hant":"AI 角色還沒有聲音：在角色卡「人設和聲音」裡選一個，或者把它靜音，只出字幕","en":"An AI character has no voice yet: pick one on its card under Persona and voice, or mute it to show subtitles only","ja":"AI キャラクターにまだ声がありません：カードの「人物設定と声」で選ぶか、ミュートして字幕だけにしてください"},
+  "角色还没有声音，在角色卡里选一个": {"zh-Hans":"角色还没有声音，在角色卡里选一个","zh-Hant":"角色還沒有聲音，在角色卡裡選一個","en":"This character has no voice yet. Pick one on its card.","ja":"このキャラクターにはまだ声がありません。カードで選んでください"},
+  "AI 角色还没有声音，在角色卡里选一个": {"zh-Hans":"AI 角色还没有声音，在角色卡里选一个","zh-Hant":"AI 角色還沒有聲音，在角色卡裡選一個","en":"An AI character has no voice yet. Pick one on its card.","ja":"AI キャラクターにまだ声がありません。カードで選んでください"},
   "更多": {"zh-Hans":"更多","zh-Hant":"更多","en":"More","ja":"その他"},
   "撤销": {"zh-Hans":"撤销","zh-Hant":"復原","en":"Undo","ja":"元に戻す"},
   "重做": {"zh-Hans":"重做","zh-Hant":"重做","en":"Redo","ja":"やり直す"},
@@ -380,11 +380,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "{0} imported avatars need their model files again on another computer.",
     "ja": "別のパソコンでは、読み込んだ{0}体のモデルを再度インポートしてください。"
   },
-  "有 {0} 个从文件导入的角色这台电脑上没有，要重新导入": {
-    "zh-Hans": "有 {0} 个从文件导入的角色这台电脑上没有，要重新导入",
-    "zh-Hant": "有 {0} 個從檔案導入的角色這台電腦上沒有，要重新導入",
-    "en": "{0} imported avatars are missing on this computer. Import their files again.",
-    "ja": "このパソコンに{0}体のモデルがありません。再度インポートしてください。"
+  "{0} 个角色要重新导入": {
+    "zh-Hans": "{0} 个角色要重新导入",
+    "zh-Hant": "{0} 個角色要重新導入",
+    "en": "{0} characters need importing again",
+    "ja": "{0}体のキャラクターを再インポートしてください"
   },
   "舞台名字": {
     "zh-Hans": "舞台名字",
@@ -1240,11 +1240,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "lines",
     "ja": "発言"
   },
-  "视频没有透明通道：透明背景录成绿幕": {
-    "zh-Hans": "视频没有透明通道：透明背景录成绿幕",
-    "zh-Hant": "影片沒有透明通道：透明背景錄成綠幕",
-    "en": "Video uses a green screen for transparent backgrounds",
-    "ja": "透明背景はグリーンバックで書き出します"
+  "透明背景会录成绿幕": {
+    "zh-Hans": "透明背景会录成绿幕",
+    "zh-Hant": "透明背景會錄成綠幕",
+    "en": "Transparent backgrounds record as green screen",
+    "ja": "透明背景はグリーンバックで録画されます"
   },
   "绿幕": {
     "zh-Hans": "绿幕",
@@ -1252,29 +1252,17 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Green screen",
     "ja": "グリーンバック"
   },
-  "没有声音，只出字幕：设置里接上语音": {
-    "zh-Hans": "没有声音，只出字幕：设置里接上语音",
-    "zh-Hant": "沒有聲音，只出字幕：設置里接上語音",
-    "en": "Captions only; connect a voice in Settings",
-    "ja": "字幕のみです。設定で音声を接続できます"
-  },
-  "系统朗读录不进声音：设置里接上语音": {
-    "zh-Hans": "系统朗读录不进声音：设置里接上语音",
-    "zh-Hant": "系統朗讀錄不進聲音：設置里接上語音",
-    "en": "System speech cannot be recorded; connect a voice in Settings",
-    "ja": "システム読み上げは録音できません。設定で音声を接続できます"
+  "没有声音": {
+    "zh-Hans": "没有声音",
+    "zh-Hant": "沒有聲音",
+    "en": "No voice",
+    "ja": "声なし"
   },
   "同时开始对话": {
     "zh-Hans": "同时开始对话",
     "zh-Hant": "同時開始對話",
     "en": "Start chat with recording",
     "ja": "録画と同時に対話を開始"
-  },
-  "建议戴耳机，不然角色的声音会被录两遍": {
-    "zh-Hans": "建议戴耳机，不然角色的声音会被录两遍",
-    "zh-Hant": "建議戴耳機，不然角色的聲音會被錄兩遍",
-    "en": "Use headphones to avoid recording the avatar’s voice twice",
-    "ja": "キャラクターの音声が二重に録音されないよう、ヘッドホンを使ってください"
   },
   "录进麦克风": {
     "zh-Hans": "录进麦克风",
@@ -3118,17 +3106,17 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Too many avatars to show this one",
     "ja": "キャラクターが多すぎて表示できません"
   },
-  "舞台上的角色太多，这个浏览器显示不过来。浏览器里大约 {0} 个能正常显示，桌面版可以更多。请隐藏或移除一些角色。": {
-    "zh-Hans": "舞台上的角色太多，这个浏览器显示不过来。浏览器里大约 {0} 个能正常显示，桌面版可以更多。请隐藏或移除一些角色。",
-    "zh-Hant": "舞台上的角色太多，這個瀏覽器顯示不過來。瀏覽器裡大約 {0} 個能正常顯示，桌面版可以更多。請隱藏或移除一些角色。",
-    "en": "Too many avatars on stage for this browser. About {0} work well in a browser, more in the desktop app. Hide or remove some.",
-    "ja": "ステージのキャラクターが多すぎて、このブラウザーでは表示しきれません。ブラウザーでは{0}体ほどまで、デスクトップ版ではもっと表示できます。いくつか非表示にするか削除してください。"
+  "角色太多，浏览器最多显示约 {0} 个，请隐藏一些": {
+    "zh-Hans": "角色太多，浏览器最多显示约 {0} 个，请隐藏一些",
+    "zh-Hant": "角色太多，瀏覽器最多顯示約 {0} 個，請隱藏一些",
+    "en": "Too many characters: a browser shows about {0}. Hide some.",
+    "ja": "キャラクターが多すぎます。ブラウザーでは約{0}体まで。いくつか非表示にしてください"
   },
-  "舞台上的角色太多，显示不过来。桌面版大约 {0} 个能正常显示。请隐藏或移除一些角色。": {
-    "zh-Hans": "舞台上的角色太多，显示不过来。桌面版大约 {0} 个能正常显示。请隐藏或移除一些角色。",
-    "zh-Hant": "舞台上的角色太多，顯示不過來。桌面版大約 {0} 個能正常顯示。請隱藏或移除一些角色。",
-    "en": "Too many avatars on stage. About {0} work well in the desktop app. Hide or remove some.",
-    "ja": "ステージのキャラクターが多すぎて表示しきれません。デスクトップ版では{0}体ほどまで表示できます。いくつか非表示にするか削除してください。"
+  "角色太多，最多显示约 {0} 个，请隐藏一些": {
+    "zh-Hans": "角色太多，最多显示约 {0} 个，请隐藏一些",
+    "zh-Hant": "角色太多，最多顯示約 {0} 個，請隱藏一些",
+    "en": "Too many characters: about {0} can show. Hide some.",
+    "ja": "キャラクターが多すぎます。表示できるのは約{0}体まで。いくつか非表示にしてください"
   },
   "这个模型超出了播放器的大小限制": {
     "zh-Hans": "这个模型超出了播放器的大小限制",
@@ -4560,7 +4548,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "说得太快了，歇一下再继续": {"zh-Hans": "说得太快了，歇一下再继续", "zh-Hant": "說得太快了，歇一下再繼續", "en": "Too fast. Take a moment, then continue", "ja": "速すぎます。少し待ってから続けてください"},
   "角色暂时没有回应，稍后再试": {"zh-Hans": "角色暂时没有回应，稍后再试", "zh-Hant": "角色暫時沒有回應，稍後再試", "en": "The character isn’t answering right now. Try again later", "ja": "キャラクターが応答していません。しばらくしてからもう一度お試しください"},
   "确认年龄": {"zh-Hans": "确认年龄", "zh-Hant": "確認年齡", "en": "Confirm your age", "ja": "年齢の確認"},
-  "用 AI 让角色说话前，请确认你已年满 18 岁。": {"zh-Hans": "用 AI 让角色说话前，请确认你已年满 18 岁。", "zh-Hant": "用 AI 讓角色說話前，請確認你已年滿 18 歲。", "en": "Before AI speaks for characters, please confirm you are 18 or over.", "ja": "AI でキャラクターを話させる前に、18 歳以上であることを確認してください。"},
+  "AI 对话需年满 18 岁": {"zh-Hans": "AI 对话需年满 18 岁", "zh-Hant": "AI 對話需年滿 18 歲", "en": "AI chat is for ages 18 and over", "ja": "AI との会話は 18 歳以上が対象です"},
   "未满 18 岁": {"zh-Hans": "未满 18 岁", "zh-Hant": "未滿 18 歲", "en": "Under 18", "ja": "18 歳未満"},
   "已满 18 岁": {"zh-Hans": "已满 18 岁", "zh-Hant": "已滿 18 歲", "en": "18 or over", "ja": "18 歳以上"},
   "登录 livliv.ai 后可用": {"zh-Hans": "登录 livliv.ai 后可用", "zh-Hant": "登入 livliv.ai 後可用", "en": "Available after you sign in to livliv.ai", "ja": "livliv.ai にログインすると使えます"},

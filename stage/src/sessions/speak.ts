@@ -112,7 +112,7 @@ async function makeLine(run: Run, me: CharacterItem, signal: AbortSignal, audien
   const bySentence = sentenceBySentence(conversation().mode)
   const take = bySentence ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, r.audio)
   signal.throwIfAborted()
-  if (run.liveOptions && !run.liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕"))
+  if (run.liveOptions && !run.liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音，在角色卡里选一个"))
   return { r: { ...reply, memoryIds, memoryRevision: context.revision }, take, chat, memoryRevision: context.revision, bySentence }
 }
 

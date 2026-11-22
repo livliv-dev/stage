@@ -130,7 +130,7 @@ export function startLive(options: LiveOptions, event: (event: ExternalEvent) =>
   if (gameConfig && !gameHost) { set({ error: tr('当前桌面版本不支持 AIRI 游戏') }); return }
   const airiModel = choice?.engine === 'airi' ? modelOf(config) : null
   // a muted character speaks no line aloud: only the ones that speak need a voice, else the session is subtitles only
-  if (!options.textOnly && cast.some((c) => !c.muted && voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕") }); return }
+  if (!options.textOnly && cast.some((c) => !c.muted && voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音，在角色卡里选一个") }); return }
   const run = takeOver('live', airiModel), signal = run.signal
   inbox.clearViewers(); inbox.drop(YOURS); inbox.drop(EVENTS); holds.dialogue.clear()
   run.liveOptions = options

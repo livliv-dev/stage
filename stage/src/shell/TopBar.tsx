@@ -39,7 +39,7 @@ export function TopBar({ onTemplate }: { onTemplate: (id: TemplateId) => void })
     try {
       const { project, missing, dropped } = await openProject(file, ctrl.signal)
       ctrl.signal.throwIfAborted(); pttCancel(); talk.detach(); playDemo(false); store.replaceProject(project)
-      const notes = [missing ? tr("有 {0} 个从文件导入的角色这台电脑上没有，要重新导入", missing) : '', dropped ? tr("{0} 张图片的地址不受支持，已跳过", dropped) : '']
+      const notes = [missing ? tr("{0} 个角色要重新导入", missing) : '', dropped ? tr("{0} 张图片的地址不受支持，已跳过", dropped) : '']
       if (missing || dropped) say(notes.filter(Boolean).join(' '))
     } catch (error) { if (!ctrl.signal.aborted) say((error as Error).message) }
     finally { if (task.current === ctrl) { task.current = null; setIO(null) } }
