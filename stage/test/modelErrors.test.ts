@@ -19,6 +19,16 @@ test('a refused tool call ends the turn with a line saying so, never the raw 400
   assert.doesNotMatch(text, /Remote sent|function\.arguments|\{/)
 })
 
+test('only a call\'s arguments refused as not JSON says to say it again; other tool refusals show the service\'s message', () => {
+  assert.match(shown(remote(400, { error: { message: 'Failed to parse tool call arguments as JSON' } })), /工具调用出错/)
+  assert.match(shown(remote(400, { error: { message: 'Invalid tool input: could not parse' } })), /工具调用出错/)
+  const noTools = shown(remote(400, { error: { message: 'deepseek-reasoner does not support Function Calling' } }))
+  assert.doesNotMatch(noTools, /工具调用出错|再说一次/)
+  assert.match(noTools, /拒绝了这次请求（400）：deepseek-reasoner does not support Function Calling/)
+  assert.match(shown(remote(400, { error: { message: "Invalid parameter: messages with role 'tool' must be a response to a preceding message with 'tool_calls'" } })), /拒绝了这次请求（400）：Invalid parameter/)
+  assert.match(shown(remote(401, { error: { message: 'Incorrect API key provided for tool_call' } })), /密钥/, 'a key refused is about the key')
+})
+
 test('keys, models, limits and outages each say what to do; anything else stays as it was', () => {
   assert.match(shown(remote(401, { error: { message: 'Invalid API-key' } })), /密钥/)
   assert.match(shown(remote(404, { error: { message: 'model not found' } })), /模型名/)

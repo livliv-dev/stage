@@ -10,8 +10,7 @@ import { participants, store, type Goal } from '../scene'
 import { rec } from '../recording'
 import { setHandsFree } from '../ptt'
 import { startPlan, type StartOptions, type StartPlan, type StartStage } from './goals'
-import { chatSourceOn, liveSetup } from './liveSetup'
-import { chatState } from '../danmaku'
+import { liveSetup } from './liveSetup'
 import { startCalls, type StartInput } from './startCalls'
 
 const stageNow = (): StartStage => ({ cast: participants(store.get()), hear: asrReady(activeSpeech()) || accountNow().status === 'in', demo: loadBrainConfig().kind === 'demo' })
@@ -22,7 +21,7 @@ export const planNow = (goal: Goal, options: StartOptions): StartPlan => startPl
 /** what a start would be given now */
 export function startInput(goal: Goal, options: StartOptions, firstLine = ''): StartInput {
   const ai = participants(store.get()).filter((c) => c.lines === 'ai' && !c.remote).map((c) => ({ id: c.id, remote: c.remote, muted: c.muted, voice: voiceRoute(c) }))
-  return { goal, options, firstLine, stage: stageNow(), ai, brain: loadBrainConfig(), features, live: liveSetup.get(), chatSource: chatSourceOn(chatState().status) }
+  return { goal, options, firstLine, stage: stageNow(), ai, brain: loadBrainConfig(), features, live: liveSetup.get() }
 }
 
 /** starts it; an error in words when it can't. A first line (和角色聊天's, typed before the start) starts the chat with

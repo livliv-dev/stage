@@ -4,12 +4,13 @@
 // them.
 import { useSyncExternalStore } from 'react'
 import { validGamePort, type AiriGameConfig } from '../../../protocol/src/airiGame'
+import { warmupNow } from '../sessions/budget'
 
 export type LiveSetup = {
   minutes: number
   maxGenerations: number
   /** with no chat coming in: wait quietly (0), or say something every 30, 60 or 120 seconds; null (until chosen): every
-   *  30 seconds while no chat source is connected, else wait quietly (warmupFor) */
+   *  30 seconds while no chat source is connected, else wait quietly, following it as it connects or drops (warmupFor) */
   warmupSeconds: 0 | 30 | 60 | 120 | null
   game: AiriGameConfig['game'] | 'window'
   minecraftVision: boolean
@@ -26,11 +27,11 @@ export const liveSetup = {
   get: () => state,
   set(change: Partial<LiveSetup>) { state = { ...state, ...change }; listeners.forEach((listener) => listener()) },
 }
-/** what the characters do with no chat coming in: the choice made, else a line every 30 seconds while no chat source
- *  (Twitch) is connected, so a 直播间 started without one doesn't sit silent, and quiet waiting with one */
-export const warmupFor = (s: Pick<LiveSetup, 'warmupSeconds'>, chatSource: boolean): 0 | 30 | 60 | 120 => s.warmupSeconds ?? (chatSource ? 0 : 30)
-/** a chat source is connected (or connecting) */
-export const chatSourceOn = (status: 'off' | 'connecting' | 'on' | 'error') => status === 'on' || status === 'connecting'
+/** what the characters do with no chat coming in, as the options show it: the choice made, else what the automatic
+ *  one does now (sessions/budget.ts warmupNow, which a running 直播间 follows as Twitch connects or drops) */
+export const warmupFor = (s: Pick<LiveSetup, 'warmupSeconds'>, chatSource: boolean) => warmupNow(s.warmupSeconds, chatSource) as 0 | 30 | 60 | 120
+/** a chat source is connected (connecting doesn't count: a connect that never finishes leaves no chat coming in) */
+export const chatSourceOn = (status: 'off' | 'connecting' | 'on' | 'error') => status === 'on'
 /** a live session's game and window are chosen for it: once it ends, the next one starts without them (the window may
  *  be gone, and the list is asked again) */
 export function endLive() { if (state.game !== 'window' || state.windowId) liveSetup.set({ game: 'window', windowId: '' }) }
