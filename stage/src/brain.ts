@@ -306,6 +306,14 @@ export function prompt(a: Ask) {
   ].filter(Boolean).join('\n')
 }
 
+/** what Stage's own brain is given each turn after its prompt: what changes least first (memories, then the summary),
+ *  then the conversation as it grows, then this turn's viewer or event, so the start of the call stays the same from
+ *  turn to turn for the provider's cache (brains/memoryBrief.ts; test/prompts.mjs pins it) */
+export function input(a: Ask) {
+  const context = conversationContext(a.lines, a.summary)
+  return JSON.stringify({ memories: memoryBrief(a.memories), earlier: context.earlier, history: context.history || '还没有人说话，你来开场', viewer: a.viewer, event: a.event, speaker: a.me.name })
+}
+
 class OpenAIBrain implements Brain {
   private c: ModelConfig
   constructor(c: ModelConfig) { this.c = c }
@@ -313,9 +321,7 @@ class OpenAIBrain implements Brain {
     const context = conversationContext(a.lines, a.summary)
     const j = await complete(this.c, [
       { role: 'system', content: prompt(a) },
-      // what changes least first (memories, then the summary), then the conversation as it grows, then this turn's: the
-      // start of the call stays the same from turn to turn for the provider's cache (brains/memoryBrief.ts)
-      { role: 'user', content: JSON.stringify({ memories: memoryBrief(a.memories), earlier: context.earlier, history: context.history || '还没有人说话，你来开场', viewer: a.viewer, event: a.event, speaker: a.me.name }) },
+      { role: 'user', content: input(a) },
     ], context.updateSummary ? 1600 : a.depth === 'discussion' ? 900 : 600, signal, 0.9)
     return parse(j?.choices?.[0]?.message?.content ?? '', a)
   }

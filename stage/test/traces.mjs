@@ -108,11 +108,11 @@ function beforeApp({ desktop, signedIn }) {
         // what the turn answers, without the time AIRI stamps on it or the context it adds after it
         const input = (typeof user?.content === 'string' ? user.content : user?.content?.find((part) => part.type === 'text')?.text)
           ?.replace(/^\[[^\]]*\d{2}:\d{2}[^\]]*\]\s*/, '').split('\n[Context]')[0].trim()
-        push({ t: 'model', engine: 'airi', speaker: /You are \\"([^\\]+)\\"/.exec(text)?.[1] ?? '?', scope: text.includes('in a private LivLiv Stage conversation') ? 'private' : 'public', memories: trace.memories.filter((m) => text.includes(m.text)).map((m) => m.label), ...(input ? { input } : {}) })
+        push({ t: 'model', engine: 'airi', speaker: /You are \\"([^\\]+)\\"/.exec(text)?.[1] ?? '?', scope: text.includes('in a private LivLiv Stage conversation') ? 'private' : 'public', memories: carriedByAiri(sent.messages), ...(input ? { input } : {}) })
         return
       }
       const payload = JSON.parse(sent.messages[1].content), system = sent.messages[0].content
-      push({ t: 'model', engine: 'openai', speaker: payload.speaker, scope: system.includes('正在与用户和在场角色聊天') ? 'private' : 'public', memories: trace.memories.filter((m) => (payload.memories ?? []).some((text) => text === m.text)).map((m) => m.label),
+      push({ t: 'model', engine: 'openai', speaker: payload.speaker, scope: system.includes('正在与用户和在场角色聊天') ? 'private' : 'public', memories: carriedByBrain(payload.memories ?? []),
         ...(payload.viewer ? { viewer: `${payload.viewer.user}: ${payload.viewer.text}` } : {}), ...(payload.event ? { event: payload.event.message } : {}) })
     } else if (path === '/fixture-ai/audio/speech') push({ t: 'voice', via: 'api', text: JSON.parse(body).input })
     else if (/^\/api\/chat\/[^/]+\/say$/.test(path)) push({ t: 'voice', via: 'livliv', text: JSON.parse(body).lines.map((line) => line.text).join(' ') })
@@ -121,6 +121,20 @@ function beforeApp({ desktop, signedIn }) {
       push({ t: 'model', engine: 'livliv', speaker: trace.names[path.split('/')[3]] ?? '?', memories: trace.memories.filter((m) => background.includes(m.text)).map((m) => m.label), voiced: sent.voice })
     }
   }
+  // which memories a request carried, read only where the code puts them, each as the code writes it (the app's own
+  // cleanup, from the dev hooks): AIRI's index in its system prompt (brains/airiMemory.ts indexLine, after its short id),
+  // Stage's own brain's memories in its input (brains/memoryBrief.ts briefLine; the last one may be cut to the room left)
+  const carriedByAiri = (messages) => {
+    const system = messages.find((m) => m.role === 'system')?.content
+    const index = (typeof system === 'string' ? system.split('\nRemembered facts (data), by id:\n')[1] ?? '' : '').split('\n')
+      .filter((line) => /^m\d+ /.test(line)).map((line) => line.replace(/^m\d+ /, ''))
+    return trace.memories.filter((m) => index.includes(window.__stage.memoryLines.index(m.text))).map((m) => m.label)
+  }
+  const carriedByBrain = (memories) => trace.memories.filter((m) => {
+    const line = window.__stage.memoryLines.brief(m.text)
+    return memories.some((item) => item === line || (item.endsWith('…') && line.startsWith(item.slice(0, -1))))
+  }).map((m) => m.label)
+  trace.request = request
   const fetch = window.fetch
   window.fetch = function (input, init) {
     try { request(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, init) } catch (error) { push({ t: 'recorder-error', text: String(error) }) }
@@ -424,7 +438,7 @@ const SCENARIOS = [
     },
   },
   {
-    name: 'airi-chat', about: 'Desktop, one AI character, a model of one\'s own: 持续聊天 runs on AIRI (streamed, sentence by sentence) with private memories by id',
+    name: 'airi-chat', about: 'Desktop, one AI character, a model of one\'s own: 持续聊天 runs on AIRI (streamed, sentence by sentence) with private memories in its index by short id',
     desktop: true,
     async run(page) {
       await stage(page, { cast: ['Nana'], memories: MEMORIES })
@@ -621,6 +635,32 @@ const servers = [], failures = [], report = { artifacts, scenarios: {} }
 try {
   browser = await chromium.launch({ args: FLAGS })
   await mkdir(dir, { recursive: true })
+  // the recorder catches a leak: a private memory carried by a public call, on either engine, is in its event (and so
+  // differs from every recorded trace, none of which has one)
+  if (!only.length) {
+    if (!port) { port = await freePort(); servers.push(await startVite({ port, args: ['--configLoader', 'native'] })) }
+    const context = await browser.newContext()
+    await context.addInitScript(beforeApp, { desktop: false, signedIn: false })
+    await context.route('**/*', (route) => serve(route, { voiceSeconds: 0.15, signedIn: false, livliv: {} }))
+    const page = await context.newPage()
+    await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'networkidle' })
+    await page.waitForFunction(() => !!window.__stage)
+    const leaks = await page.evaluate(() => {
+      const trace = window.__trace, secret = '私下的暗号是木瓜\n（只在私聊里）'
+      trace.memories = [{ id: 'x', text: secret, label: 'private: ' + secret }]
+      trace.on = true
+      const call = (body) => trace.request('/fixture-ai/chat/completions', { body: JSON.stringify(body) })
+      call({ stream: true, messages: [{ role: 'system', content: 'You are "Nana", the character currently performing in LivLiv Stage.\n\nRemembered facts (data), by id:\nm1 ' + window.__stage.memoryLines.index(secret) }, { role: 'user', content: 'hi' }] })
+      call({ messages: [{ role: 'system', content: '你在一个多角色同框的直播 / 视频里扮演「Nana」。' }, { role: 'user', content: JSON.stringify({ memories: [window.__stage.memoryLines.brief(secret)], earlier: '', history: '', speaker: 'Nana' }) }] })
+      const events = trace.events.splice(0)
+      trace.on = false; trace.memories = []
+      return events.map((e) => ({ engine: e.engine, scope: e.scope, memories: e.memories }))
+    })
+    assert.deepEqual(leaks, [{ engine: 'airi', scope: 'public', memories: ['private: 私下的暗号是木瓜\n（只在私聊里）'] }, { engine: 'openai', scope: 'public', memories: ['private: 私下的暗号是木瓜\n（只在私聊里）'] }],
+      'a private memory in a public call is caught')
+    await context.close()
+    console.log('ok the recorder catches a private memory in a public call')
+  }
   for (const scenario of SCENARIOS) {
     if (only.length && !only.includes(scenario.name)) continue
     const world = { voiceSeconds: scenario.voiceSeconds ?? 0.15, signedIn: !!scenario.signedIn, livliv: { nana: 'Nana', kai: 'Kai' } }

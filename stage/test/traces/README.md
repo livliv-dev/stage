@@ -56,5 +56,7 @@ or a closed window is the conversation up to the last line. A runner must save t
 - A time limit is a minute at least: in a scenario that ends at one (`fastClock`), a timer of half a minute or more runs
   60 times sooner, so a minute's limit ends after a second.
 - Scenarios drive Stage the way its console does (`talk.*`, the hands-free switch, a recording), never through the UI.
-- Memories are told apart by their ids in what a request carries, never by text in the history.
+- Memories are read only where a request carries them, each as the code writes it: AIRI's index in its system prompt
+  (after a short id), Stage's own brain's memories in its input; never from text in the history. Before the scenarios,
+  the recorder is shown a private memory in a public call on each engine, and must name it.
 - Each scenario has a fresh browser context: nothing saved carries over.

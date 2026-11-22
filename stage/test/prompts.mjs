@@ -22,7 +22,8 @@ try {
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'networkidle' })
   await page.waitForFunction(() => !!window.__stage)
   const prompts = await page.evaluate(async () => {
-    const { prompt } = await import('/src/brain.ts'), { identity } = await import('/src/airiEngine.ts'), { instructions } = await import('/src/realtime.ts')
+    const { prompt, input } = await import('/src/brain.ts'), { identity } = await import('/src/airiEngine.ts'), { instructions } = await import('/src/realtime.ts')
+    const { airiSystemPrompt, memoryIndexOf } = await import('/src/brains/airiMemory.ts')
     const { store } = await import('/src/scene.ts'), { talk } = window.__stage
     const card = (name, more = {}) => ({ id: name.toLowerCase(), kind: 'character', name, persona: '', lines: 'ai', length: 'short', reactions: { enabled: true, intensity: 0.8, listen: true }, ...more })
     // a full card written for 「小娜」 before the character became Nana: Stage's brain and AIRI say Nana, a realtime call reads it as written
@@ -45,6 +46,17 @@ try {
     out['airi-public-auto'] = identity(nana, 'auto', 'public')
     out['airi-bare-card-english'] = identity(card('Mio'), 'en', 'public')
     out['airi-japanese'] = identity(kai, 'ja', 'private')
+    // what each model call carries besides the persona: Stage's own brain's input (memories as text, at most 300 each,
+    // first; the summary; the conversation; the viewer), and AIRI's whole system prompt (its identity, the memory index
+    // by short id, and the tool's use when a memory is longer than the index holds). Memories: the most recent first
+    const memories = [
+      { id: 'a-uuid-3', text: '最近：小娜说下周想去看海，\n顺便画日落。', createdAt: 3 },
+      { id: 'a-uuid-2', text: '小娜养了一只叫「团子」的橘猫，' + '它每天早上六点准时叫醒小娜，然后坐在画板旁边看她画画，偶尔还会踩翻颜料盒。'.repeat(10), createdAt: 2 },
+      { id: 'a-uuid-1', text: '小娜不喝咖啡，只喝热可可。', createdAt: 1 },
+    ]
+    out['brain-input-memories'] = JSON.stringify(JSON.parse(input(ask({ lines: lines(4), summary: { text: '之前聊了周末的安排。', sourceIds: ['l0', 'l1'] }, memories, viewer: { user: 'Aki', text: '画一只猫吧' } }))), null, 1)
+    const index = memoryIndexOf(memories, 7)
+    out['airi-system-index'] = airiSystemPrompt(identity(nana, 'zh', 'private'), index.index, index.longer)
     const realtime = async ({ topic, language, depth, scope }, who = nana) => {
       store.set({ topic }); store.setTalk({ language, depth })
       if (window.__stage.conversation().scope !== scope) assert(await talk.setScope(scope), 'scope ' + scope)
