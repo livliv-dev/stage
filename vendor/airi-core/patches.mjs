@@ -22,6 +22,19 @@ export const PATCHES = [
       '}',
     ].join('\n'),
   },
+  {
+    name: 'the memory read tool: up to four ids a call',
+    // Stage gives AIRI an index of a character's memories and this tool to read whole entries by id. One call could ask
+    // for every entry in the index (Stage gives 48), all billed in the next call. The tool now says it takes up to four,
+    // and reads the first four of a call that gives more, rather than refusing it (a refusal would take another call).
+    from: /\(0, import_dist\.description\)\("Every entry that the reply needs, so one call reads them all\."\)/,
+    to: '(0, import_dist.description)("Up to four entries that the reply needs, so one call reads them all.")',
+  },
+  {
+    name: 'the memory read tool: the first four ids of a call',
+    from: /return parsed\.output\.ids\.map\(\(id\) => \{/,
+    to: 'return parsed.output.ids.slice(0, 4).map((id) => {',
+  },
 ]
 
 /** the bundle with every fix applied (one already in it is left as it is) */

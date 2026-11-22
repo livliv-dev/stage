@@ -26,6 +26,8 @@ export type TurnRequest = {
     lines: Line[]
     summary?: ConversationSummary
     memories: MemoryRecord[]
+    /** how many memories there are in all, of which `memories` are the ones picked (AIRI numbers them: brains/airiMemory.ts) */
+    memoryCount?: number
     /** a viewer's message to answer (its line's id when it is shown) */
     viewer: { id?: string; user: string; text: string } | null
     /** a game's or another app's event to answer */
