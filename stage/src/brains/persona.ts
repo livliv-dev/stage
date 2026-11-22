@@ -8,6 +8,7 @@
 // the character's name in its place, a realtime call reads the card as written.
 import type { MemoryScope } from '../memory'
 import type { CharacterItem, Talk } from '../scene'
+import { CARD_LIMITS } from '../characterCard'
 
 export type PersonaSpec = {
   name: string
@@ -31,7 +32,8 @@ export type PersonaSpec = {
 
 /** the persona for this turn: the character's card, in the session's language and scope */
 export function personaOf(c: Pick<CharacterItem, 'name' | 'cardName' | 'persona' | 'style' | 'relationship' | 'stance' | 'examples' | 'tagline' | 'greeting'>, language: Talk['language'], scope: MemoryScope): PersonaSpec {
-  return { name: c.name, cardName: c.cardName, persona: c.persona, style: c.style, relationship: c.relationship, stance: c.stance, examples: c.examples ?? [], tagline: c.tagline, ...(c.greeting ? { greeting: c.greeting } : {}), language, scope }
+  // a persona or style typed before the fields counted is held to the card's length here
+  return { name: c.name, cardName: c.cardName, persona: c.persona.slice(0, CARD_LIMITS.persona), style: c.style?.slice(0, CARD_LIMITS.style), relationship: c.relationship, stance: c.stance, examples: c.examples ?? [], tagline: c.tagline, ...(c.greeting ? { greeting: c.greeting } : {}), language, scope }
 }
 
 /** the language example lines are in (kana: Japanese; Chinese characters: Chinese; else English) */

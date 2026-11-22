@@ -25,7 +25,10 @@ export type CardError = 'too-big' | 'not-a-card' | 'no-name' | 'unreadable' | 'c
 
 /** the largest file read (a PNG card carries its picture) */
 export const CARD_BYTES = 16 * 1024 * 1024
-const LIMIT = { name: 60, persona: 4000, style: 1500, greeting: 400, example: 300, examples: 12 }
+/** how long each part of a card may be, imported or typed: the persona and style fields count to these
+ *  (Inspector.tsx), and every prompt holds a card to them (brains/persona.ts) */
+export const CARD_LIMITS = { name: 60, persona: 4000, style: 1500, greeting: 400, example: 300, examples: 12 } as const
+const LIMIT = CARD_LIMITS
 
 type Data = Record<string, unknown>
 /** a field's text, cut to `max` characters before anything else reads it (a crafted card can't make the reading slow) */

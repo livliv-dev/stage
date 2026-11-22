@@ -32,6 +32,7 @@ import { modeOf } from './control'
 import { readReactionSettings, type ReactionFeeling } from './reactions'
 import { showCardPage, useCardPage } from './shell/cardPage'
 import { CardImport } from './CardImport'
+import { CARD_LIMITS } from './characterCard'
 
 const settingsLabel = (item?: Item) => tr(item ? ({ character: '角色设置', subtitle: '字幕设置', text: '文字设置', image: '图片设置' })[item.kind] : '舞台设置')
 
@@ -244,12 +245,12 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
     </Section>
   const persona = <Section title={tr('人设与风格')}>
         <CardImport key={c.id} c={c} patch={patch} />
-        <label className="field spaced"><span>{tr("人设")}</span>
+        <label className="field spaced"><span>{tr("人设")}<small className="count num">{c.persona.length}/{CARD_LIMITS.persona}</small></span>
           {/* its example lines go with the card as written */}
-          <textarea rows={3} value={c.persona} placeholder={tr("她是谁、怎么说话，一两句就够")} onChange={(e) => patch({ persona: e.target.value, examples: undefined })} />
+          <textarea rows={3} maxLength={CARD_LIMITS.persona} value={c.persona} placeholder={tr("她是谁、怎么说话，一两句就够")} onChange={(e) => patch({ persona: e.target.value, examples: undefined })} />
         </label>
-        {c.style !== undefined && <label className="field"><span>{tr("说话风格")}</span>
-          <textarea rows={3} value={c.style} onChange={(e) => patch({ style: e.target.value, examples: undefined })} />
+        {c.style !== undefined && <label className="field"><span>{tr("说话风格")}<small className="count num">{c.style.length}/{CARD_LIMITS.style}</small></span>
+          <textarea rows={3} maxLength={CARD_LIMITS.style} value={c.style} onChange={(e) => patch({ style: e.target.value, examples: undefined })} />
         </label>}
         {c.greeting !== undefined && <label className="field"><span>{tr('开场白')}</span>
           <textarea rows={2} maxLength={400} value={c.greeting} placeholder={tr('没人说话时，它开口的第一句')} onChange={(e) => patch({ greeting: e.target.value })} />

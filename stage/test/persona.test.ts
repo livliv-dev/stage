@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { airiIdentity, brainPersona, named, personaOf, realtimeInstructions } from '../src/brains/persona'
+import { CARD_LIMITS } from '../src/characterCard'
 
 // the cards test/prompts.mjs renders through brain.ts, airiEngine.ts and realtime.ts; the AIRI identity and the
 // realtime instructions are whole there, so the renderers must give the same text here
@@ -55,4 +56,15 @@ test('an imported card\'s first message opens the talk; its example lines go in 
   assert.ok(airiIdentity(p).includes('Your first message, said when nothing has been said yet: Hi! I\'m Iru Mk2. Ready?'))
   assert.ok(!brainPersona(personaOf(nana, 'zh', 'private'), 'zh', true).some((line) => line.includes('开场白')), 'a card without one: as before')
   assert.ok(!airiIdentity(personaOf(nana, 'zh', 'private')).includes('first message'))
+})
+
+test('a typed persona and style are held to an imported card\'s length in every prompt', () => {
+  const long = { name: 'Nana', persona: '长'.repeat(9000), style: '慢'.repeat(3000), examples: [] }
+  const p = personaOf(long, 'zh', 'private')
+  assert.equal(p.persona.length, CARD_LIMITS.persona)
+  assert.equal(p.style?.length, CARD_LIMITS.style)
+  assert.ok(brainPersona(p, 'zh').join('').length < CARD_LIMITS.persona + CARD_LIMITS.style + 200, "Stage's own brain")
+  assert.ok(airiIdentity(p).length < CARD_LIMITS.persona + CARD_LIMITS.style + 1500, 'AIRI')
+  assert.deepEqual([CARD_LIMITS.persona, CARD_LIMITS.style], [4000, 1500], 'the caps an imported card has')
+  assert.equal(personaOf({ name: 'Kai', persona: '短', examples: [] }, 'zh', 'private').persona, '短', 'a short one as it is')
 })
