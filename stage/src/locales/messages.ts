@@ -4482,7 +4482,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "收起{0}": {"zh-Hans": "收起{0}", "zh-Hant": "收合{0}", "en": "Collapse {0}", "ja": "{0}を閉じる"},
   "阿里云百炼": {"zh-Hans": "阿里云百炼", "zh-Hant": "阿里雲百煉", "en": "Alibaba Model Studio", "ja": "Alibaba Model Studio"},
   "按角色自动分配": {"zh-Hans": "按角色自动分配", "zh-Hant": "按角色自動分配", "en": "Assign per character", "ja": "キャラごとに自動設定"},
-  "声音文件读取失败（{0}）": {"zh-Hans": "声音文件读取失败（{0}）", "zh-Hant": "聲音檔案讀取失敗（{0}）", "en": "Could not load audio ({0})", "ja": "音声を読み込めません（{0}）"},
   "让角色第一次开口": {"zh-Hans": "让角色第一次开口", "zh-Hant": "讓角色第一次開口", "en": "Meet your first characters", "ja": "キャラクターに会ってみよう"},
   "角色声音、动作与字幕": {"zh-Hans": "角色声音、动作与字幕", "zh-Hant": "角色聲音、動作與字幕", "en": "Voices, motion and captions", "ja": "声・動き・字幕を体験"},
   "中文演示": {"zh-Hans": "中文演示", "zh-Hant": "中文示範", "en": "Chinese demo", "ja": "中国語デモ"},

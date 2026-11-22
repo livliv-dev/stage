@@ -12,6 +12,7 @@ import { tr } from './i18n'
 // else none: its lines show as subtitles. The system's voice only if chosen. A card set to your own never falls back to
 // livliv.ai's.
 import { useSyncExternalStore } from 'react'
+import { bailianAudio } from './bailianAudio'
 import { aiFetch, failed, livlivNow, loadBrainConfig, ownVoicesKnown, previousModelConfig, useBrainConfig, type BrainConfig } from './brain'
 import type { Emotion, StreamingVoice } from './core/lines'
 import { modelId } from './livliv'
@@ -104,19 +105,16 @@ const TONE: Partial<Record<Emotion, string>> = { happy: '语气开心、轻快�
 export async function speakApi(s: SpeechApi, text: string, voice: string, emotion: Emotion, rate: number, signal?: AbortSignal): Promise<Blob> {
   if (s.provider === 'voicebox') return voiceboxSpeak(voice || s.voice || defaultProfile(0), text, signal)
   if (s.provider === 'qwen') {
+    // as a stream: the line comes in the answer's events, never from the file Bailian leaves on its storage (bailianAudio.ts)
     const r = await aiFetch(endpoint(s, '/services/audio/tts/SpeechSynthesizer'), {
-      method: 'POST', signal, headers: { 'Content-Type': 'application/json', ...auth(s) },
+      method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'X-DashScope-SSE': 'enable', ...auth(s) },
       body: JSON.stringify({ model: s.model, input: { text, voice: voice || s.voice || speechProviderOf(s).voices![0], format: 'wav', sample_rate: 24000, rate,
         ...(TONE[emotion] ? { instruction: TONE[emotion] } : {}) } }),
     })
     if (!r.ok) throw await failed(r)
-    const data = await r.json(), url = data?.output?.audio?.url
-    if (data?.code) throw new Error(data.message || data.code)
-    if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) throw new Error(tr('语音接口没有返回声音'))
-    // The generated file is fetched without forwarding the API key to its storage host.
-    const audio = await aiFetch(url, { signal })
-    if (!audio.ok) throw new Error(tr('声音文件读取失败（{0}）', audio.status))
-    return audio.blob()
+    const { blob } = finished(bailianAudio(await r.text()), 'audio/wav')
+    if (!blob.size) throw new Error(tr('语音接口没有返回声音'))
+    return blob
   }
   const tone = speechProviderOf(s).tone && TONE[emotion]
   const r = await aiFetch(endpoint(s, '/audio/speech'), {
