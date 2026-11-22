@@ -201,14 +201,23 @@ try {
   assert.ok(voiced.length >= 2 && voiced.every((c) => c.path === '/api/chat/say' && c.body.voice === 'longanyang_v3.1' && c.body.lines[0].text === LINE), 'voiced in the young men\'s system voice: ' + JSON.stringify(voiced.map((c) => [c.path, c.body.voice])))
   assert.ok(voiced.every((c) => typeof c.body.line === 'string' && c.body.line && c.body.stage === true), 'each with its line id, as Stage\'s (a livliv.ai voice is paid by the line)')
   assert.equal(calls.filter((c) => c.kind.startsWith('own')).length, 0, 'saved own keys unused')
-  // livliv.ai refusing a call as too long: asked once more with the older half of the history left out, nothing shown
-  calls.length = 0; refuseAt = 2
-  await chat(page)
+  // livliv.ai refusing a call as too long (on AIRI here): the same call sent again with the older lines left out, nothing
+  // shown. Two lines of yours first, so the refused call has lines before it to leave out
+  calls.length = 0; refuseAt = 3
+  await page.evaluate(async () => { const { talk } = window.__stage; talk.stop(); await talk.newChat(); await talk.startChat('private') })
+  await page.waitForFunction(() => window.__stage.conversation().waitingInput)
+  for (const line of ['那就聊聊周末吧', '你周末一般做什么']) {
+    const before = await page.evaluate(() => window.__stage.conversation().lines.filter((l) => !l.human).length)
+    await page.evaluate((line) => window.__stage.talk.say(line), line)
+    await page.waitForFunction((before) => { const c = window.__stage.conversation(); return (c.waitingInput && c.lines.filter((l) => !l.human).length > before && !c.speaking) || !!c.error }, before)
+  }
+  assert.equal(await page.evaluate(() => window.__stage.conversation().error), '', 'nothing shown')
+  await page.evaluate(() => window.__stage.talk.stop())
   refuseAt = 0
   const asked = calls.filter((c) => c.kind === 'livliv-text'), size = (c) => JSON.stringify(c.body.messages).length
-  assert.ok(asked[1]?.refused && asked.length >= 3, 'the second call was refused and asked again: ' + asked.length)
-  assert.ok(size(asked[2]) < size(asked[1]), 'asked again with less history: ' + JSON.stringify([size(asked[1]), size(asked[2])]))
-  assert.equal(await page.evaluate(() => window.__stage.conversation().error), '', 'nothing shown')
+  assert.ok(asked[2]?.refused && asked.length >= 4, 'the third call was refused and sent again: ' + asked.length)
+  assert.ok(size(asked[3]) < size(asked[2]), 'sent again with less: ' + JSON.stringify([size(asked[2]), size(asked[3])]))
+  assert.equal(JSON.stringify(asked[3].body.messages.at(-1)), JSON.stringify(asked[2].body.messages.at(-1)), 'the same call: your line as it was')
   // recognition through livliv.ai while its voices are on, though your own is set
   calls.length = 0
   await pushToTalk(page)

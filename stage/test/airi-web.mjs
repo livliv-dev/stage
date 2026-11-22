@@ -196,8 +196,10 @@ try {
   })
   const other = await elsewhere.newPage(); other.setDefaultTimeout(testTimeout(30000)); other.on('pageerror', (e) => errors.push(e.message))
   await other.goto(`http://127.0.0.1:${vitePort}/`, { waitUntil: 'networkidle' })
-  await other.waitForFunction(() => { const a = [...window.__stage.actors.values()]; return a.length === 3 && a.every((x) => x.status === 'ready') }, null, { timeout: testTimeout(60000) })
-  await other.locator('.start-overlay .start-page [data-close]').click().catch(() => {})
+  // its start page: 和角色聊天 puts the characters on the stage
+  await other.locator('.start-page .goal-tile', { hasText: '和角色聊天' }).first().click()
+  await other.waitForFunction(() => { const a = [...window.__stage.actors.values()]; return a.length > 0 && a.every((x) => x.status === 'ready') }, null, { timeout: testTimeout(60000) })
+  await other.evaluate(async () => (await import('/src/shell/ui.ts')).ui.setPop(null))
   await other.evaluate(() => { const { store } = window.__stage; store.get().items.filter((i) => i.kind === 'character').forEach((c, i) => store.patch(c.id, i ? { lines: 'none' } : { muted: true })) })
   await other.evaluate(async () => { const { talk } = window.__stage; await talk.newChat(); await talk.startChat('private') })
   await other.waitForFunction(() => window.__stage.conversation().waitingInput)
