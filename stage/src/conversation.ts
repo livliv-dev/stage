@@ -238,7 +238,10 @@ export const talk = {
     if (state.running && (state.mode === 'chat' || run?.airi) && !state.sessionId) { set({ error: tr('会话正在准备，请稍后再发') }); return false }
     const me = played()
     const c = me.find((x) => x.id === (state.waiting ?? state.as)) ?? (state.as === 'narrator' ? undefined : me[0])
-    const line: Line = { id: uid(), who: c?.id ?? 'me', name: c?.name ?? tr("旁白"), text: t.slice(0, 200), emotion: 'neutral', action: 'none', to: null, human: true }
+    // with no character of yours, a line in a chat (和角色聊天) is yours, as in a realtime call; elsewhere (a 对谈, or
+    // 旁白 chosen beside your characters) it is the narrator's
+    const chatting = options.chat === true || (state.running ? state.mode === 'chat' : features.desktopConsole)
+    const line: Line = { id: uid(), who: c?.id ?? 'me', name: c?.name ?? (chatting && !me.length ? tr('我') : tr("旁白")), text: t.slice(0, 200), emotion: 'neutral', action: 'none', to: null, human: true }
     set({ error: '' })
     if ((features.desktopConsole || options.chat) && !conversation().running && options.respond !== false && profiles().length) {
       const model = loadBrainConfig()
