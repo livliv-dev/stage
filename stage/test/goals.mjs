@@ -81,6 +81,8 @@ try {
     await click(footer(page))
     await page.waitForFunction(() => window.__stage.recording().phase === 'recording' && window.__stage.conversation().running && window.__stage.conversation().mode === 'conversation')
     await page.waitForFunction(() => window.__stage.conversation().lines.length > 0)
+    // a take under half a second is dropped (recording.ts): a quick first line must not stop it that soon
+    await page.waitForFunction(() => performance.now() - window.__stage.recording().started >= 1000)
     await click(page.locator('.topbar .rec.live'))
     await page.waitForFunction(() => window.__stage.recording().phase === 'done', null, { timeout: testTimeout(60000) })
     counts.video = clicks(); await context.close()

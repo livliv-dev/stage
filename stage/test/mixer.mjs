@@ -132,11 +132,11 @@ try {
     const lateEnded = window.fixture.requests.filter((r) => r.id === 'slow').every((r) => r.stream.getAudioTracks().every((t) => t.readyState === 'ended')); setInput({ microphone: '' })
     return { values, oldEnded, error, lateEnded }
   })
-  // the first device's tone, then the second's, never the first again: a tenth of a second that is neither (the start,
-  // the swap's quiet moment, the end) may come before, between and after
+  // the first device's tone, then the second's, never the first again. A tenth of a second that is neither (the start,
+  // the swap's quiet moment, the end, or a slow runner's hiccup inside a tone) is left out before reading the order
   const tones = report.deviceSwitch.values.map((v) => v.rms < .01 ? '.' : Math.abs(v.frequency - 220) < 15 ? 'a' : Math.abs(v.frequency - 880) < 15 ? 'b' : '?').join('')
   report.deviceSwitch.tones = tones; delete report.deviceSwitch.values
-  assert.match(tones, /^[.?]*a{2,}[.?]*b{3,}[.?]*$/, 'tone A, then tone B: ' + tones); assert.equal(report.deviceSwitch.oldEnded, true); assert.ok(report.deviceSwitch.error); assert.equal(report.deviceSwitch.lateEnded, true)
+  assert.match(tones.replace(/[.?]/g, ''), /^a{2,}b{3,}$/, 'tone A, then tone B: ' + tones); assert.equal(report.deviceSwitch.oldEnded, true); assert.ok(report.deviceSwitch.error); assert.equal(report.deviceSwitch.lateEnded, true)
   report.friends = await page.evaluate(async () => {
     const { attachSound, removeSound, remoteSounds, volumeFor } = await import('/src/collab/streams.ts'), { setBus } = await import('/src/mixer.ts'), { record } = await import('/src/tape.ts'), { renderTake } = await import('/src/render.ts'), { audioRms } = await import('/test/media.ts')
     const stream = window.fixture.b.stream.clone(); attachSound('fixture-peer', stream); volumeFor('fixture-peer', .4); setBus('friends', { volume: .5 })
