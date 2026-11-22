@@ -6,7 +6,7 @@ import type { MemoryRecord, MemoryScope } from './memory'
 import type { ReactionCue } from './reactions'
 import type { CharacterItem, Talk } from './scene'
 import type { AiriGameFrame, AiriGameMessage } from '../../protocol/src/airiGame'
-import { aiFetch } from './brain'
+import { aiFetch, failed, LIVLIV } from './brain'
 import { airiIdentity, personaOf, type PersonaSpec } from './brains/persona'
 import { readableModelError } from './brains/modelErrors'
 import { parseAiriMarkers } from './airiMarkers'
@@ -26,6 +26,13 @@ export function airiGameError(error: unknown) {
 
 type Frame = AiriGameFrame
 type Core = typeof import('../../vendor/airi-core/core.mjs')
+/** AIRI's core, loaded on the first AIRI turn. Its zod is told not to try compiling validators with new Function
+ *  first: a page whose Content-Security-Policy has no 'unsafe-eval' (livliv.ai/stage) would log a refusal for it */
+function loadCore(): Promise<Core> {
+  const g = globalThis as { __zod_globalConfig?: Record<string, unknown> }
+  g.__zod_globalConfig = { ...g.__zod_globalConfig, jitless: true }
+  return import('../../vendor/airi-core/core.mjs')
+}
 export type AiriTurn = {
   sessionId: string
   scope: MemoryScope
@@ -105,6 +112,9 @@ function provider(config: ModelConfig, signal: AbortSignal, options: {
               response = await send()
             }
           }
+          // livliv.ai's own refusals (sign-in, points, the age question, its limits) in its words, as the standard engine
+          // says them, never as a key error
+          if (config.provider === LIVLIV && !response.ok && response.status < 500 && response.status !== 429) throw await failed(response)
           if (response.ok && (!response.body || !response.headers.get('content-type')?.includes('text/event-stream'))) {
             if (allowBatch && response.headers.get('content-type')?.includes('application/json')) {
               const adapted = await batchAsStream(response, model)
@@ -222,7 +232,7 @@ export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
   return new ReadableStream({
     start(output) {
       async function run() {
-        const core = await import('../../vendor/airi-core/core.mjs')
+        const core = await loadCore()
         signal.throwIfAborted()
         const speech = spoken(core, signal, output)
         // the persona, once for this turn
@@ -318,13 +328,15 @@ export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
 
 export async function testAiriModel(model: ModelConfig, signal: AbortSignal) {
   const start = performance.now()
-  const core = await import('../../vendor/airi-core/core.mjs')
+  const core = await loadCore()
   let text = '', batch = false
-  await core.streamFrom({
-    model: model.model, chatProvider: provider(model, signal, { allowBatch: true, onBatch: () => { batch = true } }),
-    conversation: { turns: [{ id: 'model-test', type: 'user', content: [{ type: 'text', text: 'Reply with OK.' }] }] },
-    options: { abortSignal: signal, maxTokens: 16, onStreamEvent: (event) => { if (event.type === 'text-delta') text += event.text ?? '' } },
-  })
+  try {
+    await core.streamFrom({
+      model: model.model, chatProvider: provider(model, signal, { allowBatch: true, onBatch: () => { batch = true } }),
+      conversation: { turns: [{ id: 'model-test', type: 'user', content: [{ type: 'text', text: 'Reply with OK.' }] }] },
+      options: { abortSignal: signal, maxTokens: 16, onStreamEvent: (event) => { if (event.type === 'text-delta') text += event.text ?? '' } },
+    })
+  } catch (error) { throw readableModelError(error) }
   if (!text.trim()) throw new Error(tr('模型没有返回可播放的回复'))
   return { seconds: (performance.now() - start) / 1000, batch }
 }
@@ -334,7 +346,7 @@ export async function chooseAiriGameAction(
   signal: AbortSignal, frame?: Frame, beforeRequest?: () => Promise<void>,
 ): Promise<ExternalActionDecision | null> {
   if (!request.actions.length) return null
-  const core = await import('../../vendor/airi-core/core.mjs')
+  const core = await loadCore()
   signal.throwIfAborted()
   const selected = new AbortController()
   const active = AbortSignal.any([signal, selected.signal])
