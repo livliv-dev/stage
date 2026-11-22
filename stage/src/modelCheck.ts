@@ -33,10 +33,10 @@ const refuse = (code: ConstructorParameters<typeof LivLivError>[0], why: string,
   const e = new LivLivError(code, why, { cause })
   return new Error(refused(e, format), { cause: e })
 }
-/** the shallowest model.json among a package's or a folder's paths (the package's own, as the player picks it) */
-export const modelJsonOf = (paths: Iterable<string>) => [...paths].filter((p) => p === 'model.json' || p.endsWith('/model.json')).sort((a, b) => a.split('/').length - b.split('/').length || a.length - b.length)[0]
+/** the package's own model.json among its paths, picked as the player picks it: the shortest path */
+export const modelJsonOf = (paths: Iterable<string>) => [...paths].filter((p) => p === 'model.json' || p.endsWith('/model.json')).sort((a, b) => a.length - b.length)[0]
 
-/** a .livliv or zip: a ZIP whose shallowest model.json the player reads. Only that file is unpacked; names inside may
+/** a .livliv or zip: a ZIP whose own model.json (modelJsonOf) the player reads. Only that file is unpacked; names inside may
  *  hold any character the player's own loading takes (#, ?, :) */
 export async function checkPackage(file: Blob) {
   const bytes = new Uint8Array(await file.arrayBuffer()), names: string[] = []
@@ -48,7 +48,7 @@ export async function checkPackage(file: Blob) {
   await checkModel(new Blob([entries[path] as BlobPart]))
 }
 
-/** a model.json (a package's, or a folder's: library.ts finds the shallowest): a JSON object in this player's format (or
+/** a model.json (a package's, or a folder's: library.ts finds it with modelJsonOf): a JSON object in this player's format (or
  *  the earlier one), at a version it knows */
 export async function checkModel(json: Blob) {
   let model: unknown
