@@ -27,7 +27,7 @@ One file per scenario, one JSON event per line. The first line names the scenari
 | `memory-edit` | a memory is edited (the scenario does it, as the memory panel would) | `from`, `to` (`scope: text`) |
 | `pause`, `resume` | a running session is paused or resumed | |
 | `retry` | AI 直播 will try a failed turn again | `seconds` until it does |
-| `model` | a request to a model (each one is paid) | `engine` (`openai`: a model of one's own, `airi`, `livliv`: LivLiv's points), `speaker`, `scope` (as the prompt says it), `memories` it carried (`scope: text`), `viewer`, `event`, `input` (AIRI's turn input), `voiced` (LivLiv brings the voice) |
+| `model` | a request to a model (each one is paid) | `engine` (`openai`: a model of one's own, `airi`, `livliv`: LivLiv's points), `speaker`, `scope` (as the prompt says it), `memories` it carried (`scope: text`), `read` (the entries AIRI's memory tool gave back), `viewer`, `event` (as the model is given it: at most 500 characters), `input` (AIRI's turn input), `voiced` (LivLiv brings the voice) |
 | `voice` | a voice request | `via` (`livliv`: one `/say` call, points; `api`: your own speech API), `text` |
 | `error`, `need-model` | the conversation shows an error, or asks for a model | `text`, `intent` |
 | `end` | a session ends | `mode`, `scope`, `turns`, `generations`, `ended` (the limit or reason shown), `error` |
@@ -57,6 +57,9 @@ or a closed window is the conversation up to the last line. A runner must save t
   60 times sooner, so a minute's limit ends after a second.
 - Scenarios drive Stage the way its console does (`talk.*`, the hands-free switch, a recording), never through the UI.
 - Memories are read only where a request carries them, each as the code writes it: AIRI's index in its system prompt
-  (after a short id), Stage's own brain's memories in its input; never from text in the history. Before the scenarios,
-  the recorder is shown a private memory in a public call on each engine, and must name it.
+  (after a short id), the facts an AIRI event's turn is given (`rememberedFacts`), the entries AIRI's memory tool gave
+  back (a model event's `read`), Stage's own brain's memories in its input; never from text in the history. Before the
+  scenarios, the recorder is shown a private memory in a public call on each of these paths, and must name it.
+- When AIRI's memory tool is offered (a memory longer than its index line), the fixture model calls it once for every
+  entry the index shows, then answers.
 - Each scenario has a fresh browser context: nothing saved carries over.

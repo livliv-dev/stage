@@ -35,10 +35,12 @@ function wav(seconds) {
 /** a model reply: the speaker's how-many-th line, from what the request shows of the conversation, in two sentences */
 const replyText = (speaker, n) => `${speaker}的第${n}句。我接着说下去。`
 /** a streamed reply, as an OpenAI-compatible API sends one (AIRI asks for these) */
+const chunk = (delta, finish = null) => 'data: ' + JSON.stringify({ id: 'trace', object: 'chat.completion.chunk', model: 'fixture-model', created: 1, choices: [{ index: 0, delta, finish_reason: finish }] }) + '\n\n'
 function sse(content) {
-  const chunk = (delta, finish = null) => 'data: ' + JSON.stringify({ id: 'trace', object: 'chat.completion.chunk', model: 'fixture-model', created: 1, choices: [{ index: 0, delta, finish_reason: finish }] }) + '\n\n'
   return chunk({ role: 'assistant', content }) + chunk({}, 'stop') + 'data: [DONE]\n\n'
 }
+/** a streamed call of AIRI's memory tool, for these entries */
+const readMemory = (ids) => chunk({ role: 'assistant', tool_calls: [{ index: 0, id: 'read-1', type: 'function', function: { name: 'builtIn_readMemory', arguments: JSON.stringify({ ids }) } }] }) + chunk({}, 'tool_calls') + 'data: [DONE]\n\n'
 
 /** answers this scenario's requests; `world` holds what the scenario set (voice length, a transcript, LivLiv names, how
  *  long the model takes and how many of its answers fail) */
@@ -50,9 +52,13 @@ async function serve(route, world) {
     if (world.modelDelay) await new Promise((resolve) => setTimeout(resolve, world.modelDelay))
     if (world.modelFailures > 0) { world.modelFailures--; return route.fulfill({ status: 503, json: { error: { message: 'Fixture model unavailable' } } }).catch(() => {}) }
     if (body.stream) {
-      // AIRI: the speaker from its identity line, the count from its own lines in the history it sends
+      // AIRI: when its memory tool is offered (a memory longer than the index holds), one round reading every entry the
+      // index shows; then the speaker from its identity line, the count from its own lines in the history it sends
+      const system = body.messages.find((m) => m.role === 'system')?.content
+      if (body.tools?.some((tool) => tool.function?.name === 'builtIn_readMemory') && body.tool_choice !== 'none' && !body.messages.some((m) => m.role === 'tool'))
+        return route.fulfill({ contentType: 'text/event-stream', body: readMemory([...String(system).matchAll(/^(m\d+) /gm)].map((id) => id[1])) }).catch(() => {})
       const text = JSON.stringify(body.messages), speaker = /You are \\"([^\\]+)\\"/.exec(text)?.[1] ?? '?'
-      const n = body.messages.filter((m) => m.role === 'assistant').length + 1
+      const n = body.messages.filter((m) => m.role === 'assistant' && !m.tool_calls?.length).length + 1
       return route.fulfill({ contentType: 'text/event-stream', body: sse(`<|ACT {"emotion":"happy","motion":"nod"}|>${replyText(speaker, n)}`) }).catch(() => {})
     }
     const payload = JSON.parse(body.messages[1].content), mine = `${payload.speaker}：`
@@ -105,10 +111,15 @@ function beforeApp({ desktop, signedIn }) {
       const sent = JSON.parse(body)
       if (sent.stream) {
         const text = JSON.stringify(sent.messages), user = sent.messages.findLast((m) => m.role === 'user')
-        // what the turn answers, without the time AIRI stamps on it or the context it adds after it
-        const input = (typeof user?.content === 'string' ? user.content : user?.content?.find((part) => part.type === 'text')?.text)
-          ?.replace(/^\[[^\]]*\d{2}:\d{2}[^\]]*\]\s*/, '').split('\n[Context]')[0].trim()
-        push({ t: 'model', engine: 'airi', speaker: /You are \\"([^\\]+)\\"/.exec(text)?.[1] ?? '?', scope: text.includes('in a private LivLiv Stage conversation') ? 'private' : 'public', memories: carriedByAiri(sent.messages), ...(input ? { input } : {}) })
+        const said = textOf(user)?.replace(/^\[[^\]]*\d{2}:\d{2}[^\]]*\]\s*/, '')
+        // an event's turn (AIRI's spark:notify): the event's note as the model is given it; otherwise what the turn
+        // answers, without the time AIRI stamps on it or the context it adds after it
+        const shown = said?.indexOf('\n\nShow context (data): ') ?? -1
+        const note = shown >= 0 ? JSON.parse(said.slice(0, shown)).notify?.note : undefined
+        const input = shown >= 0 ? undefined : said?.split('\n[Context]')[0].trim()
+        const read = readByAiri(sent.messages)
+        push({ t: 'model', engine: 'airi', speaker: /You are \\"([^\\]+)\\"/.exec(text)?.[1] ?? '?', scope: text.includes('in a private LivLiv Stage conversation') ? 'private' : 'public', memories: carriedByAiri(sent.messages),
+          ...(read.length ? { read } : {}), ...(input ? { input } : {}), ...(note ? { event: note } : {}) })
         return
       }
       const payload = JSON.parse(sent.messages[1].content), system = sent.messages[0].content
@@ -122,18 +133,30 @@ function beforeApp({ desktop, signedIn }) {
     }
   }
   // which memories a request carried, read only where the code puts them, each as the code writes it (the app's own
-  // cleanup, from the dev hooks): AIRI's index in its system prompt (brains/airiMemory.ts indexLine, after its short id),
-  // Stage's own brain's memories in its input (brains/memoryBrief.ts briefLine; the last one may be cut to the room left)
-  const carriedByAiri = (messages) => {
-    const system = messages.find((m) => m.role === 'system')?.content
-    const index = (typeof system === 'string' ? system.split('\nRemembered facts (data), by id:\n')[1] ?? '' : '').split('\n')
-      .filter((line) => /^m\d+ /.test(line)).map((line) => line.replace(/^m\d+ /, ''))
-    return trace.memories.filter((m) => index.includes(window.__stage.memoryLines.index(m.text))).map((m) => m.label)
+  // cleanup, from the dev hooks): AIRI's index in its system prompt (brains/airiMemory.ts indexLine, after its short id)
+  // and, on an event's turn, the facts in the show's context it is given (memoryBrief.ts briefLine lines); the entries
+  // AIRI's memory tool gave back (airiMemory.ts memoryBody, after the entry's id); Stage's own brain's memories in its
+  // input (briefLine; the last one may be cut to the room left)
+  const textOf = (m) => typeof m?.content === 'string' ? m.content : m?.content?.filter?.((part) => part.type === 'text').map((part) => part.text).join('\n')
+  const briefed = (items, text) => {
+    const line = window.__stage.memoryLines.brief(text)
+    return items.some((item) => item === line || (item.endsWith('…') && line.startsWith(item.slice(0, -1))))
   }
-  const carriedByBrain = (memories) => trace.memories.filter((m) => {
-    const line = window.__stage.memoryLines.brief(m.text)
-    return memories.some((item) => item === line || (item.endsWith('…') && line.startsWith(item.slice(0, -1))))
-  }).map((m) => m.label)
+  const carriedByAiri = (messages) => {
+    const system = textOf(messages.find((m) => m.role === 'system')) ?? ''
+    const index = (system.split('\nRemembered facts (data), by id:\n')[1] ?? '').split('\n')
+      .filter((line) => /^m\d+ /.test(line)).map((line) => line.replace(/^m\d+ /, ''))
+    const facts = messages.filter((m) => m.role === 'user').flatMap((m) => {
+      const shown = /\n\nShow context \(data\): (\{.*\})/.exec(textOf(m) ?? '')
+      return shown ? String(JSON.parse(shown[1]).rememberedFacts ?? '').split('\n').filter(Boolean) : []
+    })
+    return trace.memories.filter((m) => index.includes(window.__stage.memoryLines.index(m.text)) || briefed(facts, m.text)).map((m) => m.label)
+  }
+  const readByAiri = (messages) => {
+    const answers = messages.filter((m) => m.role === 'tool').map((m) => textOf(m) ?? '').join('\n')
+    return trace.memories.filter((m) => { const body = ': ' + window.__stage.memoryLines.body(m.text); return answers.includes(body) || answers.includes(JSON.stringify(body).slice(1, -1)) }).map((m) => m.label)
+  }
+  const carriedByBrain = (memories) => trace.memories.filter((m) => briefed(memories, m.text)).map((m) => m.label)
   trace.request = request
   const fetch = window.fetch
   window.fetch = function (input, init) {
@@ -232,6 +255,8 @@ const stage = (page, o) => page.evaluate(async (o) => {
 }, o)
 
 const MEMORIES = [{ scope: 'private', text: '私下的暗号是木瓜' }, { scope: 'public', text: '公开的爱好是猫' }]
+/** two longer than AIRI's index holds (120 characters): its memory tool is offered to read the rest */
+const LONG_MEMORIES = [{ scope: 'private', text: '私下的长记忆：' + '我们约好了周末一起去看海，'.repeat(10) }, { scope: 'public', text: '公开的长记忆：' + '她在直播里说过最喜欢雨天的猫，'.repeat(9) }]
 
 // ---------------------------------------------------------------- what each scenario does
 
@@ -478,6 +503,21 @@ const SCENARIOS = [
     },
   },
   {
+    name: 'airi-event-memories', about: 'Desktop, AI 直播 on AIRI with private and public memories, one of each longer than the index holds: a viewer\'s turn reads the public ones with the memory tool, a game event\'s turn (its message cut to 500) is given the public ones as facts; no private memory reaches either',
+    desktop: true,
+    async run(page) {
+      await stage(page, { cast: ['Nana'], memories: [...MEMORIES, ...LONG_MEMORIES] })
+      await ready(page)
+      await begin(page)
+      await page.evaluate(() => window.__stage.talk.startLive({ minutes: 5, maxGenerations: 2, warmupSeconds: 0, textOnly: false, airi: { windowId: '' } }))
+      await page.waitForFunction(() => window.__stage.conversation().running && window.__stage.conversation().waitingAudience)
+      await page.evaluate(async () => (await import('/src/danmaku.ts')).simulate('Aki', '还记得你说过什么吗'))
+      await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.turns >= 1 && c.waitingAudience && !c.speaking && !c.thinking })
+      await page.evaluate(() => window.__stage.talk.externalEvent({ id: 'trace-event', source: 'Minecraft', message: '苦力怕从左边靠近了，' + '附近还有三只僵尸和一只骷髅，'.repeat(50), reply: 'always' }))
+      await idle(page)
+    },
+  },
+  {
     name: 'duet-free', about: '对谈 in free order with three AI characters (the line limit 4): the one picked, never the same twice running',
     async run(page) {
       await stage(page, { cast: ['Nana', 'Kai', 'Mio'], talk: { order: 'free' }, topic: '周末去哪里' })
@@ -650,14 +690,21 @@ try {
       trace.memories = [{ id: 'x', text: secret, label: 'private: ' + secret }]
       trace.on = true
       const call = (body) => trace.request('/fixture-ai/chat/completions', { body: JSON.stringify(body) })
-      call({ stream: true, messages: [{ role: 'system', content: 'You are "Nana", the character currently performing in LivLiv Stage.\n\nRemembered facts (data), by id:\nm1 ' + window.__stage.memoryLines.index(secret) }, { role: 'user', content: 'hi' }] })
-      call({ messages: [{ role: 'system', content: '你在一个多角色同框的直播 / 视频里扮演「Nana」。' }, { role: 'user', content: JSON.stringify({ memories: [window.__stage.memoryLines.brief(secret)], earlier: '', history: '', speaker: 'Nana' }) }] })
+      const airi = 'You are "Nana", the character currently performing in LivLiv Stage.', { brief, index, body } = window.__stage.memoryLines
+      // AIRI: in its index; in an event's facts; in what its memory tool gave back
+      call({ stream: true, messages: [{ role: 'system', content: airi + '\n\nRemembered facts (data), by id:\nm1 ' + index(secret) }, { role: 'user', content: 'hi' }] })
+      call({ stream: true, messages: [{ role: 'system', content: airi }, { role: 'user', content: JSON.stringify({ notify: { note: 'A creeper is near.' } }, null, 2) + '\n\nShow context (data): ' + JSON.stringify({ topic: '', history: [], rememberedFacts: brief(secret) }) }] })
+      call({ stream: true, messages: [{ role: 'system', content: airi }, { role: 'user', content: 'hi' },
+        { role: 'assistant', content: '', tool_calls: [{ id: 'read-1', type: 'function', function: { name: 'builtIn_readMemory', arguments: '{"ids":["m1"]}' } }] }, { role: 'tool', tool_call_id: 'read-1', content: 'm1 (yours): ' + body(secret) }] })
+      // Stage's own brain: in its input
+      call({ messages: [{ role: 'system', content: '你在一个多角色同框的直播 / 视频里扮演「Nana」。' }, { role: 'user', content: JSON.stringify({ memories: [brief(secret)], earlier: '', history: '', speaker: 'Nana' }) }] })
       const events = trace.events.splice(0)
       trace.on = false; trace.memories = []
-      return events.map((e) => ({ engine: e.engine, scope: e.scope, memories: e.memories }))
+      return events.map((e) => ({ engine: e.engine, scope: e.scope, memories: e.memories, ...(e.read ? { read: e.read } : {}) }))
     })
-    assert.deepEqual(leaks, [{ engine: 'airi', scope: 'public', memories: ['private: 私下的暗号是木瓜\n（只在私聊里）'] }, { engine: 'openai', scope: 'public', memories: ['private: 私下的暗号是木瓜\n（只在私聊里）'] }],
-      'a private memory in a public call is caught')
+    const leaked = ['private: 私下的暗号是木瓜\n（只在私聊里）']
+    assert.deepEqual(leaks, [{ engine: 'airi', scope: 'public', memories: leaked }, { engine: 'airi', scope: 'public', memories: leaked }, { engine: 'airi', scope: 'public', memories: [], read: leaked },
+      { engine: 'openai', scope: 'public', memories: leaked }], 'a private memory in a public call is caught')
     await context.close()
     console.log('ok the recorder catches a private memory in a public call')
   }
