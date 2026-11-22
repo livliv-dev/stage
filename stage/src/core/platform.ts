@@ -23,9 +23,11 @@ export type Features = {
    *  desktop bridge without window capture, keep the web console. The same condition as `airi` today: phase 3a gives
    *  the web and the desktop one console, while AIRI stays the desktop's */
   desktopConsole: boolean
-  /** a session can run on AIRI (Project AIRI, built in): a desktop build with window capture, which AIRI needs to see a
-   *  game or app window */
+  /** a session can run on AIRI (Project AIRI, built in): the desktop app with window capture, and livliv.ai/stage, where
+   *  it runs 持续聊天 only (no window, no game: brains/select.ts) */
   airi: boolean
+  /** the desktop app can capture a window (AIRI sees a game or app window) */
+  vision: boolean
   /** AIRI's game connections (Minecraft by Airicraft, Factorio by Autorio) */
   games: boolean
   /** 联播 (a friend's character on your stage): anywhere but the site */
@@ -51,7 +53,8 @@ export function detectFeatures(from: { siteBuild: boolean; appScheme: boolean; b
     host,
     shell: appScheme || from.hasBridge,
     desktopConsole: !!bridge?.vision,
-    airi: !!bridge?.vision,
+    airi: !!bridge?.vision || siteBuild,
+    vision: !!bridge?.vision,
     games: !!bridge?.airiGame,
     collab: host !== 'site',
     points: host !== 'selfhosted',

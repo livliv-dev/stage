@@ -68,7 +68,7 @@ export function LivePanel({ onClose }: { onClose: () => void }) {
   const pinnedModel = active ? liveModelName() : undefined
   return <div className={`card popover live-settings${features.desktopConsole ? ' desktop-live-settings' : ''}`} role="dialog" aria-label={tr('直播间')} onPointerDown={(e) => e.stopPropagation()}>
     <header><span className="title">{tr('直播间')}</span><button className="icon" data-close="true" aria-label={tr("关闭")} onClick={onClose}><X size={16} /></button></header>
-    {features.airi && !state.running && <section className="section live-game">
+    {features.vision && !state.running && <section className="section live-game">
       {features.games && <label className="field"><span>{tr('游戏连接')}</span><select value={game} onChange={(e) => { liveSetup.set({ game: e.target.value as typeof game, windowId: '' }); setVisionError(''); setActionError('') }}>
         <option value="window">{tr('不连接游戏')}</option>
         <option value="minecraft">Minecraft / Fabric</option>

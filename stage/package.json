@@ -43,6 +43,7 @@
     "test:model-switch": "node test/model-switch.mjs",
     "test:app-livliv": "node test/app-livliv.mjs",
     "test:livliv-switch": "node test/livliv-switch.mjs",
+    "test:airi-web": "node test/airi-web.mjs",
     "test:start": "node test/start.mjs",
     "test:privacy": "node test/privacy.mjs",
     "test:traces": "node test/traces.mjs",

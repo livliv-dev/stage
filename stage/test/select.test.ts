@@ -4,10 +4,10 @@ import { airiFits, chooseEngine, engineReason, type Show } from '../src/brains/s
 import type { BrainConfig } from '../src/brain'
 
 const model: BrainConfig = { kind: 'openai', provider: 'custom', base: 'http://model.test/v1', key: 'k', model: 'm' }
-const desktop = { airi: true }, web = { airi: false }
+const desktop = { airi: true, vision: true }, site = { airi: true, vision: false }, web = { airi: false, vision: false }
 const nana = { id: 'nana', remote: false, muted: false }, kai = { id: 'kai', remote: false, muted: false }
 const chat: Show = { kind: 'chat' }
-const choose = (over: { brain?: BrainConfig; cast?: { id: string; remote?: boolean; muted: boolean }[]; show?: Show; features?: { airi: boolean } } = {}) =>
+const choose = (over: { brain?: BrainConfig; cast?: { id: string; remote?: boolean; muted: boolean }[]; show?: Show; features?: { airi: boolean; vision: boolean } } = {}) =>
   chooseEngine(over.brain ?? model, over.cast ?? [nana], over.show ?? chat, over.features ?? desktop)
 
 test('AIRI wherever it fits: the desktop app, a model of one\'s own or livliv.ai\'s text, one local AI character, AIRI on', () => {
@@ -17,8 +17,16 @@ test('AIRI wherever it fits: the desktop app, a model of one\'s own or livliv.ai
   assert.deepEqual(choose({ show: { kind: 'test' } }), { engine: 'airi', reason: 'airi' }, 'the model card\'s test asks no voice')
 })
 
-test('not the desktop app: the standard engine', () => {
+test('a copy hosted elsewhere: the standard engine', () => {
   assert.deepEqual(choose({ features: web }), { engine: 'standard', reason: 'web' })
+})
+
+test('livliv.ai/stage: AIRI for 持续聊天 (no window, no game); AI 直播 on the standard engine', () => {
+  assert.deepEqual(choose({ features: site }), { engine: 'airi', reason: 'airi' })
+  assert.deepEqual(choose({ features: site, brain: { kind: 'livliv' } }), { engine: 'airi', reason: 'airi' })
+  assert.deepEqual(choose({ features: site, show: { kind: 'live' } }), { engine: 'standard', reason: 'web' })
+  assert.deepEqual(choose({ features: site, show: { kind: 'live', needsAiri: true } }), { engine: 'standard', reason: 'web' })
+  assert.equal(engineReason(choose({ features: site, show: { kind: 'live' } }), 1), '网页版')
 })
 
 test('the demo (no model): the standard engine', () => {
