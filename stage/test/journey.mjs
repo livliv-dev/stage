@@ -7,7 +7,12 @@ import { tmpdir } from 'node:os'
 import { freePort, startVite, testTimeout } from './vite.mjs'
 const root=fileURLToPath(new URL('..',import.meta.url)), artifacts=await mkdtemp(join(tmpdir(), 'stage-journey-')), errors=[], requests=[], report={artifacts}
 let server,browser,page,asrMode='ok'
+const fileReads=[]
 function wav(){const rate=24000,n=rate/2,b=Buffer.alloc(44+n*2);b.write('RIFF');b.writeUInt32LE(b.length-8,4);b.write('WAVEfmt ',8);b.writeUInt32LE(16,16);b.writeUInt16LE(1,20);b.writeUInt16LE(1,22);b.writeUInt32LE(rate,24);b.writeUInt32LE(rate*2,28);b.writeUInt16LE(2,32);b.writeUInt16LE(16,34);b.write('data',36);b.writeUInt32LE(n*2,40);for(let i=0;i<n;i++)b.writeInt16LE(Math.sin(i*440*Math.PI*2/rate)*8000,44+i*2);return b}
+// Bailian's speech answer as a stream: events carrying the WAV in base64 pieces (its header of unknown length), the
+// last one linking the file on Bailian's storage, which is never read
+function sse(w){const h=Buffer.from(w.subarray(0,44));h.writeUInt32LE(0x7fffffbf,4);h.writeUInt32LE(0x7fffff9b,40);const ev=o=>'id:1\nevent:result\n:HTTP_STATUS/200\ndata:'+JSON.stringify({output:o})+'\n\n'
+ return ev({audio:{data:''},type:'sentence-begin'})+[Buffer.concat([h,w.subarray(44,12044)]),w.subarray(12044)].map(p=>ev({audio:{data:p.toString('base64')},type:'sentence-synthesis'})).join('')+ev({audio:{data:'',url:'http://stage-voice-fixture.test/clip.wav'},finish_reason:'stop'})}
 try{
  const port=await freePort();server=await startVite({port})
  browser=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream']})
@@ -16,7 +21,7 @@ try{
  await context.route('**/*',async r=>{const u=new URL(r.request().url());if(u.pathname==='/api/me'){await r.fulfill({json:{signed_in:false}});return}if(u.hostname==='dashscope.aliyuncs.com'){
   if(u.pathname.endsWith('/models')){await r.fulfill({json:{data:[{id:'qwen-flash'}]}});return}
   const body=r.request().postDataJSON();requests.push({path:u.pathname,body});if(u.pathname.endsWith('/chat/completions'))await r.fulfill({json:{choices:[{message:{content:JSON.stringify({text:'你好，一起试试新的舞台吧。',emotion:'happy',action:'nod',to:null,look:'观众'})}}]}})
-  else if(u.pathname.endsWith('/SpeechSynthesizer'))await r.fulfill({json:{output:{audio:{url:'https://stage-voice-fixture.test/clip.wav'}}}})
+  else if(u.pathname.endsWith('/SpeechSynthesizer')){assert.equal(r.request().headers()['x-dashscope-sse'],'enable');await r.fulfill({contentType:'text/event-stream;charset=UTF-8',body:sse(wav())})}
   else if(u.pathname.endsWith('/multimodal-generation/generation')){
    assert.equal(body.model,'qwen-audio-3.0-asr-flash');assert.equal(body.parameters.sample_rate,'16000');assert.equal(body.parameters.format,'wav')
    const input=body.input.messages[0].content[0];assert.equal(input.type,'input_audio');assert.ok(input.input_audio.data.startsWith('data:audio/wav;base64,'));assert.equal(Buffer.from(input.input_audio.data.split(',')[1],'base64').subarray(0,4).toString(),'RIFF')
@@ -24,7 +29,7 @@ try{
    await r.fulfill({json:asrMode==='error'?{code:'InvalidApiKey',message:'fixture recognition denied'}:asrMode==='malformed'?{output:{}}:{output:{text:'周末一起去玩吧。'}}})
   }
   else throw Error('Unexpected provider request '+u.pathname);return}
-  if(u.hostname==='stage-voice-fixture.test'){assert.equal(r.request().headers().authorization,undefined);await r.fulfill({contentType:'audio/wav',body:wav()});return}
+  if(u.hostname==='stage-voice-fixture.test'){fileReads.push(u.pathname);assert.equal(r.request().headers().authorization,undefined);await r.fulfill({contentType:'audio/wav',body:wav()});return}
   if(u.hostname==='127.0.0.1'||['blob:','data:'].includes(u.protocol))await r.continue();else await r.abort()
  })
  page=await context.newPage();page.setDefaultTimeout(testTimeout(20000));page.on('pageerror',e=>errors.push(e.message))
@@ -108,9 +113,14 @@ try{
  await settings.waitFor({state:'detached'});await checklist.waitFor()
  const config=await page.evaluate(async()=>{const v=await import('/src/voiceApi.ts'),b=await import('/src/brain.ts'),cast=window.__stage.store.get().items.filter(c=>c.kind==='character'),s=v.activeSpeech();return {provider:s.provider,model:s.model,voices:cast.map(c=>v.apiVoice(c,s,cast)),brain:b.loadBrainConfig().provider}})
  assert.equal(config.provider,'qwen');assert.equal(config.model,'qwen-audio-3.1-tts-flash');assert.equal(new Set(config.voices).size,3);const stable=await page.evaluate(async()=>{const v=await import('/src/voiceApi.ts'),cast=window.__stage.store.get().items.filter(c=>c.kind==='character'),s=v.activeSpeech();return cast.every(c=>v.apiVoice(c,s,cast)===v.apiVoice(c,s,[...cast].reverse())&&v.apiVoice(c,s,cast)===v.apiVoice(c,s,[c]))});assert.equal(stable,true);report.defaults=config
- await page.evaluate(()=>{const s=window.__stage.store;s.set({talk:{...s.get().talk,order:'round'}});window.__stage.talk.clear();window.__stage.talk.setLimit(2)})
+ await page.evaluate(()=>{const s=window.__stage.store;s.set({talk:{...s.get().talk,order:'round'}});window.__stage.talk.clear();window.__stage.talk.setLimit(2);window.journeyAudio=[];window.journeyMouthByName={}})
  assert.equal((await checklist.locator('footer .primary').innerText()).trim(),'开始');await checklist.locator('footer .primary').click();await page.waitForFunction(()=>window.__stage.conversation().turns===2&&!window.__stage.conversation().running)
  assert.equal((await page.evaluate(()=>window.__stage.conversation().error)),'');assert.ok(requests.some(r=>r.path.endsWith('/SpeechSynthesizer')))
+ // both lines heard in Bailian's voice, each speaker's mouth moving with it
+ const heard=await page.evaluate(()=>({audio:window.journeyAudio.length,mouth:Object.values(window.journeyMouthByName)}));assert.equal(heard.audio,2);assert.equal(heard.mouth.filter(v=>v>.05).length,2,JSON.stringify(heard))
+ // Bailian's voice comes from its stream's events, a WAV with its real sizes; the file link at the end is never read
+ const spoken=await page.evaluate(async()=>{const v=await import('/src/voiceApi.ts'),b=await v.speakApi(v.activeSpeech(),'你好','','happy',1),bytes=await b.arrayBuffer(),d=new DataView(bytes),ctx=new AudioContext(),a=await ctx.decodeAudioData(bytes.slice(0));await ctx.close();return {type:b.type,size:bytes.byteLength,riff:d.getUint32(4,true),data:d.getUint32(40,true),seconds:a.duration}})
+ assert.deepEqual(spoken,{type:'audio/wav',size:24044,riff:24036,data:24000,seconds:.5});assert.ok(!fileReads.includes('/clip.wav'),'the file on storage is never read');report.spoken=spoken
  assert.equal(await page.evaluate(async()=>{const v=await import('/src/voiceApi.ts');return v.asrReady({...v.activeSpeech(),key:''})}),false)
  await page.evaluate(()=>localStorage.setItem('livliv-stage:fake-mic','https://stage-voice-fixture.test/mic.wav'))
  // hold-to-talk with nothing running: the ` key (the console's 按住说话 button is there while a session runs); the start
@@ -127,7 +137,7 @@ try{
  await page.locator('.topbar .scene-switcher button[aria-expanded]').click();await page.locator('.shot-start').click();await page.locator('.start-overlay .welcome-demo').click();await page.waitForFunction(()=>window.__stage.conversation().running);await page.evaluate(()=>window.__stage.talk.stop())
  await page.locator('.status-line .st-tag').first().click();const form=page.locator('.popover.settings [data-section="model"]');await form.getByRole('button',{name:'阿里云百炼',exact:true}).click();assert.equal(await form.locator('input[type=password]').inputValue(),before.key)
  await form.getByRole('button',{name:'OpenAI',exact:true}).click();assert.equal(await form.locator('input[type=password]').inputValue(),'')
- await page.locator('.popover.settings .settings-head button[data-close]').click();report.settings='Bailian model automatically enables native TTS with separate character voices; demo preserves API config; changing provider clears its key; audio download has no auth header'
+ await page.locator('.popover.settings .settings-head button[data-close]').click();report.settings='Bailian model automatically enables native TTS with separate character voices; demo preserves API config; changing provider clears its key; its voice comes from the stream, the stored file never read'
  for(const locale of ['zh-Hans','zh-Hant','en','ja']){
   await page.locator('.topbar button:has(svg.lucide-settings)').click();await page.locator('.language-select').selectOption(locale);await page.locator('.settings-head button[data-close]').click();await page.setViewportSize({width:1100,height:760})
   await page.locator('.actor-select').first().click();await page.screenshot({path:join(artifacts,'workspace-'+locale+'.png')});assert.equal(await page.locator('.panel').evaluate(e=>e.scrollWidth>e.clientWidth),false);assert.equal(await page.locator('.cast').evaluate(e=>e.scrollWidth>e.clientWidth),false)
