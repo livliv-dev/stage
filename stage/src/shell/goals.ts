@@ -11,7 +11,7 @@ export type { Audience, Goal, You }
 export type StartOptions = { audience: Audience; you: You }
 
 export const GOALS: readonly { id: Goal; label: string; hint: string; big: boolean }[] = [
-  { id: 'perform', label: '我来演', hint: '用你的脸和声音演角色，可以加一个 AI 搭档', big: true },
+  { id: 'perform', label: '我来演', hint: '用你的脸和声音演角色', big: true },
   { id: 'live', label: 'AI 来开播', hint: 'AI 角色自己开播，回应直播间', big: true },
   { id: 'chat', label: '和角色聊天', hint: '打字或说话，和角色聊', big: false },
   { id: 'video', label: '做一段视频', hint: '让几个角色聊一段，录下来', big: false },
@@ -39,7 +39,7 @@ export function startLabel(goal: Goal, partner: boolean, options: StartOptions =
 
 export const AUDIENCES: readonly { id: Audience; label: string; hint: string }[] = [
   { id: 'me', label: '只有我', hint: '不对外：私聊时只有你看得到' },
-  { id: 'live', label: '直播间', hint: '回应观众（接上 Twitch，或不接弹幕）' },
+  { id: 'live', label: '直播间', hint: '回应观众' },
 ]
 export const YOUS: readonly { id: You; label: string; hint: string }[] = [
   { id: 'none', label: '不参与', hint: '角色之间聊' },
@@ -53,7 +53,7 @@ export const YOUS: readonly { id: You; label: string; hint: string }[] = [
 export function youHint(you: You, audience: Audience, ai: number): string {
   if (you !== 'none') return YOUS.find((y) => y.id === you)!.hint
   if (audience === 'live') return '角色回应直播间'
-  return ai >= 2 ? '角色之间聊' : '只有一个 AI 角色：它会一个人说下去'
+  return ai >= 2 ? '角色之间聊' : '角色会一个人说下去'
 }
 
 /** what the stage offers a start: its characters (who plays each), whether speech recognition works, whether the AI
@@ -67,7 +67,7 @@ export function startPlan(goal: Goal, options: StartOptions, stage: StartStage):
   if (!ai.length) return { blocked: '舞台上还没有 AI 角色' }
   if ((options.you === 'hold' || options.you === 'handsfree') && !stage.hear) return { blocked: '按住说和免按键需要语音识别' }
   if (options.you === 'camera' && !mine.length) return { blocked: '我也上镜需要一个「我来演」的角色' }
-  if (options.audience === 'live' && stage.demo) return { blocked: '直播间需要接上模型，演示只能在「只有我」里看' }
+  if (options.audience === 'live' && stage.demo) return { blocked: '直播间需要接上模型' }
   const record = goal === 'video'
   if (options.audience === 'live') return { session: 'live', record, handsFree: options.you === 'handsfree' }
   if (options.you === 'none') return { session: 'conversation', record, handsFree: false }

@@ -33,7 +33,7 @@ export function StartPage({ onGoal, onTemplate, onAdd, onClose }: { onGoal: (goa
     </div>
     <button className="welcome-demo" disabled={busy} onClick={() => void demo()}>
       <span className="welcome-cast" aria-hidden="true">{CAST.map((id) => <img key={id} src={`${import.meta.env.BASE_URL}characters/${id}/avatar.webp`} alt="" />)}</span>
-      <span className="welcome-demo-copy"><b>{tr('先看一段演示')}</b><span>{tr('Nana、Sena 与 Kai 三人聊天 · 不用任何设置')}</span></span>
+      <span className="welcome-demo-copy"><b>{tr('先看一段演示')}</b><span>{tr('Nana、Sena、Kai 三人聊天 · 免设置')}</span></span>
       <span className="welcome-play">{busy ? <LoaderCircle size={16} className="spin" /> : <Play size={16} />}{tr('看演示')}</span>
     </button>
     {error && <p className="hint error" role="alert">{error}</p>}

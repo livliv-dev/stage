@@ -26,7 +26,7 @@ export function duetPolicy(run: Run, env: Env, open: Policy['open']): Policy {
       const demo = env.demo(), scripted = demo ? demo.speaker() : null
       if (scripted === undefined) return { end: true }
       const who = scripted ?? env.ahead(run) ?? byOrder(env.talk(), env.cast(), env.state().lines)
-      if (!who) throw new Error(tr("舞台上还没有会说话的角色：给角色选「AI」或「我来说」"))
+      if (!who) throw new Error(tr("舞台上还没有会说话的角色"))
       return who.lines === 'me' ? { yours: who } : { speak: who }
     },
     failedTurn: voiceFailureGoesOn,

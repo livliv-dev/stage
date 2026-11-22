@@ -138,9 +138,9 @@ export const KIND_LABEL: Record<Item['kind'], string> = { character: '角色', t
  *  stage; host: the host and the guests take turns */
 export type Order = 'free' | 'round' | 'host'
 export const ORDERS: { id: Order; label: string; hint: string }[] = [
-  { id: 'free', label: '自由', hint: '被点名的人接话，否则看谁话多、谁沉默得久；你随时可以插话' },
-  { id: 'round', label: '轮流', hint: '按舞台上从左到右轮流说；轮到你扮演的角色时等你' },
-  { id: 'host', label: '主持', hint: '主持人和嘉宾一来一回，主持人决定问谁' },
+  { id: 'free', label: '自由', hint: '被点名的人接话，你随时可以插话' },
+  { id: 'round', label: '轮流', hint: '从左到右轮流说' },
+  { id: 'host', label: '主持', hint: '主持人决定问谁' },
 ]
 export type Talk = {
   depth?: 'casual' | 'discussion'

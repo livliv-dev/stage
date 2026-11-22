@@ -38,7 +38,7 @@ export function StatusLine({ goal, partner, checks, onModel, onVoice, onAudience
       : engine ? <span className="st-tag" title={engine.engine === 'airi' ? undefined : engineReason(engine, ai.length)}>{tr('引擎')}<b>{engine.engine === 'airi' ? 'AIRI' : tr('标准（{0}）', engineReason(engine, ai.length))}</b></span> : null)}
     {/* the one place to choose private: only with no output on (OBS, a recording, 好友联播, a 直播间) */}
     <button className={`st-tag scope-tag ${scope}`} aria-label={tr('对话范围')} disabled={conv.running || conv.output || goesOut}
-      title={tr(conv.output ? '输出开着（OBS、录制、好友联播或直播间）：只用公开记忆' : goesOut ? (goal === 'video' ? '录视频时只用公开记忆' : '对直播间时只用公开记忆') : conv.running ? '对话范围' : '点一下在私聊和公开记忆之间切换')}
+      title={tr(conv.output ? '输出开着，只用公开记忆' : goesOut ? (goal === 'video' ? '录视频时只用公开记忆' : '对直播间时只用公开记忆') : conv.running ? '对话范围' : '切换私聊 / 公开记忆')}
       onClick={() => void talk.setScope(scope === 'private' ? 'public' : 'private')}>{tr(scope === 'public' ? '公开记忆' : '私聊')}</button>
     {conv.running && (conv.mode === 'realtime'
       ? <button className="st-tag live" role="status" onClick={onRealtime}>{tr('实时通话中')}<b className="num">{`${conv.generations}/${conv.generationLimit}`}</b></button>

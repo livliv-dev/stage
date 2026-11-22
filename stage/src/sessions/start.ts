@@ -118,7 +118,7 @@ export async function startChat(chosen: MemoryScope = conversation().chatScope, 
 /** starts a 直播间 with these options (limits already in bounds); `event` hands a game's events to the session */
 export function startLive(options: LiveOptions, event: (event: ExternalEvent) => boolean) {
   const config = loadBrainConfig()
-  if (!brainReady(config) || config.kind === 'demo') { set({ error: tr("直播间需要接上模型，演示只能在「只有我」里看"), needModel: true, modelIntent: 'live' }); return }
+  if (!brainReady(config) || config.kind === 'demo') { set({ error: tr("直播间需要接上模型"), needModel: true, modelIntent: 'live' }); return }
   const cast = participants(store.get()).filter((c) => c.lines === 'ai')
   if (!cast.length) { set({ error: tr("先添加一个「AI 来演」的角色") }); return }
   // the start asked for AIRI: the one rule (brains/select.ts), a game or a window asking for it whatever the switch says

@@ -180,7 +180,7 @@ async function arm() {
 export async function setHandsFree(on: boolean) {
   if (!on) { cancel(); return }
   if (state.automatic) return
-  if (!canHear()) { set({ error: tr('在设置里接上语音识别后可用') }); return }
+  if (!canHear()) { set({ error: tr('需要语音识别') }); return }
   const conv = conversation()
   if (!conv.running || !['chat', 'live'].includes(conv.mode)) { set({ error: tr('先开始聊天，再开启免按键语音') }); return }
   if (!busGain('microphone')) { set({ error: tr('请先取消麦克风静音，再开启免按键语音') }); return }
@@ -191,7 +191,7 @@ export async function press(toggle = false) {
   if (conversation().running && conversation().mode === 'realtime') return
   if (state.automatic) cancel()
   if (state.phase !== 'idle') return
-  if (!canHear()) { set({ error: tr('在设置里接上语音识别后可用') }); return }
+  if (!canHear()) { set({ error: tr('需要语音识别') }); return }
   await begin(toggle, false)
 }
 

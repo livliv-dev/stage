@@ -87,5 +87,5 @@ test('a game goes to AIRI when the engine rule picks it, and is refused in words
 
 test('what the stage lacks blocks the start, as the start options show', () => {
   assert.equal(describe(startCalls(input('chat', 'me', 'hold', { stage: { cast: [...cast], hear: false, demo: false } }))), 'blocked: 按住说和免按键需要语音识别')
-  assert.equal(describe(startCalls(input('live', 'live', 'none', { stage: { cast: [...cast], hear: true, demo: true } }))), 'blocked: 直播间需要接上模型，演示只能在「只有我」里看')
+  assert.equal(describe(startCalls(input('live', 'live', 'none', { stage: { cast: [...cast], hear: true, demo: true } }))), 'blocked: 直播间需要接上模型')
 })
