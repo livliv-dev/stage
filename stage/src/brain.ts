@@ -102,9 +102,19 @@ function load(): { text: boolean; own: ModelConfig } {
 }
 const chosen = () => { try { return !!localStorage.getItem(KEY) } catch { return false } }
 const loaded = load()
-/** livliv.ai's two parts as chosen: its text, and its voices with speech recognition. Unset, the voices follow the text
- *  (what one switch meant before) */
-let choice = { text: loaded.text, voice: (() => { try { const v = localStorage.getItem(VOICE); return v === null ? loaded.text : v === '1' && features.points } catch { return loaded.text } })() }
+/** livliv.ai's text as chosen */
+let choice = { text: loaded.text }
+/** livliv.ai's voices (with speech recognition) as chosen: on, off, or unset (null) */
+let voiceSaved: boolean | null = (() => { try { const v = localStorage.getItem(VOICE); return v === null ? null : v === '1' && features.points } catch { return null } })()
+/** voices or recognition of one's own are ready (voiceApi.ts says: a speech API, the one a model's key brings, Voicebox) */
+let ownVoicesReady = () => false
+export const ownVoicesWhen = (ready: () => boolean) => { ownVoicesReady = ready }
+/** livliv.ai's voices as chosen. Unset, they follow its text (what one switch meant before), unless voices or
+ *  recognition of one's own are ready: nobody who had free voices moves onto points */
+const voiceChosen = () => voiceSaved ?? (choice.text && !ownVoicesReady())
+/** what voices of one's own can do changed (a speech API saved, Voicebox found or gone): livliv.ai's voices, unset, may
+ *  follow */
+export const ownVoicesChanged = () => { if (voiceSaved === null) changed() }
 let own = loaded.own
 const effective = (): BrainConfig => (choice.text && signedIn() ? LIVLIV_TEXT : own)
 /** what the AI characters think with now: livliv.ai's text, the model of one's own, or the demo (for this run) */
@@ -119,13 +129,13 @@ export const previousModelConfig = (): ModelConfig => own
 /** the saved choice: livliv.ai's text, or the model of one's own */
 export const savedBrain = (): ModelConfig | LivLivConfig => (choice.text ? LIVLIV_TEXT : own)
 /** livliv.ai's parts in use now: chosen, and signed in (a sign-in gone leaves both off until it is back) */
-export const livlivNow = () => ({ text: features.points && choice.text && signedIn(), voice: features.points && choice.voice && signedIn() })
+export const livlivNow = () => ({ text: features.points && choice.text && signedIn(), voice: features.points && voiceChosen() && signedIn() })
 /** livliv.ai's parts as chosen, signed in or not */
-export const livlivChosen = () => ({ ...choice })
-let snapshot = { ...livlivNow(), chosen: { ...choice } }
+export const livlivChosen = () => ({ text: choice.text, voice: voiceChosen() })
+let snapshot = { ...livlivNow(), chosen: livlivChosen() }
 const snap = () => {
-  const now = livlivNow()
-  if (now.text !== snapshot.text || now.voice !== snapshot.voice || choice.text !== snapshot.chosen.text || choice.voice !== snapshot.chosen.voice) snapshot = { ...now, chosen: { ...choice } }
+  const now = livlivNow(), chosen = livlivChosen()
+  if (now.text !== snapshot.text || now.voice !== snapshot.voice || chosen.text !== snapshot.chosen.text || chosen.voice !== snapshot.chosen.voice) snapshot = { ...now, chosen }
   return snapshot
 }
 /** the text model's key cleared (Settings › 连接's 清除): from the model of one's own, saved here and apart, and in the
@@ -144,13 +154,21 @@ function keepText(text: boolean) {
     else void writeKeyed(KEY, own)
   } catch { /* private mode */ }
 }
-/** turns livliv.ai's parts on or off (both off: livliv.ai is off). What is saved for one's own services stays */
+/** a demo session is running (sessions/start.ts says) */
+let demoRuns = () => false
+export const demoRunsWhen = (running: () => boolean) => { demoRuns = running }
+/** turns livliv.ai's parts on or off (both off: livliv.ai is off). What is saved for one's own services stays. The demo
+ *  ends with it, unless it is running: it stays the demo, free, to its end */
 export function setLivLiv(p: { text?: boolean; voice?: boolean }) {
-  const next = { text: features.points && (p.text ?? choice.text), voice: features.points && (p.voice ?? choice.voice) }
-  if (next.text !== choice.text) keepText(next.text)
-  if (next.voice !== choice.voice) try { localStorage.setItem(VOICE, next.voice ? '1' : '0') } catch { /* private mode */ }
-  choice = next
-  demo = false
+  const text = features.points && (p.text ?? choice.text)
+  if (text !== choice.text) keepText(text)
+  choice = { text }
+  // the voices saved once chosen here (unset, they follow the text)
+  if (p.voice !== undefined) {
+    voiceSaved = features.points && p.voice
+    try { localStorage.setItem(VOICE, voiceSaved ? '1' : '0') } catch { /* private mode */ }
+  }
+  if (!demoRuns()) demo = false
   changed()
 }
 /** turning livliv.ai on while signed out: the sign-in starts, and livliv.ai comes on once it succeeds (remembered across
@@ -178,7 +196,7 @@ export function saveBrainConfig(c: ModelConfig | LivLivConfig) {
 // chosen yet (as it is from the start for someone who comes back signed in); the rest follows the sign-in (livlivNow)
 onAccount(() => {
   if (signedIn() && wanted) { wantLivLiv(false); setLivLiv({ text: true, voice: true }); return }
-  if (features.shell && signedIn() && !chosen() && !own.provider && !choice.text) { choice = { text: true, voice: true }; changed(); return }
+  if (features.shell && signedIn() && !chosen() && !own.provider && !choice.text) { choice = { text: true }; changed(); return }
   changed()
 })
 

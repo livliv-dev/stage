@@ -43,6 +43,8 @@ export class Run {
   boundProfiles = ''
   /** what it may spend, settled when it started (sessions/spend.ts) */
   spend: Spend | null = null
+  /** it started as the demo (free to its end) */
+  demo = false
   /** ends the pause between lines now (下一句) */
   hurry: (() => void) | null = null
   /** the switch to the public record under way (an output came on: sessions/record.ts) */
