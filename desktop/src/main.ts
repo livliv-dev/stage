@@ -56,9 +56,9 @@ const collab = APP === 'stage' ? new CollabHost({ editor: mainContents }) : null
 const airiGames = APP === 'stage' ? new AiriGameHost(process.env.AIRICRAFT_BRIDGE_STATE_FILE || join(app.getPath('home'), '.airicraft', 'bridge-state.json')) : null
 // Voicebox where it listens (a test points it at a stand-in, in development)
 const voicebox = APP === 'stage' ? voiceboxClient({ fetch, base: (DEV && process.env.VOICEBOX_URL) || VOICEBOX_URL }) : null
-// a realtime call's WebSocket with the key in its header (ws, which the app already carries for the collab relay)
-const { WebSocket: SocketClient } = require('ws') as { WebSocket: new (url: string, options: { headers: Record<string, string>; handshakeTimeout: number }) => Socket }
-const sockets = APP === 'stage' ? realtimeSockets({ connect: (url, headers) => new SocketClient(url, { headers, handshakeTimeout: 15_000 }) }) : null
+// a realtime call's WebSocket with the key in its header; `maxPayload` caps what comes in (ws allows 100 MiB)
+const { WebSocket: SocketClient } = require('ws') as { WebSocket: new (url: string, options: { headers: Record<string, string>; maxPayload: number; handshakeTimeout: number }) => Socket }
+const sockets = APP === 'stage' ? realtimeSockets({ connect: (url, options) => new SocketClient(url, { ...options, handshakeTimeout: 15_000 }) }) : null
 // the API keys, encrypted by the system, in the app's own folder (written whole, readable by this user only)
 const keysFile = () => join(app.getPath('userData'), 'keys.json')
 const secrets = APP === 'stage' ? secretsStore({

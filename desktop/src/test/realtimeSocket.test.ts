@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { EventEmitter } from 'node:events'
 import { test } from 'node:test'
 import { readRealtimeSocketUrl } from '#protocol/realtime'
-import { realtimeSockets, type Socket } from '../realtimeSocket'
+import { MAX_INBOUND, realtimeSockets, type Socket } from '../realtimeSocket'
 
 class FakeSocket extends EventEmitter {
   readyState = 0; sent: string[] = []; closed = false
@@ -11,12 +11,12 @@ class FakeSocket extends EventEmitter {
   terminate() { this.close() }
 }
 function owner() {
-  const events: unknown[][] = [], gone = new EventEmitter()
-  return { events, gone, owner: { send: (...args: unknown[]) => { events.push(args) }, isDestroyed: () => false, once: (_e: 'destroyed', f: () => void) => { gone.once('destroyed', f) } } }
+  const events: unknown[][] = [], page = new EventEmitter()
+  return { events, page, owner: { send: (...args: unknown[]) => { events.push(args) }, isDestroyed: () => false, on: (e: 'destroyed' | 'did-start-loading' | 'render-process-gone', f: () => void) => { page.on(e, f) } } }
 }
 function host() {
-  const made: { url: string; headers: Record<string, string>; socket: FakeSocket }[] = []
-  const sockets = realtimeSockets({ connect: (url, headers) => { const socket = new FakeSocket(); made.push({ url, headers, socket }); return socket as unknown as Socket } })
+  const made: { url: string; headers: Record<string, string>; maxPayload: number; socket: FakeSocket }[] = []
+  const sockets = realtimeSockets({ connect: (url, { headers, maxPayload }) => { const socket = new FakeSocket(); made.push({ url, headers, maxPayload, socket }); return socket as unknown as Socket } })
   return { made, sockets }
 }
 const URL_OK = 'wss://dashscope.aliyuncs.com/api-ws/v1/realtime?model=qwen3.8-omni-flash-realtime'
@@ -36,6 +36,7 @@ test('a socket opens with the key in its header, and its events reach the page t
   const { made, sockets } = host(), page = owner()
   assert.equal(sockets.open(page.owner, 'rt-1', URL_OK, 'sk-test'), true)
   assert.deepEqual(made[0].headers, { Authorization: 'Bearer sk-test' })
+  assert.equal(made[0].maxPayload, MAX_INBOUND, 'what comes in is capped')
   assert.equal(made[0].url, URL_OK)
   const socket = made[0].socket
   socket.readyState = 1; socket.emit('open')
@@ -61,8 +62,43 @@ test('a refused handshake says its status; the page going away closes its socket
   assert.equal(sockets.open(page.owner, 'c', URL_OK, 'sk'), true)
   assert.equal(sockets.open(page.owner, 'd', URL_OK, 'sk'), false, 'two at most')
   assert.equal(sockets.open(page.owner, 'b', URL_OK, 'sk'), false, 'an id once')
-  page.gone.emit('destroyed')
+  page.page.emit('destroyed')
   assert.equal(sockets.count(), 0)
   assert.equal(sockets.open(page.owner, 'e', 'wss://evil.example/api-ws/v1/realtime?model=m', 'sk'), false)
   assert.equal(sockets.open(page.owner, 'f', URL_OK, ''), false, 'no key, no socket')
+})
+
+test('a page reloading or crashing mid-call closes its sockets, says nothing more to it, and leaves room for the next call', () => {
+  for (const gone of ['did-start-loading', 'render-process-gone', 'destroyed'] as const) {
+    const { made, sockets } = host(), page = owner(), other = owner()
+    sockets.open(page.owner, 'a', URL_OK, 'sk'); sockets.open(other.owner, 'b', URL_OK, 'sk')
+    made[0].socket.readyState = 1; made[0].socket.emit('open')
+    page.events.length = 0
+    page.page.emit(gone)
+    assert.equal(made[0].socket.closed, true, gone)
+    assert.equal(made[1].socket.closed, false, `${gone}: another page's socket stays`)
+    assert.deepEqual(page.events, [], `${gone}: nothing is sent to the page that went away`)
+    assert.equal(sockets.count(), 1)
+    assert.equal(sockets.open(page.owner, 'c', URL_OK, 'sk'), true, `${gone}: the reloaded page can call again`)
+    made[0].socket.emit('message', Buffer.from('{"type":"late"}'), false)
+    assert.deepEqual(page.events, [], `${gone}: a late message from the old socket goes nowhere`)
+  }
+})
+
+test('a socket opened before its page reloaded (still connecting) closes too; an id used again belongs to the new socket', () => {
+  const { made, sockets } = host(), page = owner()
+  sockets.open(page.owner, 'rt-1', URL_OK, 'sk')
+  page.page.emit('did-start-loading')
+  assert.equal(made[0].socket.closed, true)
+  assert.equal(sockets.open(page.owner, 'rt-1', URL_OK, 'sk'), true)
+  made[0].socket.emit('close', 1006)
+  assert.equal(sockets.count(), 1, 'the old socket closing late leaves the new one')
+  made[1].socket.readyState = 1; made[1].socket.emit('open')
+  assert.deepEqual(page.events, [['livliv:realtime-socket-event', 'rt-1', { type: 'open' }]])
+})
+
+test('a page is watched once, however many calls it makes', () => {
+  const { sockets } = host(), page = owner()
+  for (let i = 0; i < 20; i++) { assert.equal(sockets.open(page.owner, `rt-${i}`, URL_OK, 'sk'), true); sockets.close(`rt-${i}`) }
+  assert.deepEqual(['destroyed', 'did-start-loading', 'render-process-gone'].map((e) => page.page.listenerCount(e)), [1, 1, 1])
 })

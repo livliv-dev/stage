@@ -46,6 +46,7 @@
   },
   "dependencies": {
     "@livliv-dev/neuro-bridge": "file:../neuro",
-    "livliv-stage-collab": "file:../collab"
+    "livliv-stage-collab": "file:../collab",
+    "ws": "8.22.2"
   }
 }
