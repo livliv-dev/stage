@@ -22,11 +22,11 @@ export function RealtimePanel({ onClose, onSettings }: { onClose: () => void; on
   const effective = realtimeCredentials(settings)
   const error = state.error || (conversation.mode === 'realtime' ? conversation.error : '')
   const ready = !!target && actors.get(target.id)?.status === 'ready' && !!effective.base && !!effective.key && !!settings.model
-  const label = state.phase === 'connecting' ? '正在连接实时通话…' : state.phase === 'speaking' ? '角色正在说话，你可以随时插话' : state.phase === 'thinking' ? '正在回应…' : state.phase === 'paused' ? '已暂停收音和回应' : '正在听，直接说话就可以'
+  const label = state.phase === 'connecting' ? '正在连接实时通话…' : state.phase === 'speaking' ? '角色正在说话' : state.phase === 'thinking' ? '正在回应…' : state.phase === 'paused' ? '已暂停收音和回应' : '正在听…'
   return <div className="card popover live-settings realtime-settings" onPointerDown={(event) => event.stopPropagation()}>
     <header><span className="title">{tr('实时通话')}</span><button className="icon" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button></header>
     <section className="section">
-      <p className="hint">{tr('持续语音通话，支持自然接话和插话。结束后关闭麦克风。')}</p>
+      <p className="hint">{tr('持续语音通话，结束后关闭麦克风')}</p>
       {!active ? <div className="realtime-model-summary">
         <div><b>{tr('实时通话服务')}</b><span>{settings.provider === 'openai' ? 'OpenAI Realtime' : tr('阿里云百炼')} · {settings.model}</span></div>
         <button className="link" onClick={onSettings}>{tr('去「设置 → 连接」')}</button>
@@ -39,7 +39,7 @@ export function RealtimePanel({ onClose, onSettings }: { onClose: () => void; on
         {!settings.semantic && <label className="field"><span>{tr('停顿时间')}</span><select aria-label={tr('停顿时间')} value={settings.silence} onChange={(event) => setSettings({ ...settings, silence: +event.target.value })}>{[300, 450, 700].map((value) => <option key={value} value={value}>{value} ms</option>)}</select></label>}
         <label className="field"><span>{tr('时长上限')}</span><select aria-label={tr('时长上限')} value={settings.minutes} onChange={(event) => setSettings({ ...settings, minutes: +event.target.value })}>{[1, 5, 15, 30].map((value) => <option key={value} value={value}>{value} {tr('分钟')}</option>)}</select></label>
       </fieldset>}
-      {!effective.base || !effective.key || !settings.model ? <p className="hint">{tr('先在「设置 → 连接」设好实时通话，再开始通话。')}</p> : null}
+      {!effective.base || !effective.key || !settings.model ? <p className="hint">{tr('先设好实时通话')}</p> : null}
       {!cast.length && <p className="hint">{tr('先选择一个已载入的 AI 角色')}</p>}
       {!active && <p className="hint">{tr('服务商按实时模型的用量计费，到达时长上限自动结束。')} {tr('生成次数上限')}：{scene.talk.chatGenerations ?? 100}</p>}
       {(error || (conversation.mode === 'realtime' && conversation.ended)) && <p className={error ? 'error' : 'hint'} role="status">{error || conversation.ended}</p>}

@@ -188,11 +188,10 @@ function ReactionSection({ c, patch }: { c: CharacterItem; patch: (value: Partia
   const strength = settings.intensity <= 0.5 ? 'soft' : settings.intensity >= 0.95 ? 'lively' : 'natural'
   return <Section title={tr('AI 反应')}>
     <Switch label={tr('自动反应')} on={settings.enabled} set={(enabled) => patch({ reactions: { ...settings, enabled } })} />
-    <p className="hint">{tr(!driven ? '当前由面捕或其他输入控制，自动反应暂不接管。' : a?.format === 'png' ? '随聊天做点头、歪头等小动作。' : '随聊天使用角色已有表情，配合点头等小动作。')}</p>
+    {!driven && <p className="hint">{tr('面捕等输入控制中，不自动反应')}</p>}
     {settings.enabled && <>
       <div className="field"><span>{tr('反应风格')}</span><Seg value={strength} options={[{ id: 'soft', label: '轻微' }, { id: 'natural', label: '自然' }, { id: 'lively', label: '活泼' }]} set={(value) => { setNotice(''); patch({ reactions: { ...settings, intensity: { soft: 0.4, natural: 0.8, lively: 1 }[value], motion: { soft: 0.5, natural: 0.85, lively: 1 }[value] } }) }} /></div>
       <Switch label={tr('聆听时回应')} on={settings.listen !== false} set={(listen) => patch({ reactions: { ...settings, listen } })} />
-      <p className="hint">{tr('根据聊天内容回应其他角色；没有合适的反应时保持安静。')}</p>
       <button className="link" disabled={!driven || a?.status !== 'ready' || conversation.running} onClick={() => setNotice(tr(a?.previewReaction({ at: 0, feeling: 'curious', action: 'tilt' }) ? '正在预览反应' : '请先恢复手动表情，或稍后再试。'))}>{tr('预览反应')}</button>
       {notice && <p className="hint" role="status">{notice}</p>}
       <details className="advanced reaction-details"><summary>{tr('调整表情与节奏')}</summary>
@@ -239,7 +238,7 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
         </div>
       </div>
       <Switch label={tr("左右翻转")} on={c.mirror} set={(mirror) => patch({ mirror })} />
-      <Switch label={tr("投影")} on={c.shadow} set={(shadow) => patch({ shadow })} hint={tr("身后一层柔和的影子，浅色背景上更立体")} />
+      <Switch label={tr("投影")} on={c.shadow} set={(shadow) => patch({ shadow })} />
       <AvatarView c={c} patch={patch} />
       {!hasBubble && <button className="link" onClick={() => store.add(bubbleFor(c))}>{tr("给它加一个字幕气泡")}</button>}
     </Section>
@@ -261,7 +260,7 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
         <Slider label={tr("发言频率")} value={c.chatty} min={0.3} max={2} step={0.1} show={c.chatty < 0.8 ? tr("少") : c.chatty > 1.3 ? tr("多") : tr("一般")} set={(chatty) => patch({ chatty })} />
       </Section>
   const lines = c.lines === 'me' && <Section title={tr('台词')}>
-      <Switch label={tr("用角色的声音念出来")} on={c.readAloud} set={(readAloud) => patch({ readAloud })} hint={tr("关掉：你自己对着麦克风说，控制台打的字只当字幕")} />
+      <Switch label={tr("用角色的声音念出来")} on={c.readAloud} set={(readAloud) => patch({ readAloud })} hint={tr("关掉时，打的字只当字幕")} />
     </Section>
   const drive = <Section title={tr("动作由什么驱动")}>
       <div className="driver-choices"><Seg value={c.driver} options={DRIVERS.map((d) => ({ id: d.kind, label: d.label, hint: d.hint, disabled: d.kind === 'network' && !motionSupported() }))} set={(driver) => patch({ driver })} /></div>
@@ -321,8 +320,8 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
       <button key={id} role="tab" aria-selected={page === id} className={page === id ? 'on' : ''} onClick={() => showCardPage(id)}>{tr(label)}</button>)}</div>
     {page === 'body' && <>{looks}{expressions}{motion}</>}
     {page === 'who' && <>{control}{c.lines === 'me' && <DevicePanel character={c} />}{drive}<TrackingPanel c={c} patch={patch} />{lines}</>}
-    {page === 'persona' && <>{c.lines === 'ai' ? persona : <p className="hint card-note">{tr('人设只在「AI 来演」时用到。')}</p>}{voice}{reactions}
-      {!voiced && <p className="hint card-note">{tr('这个角色不出声：「只展示」，或者你自己说话。')}</p>}</>}
+    {page === 'persona' && <>{c.lines === 'ai' ? persona : <p className="hint card-note">{tr('「AI 来演」时才有人设')}</p>}{voice}{reactions}
+      {!voiced && <p className="hint card-note">{tr('这个角色不出声')}</p>}</>}
   </>
 }
 
@@ -339,14 +338,14 @@ function SubtitlePanel({ s, patch }: { s: SubtitleItem; patch: (p: Partial<Subti
     <div className="field"><span>{tr("样式")}</span><Seg value={s.style} options={SUB_STYLES} set={(style) => patch({ style })} /></div>
     <Slider label={tr("字号")} value={s.size} min={18} max={96} show={String(s.size)} set={(size) => patch({ size })} />
     <Switch label={tr("显示名字")} on={s.showName} set={(showName) => patch({ showName })} />
-    <Switch label={tr("逐字出现")} on={s.typewriter} set={(typewriter) => patch({ typewriter })} hint={tr("跟着说话的速度一个字一个字出来")} />
+    <Switch label={tr("逐字出现")} on={s.typewriter} set={(typewriter) => patch({ typewriter })} />
     <Slider label={tr("说完后停留")} value={s.linger} min={0.5} max={8} step={0.5} show={tr("{0} 秒", s.linger)} set={(linger) => patch({ linger })} />
   </Section>
 }
 
 function TextPanel({ t, patch }: { t: TextItem; patch: (p: Partial<TextItem>) => void }) {
   return <Section title={tr("文字")}>
-    <label className="field"><span>{tr("内容（也可以在舞台上双击改）")}</span><textarea rows={2} value={t.text} onChange={(e) => patch({ text: e.target.value })} /></label>
+    <label className="field"><span>{tr("内容")}</span><textarea rows={2} value={t.text} onChange={(e) => patch({ text: e.target.value })} /></label>
     <Slider label={tr("字号")} value={t.size} min={16} max={160} show={String(t.size)} set={(size) => patch({ size })} />
     <div className="field"><span>{tr("颜色")}</span>
       <div className="row">
@@ -411,10 +410,10 @@ function SceneSettings() {
       </div>
       {(pictureError || background.error) && <p className="error" role="alert">{pictureError || background.error}</p>}
       <button className="wide" disabled={!characters(scene).length} onClick={() => store.set({ items: arrange(scene) }, 'arrange')}><LayoutGrid size={14} />{tr("自动排好角色")}</button>
-      <Switch label={tr("安全区参考线")} on={scene.guides} set={(guides) => store.set({ guides })} hint={tr("标题安全区（90%）和动作安全区（93%）：字幕和角色别放到外面")} />
+      <Switch label={tr("安全区参考线")} on={scene.guides} set={(guides) => store.set({ guides })} hint={tr("标题安全区（90%）和动作安全区（93%）")} />
       {scene.height > scene.width
-        ? <Switch label={tr("抖音 / TikTok 界面遮罩")} on={scene.mask} set={(mask) => store.set({ mask })} hint={tr("竖屏发到短视频平台时，顶栏、评论区和右侧按钮会盖住的地方")} />
-        : <Switch label={tr("9:16 裁切框")} on={scene.crop} set={(crop) => store.set({ crop })} hint={tr("同一场再剪竖屏时，中间这一块会留下")} />}
+        ? <Switch label={tr("抖音 / TikTok 界面遮罩")} on={scene.mask} set={(mask) => store.set({ mask })} hint={tr("顶栏、评论区和右侧按钮会盖住的地方")} />
+        : <Switch label={tr("9:16 裁切框")} on={scene.crop} set={(crop) => store.set({ crop })} hint={tr("剪竖屏时留下的部分")} />}
     </Section>
     <Layers />
   </>

@@ -81,7 +81,7 @@ try {
   await result.waitFor()
   assert.equal(await result.locator('p').first().textContent(), '已导入「伊露」：名字、人设、说话风格、开场白、示例对话 2 句')
   assert.equal(await result.locator('p').nth(1).textContent(), '没有导入：形象模型、声音、AIRI 的其他模块设置、场景')
-  assert.equal(await result.locator('p').nth(2).textContent(), '这个角色的身体和声音保持不变。')
+  assert.equal(await result.locator('p').count(), 2)
   const now = await item()
   assert.deepEqual({ ...now, model: undefined, voice: undefined }, {
     name: '伊露', persona: '伊露住在你的电脑里，喜欢你的问题。', style: '开朗，有点毒舌，说话简短', greeting: '嗨，你！我是伊露，准备好了吗？',

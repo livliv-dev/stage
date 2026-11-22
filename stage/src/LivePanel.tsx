@@ -98,7 +98,6 @@ export function LivePanel({ onClose }: { onClose: () => void }) {
         {visionError && <p className="hint error" role="alert">{visionError}</p>}
       </div>}
     </section>}
-    {!features.airi && !active && cast.length > 0 && <p className="hint">{tr('开播前的时长、句数和 Twitch 在开始按钮旁的选项里。')}</p>}
     {state.running && !active && <p className="hint">{tr('请先停止当前会话')}</p>}
     {active && state.game && <section className="section airi-game-status">
       <h3>{state.game.name === 'minecraft' ? 'Minecraft' : 'Factorio'}</h3>

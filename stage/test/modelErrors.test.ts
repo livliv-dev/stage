@@ -31,7 +31,7 @@ test('only a call\'s arguments refused as not JSON says to say it again; other t
 
 test('keys, models, limits and outages each say what to do; anything else stays as it was', () => {
   assert.match(shown(remote(401, { error: { message: 'Invalid API-key' } })), /密钥/)
-  assert.match(shown(remote(404, { error: { message: 'model not found' } })), /模型名/)
+  assert.match(shown(remote(404, { error: { message: 'model not found' } })), /找不到这个模型（404）/)
   assert.match(shown(remote(429, { error: { message: 'Throttling' } })), /稍后再试/)
   assert.match(shown(remote(503, 'Service Unavailable')), /暂时出错（503）/)
   assert.match(shown(remote(400, { error: { message: 'Range of max_tokens should be [1, 8192]' } })), /拒绝了这次请求（400）：Range of max_tokens/)

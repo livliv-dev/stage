@@ -27,9 +27,9 @@ export function readableModelError(error: unknown): unknown {
   const failure = remoteFailure(error)
   if (!failure) return error
   const { status, message } = failure
-  if ((status === 400 || status === 422) && ARGUMENTS.test(message) && NOT_JSON.test(message)) return new Error(tr('这一句的工具调用出错（模型服务返回 {0}），这一轮先停下；再说一次就好', status))
-  if (status === 401 || status === 403) return new Error(tr('模型服务不接受这个密钥（{0}）：在「设置 → 连接」检查密钥', status))
-  if (status === 404) return new Error(tr('模型服务找不到这个模型或地址（404）：在「设置 → 连接」检查模型名'))
+  if ((status === 400 || status === 422) && ARGUMENTS.test(message) && NOT_JSON.test(message)) return new Error(tr('工具调用出错（{0}），请再说一次', status))
+  if (status === 401 || status === 403) return new Error(tr('密钥无效（{0}）', status))
+  if (status === 404) return new Error(tr('找不到这个模型（404）'))
   if (status === 429) return new Error(tr('模型服务太忙或额度用完了（429），稍后再试'))
   if (status >= 500) return new Error(tr('模型服务暂时出错（{0}），稍后再试', status))
   return new Error(tr('模型服务拒绝了这次请求（{0}）：{1}', status, message.slice(0, 120)))

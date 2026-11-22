@@ -119,11 +119,11 @@ export function MixerPanel({ onClose, onSettings }: { onClose: () => void; onSet
     </section>
     <section className="mix-bus">
       {group('characters', tr('角色声音'), levels.characters)}
-      <details className="individual-mix"><summary>{tr('分别调整角色')}<span className="num">{cast.length}</span></summary>{cast.map(individual)}{!cast.length && <p className="hint">{tr('添加角色后，在这里选择。')}</p>}</details>
+      <details className="individual-mix"><summary>{tr('分别调整角色')}<span className="num">{cast.length}</span></summary>{cast.map(individual)}{!cast.length && <p className="hint">{tr('还没有角色')}</p>}</details>
     </section>
     <section className="mix-bus">
       {group('friends', tr('朋友声音'), levels.friends)}
-      {friends.length > 0 ? <details className="individual-mix"><summary>{tr('分别调整朋友')}<span className="num">{friends.length}</span></summary>{friends.map(individual)}</details> : <span className="hint mixer-empty">{tr('好友联播后在这里调整朋友的声音')}</span>}
+      {friends.length > 0 ? <details className="individual-mix"><summary>{tr('分别调整朋友')}<span className="num">{friends.length}</span></summary>{friends.map(individual)}</details> : <span className="hint mixer-empty">{tr('还没有朋友上台')}</span>}
     </section>
     </div>
     {(state.error || error) && <p className="error" role="alert">{state.error || error}</p>}
