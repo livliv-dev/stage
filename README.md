@@ -15,26 +15,32 @@
 
 <p align="center"><img src="media/demo.gif" alt="Ruri, Nana and Konatsu talking on one stage, with a speech bubble" width="720"></p>
 
-- Up to 30 characters on one stage (15 in a browser): LivLiv half-body and full-body, VRM and PNGTuber
-- Start from what you want to do: **I perform** (with an AI partner if you like), **AI goes live**, **Chat with a character**, **Make a video**. Each opens a short checklist of only what it needs
-- Long-term memory and realtime calls
-- Characters that talk to each other and to your Twitch chat
-- Emotional reactions as they speak
-- AI chat that remembers, in the desktop app: each character keeps its own memory, powered by [Project AIRI](https://github.com/moeru-ai/airi)
-- Game connections in the desktop app: Minecraft through [Airicraft](https://github.com/proj-airi/airicraft), Factorio through [Autorio](https://github.com/moeru-ai/airi-factorio), or any game window the character watches
-- Built-in Neuro SDK support (desktop app)
-- Free voices on your own computer with [Voicebox](https://voicebox.sh) (desktop app): found when it runs, and the characters' voice when no other is set
-- All the basics: webcam face tracking (phone apps and VMC/OSC in the desktop app), OBS output, video recording
-- 27 featured characters, ready to use. Built on [LivLiv Player](https://github.com/livliv-dev/player)
+## New in 1.0 Preview
+
+Stage is reorganised around what you came to do. [Download the 1.0 Preview](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview) and tell us what feels wrong before 1.0.
+
+- **Start with a goal**: **I perform** (with an AI partner if you like), **AI goes live**, **Chat with a character** or **Make a video**. Each opens a checklist of only what it needs, and every item has a **Test** button
+- **One start button**, named after what it starts (**Go live**, **Start chat**, **Record**), with three choices beside it: **Who takes part**, **Who watches** and **Do you join?**
+- **Private chats stay private**: while a live audience, a recording or the output window is on, characters leave private memory alone. The status line shows which one you're in, and the model, voice and engine
+- **Free voices on your own computer** with [Voicebox](https://voicebox.sh) (desktop app): used when no other voice is set, and a chat that starts free stays free
+- **Character cards**: import SillyTavern or AIRI cards (V2 and V3, JSON or PNG) as a character's persona
+- **Settings → Connect** holds every key, with one key for everything where the provider allows it. The desktop app keeps keys encrypted by the system
+
+## Also in Stage
+
+- Up to 30 characters on one stage (15 in a browser): LivLiv half-body and full-body, VRM and PNGTuber, with 27 featured characters ready to use
+- Characters talk to each other and to your Twitch chat, react with emotion, remember you and take realtime calls. In the desktop app each character keeps its own memory, powered by [Project AIRI](https://github.com/moeru-ai/airi)
+- Desktop app: games (Minecraft through [Airicraft](https://github.com/proj-airi/airicraft), Factorio through [Autorio](https://github.com/moeru-ai/airi-factorio), or any game window the character watches), the Neuro SDK, phone face tracking and VMC/OSC
+- Webcam face tracking, OBS output and video recording. Built on [LivLiv Player](https://github.com/livliv-dev/player)
 
 The AI runs on your own model key (OpenAI, Qwen, DeepSeek and more), or your LivLiv.ai account. A realtime call
 needs your own OpenAI or Alibaba Cloud Bailian key.
 
 ## Try it
 
-- **Desktop app**: macOS and Windows from [Releases](https://github.com/livliv-dev/stage/releases/latest).
-  If GitHub is slow, use the [backup download](https://downloads.livliv.ai/stage/index.html).
-  On macOS, one line in Terminal installs it with no first-open prompt: `curl -fsSL https://livliv.ai/stage/install.sh | bash`
+- **Desktop app** for macOS and Windows: the [1.0 Preview](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview) (pre-release), or the stable version from [Releases](https://github.com/livliv-dev/stage/releases/latest).
+  If GitHub is slow, use the [backup download](https://downloads.livliv.ai/stage/index.html) (stable version).
+  On macOS, one line in Terminal installs the stable version with no first-open prompt: `curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **Online (Web, limited features)**: [livliv.ai/stage](https://livliv.ai/stage)
 - **From source**: see [Develop](#develop)
 

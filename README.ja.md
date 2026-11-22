@@ -15,26 +15,32 @@
 
 <p align="center"><img src="media/demo.gif" alt="Ruri、Nana、Konatsu がひとつのステージで会話する様子（吹き出し付き）" width="720"></p>
 
-- ひとつのステージに最大 30 体（ブラウザでは 15 体）：LivLiv の半身・全身、VRM、PNGTuber
-- やりたいことから始める：**自分で演じる**（AI パートナーも追加可）、**AI が配信**、**キャラと話す**、**動画を作る**。それぞれ必要なものだけの準備リストが開きます
-- 長期記憶とリアルタイム通話
-- キャラクター同士の掛け合いと、Twitch コメントへの返事
-- 話しながら感情に合わせて変わる表情
-- デスクトップ版の AI チャット：キャラクターごとに記憶を持ちます。[Project AIRI](https://github.com/moeru-ai/airi) を利用
-- デスクトップ版のゲーム接続：Minecraft（[Airicraft](https://github.com/proj-airi/airicraft)）、Factorio（[Autorio](https://github.com/moeru-ai/airi-factorio)）、または任意のゲームウィンドウ
-- Neuro SDK に標準対応（デスクトップ版）
-- [Voicebox](https://voicebox.sh) でこのコンピューター上の無料の声（デスクトップ版）：起動していれば見つけて、ほかの声が未設定ならキャラクターの声に使います
-- 基本機能：Web カメラのフェイストラッキング（スマホアプリと VMC/OSC はデスクトップ版）、OBS 出力、動画の録画
-- 厳選キャラクター 27 体、すぐに使えます。[LivLiv Player](https://github.com/livliv-dev/player) がベース
+## 1.0 プレビュー版の新機能
+
+Stage を「何をしたいか」から組み立て直しました。[1.0 プレビュー版をダウンロード](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview)して、1.0 正式版の前に気になるところを教えてください。
+
+- **やりたいことから始める**：**自分で演じる**（AI パートナーも追加可）、**AI が配信**、**キャラと話す**、**動画を作る**。それぞれ必要なものだけの準備リストが開き、どの項目も**テスト**できます
+- **開始ボタンはひとつ**。名前は始めることそのもの（**配信開始**、**話し始める**、**録画開始**）。横に 3 つの選択：**誰が出る**、**誰が見る**、**あなたは参加する？**
+- **プライベート会話はプライベートのまま**：配信の視聴者、録画、出力ウィンドウがオンの間、キャラクターはプライベートの記憶を読み書きしません。いまプライベートか公開か、モデル・声・エンジンはステータス行に表示されます
+- **このコンピューター上の無料の声**：[Voicebox](https://voicebox.sh)（デスクトップ版）。ほかの声が未設定ならキャラクターの声に使い、無料で始めた会話が有料に切り替わることはありません
+- **キャラクターカード**：SillyTavern や AIRI のカード（V2・V3、JSON または PNG）をキャラクターの人物設定として読み込めます
+- **設定 → 接続**ですべてのキーを管理。プロバイダーが対応していれば 1 つのキーで済みます。デスクトップ版はキーをシステムの暗号化で保存します
+
+## そのほかの機能
+
+- ひとつのステージに最大 30 体（ブラウザでは 15 体）：LivLiv の半身・全身、VRM、PNGTuber。厳選キャラクター 27 体をすぐに使えます
+- キャラクター同士の掛け合い、Twitch コメントへの返事、感情に合わせて変わる表情、長期記憶とリアルタイム通話。デスクトップ版ではキャラクターごとに記憶を持ちます（[Project AIRI](https://github.com/moeru-ai/airi) を利用）
+- デスクトップ版：ゲーム接続（Minecraft は [Airicraft](https://github.com/proj-airi/airicraft)、Factorio は [Autorio](https://github.com/moeru-ai/airi-factorio)、または任意のゲームウィンドウ）、Neuro SDK、スマホアプリのフェイストラッキングと VMC/OSC
+- Web カメラのフェイストラッキング、OBS 出力、動画の録画。[LivLiv Player](https://github.com/livliv-dev/player) がベース
 
 AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）、または LivLiv.ai アカウントで利用できます。
 リアルタイム通話には OpenAI か Alibaba Cloud Bailian のキーが必要です。
 
 ## 試してみる
 
-- **デスクトップ版**：macOS と Windows 版を [Releases](https://github.com/livliv-dev/stage/releases/latest) から。
-  GitHub からのダウンロードが遅い場合は[予備のダウンロード](https://downloads.livliv.ai/stage/index.html)をご利用ください。
-  macOS はターミナルで 1 行入力してもインストールでき、初回の確認は出ません：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
+- **デスクトップ版**：macOS と Windows。[1.0 プレビュー版](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview)（プレリリース）、または [Releases](https://github.com/livliv-dev/stage/releases/latest) から安定版。
+  GitHub からのダウンロードが遅い場合は[予備のダウンロード](https://downloads.livliv.ai/stage/index.html)（安定版）をご利用ください。
+  macOS はターミナルで 1 行入力しても安定版をインストールでき、初回の確認は出ません：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **オンライン（Web版・機能制限あり）**：[livliv.ai/stage](https://livliv.ai/stage)
 - **ソースから**：[開発](#開発)を参照
 
