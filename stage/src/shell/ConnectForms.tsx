@@ -90,7 +90,7 @@ export function ModelForm({ forStart, own, done, demoDone, onPick, onContinue, n
         </div>
         <datalist id="model-list">{models.map((m) => <option key={m} value={m} />)}</datalist>
       </label>
-      {/* AIRI runs in the desktop app and on the web (持续聊天 there); a copy with neither shows the switch off, marked 桌面版 */}
+      {/* AIRI runs in the desktop app and on any web page (持续聊天 there); an older desktop app without window capture shows the switch off, marked 桌面版 */}
       <label className="switch"><span>{tr('单角色会话优先使用 AIRI')}{!features.airi && <span className="desk-tag">{tr('桌面版')}</span>}</span><input type="checkbox" disabled={!features.airi} checked={features.airi && d.airi !== false} onChange={(e) => change({ airi: e.target.checked })} /><i /></label>
     </>}
     {st.err && <p className="hint error" role="alert">{st.err}</p>}

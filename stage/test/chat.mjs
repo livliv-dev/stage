@@ -49,7 +49,7 @@ try {
     const pick = await fromPngs({ closed: new File([image], 'closed.png'), open: new File([image], 'open.png') }, 'Nana')
     window.__stage.talk.detach(); store.replace(emptyScene())
     const character = newCharacter(store.get(), 'Nana', pick.model, '喜欢具体的讨论。'); character.voice.source = 'api'; store.add(character); store.select(character.id)
-    saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' })
+    saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model', airi: false })  // the standard engine's chat (AIRI's: airi-web, traces)
     saveSpeech({ provider: 'openai', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-tts', voice: 'alloy', asr: 'fixture-asr' })
   })
   await page.waitForFunction(() => [...window.__stage.actors.values()].length === 1 && [...window.__stage.actors.values()].every((actor) => actor.status === 'ready'))

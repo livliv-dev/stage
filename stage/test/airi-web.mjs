@@ -5,7 +5,7 @@
 // policy lets it call; AIRI's core loads only on the first AIRI turn, and nothing it does is refused by the policy.
 // livliv.ai's own refusals read in its words (an account under 18), a key refused by one's own model in a few, from the
 // model card's 测试 too. AI 直播 stays on the standard engine, and its 直播间 card offers no window or game. The site
-// and the model are faked: nothing is spent.
+// and the model are faked: nothing is spent. A copy hosted elsewhere (the dev server) runs 持续聊天 on AIRI too.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { spawn } from 'node:child_process'
@@ -15,7 +15,7 @@ import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { freePort, testTimeout } from './vite.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), errors = [], refused = []
 // livliv.ai's Content-Security-Policy for /stage/ (the site's stage_web.py)
@@ -42,7 +42,7 @@ const reply = (body) => body.stream
   : { json: { choices: [{ message: { content: JSON.stringify({ text: '你好呀。', emotion: 'happy', action: 'none', to: null, look: null }) } }] } }
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS' }
 
-let out, server, browser
+let out, server, browser, vite
 try {
   // the site's build
   out = await mkdtemp(join(tmpdir(), 'stage-airi-web-'))
@@ -179,11 +179,36 @@ try {
   assert.equal(await room.getByText('游戏连接').count() + await room.getByText('选择游戏窗口').count(), 0)
 
   assert.deepEqual([...refused, ...await page.evaluate(() => window.__refused)], [], 'nothing refused by the page\'s policy')
+
+  // a copy hosted elsewhere (no livliv.ai): 持续聊天 on AIRI with a model of one's own
+  const vitePort = await freePort(); vite = await startVite({ port: vitePort })
+  const elsewhere = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  await elsewhere.addInitScript((base) => {
+    localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1')
+    localStorage.setItem('livliv-stage:brain', JSON.stringify({ kind: 'openai', provider: 'custom', base: base + '/own', key: 'test-only', model: 'own-model' }))
+  }, `http://127.0.0.1:${vitePort}`)
+  const ownAsked = []
+  await elsewhere.route('**/*', (route) => {
+    const req = route.request(), url = new URL(req.url())
+    if (url.pathname === '/own/chat/completions') { const body = req.postDataJSON(); ownAsked.push(!!body.stream); return route.fulfill(reply(body)) }
+    if (url.pathname.startsWith('/api/')) return route.fulfill({ status: 404, json: { detail: 'none' } })
+    return url.hostname === '127.0.0.1' || ['blob:', 'data:'].includes(url.protocol) ? route.continue() : route.abort()
+  })
+  const other = await elsewhere.newPage(); other.setDefaultTimeout(testTimeout(30000)); other.on('pageerror', (e) => errors.push(e.message))
+  await other.goto(`http://127.0.0.1:${vitePort}/`, { waitUntil: 'networkidle' })
+  await other.waitForFunction(() => { const a = [...window.__stage.actors.values()]; return a.length === 3 && a.every((x) => x.status === 'ready') }, null, { timeout: testTimeout(60000) })
+  await other.locator('.start-overlay .start-page [data-close]').click().catch(() => {})
+  await other.evaluate(() => { const { store } = window.__stage; store.get().items.filter((i) => i.kind === 'character').forEach((c, i) => store.patch(c.id, i ? { lines: 'none' } : { muted: true })) })
+  await other.evaluate(async () => { const { talk } = window.__stage; await talk.newChat(); await talk.startChat('private') })
+  await other.waitForFunction(() => window.__stage.conversation().waitingInput)
+  assert.equal(await other.evaluate(() => window.__stage.conversation().engine), 'airi', 'a copy hosted elsewhere: the chat on AIRI')
+  assert.ok(ownAsked.length >= 1 && ownAsked.every(Boolean), 'streamed from your own model: ' + JSON.stringify(ownAsked))
+  await other.evaluate(() => window.__stage.talk.stop())
   assert.deepEqual(errors, [])
   console.log('test:airi-web passed')
 } catch (e) {
   console.error(e); process.exitCode = 1
 } finally {
-  await browser?.close(); server?.close()
+  await browser?.close(); server?.close(); vite?.kill('SIGTERM')
   if (out) await rm(out, { recursive: true, force: true })
 }
