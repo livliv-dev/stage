@@ -30,6 +30,13 @@ export function airiGameError(error: unknown) {
 
 type Frame = AiriGameFrame
 type Core = typeof import('../../vendor/airi-core/core.mjs')
+/** AIRI's core, loaded on the first AIRI turn. Its zod is told not to try compiling validators with new Function
+ *  first: a page whose Content-Security-Policy has no 'unsafe-eval' (livliv.ai/stage) would log a refusal for it */
+function loadCore(): Promise<Core> {
+  const g = globalThis as { __zod_globalConfig?: Record<string, unknown> }
+  g.__zod_globalConfig = { ...g.__zod_globalConfig, jitless: true }
+  return import('../../vendor/airi-core/core.mjs')
+}
 export type AiriTurn = {
   sessionId: string
   scope: MemoryScope
@@ -263,7 +270,7 @@ export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
   return new ReadableStream({
     start(output) {
       async function run() {
-        const core = await import('../../vendor/airi-core/core.mjs')
+        const core = await loadCore()
         signal.throwIfAborted()
         const speech = spoken(core, signal, output)
         // the persona, once for this turn
@@ -356,13 +363,15 @@ export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
 
 export async function testAiriModel(model: ModelConfig, signal: AbortSignal) {
   const start = performance.now()
-  const core = await import('../../vendor/airi-core/core.mjs')
+  const core = await loadCore()
   let text = '', batch = false
-  await core.streamFrom({
-    model: model.model, chatProvider: provider(model, signal, { allowBatch: true, onBatch: () => { batch = true } }),
-    conversation: { turns: [{ id: 'model-test', type: 'user', content: [{ type: 'text', text: 'Reply with OK.' }] }] },
-    options: { abortSignal: signal, maxTokens: 16, onStreamEvent: (event) => { if (event.type === 'text-delta') text += event.text ?? '' } },
-  })
+  try {
+    await core.streamFrom({
+      model: model.model, chatProvider: provider(model, signal, { allowBatch: true, onBatch: () => { batch = true } }),
+      conversation: { turns: [{ id: 'model-test', type: 'user', content: [{ type: 'text', text: 'Reply with OK.' }] }] },
+      options: { abortSignal: signal, maxTokens: 16, onStreamEvent: (event) => { if (event.type === 'text-delta') text += event.text ?? '' } },
+    })
+  } catch (error) { throw readableModelError(error) }
   if (!text.trim()) throw new Error(tr('模型没有返回可播放的回复'))
   return { seconds: (performance.now() - start) / 1000, batch }
 }
@@ -372,7 +381,7 @@ export async function chooseAiriGameAction(
   signal: AbortSignal, frame?: Frame, beforeRequest?: () => Promise<void>,
 ): Promise<ExternalActionDecision | null> {
   if (!request.actions.length) return null
-  const core = await import('../../vendor/airi-core/core.mjs')
+  const core = await loadCore()
   signal.throwIfAborted()
   const selected = new AbortController()
   const active = AbortSignal.any([signal, selected.signal])

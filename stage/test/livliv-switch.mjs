@@ -30,6 +30,11 @@ let signed = true, refuseAt = 0  // refuseAt: the how-many-th livliv.ai text cal
 const calls = []  // every request to livliv.ai's points routes and to your own services: { kind, path, body, auth }
 const POINTS = /^\/api\/(stage\/v1\/|chat\/(asr\/|say$|[^/]+\/say$|[^/]+\/stage-line$))/
 const paid = () => calls.filter((c) => POINTS.test(c.path))
+/** a streamed reply, as an OpenAI-compatible API sends one (AIRI asks for these: one AI character on the web build) */
+const sse = (content) => {
+  const chunk = (delta, finish = null) => 'data: ' + JSON.stringify({ id: 's', object: 'chat.completion.chunk', model: 'm', created: 1, choices: [{ index: 0, delta, finish_reason: finish }] }) + '\n\n'
+  return chunk({ role: 'assistant', content }) + chunk({}, 'stop') + 'data: [DONE]\n\n'
+}
 const wav = (seconds) => {
   const samples = Math.round(24000 * seconds), buffer = Buffer.alloc(44 + samples * 2)
   buffer.write('RIFF'); buffer.writeUInt32LE(buffer.length - 8, 4); buffer.write('WAVEfmt ', 8); buffer.writeUInt32LE(16, 16)
@@ -71,6 +76,7 @@ try {
       if (path === '/api/stage/v1/chat/completions') {
         record('livliv-text')
         if (refuseAt && calls.filter((c) => c.kind === 'livliv-text').length === refuseAt) { calls.at(-1).refused = true; return route.fulfill({ status: 413, json: { detail: '这次对话太长了：最多约 32000 个 token' } }) }
+        if (calls.at(-1).body.stream) return route.fulfill({ contentType: 'text/event-stream', body: sse(LINE) })  // AIRI
         return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: LINE, emotion: 'happy', action: 'none', to: null, look: null }) } }] } })
       }
       if (path === '/api/chat/say' || /^\/api\/chat\/[^/]+\/say$/.test(path)) { record('livliv-voice'); return route.fulfill({ json: { lines: [{ audio: '/api/chat/say/line.mp3', expression: null }], points: 119 } }) }
@@ -78,7 +84,7 @@ try {
       if (/stage-line$/.test(path)) { record('stage-line'); return route.fulfill({ status: 410, json: { detail: 'not used' } }) }
       if (path === '/api/chat/say/line.mp3') return route.fulfill({ body: clip, contentType: 'audio/mpeg' })
       if (path === '/api/chat/voices' || /^\/api\/chat\/[^/]+\/voices$/.test(path)) return route.fulfill({ json: { voices: [{ id: 'longhua_v3.1', name: '龙华', desc: '', group: 'girl' }, { id: 'longanyang_v3.1', name: '龙安洋', desc: '', group: 'man' }], voice: 'longhua_v3.1', own: null } })
-      if (path === '/own/chat/completions') { record('own-text'); return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: LINE, emotion: 'happy', action: 'none', to: null, look: null }) } }] } }) }
+      if (path === '/own/chat/completions') { record('own-text'); if (calls.at(-1).body.stream) return route.fulfill({ contentType: 'text/event-stream', body: sse(LINE) }); return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: LINE, emotion: 'happy', action: 'none', to: null, look: null }) } }] } }) }
       if (path === '/own/audio/speech') { record('own-voice'); return route.fulfill({ contentType: 'audio/wav', body: wav(0.6) }) }
       if (path === '/own/audio/transcriptions') { record('own-hearing'); return route.fulfill({ json: { text: '你好呀' } }) }
       if (path.startsWith('/api/')) return route.fulfill({ status: 404, json: { detail: 'none' } })
@@ -195,14 +201,23 @@ try {
   assert.ok(voiced.length >= 2 && voiced.every((c) => c.path === '/api/chat/say' && c.body.voice === 'longanyang_v3.1' && c.body.lines[0].text === LINE), 'voiced in the young men\'s system voice: ' + JSON.stringify(voiced.map((c) => [c.path, c.body.voice])))
   assert.ok(voiced.every((c) => typeof c.body.line === 'string' && c.body.line && c.body.stage === true), 'each with its line id, as Stage\'s (a livliv.ai voice is paid by the line)')
   assert.equal(calls.filter((c) => c.kind.startsWith('own')).length, 0, 'saved own keys unused')
-  // livliv.ai refusing a call as too long: asked once more with the older half of the history left out, nothing shown
-  calls.length = 0; refuseAt = 2
-  await chat(page)
-  refuseAt = 0
-  const asked = calls.filter((c) => c.kind === 'livliv-text'), history = (c) => JSON.parse(c.body.messages[1].content).history ?? ''
-  assert.ok(asked[1]?.refused && asked.length >= 3, 'the second call was refused and asked again: ' + asked.length)
-  assert.ok(history(asked[2]).length < history(asked[1]).length, 'asked again with less history: ' + JSON.stringify([history(asked[1]), history(asked[2])]))
+  // livliv.ai refusing a call as too long (on AIRI here): the same call sent again with the older lines left out, nothing
+  // shown. Two lines of yours first, so the refused call has lines before it to leave out
+  calls.length = 0; refuseAt = 3
+  await page.evaluate(async () => { const { talk } = window.__stage; talk.stop(); await talk.newChat(); await talk.startChat('private') })
+  await page.waitForFunction(() => window.__stage.conversation().waitingInput)
+  for (const line of ['那就聊聊周末吧', '你周末一般做什么']) {
+    const before = await page.evaluate(() => window.__stage.conversation().lines.filter((l) => !l.human).length)
+    await page.evaluate((line) => window.__stage.talk.say(line), line)
+    await page.waitForFunction((before) => { const c = window.__stage.conversation(); return (c.waitingInput && c.lines.filter((l) => !l.human).length > before && !c.speaking) || !!c.error }, before)
+  }
   assert.equal(await page.evaluate(() => window.__stage.conversation().error), '', 'nothing shown')
+  await page.evaluate(() => window.__stage.talk.stop())
+  refuseAt = 0
+  const asked = calls.filter((c) => c.kind === 'livliv-text'), size = (c) => JSON.stringify(c.body.messages).length
+  assert.ok(asked[2]?.refused && asked.length >= 4, 'the third call was refused and sent again: ' + asked.length)
+  assert.ok(size(asked[3]) < size(asked[2]), 'sent again with less: ' + JSON.stringify([size(asked[2]), size(asked[3])]))
+  assert.equal(JSON.stringify(asked[3].body.messages.at(-1)), JSON.stringify(asked[2].body.messages.at(-1)), 'the same call: your line as it was')
   // recognition through livliv.ai while its voices are on, though your own is set
   calls.length = 0
   await pushToTalk(page)

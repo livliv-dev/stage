@@ -19,7 +19,7 @@ export type StartInput = {
   /** the AI characters that take part (not a friend's), with the voice each would speak in */
   ai: readonly (Pick<CharacterItem, 'id' | 'remote' | 'muted'> & { voice: VoiceRoute })[]
   brain: BrainConfig
-  features: Pick<Features, 'airi'>
+  features: Pick<Features, 'airi' | 'vision'>
   /** 直播间's own settings: its limits, what it does with no chat, its game (shell/liveSetup.ts) */
   live: LiveSetup
 }

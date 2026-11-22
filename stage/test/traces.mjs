@@ -239,7 +239,8 @@ const stage = (page, o) => page.evaluate(async (o) => {
   store.select(null)
   store.setTalk({ order: 'free', interrupt: 0, cutIn: false, danmaku: 0, language: 'zh', ...o.talk })
   if (o.topic) store.set({ topic: o.topic })
-  saveBrainConfig(o.brain === 'livliv' ? { kind: 'livliv' } : { kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model' })
+  // a web page's chats stay on the standard engine here (AIRI on the web: test/airi-web.mjs); the desktop scenarios are AIRI's
+  saveBrainConfig(o.brain === 'livliv' ? { kind: 'livliv' } : { kind: 'openai', provider: 'custom', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-model', ...(window.livlivDesktop ? {} : { airi: false }) })
   // livliv.ai's voices as chosen in 连接: on where a scenario's characters speak in them (never chosen, they stay off
   // beside the speech service set up below)
   ;(await import('/src/brain.ts')).setLivLiv({ voice: o.livlivVoice ?? (o.brain === 'livliv' || o.voice === 'livliv') })

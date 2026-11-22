@@ -14,7 +14,7 @@ const voiced = [{ id: 'nana', muted: false, voice: 'api' }, { id: 'kai', muted: 
 const live = { minutes: 30, maxGenerations: 100, warmupSeconds: 0, game: 'window', minecraftVision: false, eventsPort: '8080', rconPort: '24180', windowId: '' } as const
 const input = (goal: Goal, audience: Audience, you: You, over: Partial<StartInput> = {}): StartInput => ({
   goal, options: { audience, you }, firstLine: '', stage: { cast: [...cast], hear: true, demo: false }, ai: [...voiced],
-  brain: model, features: { airi: false }, live: { ...live }, ...over,
+  brain: model, features: { airi: false, vision: false }, live: { ...live }, ...over,
 })
 /** a start in a line: rec(mic, talk), the call, +handsfree */
 function describe(calls: StartCalls) {
@@ -77,12 +77,12 @@ test('the options show what the automatic one does now: every 30 seconds unless 
 test('a game goes to AIRI when the engine rule picks it, and is refused in words when it does not', () => {
   const one = [{ id: 'nana', muted: false, voice: 'api' as const }]
   const minecraft = { ...live, game: 'minecraft' as const }
-  assert.equal(describe(startCalls(input('live', 'live', 'none', { ai: one, features: { airi: true }, live: minecraft }))),
+  assert.equal(describe(startCalls(input('live', 'live', 'none', { ai: one, features: { airi: true, vision: true }, live: minecraft }))),
     'startLive(30m,100,warmup 0,text 0,airi {"windowId":"","game":{"game":"minecraft","vision":false}})')
-  assert.equal(describe(startCalls(input('live', 'live', 'none', { ai: one, features: { airi: true } }))), 'startLive(30m,100,warmup 0,text 0,airi {"windowId":""})', 'AIRI with no game')
+  assert.equal(describe(startCalls(input('live', 'live', 'none', { ai: one, features: { airi: true, vision: true } }))), 'startLive(30m,100,warmup 0,text 0,airi {"windowId":""})', 'AIRI with no game')
   assert.equal(describe(startCalls(input('live', 'live', 'none', { ai: one, live: minecraft }))), 'blocked: 游戏需要内置 AIRI：{0} 网页版')
-  assert.equal(describe(startCalls(input('live', 'live', 'none', { ai: one, features: { airi: true }, live: { ...live, game: 'factorio', eventsPort: '0' } }))), 'blocked: 两个端口应连接同一个运行 Autorio 的存档。')
-  assert.equal(describe(startCalls(input('live', 'live', 'none', { features: { airi: true } }))), LIVE, 'two AI characters: the standard engine')
+  assert.equal(describe(startCalls(input('live', 'live', 'none', { ai: one, features: { airi: true, vision: true }, live: { ...live, game: 'factorio', eventsPort: '0' } }))), 'blocked: 两个端口应连接同一个运行 Autorio 的存档。')
+  assert.equal(describe(startCalls(input('live', 'live', 'none', { features: { airi: true, vision: true } }))), LIVE, 'two AI characters: the standard engine')
 })
 
 test('what the stage lacks blocks the start, as the start options show', () => {

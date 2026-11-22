@@ -20,12 +20,14 @@ export type Features = {
   shell: boolean
   /** the desktop app's console, since AIRI came: 直播 in the top bar instead of 观众弹幕, chat with the one AI
    *  character as the main start, typing starts 持续聊天, the memory panel by the scope chosen. A web page, and a
-   *  desktop bridge without window capture, keep the web console. The same condition as `airi` today: phase 3a gives
-   *  the web and the desktop one console, while AIRI stays the desktop's */
+   *  desktop bridge without window capture, keep the web console (AIRI runs there too, for 持续聊天: `airi`) */
   desktopConsole: boolean
-  /** a session can run on AIRI (Project AIRI, built in): a desktop build with window capture, which AIRI needs to see a
-   *  game or app window */
+  /** a session can run on AIRI (Project AIRI, built in): the desktop app with window capture, and any web page
+   *  (livliv.ai/stage, a copy hosted elsewhere), where it runs 持续聊天 only (no window, no game: brains/select.ts). A
+   *  desktop bridge without window capture (an older app) keeps the standard engine */
   airi: boolean
+  /** the desktop app can capture a window (AIRI sees a game or app window) */
+  vision: boolean
   /** AIRI's game connections (Minecraft by Airicraft, Factorio by Autorio) */
   games: boolean
   /** 联播 (a friend's character on your stage): anywhere but the site */
@@ -51,7 +53,8 @@ export function detectFeatures(from: { siteBuild: boolean; appScheme: boolean; b
     host,
     shell: appScheme || from.hasBridge,
     desktopConsole: !!bridge?.vision,
-    airi: !!bridge?.vision,
+    airi: !!bridge?.vision || host !== 'desktop',
+    vision: !!bridge?.vision,
     games: !!bridge?.airiGame,
     collab: host !== 'site',
     points: host !== 'selfhosted',

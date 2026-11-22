@@ -18,7 +18,7 @@ try {
       if (sessionStorage.getItem('goals-ready')) return
       sessionStorage.setItem('goals-ready', '1')
       localStorage.setItem('livliv-stage:locale', 'zh-Hans')
-      localStorage.setItem('livliv-stage:brain', JSON.stringify({ kind: 'openai', provider: 'custom', base: base + '/fixture-ai', key: 'test-only', model: 'fixture-model' }))
+      localStorage.setItem('livliv-stage:brain', JSON.stringify({ kind: 'openai', provider: 'custom', base: base + '/fixture-ai', key: 'test-only', model: 'fixture-model', airi: false }))
     }, `http://127.0.0.1:${port}`)
     await context.route('**/*', async (route) => {
       const url = new URL(route.request().url())

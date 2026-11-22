@@ -1,7 +1,8 @@
 // Which engine a session runs on: Stage's own (the model set up, asked line by line), or Project AIRI built in (its
 // chat runtime streams a reply sentence by sentence, reads memories by tool, sees a window, plays a game). This is the
 // only place that decides; it says why, for the console's status line.
-// AIRI runs when all of these hold: the desktop app (it has window capture), a model of one's own (OpenAI-compatible),
+// AIRI runs when all of these hold: the desktop app (it has window capture), or a web page (livliv.ai/stage or a copy
+// hosted elsewhere) for 持续聊天 (no window, no game there), a model of one's own (OpenAI-compatible),
 // one AI character on the stage and a local one (not a friend's), AIRI not switched off in the model settings (a
 // game or a window asks for AIRI whatever the switch says). livliv.ai's text is a model like one's own, and a livliv.ai
 // voice is paid by the line however many sentences AIRI voices it in: AIRI is the engine wherever it fits.
@@ -27,8 +28,9 @@ export type EngineChoice = { engine: 'standard' | 'airi'; reason: EngineReason }
 const standard = (reason: EngineReason): EngineChoice => ({ engine: 'standard', reason })
 
 /** the engine for this session, and why. `cast`: the AI characters on the stage */
-export function chooseEngine(brain: BrainConfig, cast: readonly Pick<CharacterItem, 'id' | 'remote' | 'muted'>[], show: Show, features: Pick<Features, 'airi'>): EngineChoice {
+export function chooseEngine(brain: BrainConfig, cast: readonly Pick<CharacterItem, 'id' | 'remote' | 'muted'>[], show: Show, features: Pick<Features, 'airi' | 'vision'>): EngineChoice {
   if (!features.airi) return standard('web')
+  if (show.kind === 'live' && !features.vision) return standard('web')  // the web build: AIRI for 持续聊天 only
   if (brain.kind === 'demo') return standard('model')
   if (!cast.length) return standard('none')
   if (cast.length > 1) return standard('cast')

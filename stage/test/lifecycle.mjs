@@ -48,7 +48,7 @@ try {
     const blob = await canvas.convertToBlob({ type: 'image/png' }), pick = await fromPngs({ closed: new File([blob], 'closed.png'), open: new File([blob], 'open.png') }, 'Nana')
     window.__stage.talk.detach(); store.replace(emptyScene())
     const character = newCharacter(store.get(), 'Nana', pick.model, ''); character.voice.source = 'api'; store.add(character)
-    saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture', key: 'test-only', model: 'fixture' })
+    saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture', key: 'test-only', model: 'fixture', airi: false })  // the standard engine's chat
     saveSpeech({ provider: 'openai', base: location.origin + '/fixture', key: 'test-only', model: 'fixture', voice: 'fixture', asr: 'fixture' })
     localStorage.setItem('livliv-stage:fake-mic', '/fixture-input.wav')
     await window.__stage.talk.setScope('public'); await window.__stage.talk.newChat()

@@ -40,6 +40,9 @@ export function Console({ goal, partner, checks, optionsOpen, onOptions, onCheck
   const status = <StatusLine goal={goal} partner={partner} checks={checks} onModel={onModel} onVoice={onVoice} onAudience={live ? onRoom : onOptions} onChecklist={onChecklist} onRealtime={onRealtime} />
   const errors = <>
     {(conv.error || ptt.error) && <p className="talk-err">{conv.error || ptt.error}</p>}
+    {/* why a chat or a 对谈 stopped by itself (its limit; on AIRI, its character or its model changed); the 直播间 and
+        call cards say why theirs stopped */}
+    {!conv.running && !conv.error && !ptt.error && conv.ended && (conv.mode === 'chat' || conv.mode === 'conversation') && <p className="talk-err talk-note" role="status">{conv.ended}</p>}
     {conv.storageError && <p className="talk-err" role="alert">{conv.storageError}</p>}
   </>
   if (!conv.running) return <div className="console next" ref={measure} onPointerDown={(e) => e.stopPropagation()}>

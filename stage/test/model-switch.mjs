@@ -1,5 +1,6 @@
-// The model set up answers the next line, even mid-session: a chat on livliv.ai's text (each line paid) whose model is
-// switched to one of one's own answers the next line from that model, and nothing more is asked of livliv.ai. A game
+// livliv.ai's text turned off mid-session: on the web build a chat with one AI character runs on AIRI, which keeps the
+// model it started with, so the chat stops at once (saying why) and nothing more is asked of livliv.ai; the next chat
+// answers from the model of one's own. A game
 // action asked during a realtime call (the Neuro bridge) is decided by the model set up. On the site's build, signed
 // in (the site is faked: nothing is spent).
 import assert from 'node:assert/strict'
@@ -7,6 +8,11 @@ import { chromium } from 'playwright-core'
 import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const errors = [], paid = [], own = []
+/** a streamed reply, as an OpenAI-compatible API sends one (AIRI asks for these) */
+const sse = (content) => {
+  const chunk = (delta, finish = null) => 'data: ' + JSON.stringify({ id: 'm', object: 'chat.completion.chunk', model: 'm', created: 1, choices: [{ index: 0, delta, finish_reason: finish }] }) + '\n\n'
+  return chunk({ role: 'assistant', content }) + chunk({}, 'stop') + 'data: [DONE]\n\n'
+}
 let server, browser
 try {
   const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: 'livliv' } })
@@ -17,11 +23,13 @@ try {
     const req = route.request(), url = new URL(req.url())
     if (url.pathname === '/api/me') return route.fulfill({ json: { signed_in: true, email: 'member@example.test', points: 10, plan: 'plus', record_seconds: 300, record_mark: false, stage_line_points: 0.5, stage_silent_free: true } })
     if (url.pathname === '/api/stage/v1/chat/completions') {
-      paid.push(req.postDataJSON())
+      const body = req.postDataJSON(); paid.push(body)
+      if (body.stream) return route.fulfill({ contentType: 'text/event-stream', body: sse('这一句来自 LivLiv。') })
       return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: '这一句来自 LivLiv。', emotion: 'neutral', action: 'none', to: null, look: null }) } }] } })
     }
     if (url.pathname === '/fixture-ai/chat/completions') {
       const body = req.postData() ?? ''; own.push(body)
+      if (JSON.parse(body).stream) return route.fulfill({ contentType: 'text/event-stream', body: sse('这一句来自自己的模型。') })
       const content = body.includes('选择一个可用动作') ? JSON.stringify({ name: 'jump', data: {} }) : JSON.stringify({ text: '这一句来自自己的模型。', emotion: 'neutral', action: 'none', to: null, look: null })
       return route.fulfill({ json: { choices: [{ message: { content } }] } })
     }
@@ -43,18 +51,25 @@ try {
   const aiLines = () => page.evaluate(() => window.__stage.conversation().lines.filter((l) => !l.human).map((l) => l.text))
   const answered = (n) => page.waitForFunction((n) => { const c = window.__stage.conversation(); return c.waitingInput && !c.speaking && c.lines.filter((l) => !l.human).length >= n }, n)
 
-  // a chat on livliv.ai's text; the model is switched to one's own mid-chat: the next line is from it, and nothing more is paid
+  // a chat on livliv.ai's text, on AIRI; livliv.ai's text turned off mid-chat (a model of one's own saved): the chat stops
+  // at once, saying why, and nothing more is paid; the next chat answers from the model of one's own
   await brain({ kind: 'livliv' })
   await page.evaluate(async () => { const { talk } = window.__stage; await talk.newChat(); await talk.startChat('private') })
   await page.waitForFunction(() => window.__stage.conversation().waitingInput)
+  assert.equal(await page.evaluate(() => window.__stage.conversation().engine), 'airi', 'one AI character on the web build: AIRI')
   await page.evaluate(() => window.__stage.talk.say('你好'))
   await answered(2)
   const paidBefore = paid.length
-  assert.ok(paidBefore >= 2, 'LivLiv answered while it was the model: ' + paidBefore)
+  assert.ok(paidBefore >= 2 && paid.every((p) => p.stream), 'livliv.ai answered, streamed, while it gave the text: ' + paidBefore)
   await brain({ kind: 'openai', provider: 'custom', base: `http://127.0.0.1:${port}/fixture-ai`, key: 'test-only', model: 'fixture-model' })
+  await page.waitForFunction(() => !window.__stage.conversation().running)
+  assert.equal(await page.evaluate(() => window.__stage.conversation().ended), 'livliv.ai 的文字已关闭，本次会话已停止')
+  assert.equal(await page.locator('.console .talk-note').innerText(), 'livliv.ai 的文字已关闭，本次会话已停止', 'the console says why it stopped')
+  await page.evaluate(async () => { const { talk } = window.__stage; await talk.newChat(); await talk.startChat('private') })
+  await page.waitForFunction(() => window.__stage.conversation().waitingInput)
   await page.evaluate(() => window.__stage.talk.say('换个话题吧'))
-  await answered(3)
-  assert.equal((await aiLines()).at(-1), '这一句来自自己的模型。', 'the next line is from the model set up now')
+  await answered(2)
+  assert.equal((await aiLines()).at(-1), '这一句来自自己的模型。', 'the next chat answers from the model of one\'s own')
   assert.equal(paid.length, paidBefore, 'nothing more asked of livliv.ai')
   await page.evaluate(() => window.__stage.talk.stop())
 
