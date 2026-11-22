@@ -64,6 +64,7 @@ try {
   await brain({ kind: 'openai', provider: 'custom', base: `http://127.0.0.1:${port}/fixture-ai`, key: 'test-only', model: 'fixture-model' })
   await page.waitForFunction(() => !window.__stage.conversation().running)
   assert.equal(await page.evaluate(() => window.__stage.conversation().ended), 'livliv.ai 的文字已关闭，本次会话已停止')
+  assert.equal(await page.locator('.console .talk-note').innerText(), 'livliv.ai 的文字已关闭，本次会话已停止', 'the console says why it stopped')
   await page.evaluate(async () => { const { talk } = window.__stage; await talk.newChat(); await talk.startChat('private') })
   await page.waitForFunction(() => window.__stage.conversation().waitingInput)
   await page.evaluate(() => window.__stage.talk.say('换个话题吧'))

@@ -310,6 +310,7 @@ canvas.character.shadow { filter: drop-shadow(0 18px 28px rgb(40 30 20 / .16)); 
 @media (prefers-reduced-motion: reduce) { .talkbar .mic.opening, .spin { animation: none; } }
 .talk-err { position: absolute; left: 20px; bottom: calc(100% + 52px); margin: 0; background: #fff; border: 1px solid var(--line);
   border-radius: 10px; padding: 6px 12px; color: var(--error); font-size: 13px; box-shadow: var(--shadow); }
+.talk-err.talk-note { color: var(--fg-2); }
 .transcript { position: absolute; bottom: 124px; width: 360px; max-height: 50vh; display: flex; flex-direction: column; padding: 12px 12px 10px; z-index: var(--z-pop); }
 .transcript .lines { overflow: auto; flex: 1; margin: 0 -4px; }
 .transcript .line { display: flex; gap: 8px; align-items: baseline; padding: 6px 4px; border-radius: 8px; }

@@ -144,7 +144,7 @@ try {
 
   // a model of one's own that the page's policy lets it call: AIRI too
   await page.evaluate(() => {
-    window.__stage.keys.saveBrain({ kind: 'openai', provider: 'custom', base: 'https://api.deepseek.com/v1', key: 'test-only', model: 'own-model' })
+    window.__stage.keys.saveBrain({ kind: 'openai', provider: 'deepseek', base: 'https://api.deepseek.com/v1', key: 'test-only', model: 'own-model' })
     const { store } = window.__stage, c = store.get().items.find((i) => i.kind === 'character' && i.lines === 'ai'); store.patch(c.id, { muted: true })
   })
   await tag('模型').filter({ hasText: 'own-model' }).waitFor()
