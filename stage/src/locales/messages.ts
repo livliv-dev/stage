@@ -3171,11 +3171,71 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Other",
     "ja": "その他"
   },
-  "连不上 {0}": {
-    "zh-Hans": "连不上 {0}",
-    "zh-Hant": "連不上 {0}",
-    "en": "Could not connect to {0}",
-    "ja": "{0}に接続できません"
+  "这不是 LivLiv 模型包：请选 LivLiv 导出的 .livliv、zip 或文件夹": {
+    "zh-Hans": "这不是 LivLiv 模型包：请选 LivLiv 导出的 .livliv、zip 或文件夹",
+    "zh-Hant": "這不是 LivLiv 模型包：請選 LivLiv 匯出的 .livliv、zip 或資料夾",
+    "en": "This is not a LivLiv model package: choose a .livliv, zip or folder exported from LivLiv",
+    "ja": "LivLiv のモデルパッケージではありません。LivLiv から書き出した .livliv、zip、フォルダーを選んでください"
+  },
+  "模型文件已损坏：请重新从 LivLiv 导出": {
+    "zh-Hans": "模型文件已损坏：请重新从 LivLiv 导出",
+    "zh-Hant": "模型檔案已損壞：請重新從 LivLiv 匯出",
+    "en": "The model file is damaged: export it from LivLiv again",
+    "ja": "モデルファイルが壊れています。LivLiv からもう一度書き出してください"
+  },
+  "模型包缺少文件：请重新从 LivLiv 导出": {
+    "zh-Hans": "模型包缺少文件：请重新从 LivLiv 导出",
+    "zh-Hant": "模型包缺少檔案：請重新從 LivLiv 匯出",
+    "en": "The model package is missing files: export it from LivLiv again",
+    "ja": "モデルパッケージにファイルが足りません。LivLiv からもう一度書き出してください"
+  },
+  "VRM 文件已损坏，读不出来：请重新导出": {
+    "zh-Hans": "VRM 文件已损坏，读不出来：请重新导出",
+    "zh-Hant": "VRM 檔案已損壞，讀不出來：請重新匯出",
+    "en": "The VRM file is damaged and can't be read: export it again",
+    "ja": "VRM ファイルが壊れていて読み込めません。もう一度書き出してください"
+  },
+  "立绘缺少图片：至少要闭嘴和张嘴两张": {
+    "zh-Hans": "立绘缺少图片：至少要闭嘴和张嘴两张",
+    "zh-Hant": "立繪缺少圖片：至少要閉嘴和張嘴兩張",
+    "en": "The picture set is missing images: it needs at least mouth closed and mouth open",
+    "ja": "立ち絵の画像が足りません。口を閉じた絵と開いた絵の 2 枚が必要です"
+  },
+  "立绘图片读不出来：请换成 PNG、WebP 或 GIF": {
+    "zh-Hans": "立绘图片读不出来：请换成 PNG、WebP 或 GIF",
+    "zh-Hant": "立繪圖片讀不出來：請換成 PNG、WebP 或 GIF",
+    "en": "The pictures can't be read: use PNG, WebP or GIF",
+    "ja": "立ち絵の画像を読み込めません。PNG、WebP、GIF にしてください"
+  },
+  "这不是 VRM 文件": {
+    "zh-Hans": "这不是 VRM 文件",
+    "zh-Hant": "這不是 VRM 檔案",
+    "en": "This is not a VRM file",
+    "ja": "VRM ファイルではありません"
+  },
+  "{0} 不是 PNG、WebP 或 GIF 图片": {
+    "zh-Hans": "{0} 不是 PNG、WebP 或 GIF 图片",
+    "zh-Hant": "{0} 不是 PNG、WebP 或 GIF 圖片",
+    "en": "{0} is not a PNG, WebP or GIF picture",
+    "ja": "{0} は PNG、WebP、GIF の画像ではありません"
+  },
+  "清除": {
+    "zh-Hans": "清除",
+    "zh-Hant": "清除",
+    "en": "Clear",
+    "ja": "消去"
+  },
+  "从这台电脑上删掉保存的密钥": {
+    "zh-Hans": "从这台电脑上删掉保存的密钥",
+    "zh-Hant": "從這台電腦上刪掉保存的密鑰",
+    "en": "Remove the saved key from this computer",
+    "ja": "このコンピューターに保存したキーを削除します"
+  },
+  "连不上 {0}，请检查网络后再试": {
+    "zh-Hans": "连不上 {0}，请检查网络后再试",
+    "zh-Hant": "連不上 {0}，請檢查網路後再試",
+    "en": "Could not connect to {0}. Check your network and try again",
+    "ja": "{0}に接続できません。ネットワークを確認してもう一度お試しください"
   },
   "密钥不对": {
     "zh-Hans": "密钥不对",

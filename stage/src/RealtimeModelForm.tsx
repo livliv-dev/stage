@@ -4,7 +4,7 @@ import { useBrainConfig } from './brain'
 import { useConversation } from './conversation'
 import { tr } from './i18n'
 import { lostKey } from './core/secrets'
-import { loadRealtime, realtimeCredentials, realtimeDefaults, realtimeSocketHere, saveRealtime, type RealtimeSettings } from './realtime'
+import { clearRealtimeKey, loadRealtime, realtimeCredentials, realtimeDefaults, realtimeSocketHere, saveRealtime, type RealtimeSettings } from './realtime'
 import { useSpeech } from './voiceApi'
 
 /** onSaved: told once the settings are saved (opened from the realtime panel: back there) */
@@ -12,11 +12,13 @@ export function RealtimeModelForm({ onSaved }: { onSaved?: () => void } = {}) {
   useBrainConfig(); useSpeech()
   const conversation = useConversation()
   const [settings, setSettings] = useState(loadRealtime), [saved, setSaved] = useState(false), [error, setError] = useState('')
+  // the key saved for the call's own service (清除 takes it off this computer)
+  const [keptKey, setKeptKey] = useState(() => !!loadRealtime().key)
   const effective = realtimeCredentials(settings)
   const ready = !!effective.base && !!effective.key && !!settings.model.trim()
   const change = (patch: Partial<RealtimeSettings>) => { setSettings((current) => ({ ...current, ...patch })); setSaved(false); setError('') }
   const save = () => {
-    try { saveRealtime(settings); setSaved(true); setError(''); onSaved?.() }
+    try { saveRealtime(settings); setKeptKey(!!settings.key); setSaved(true); setError(''); onSaved?.() }
     catch (cause) { setSaved(false); setError(tr('设置未保存：{0}', (cause as Error).message)) }
   }
   return <div className="model-form realtime-model-form">
@@ -27,7 +29,7 @@ export function RealtimeModelForm({ onSaved }: { onSaved?: () => void } = {}) {
     <label className="field"><span>{tr('接口地址')}</span><input aria-label={tr('接口地址')} value={settings.base} placeholder={effective.base || 'https://WORKSPACE.cn-beijing.maas.aliyuncs.com'} onChange={(event) => change({ base: event.target.value })} /></label>
     {settings.provider === 'qwen' && !realtimeSocketHere() && <p className="hint">{tr('网页版需填百炼工作空间地址（….maas.aliyuncs.com）')}</p>}
     <label className="field"><span>{tr('模型')}</span><input aria-label={tr('模型')} value={settings.model} onChange={(event) => change({ model: event.target.value })} /></label>
-    <label className="field"><span>{tr('密钥')}</span><input aria-label={tr('密钥')} type="password" autoComplete="off" value={settings.key} placeholder={effective.key ? tr('复用已配置的密钥') : tr('填写该服务的 API 密钥')} onChange={(event) => change({ key: event.target.value })} /></label>
+    <label className="field"><span>{tr('密钥')}{keptKey && <button type="button" className="link get clear-key" title={tr("从这台电脑上删掉保存的密钥")} onClick={() => { clearRealtimeKey(); setKeptKey(false); change({ key: '' }) }}>{tr('清除')}</button>}</span><input aria-label={tr('密钥')} type="password" autoComplete="off" value={settings.key} placeholder={effective.key ? tr('复用已配置的密钥') : tr('填写该服务的 API 密钥')} onChange={(event) => change({ key: event.target.value })} /></label>
     {!settings.key && lostKey('livliv-stage:realtime') && <p className="hint error">{tr('这台电脑上保存的密钥读不出来了，请重新填写')}</p>}
     <label className="field"><span>{tr('实时音色')}</span><input aria-label={tr('实时音色')} value={settings.voice} onChange={(event) => change({ voice: event.target.value })} /></label>
     <p className="hint">{tr('需选实时模型支持的音色')}</p>

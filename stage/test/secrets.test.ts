@@ -4,7 +4,7 @@
 // without the store (a browser) nothing changes.
 import assert from 'node:assert/strict'
 import { afterEach, test } from 'node:test'
-import { lostKey, migrateKeys, readKeyed, readSecret, setKeyVault, writeKeyed, writeSecret } from '../src/core/secrets'
+import { clearKey, lostKey, migrateKeys, readKeyed, readSecret, setKeyVault, writeKeyed, writeSecret } from '../src/core/secrets'
 
 afterEach(() => setKeyVault(undefined))
 
@@ -158,3 +158,28 @@ test('a clear that is written takes its mark off at once', async () => {
   assert.deepEqual(v.kept, {})
   assert.equal(storage.items.has('livliv-stage:keys-cleared'), false)
 })
+
+test('清除: a saved key goes from the encrypted store and the page, the rest of the setting stays; a browser drops it from the page', async () => {
+  const v = vault(), storage = page()
+  assert.equal(await writeKeyed('livliv-stage:brain', { ...brain, key: 'sk-kept' }, storage), true)
+  assert.equal(v.kept['livliv-stage:brain'], 'sk-kept')
+  assert.equal(await clearKey('livliv-stage:brain', storage), false)
+  assert.equal(v.kept['livliv-stage:brain'], undefined, 'deleted from the encrypted store')
+  assert.equal(storage.items.get('livliv-stage:keys-cleared'), undefined, 'the delete confirmed: no mark left')
+  assert.deepEqual(JSON.parse(storage.items.get('livliv-stage:brain')!), brain, 'the model stays chosen, without its key')
+  setKeyVault({ all: () => ({ keys: { ...v.kept }, lost: [] }), set: async () => true })  // the app started again
+  assert.equal(JSON.parse(readKeyed('livliv-stage:brain', storage)!).key, undefined, 'and stays gone')
+  // a delete that fails to write: marked cleared, never read back, tried again as the app starts
+  const w = vault({ 'livliv-stage:speech': 'speech-key' }), kept = page({ 'livliv-stage:speech': JSON.stringify({ provider: 'openai', model: 'tts' }) })
+  w.state.failing = true
+  await clearKey('livliv-stage:speech', kept)
+  assert.deepEqual(JSON.parse(kept.items.get('livliv-stage:keys-cleared')!), ['livliv-stage:speech'])
+  assert.equal(JSON.parse(readKeyed('livliv-stage:speech', kept)!).key, undefined, 'not read back while the delete is pending')
+  // a browser: no store, the key goes from the page's storage at once
+  setKeyVault(null)
+  const web = page({ 'livliv-stage:realtime': JSON.stringify({ provider: 'qwen', model: 'm', key: 'rt-key' }) })
+  await clearKey('livliv-stage:realtime', web)
+  assert.deepEqual(JSON.parse(web.items.get('livliv-stage:realtime')!), { provider: 'qwen', model: 'm' })
+  assert.equal(await clearKey('livliv-stage:speech', web), false, 'nothing saved: nothing to do')
+})
+

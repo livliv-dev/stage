@@ -17,7 +17,7 @@ import type { Emotion, StreamingVoice } from './core/lines'
 import { modelId } from './livliv'
 import type { CharacterItem } from './scene'
 import { features } from './core/platform'
-import { readKeyed, writeKeyed } from './core/secrets'
+import { clearKey, readKeyed, writeKeyed } from './core/secrets'
 import { current } from './sessions/run'
 import { voiceNow } from './sessions/spend'
 import { asrReady, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speechProviderOf, speechReady, VOICEBOX_SPEECH, type SpeechApi, type SpeechProvider, type VoiceRoute } from './speechProviders'
@@ -37,6 +37,12 @@ function load(): SpeechApi {
 let config = load()
 const subs = new Set<() => void>()
 export const loadSpeech = () => config
+/** the speech API's key cleared (Settings › 连接's 清除), here and in the desktop app's encrypted store */
+export function clearSpeechKey() {
+  try { void clearKey(KEY) } catch { /* private mode */ }
+  config = { ...config, key: '' }
+  subs.forEach((f) => f())
+}
 export function saveSpeech(s: SpeechApi) {
   config = s
   try { void writeKeyed(KEY, s) } catch { /* private mode */ }
