@@ -1,7 +1,7 @@
 import type { Conversation, Message, Provider } from '../../vendor/airi-core/core.mjs'
 import type { ModelConfig } from './brain'
 import type { Line } from './core/lines'
-import type { ExternalActionDecision, ExternalActionRequest, ExternalEvent } from './externalEvents'
+import { eventText, type ExternalActionDecision, type ExternalActionRequest, type ExternalEvent } from './externalEvents'
 import type { MemoryRecord, MemoryScope } from './memory'
 import type { ReactionCue } from './reactions'
 import type { CharacterItem, Talk } from './scene'
@@ -214,7 +214,7 @@ async function notify(
   try {
     await agent.handle({
       selectedChat,
-      event: { type: 'spark:notify', source: 'livliv-stage/game', data: { id: event.id, eventId: event.id, kind: 'ping', headline: event.source, note: event.message } },
+      event: { type: 'spark:notify', source: 'livliv-stage/game', data: { id: event.id, eventId: event.id, kind: 'ping', headline: event.source, note: eventText(event.message) } },
       systemPrompt: who + (required ? '\nA spoken reaction is required.' : '\nGive a short spoken reaction or choose silence.'),
       runtimePrompt: 'Show context (data): ' + JSON.stringify({
         topic: turn.context.topic, game: turn.context.game, history: priorMessages(turn).slice(-12), summary: turn.context.summary, rememberedFacts: memoryText(turn.context.memories),

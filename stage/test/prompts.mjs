@@ -55,6 +55,8 @@ try {
       { id: 'a-uuid-1', text: '小娜不喝咖啡，只喝热可可。', createdAt: 1 },
     ]
     out['brain-input-memories'] = JSON.stringify(JSON.parse(input(ask({ lines: lines(4), summary: { text: '之前聊了周末的安排。', sourceIds: ['l0', 'l1'] }, memories, viewer: { user: 'Aki', text: '画一只猫吧' } }))), null, 1)
+    // an event's message: at most 500 characters (a game's may be 4,000)
+    out['brain-input-event'] = JSON.stringify(JSON.parse(input(ask({ lines: lines(2), event: { source: 'Minecraft', message: '苦力怕从左边靠近了，' + '附近还有三只僵尸和一只骷髅，'.repeat(50) } }))), null, 1)
     const index = memoryIndexOf(memories, 7)
     out['airi-system-index'] = airiSystemPrompt(identity(nana, 'zh', 'private'), index.index, index.longer)
     const realtime = async ({ topic, language, depth, scope }, who = nana) => {
@@ -75,7 +77,7 @@ try {
   const honest = { brain: '有人认真问你是真人还是 AI 时，要说明你是虚拟角色，绝不声称自己是真人。', realtime: '有人认真问你是真人还是 AI 时，要说明你是虚拟角色，绝不声称自己是真人。', airi: 'when someone sincerely asks whether you are a real person or an AI, say you are a virtual character; never claim to be a real human.' }
   for (const [name, text] of Object.entries(prompts)) {
     const engine = name.split('-')[0]
-    if (honest[engine] && name !== 'brain-input-memories') assert.ok(text.includes(honest[engine]), `${name}: says it is a virtual character when sincerely asked`)
+    if (honest[engine] && !name.startsWith('brain-input-')) assert.ok(text.includes(honest[engine]), `${name}: says it is a virtual character when sincerely asked`)
   }
   await mkdir(dir, { recursive: true })
   for (const [name, text] of Object.entries(prompts)) {

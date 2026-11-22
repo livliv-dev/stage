@@ -24,7 +24,7 @@ import { asEmotion, asMove, type Line, type Reply } from './core/lines'
 import { memoryBrief } from './brains/memoryBrief'
 import { CARD_LIMITS } from './characterCard'
 import { brainPersona, personaOf, type PersonaSpec } from './brains/persona'
-import type { ExternalActionDecision, ExternalActionRequest } from './externalEvents'
+import { eventText, type ExternalActionDecision, type ExternalActionRequest } from './externalEvents'
 
 /** role: in host order, whether it hosts or is a guest; cutIn: it is cutting into the line before */
 export type Ask = {
@@ -307,11 +307,12 @@ export function prompt(a: Ask) {
 }
 
 /** what Stage's own brain is given each turn after its prompt: what changes least first (memories, then the summary),
- *  then the conversation as it grows, then this turn's viewer or event, so the start of the call stays the same from
- *  turn to turn for the provider's cache (brains/memoryBrief.ts; test/prompts.mjs pins it) */
+ *  then the conversation as it grows, then this turn's viewer or event (its message at most EVENT_CHARS), so the start
+ *  of the call stays the same from turn to turn for the provider's cache (brains/memoryBrief.ts; test/prompts.mjs pins
+ *  it) */
 export function input(a: Ask) {
   const context = conversationContext(a.lines, a.summary)
-  return JSON.stringify({ memories: memoryBrief(a.memories), earlier: context.earlier, history: context.history || '还没有人说话，你来开场', viewer: a.viewer, event: a.event, speaker: a.me.name })
+  return JSON.stringify({ memories: memoryBrief(a.memories), earlier: context.earlier, history: context.history || '还没有人说话，你来开场', viewer: a.viewer, event: a.event && { ...a.event, message: eventText(a.event.message) }, speaker: a.me.name })
 }
 
 class OpenAIBrain implements Brain {
