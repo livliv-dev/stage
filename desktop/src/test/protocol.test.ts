@@ -10,7 +10,7 @@ import { readStageCommand } from '#protocol/stageCommands'
 const dist = join(__dirname, '..')
 
 test('#protocol/* is the package compiled into the app\'s own output', () => {
-  for (const module of ['bridge', 'commands', 'stageCommands', 'tracking', 'neuro', 'airiGame', 'collab', 'voicebox', 'realtime'])
+  for (const module of ['bridge', 'commands', 'stageCommands', 'tracking', 'neuro', 'airiGame', 'collab', 'voicebox', 'realtime', 'unreachable'])
     assert.equal(require.resolve(`#protocol/${module}`), join(dist, 'protocol', `${module}.js`))
   assert.deepEqual(parseDo('act:nod'), { do: 'act', id: 'nod' })
   assert.deepEqual(readStageCommand({ do: 'scene', id: 'intro' }), { do: 'scene', id: 'intro' })
