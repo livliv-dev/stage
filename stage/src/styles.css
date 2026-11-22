@@ -483,6 +483,8 @@ button.link.get { padding: 0; font-size: 12px; }
 .clear-key + .get { margin-left: 10px; }
 /* a field's length against its cap (人设, 说话风格) */
 .field > span .count { margin-left: auto; font-size: 11px; color: var(--fg-3); font-weight: 400; }
+/* a persona saved before the cap, longer than it: the model gets its first part only */
+.field > span .count.over { color: #a05a00; font-weight: 600; }
 
 /* the add menu's imports: a PNGTuber's picture slots */
 .row.imports { flex-wrap: wrap; gap: 6px; }

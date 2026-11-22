@@ -245,11 +245,11 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
     </Section>
   const persona = <Section title={tr('人设与风格')}>
         <CardImport key={c.id} c={c} patch={patch} />
-        <label className="field spaced"><span>{tr("人设")}<small className="count num">{c.persona.length}/{CARD_LIMITS.persona}</small></span>
+        <label className="field spaced"><span>{tr("人设")}<small className={`count num${c.persona.length > CARD_LIMITS.persona ? ' over' : ''}`}>{c.persona.length}/{CARD_LIMITS.persona}</small></span>
           {/* its example lines go with the card as written */}
           <textarea rows={3} maxLength={CARD_LIMITS.persona} value={c.persona} placeholder={tr("她是谁、怎么说话，一两句就够")} onChange={(e) => patch({ persona: e.target.value, examples: undefined })} />
         </label>
-        {c.style !== undefined && <label className="field"><span>{tr("说话风格")}<small className="count num">{c.style.length}/{CARD_LIMITS.style}</small></span>
+        {c.style !== undefined && <label className="field"><span>{tr("说话风格")}<small className={`count num${c.style.length > CARD_LIMITS.style ? ' over' : ''}`}>{c.style.length}/{CARD_LIMITS.style}</small></span>
           <textarea rows={3} maxLength={CARD_LIMITS.style} value={c.style} onChange={(e) => patch({ style: e.target.value, examples: undefined })} />
         </label>}
         {c.greeting !== undefined && <label className="field"><span>{tr('开场白')}</span>
