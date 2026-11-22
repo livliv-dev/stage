@@ -123,17 +123,19 @@ export default function App() {
   const conv = useConversation()
   // livliv.ai/stage: a visitor not signed in is asked to after three minutes (GuestGate.tsx)
   const gated = useGuestGate()
-  // livliv.ai/stage on a computer, the first time: what the desktop app adds, once the start page is closed and nothing
-  // plays, never with the sign-in prompt, a card or the age question (DesktopNotice.tsx)
+  // livliv.ai/stage in a browser on a computer, the first time: what the desktop app adds, once the start page is closed
+  // (the first visit's, or an empty stage's) and nothing plays, never with the sign-in prompt, a card or the age question
+  // (DesktopNotice.tsx). Not in the desktop app showing the site (it is the desktop app), and once closed, never again
   const notice = useDesktopNotice()
-  const [noticeDue, setNoticeDue] = useState(() => features.host === 'site' && !phone && !navigator.userAgent.includes('OBS/') && unseen())
+  const [noticeDue, setNoticeDue] = useState(() => features.host === 'site' && !features.shell && !phone && !navigator.userAgent.includes('OBS/') && unseen())
   // a first visit's start page opens after the first render: the notice waits for it to have opened and closed
   const [startSeen, setStartSeen] = useState(!firstVisit)
   useEffect(() => { if (pop === 'start') setStartSeen(true) }, [pop])
+  const staged = scene.items.length > 0  // an empty stage shows the start page in its place
   useEffect(() => {
-    if (noticeDue && startSeen && !pop && !gated && !ageAsk && !conv.running && mode === 'edit') { setNoticeDue(false); showDesktopNotice() }
-  }, [noticeDue, startSeen, pop, gated, ageAsk, conv.running, mode])
-  const noticeShown = notice && !pop && !gated && !ageAsk
+    if (noticeDue && unseen() && startSeen && staged && !pop && !gated && !ageAsk && !conv.running && mode === 'edit') { setNoticeDue(false); showDesktopNotice() }
+  }, [noticeDue, startSeen, staged, pop, gated, ageAsk, conv.running, mode])
+  const noticeShown = notice && staged && !pop && !gated && !ageAsk
   useEffect(() => {
     if (!conv.needModel) return
     talk.modelAsked(); store.setMode('edit'); ui.openModels('chat', conv.modelIntent !== 'input')
@@ -234,7 +236,7 @@ export default function App() {
         {pop === 'realtime' && <RealtimePanel onClose={() => ui.setPop(null)} onSettings={() => ui.openModels('realtime', false, 'realtime')} />}
         {log && <Transcript view={logView} setView={(view) => ui.set({ logView: view })} onClose={() => ui.set({ log: false })} right={bare ? 80 : 324} />}
         {pop === 'add' && <AddCharacter left={228} onClose={() => ui.setPop(null)} onSignIn={() => ui.set({ settingsTab: 'account', pop: 'settings' })} />}
-        {pop === 'settings' && <><div className="scrim" onPointerDown={ui.closeSettings} /><SettingsCard key={voiceSetup ?? 'settings'} forVoice={voiceSetup} initialTab={settingsTab} initialModel={settingsModel} forStart={forStart} returns={back !== null} onContinue={continueAfterModel} onResetLayout={resetLayout} onAdd={() => ui.set({ forStart: false, pop: 'add' })} onDesktop={() => { ui.closeSettings(); showDesktopNotice() }} onClose={ui.closeSettings} /></>}
+        {pop === 'settings' && <><div className="scrim" onPointerDown={ui.closeSettings} /><SettingsCard key={voiceSetup ?? 'settings'} forVoice={voiceSetup} initialTab={settingsTab} initialModel={settingsModel} forStart={forStart} returns={back !== null} onContinue={continueAfterModel} onResetLayout={resetLayout} onAdd={() => ui.set({ forStart: false, pop: 'add' })} onDesktop={() => { ui.set({ forStart: false, settingsTab: 'general', back: null, pop: null }); showDesktopNotice() }} onClose={ui.closeSettings} /></>}
         {kept('record') && <Kept on={pop === 'record'}><RecordCard onClose={() => ui.setPop(null)} onVoices={() => ui.openModels('speech', false, 'record')} /></Kept>}
         <OutputPanel open={pop === 'output'} onClose={() => ui.setPop(null)} />
         {pop === 'help' && <Help onClose={() => ui.setPop(null)} />}

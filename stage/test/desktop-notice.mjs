@@ -4,27 +4,28 @@
 // browser, and Settings › General › About opens it again. Never with the sign-in prompt, nor on a phone, nor in OBS.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
-import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const RELEASES = 'https://github.com/livliv-dev/stage/releases/latest'
-const root = fileURLToPath(new URL('..', import.meta.url)), errors = []
+const errors = []
 let server, browser
 let signedIn = true
 try {
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, VITE_STAGE_HOST: 'livliv' } })
-  await new Promise((resolve, reject) => { const t = setTimeout(() => reject(new Error('Vite timeout')), 15000); server.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(t); resolve() } }); server.once('exit', (c) => { clearTimeout(t); reject(new Error('Vite exited ' + c)) }) })
+  const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: 'livliv' } })
   const origin = 'http://127.0.0.1:' + port
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
-  const context = async ({ locale = 'zh-Hans', phone = false, userAgent } = {}) => {
+  /** app: the desktop app showing livliv.ai/stage (its bridge on the page) */
+  const context = async ({ locale = 'zh-Hans', phone = false, userAgent, app = false } = {}) => {
     const c = await browser.newContext({ viewport: phone ? { width: 390, height: 844 } : { width: 1440, height: 900 }, isMobile: phone, hasTouch: phone, ...(userAgent ? { userAgent } : {}) })
     await c.addInitScript((l) => {
       localStorage.setItem('livliv-stage:locale', l); localStorage.setItem('livliv-stage:coached', '1')
       window.opened = []
       window.open = (url, target) => { window.opened.push([String(url), target]); return null }
     }, locale)
+    if (app) await c.addInitScript(() => {
+      window.livlivDesktop = { version: 'test', platform: 'darwin', requests: { begin: async () => 'r', cancel: async () => {} }, onCommand: () => () => {},
+        hotkeys: { list: async () => [], set: async () => [], enabled: async () => false, enable: async () => [], reset: async () => [] } }
+    })
     await c.route('**/*', (route) => {
       const url = new URL(route.request().url())
       if (url.pathname === '/api/me') return route.fulfill({ json: signedIn ? { signed_in: true, email: 'member@example.test', points: 10, plan: 'free', stage_line_points: 0.3 } : { signed_in: false } })
@@ -35,7 +36,7 @@ try {
   }
   const visit = async (c, { clock = false } = {}) => {
     const page = await c.newPage()
-    page.setDefaultTimeout(30000); page.on('pageerror', (e) => errors.push(e.message))
+    page.setDefaultTimeout(testTimeout(30000)); page.on('pageerror', (e) => errors.push(e.message))
     if (clock) await page.clock.install()
     await page.goto(origin + '/', { waitUntil: 'networkidle' })
     return page
@@ -49,7 +50,7 @@ try {
   let page = await visit(c)
   await page.locator('.start-overlay .start-page').waitFor()
   await none(page, 'not with the start page')
-  await page.waitForFunction(() => { const a = [...window.__stage.actors.values()]; return a.length === 3 && a.every((x) => x.status === 'ready') }, null, { timeout: 60000 })
+  await page.waitForFunction(() => { const a = [...window.__stage.actors.values()]; return a.length === 3 && a.every((x) => x.status === 'ready') }, null, { timeout: testTimeout(60000) })
   await page.locator('.start-overlay .welcome-demo').click()
   await page.waitForFunction(() => window.__stage.conversation().running)
   await none(page, 'not while the demo plays')
@@ -117,6 +118,50 @@ try {
   page = await visit(c)
   await page.locator('.start-overlay .start-page .close').click()
   await none(page, 'never in OBS')
+  await c.close()
+
+  // opened from About during the demo and closed there: not again when the demo ends
+  signedIn = true
+  c = await context()
+  page = await visit(c)
+  await page.waitForFunction(() => { const a = [...window.__stage.actors.values()]; return a.length === 3 && a.every((x) => x.status === 'ready') }, null, { timeout: testTimeout(60000) })
+  await page.locator('.start-overlay .welcome-demo').click()
+  await page.waitForFunction(() => window.__stage.conversation().running)
+  await page.locator('.topbar button[title="设置"]').click()
+  await page.locator('.general-about button.link', { hasText: '桌面版' }).click()
+  await notice(page).getByRole('button', { name: '继续用网页版' }).click()
+  await notice(page).waitFor({ state: 'detached' })
+  await page.evaluate(() => window.__stage.talk.stop())
+  await none(page, 'closed once: not again when the demo ends')
+  await c.close()
+
+  // a first visit that picks 空白舞台: the empty stage shows the start page, and the note waits behind nothing over it
+  c = await context()
+  page = await visit(c)
+  await page.locator('.start-overlay .start-page .link', { hasText: '空白舞台' }).click()
+  await page.waitForFunction(() => window.__stage.store.get().items.length === 0)
+  await page.locator('.stage-box .empty .start-page').waitFor()
+  await none(page, 'not over an empty stage\'s start page')
+  await c.close()
+
+  // About › 桌面版 with the settings opened from the mixer: back to the stage, the note on it (not behind the mixer)
+  c = await context()
+  page = await visit(c)
+  await page.locator('.start-overlay .start-page .close').click()
+  await notice(page).getByRole('button', { name: '继续用网页版' }).click()
+  await page.locator('.topbar button[title="调音台"]').click()
+  await page.locator('.mixer-settings').click()
+  await page.locator('.settings-tabs button', { hasText: '通用' }).click()
+  await page.locator('.general-about button.link', { hasText: '桌面版' }).click()
+  await notice(page).waitFor()
+  assert.equal(await page.locator('.popover').count(), 0, 'no card left open over it')
+  await c.close()
+
+  // the desktop app showing livliv.ai/stage: never (it is the app)
+  c = await context({ app: true })
+  page = await visit(c)
+  await page.locator('.start-overlay .start-page .close').click().catch(() => {})
+  await none(page, 'never in the desktop app')
   await c.close()
 
   assert.deepEqual(errors, [])

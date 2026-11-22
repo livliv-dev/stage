@@ -676,6 +676,7 @@ input,textarea { min-width:0 }
 .popover.settings.age-check .hint { margin: 0; }
 .popover.settings.age-check .row.end { display: flex; margin-top: 10px; gap: 8px; justify-content: flex-end; }
 .guest-gate .row.end .later { margin-right: auto; }  /* 先逛逛 apart from 注册 / 登录 */
+.guest-gate:focus { outline: none; }  /* the prompt holds the focus itself (GuestGate.tsx) */
 .settings-head { flex:none;padding:14px 16px 0 }
 .settings-head>header { display:flex;align-items:center;justify-content:space-between;margin-bottom:8px }
 .settings-body { min-height:0;overflow-y:auto;padding:0 16px 16px;overscroll-behavior:contain }
