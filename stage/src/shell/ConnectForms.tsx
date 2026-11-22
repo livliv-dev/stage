@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, LoaderCircle, Lock, Play, RefreshCw } from 'lucide-react'
 import { tr } from '../i18n'
-import { brainReady, listModels, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveOwnModel, testModel, useBrainConfig, type ModelConfig } from '../brain'
+import { brainReady, clearBrainKey, listModels, previousModelConfig, providerOf, PROVIDERS, PROVIDERS_HERE, saveOwnModel, testModel, useBrainConfig, type ModelConfig } from '../brain'
 import { talk } from '../conversation'
 import { testAiriModel } from '../airiEngine'
 import { chooseEngine } from '../brains/select'
 import { features } from '../core/platform'
 import { demoFor } from '../demo'
 import { participants, store, useScene } from '../scene'
-import { activeSpeech, asrReady, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, transcribeApi, useSpeech, VOICEBOX_SPEECH, type SpeechApi } from '../voiceApi'
+import { activeSpeech, asrReady, clearSpeechKey, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, transcribeApi, useSpeech, VOICEBOX_SPEECH, type SpeechApi } from '../voiceApi'
 import { detectVoicebox, OPEN_ENGINES, useVoicebox, VOICEBOX_SITE, voiceboxError, voiceboxHere, voiceboxReady } from '../voicebox'
 import { wav16k } from '../audio'
 import { lostKey } from '../core/secrets'
@@ -77,7 +77,10 @@ export function ModelForm({ forStart, own, done, demoDone, onPick, onContinue, n
     {!demo && <>
       {(p.id === 'custom' || p.id === 'ollama') && <label className="field"><span>{tr("接口地址")}</span>
         <input value={d.base} placeholder="https://…/v1" onChange={(e) => change({ base: e.target.value, model: '' })} onBlur={() => void fetchModels()} /></label>}
-      {!p.noKey && <label className="field"><span>{tr("密钥")}<span className="lock" title={tr("只存在这台电脑上")}><Lock size={11} /></span>{p.keyUrl && <a className="get" href={p.keyUrl} target="_blank" rel="noreferrer">{tr("获取")}<ExternalLink size={11} /></a>}</span>
+      {!p.noKey && <label className="field"><span>{tr("密钥")}<span className="lock" title={tr("只存在这台电脑上")}><Lock size={11} /></span>
+        {/* the key saved for this service: 清除 takes it off this computer (the model stays chosen) */}
+        {previousModelConfig().key && previousModelConfig().provider === d.provider && <button type="button" className="link get clear-key" title={tr("从这台电脑上删掉保存的密钥")} onClick={() => { clearBrainKey(); change({ key: '' }) }}>{tr("清除")}</button>}
+        {p.keyUrl && <a className="get" href={p.keyUrl} target="_blank" rel="noreferrer">{tr("获取")}<ExternalLink size={11} /></a>}</span>
         <input type="password" value={d.key} placeholder="sk-…" autoComplete="off" onChange={(e) => change({ key: e.target.value })} onBlur={() => void fetchModels()} /></label>}
       {!p.noKey && !d.key && (lostKey('livliv-stage:brain') || lostKey('livliv-stage:brain-api')) && <p className="hint error">{tr('这台电脑上保存的密钥读不出来了，请重新填写')}</p>}
       <label className="field"><span>{tr("模型")}</span>
@@ -179,6 +182,7 @@ export function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; on
       {(p.id === 'custom' || p.id === 'kokoro') && <label className="field"><span>{tr("接口地址")}</span>
         <input value={d.base} placeholder="https://…/v1" onChange={(e) => setD({ ...d, base: e.target.value })} /></label>}
       {!p.noKey && <label className="field"><span>{tr("密钥")}<span className="lock" title={tr("只存在这台电脑上")}><Lock size={11} /></span>
+        {cur.key && cur.provider === d.provider && <button type="button" className="link get clear-key" title={tr("从这台电脑上删掉保存的密钥")} onClick={() => { clearSpeechKey(); setD({ ...d, key: '' }) }}>{tr("清除")}</button>}
         {sameKey && <button type="button" className="link get" onClick={() => setD({ ...d, key: (chat as ModelConfig).key })}>{tr("用 AI 模型的密钥")}</button>}
         {!sameKey && p.keyUrl && <a className="get" href={p.keyUrl} target="_blank" rel="noreferrer">{tr("获取")}<ExternalLink size={11} /></a>}</span>
         <input type="password" value={d.key} placeholder="sk-…" autoComplete="off" onChange={(e) => setD({ ...d, key: e.target.value })} /></label>}

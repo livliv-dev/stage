@@ -3,8 +3,9 @@
 // voice; 仅字幕, a character on the system voice and a muted one ask for no voice. Space never starts paid lines: with the
 // demo's three on the stage it plays the free demo, and with a model of one's own in a livliv.ai voice it starts nothing.
 // 对谈 answers a waiting viewer, and a clip that won't play doesn't end it. In 持续聊天 a reply is said sentence by
-// sentence, its sentences' /say calls sharing one line id (a livliv.ai voice is paid by the line). The site is faked:
-// nothing is spent.
+// sentence, its sentences' /say calls sharing one line id (a livliv.ai voice is paid by the line). Offline, a line fails
+// in words (连不上 livliv.ai，请检查网络后再试), never the browser's "Failed to fetch". In the desktop app showing the
+// site, a member is signed in by the site's cookie as in a browser. The site is faked: nothing is spent.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { readFile } from 'node:fs/promises'
@@ -17,7 +18,7 @@ const FLAGS = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--auto
 const clip = await readFile(join(root, 'public/demo/trio/01.mp3'))
 let server, browser, page
 const asked = [], said = [], lineIds = [], requests = []
-let badClips = 0  // the next n line clips come back as bytes no player can play
+let badClips = 0, offline = false  // the next n line clips come back as bytes no player can play; offline: the site never answers
 try {
   const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: 'livliv' } })
   const origin = 'http://127.0.0.1:' + port
@@ -28,6 +29,7 @@ try {
     const req = route.request(), url = new URL(req.url())
     if (url.pathname === '/api/me') return route.fulfill({ json: { signed_in: true, email: 'member@example.test', points: 10, plan: 'plus', record_seconds: 300, record_mark: false, stage_line_points: 0.5, stage_silent_free: true } })
     if (url.pathname === '/api/stage/v1/chat/completions') {
+      if (offline) return route.abort('internetdisconnected')
       const body = req.postDataJSON(); requests.push(body); asked.push(body)
       return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: '今天的风好舒服。', emotion: 'happy', action: 'none', to: null, look: null }) } }] } })
     }
@@ -144,6 +146,41 @@ try {
     assert.equal(said.length, 3, 'a /say a sentence: ' + JSON.stringify(said))
     assert.ok(lineIds[0] && lineIds.every((id) => id === lineIds[0]), 'all under one line id: ' + JSON.stringify(lineIds))
     await page.evaluate(async () => (await import('/src/brain.ts')).saveBrainConfig({ kind: 'livliv' }))
+  }
+  // offline: a line the site never answers says so in words, never the browser's "Failed to fetch"
+  {
+    offline = true
+    await page.evaluate(() => window.__stage.talk.start())
+    await page.waitForFunction(() => !!window.__stage.conversation().error, null, { timeout: 30000 })
+    const { error } = await conv()
+    await page.evaluate(() => window.__stage.talk.stop())
+    offline = false
+    assert.equal(error, '连不上 livliv.ai，请检查网络后再试')
+  }
+  // the desktop app showing livliv.ai/stage (the site's build with the app's bridge): a member signed in by the site's
+  // cookie is signed in there too, the site asked as in a browser (the app's own build keeps its connect sign-in)
+  {
+    const app = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+    await app.addInitScript(() => {
+      localStorage.setItem('livliv-stage:locale', 'zh-Hans')
+      window.livlivDesktop = { version: 'test', platform: 'darwin', requests: { begin: async () => 'r', cancel: async () => {} }, onCommand: () => () => {},
+        hotkeys: { list: async () => [], set: async () => [], enabled: async () => false, enable: async () => [], reset: async () => [] } }
+    })
+    let asked = 0
+    await app.route('**/*', (route) => {
+      const url = new URL(route.request().url())
+      if (url.pathname === '/api/me') { asked++; return route.fulfill({ json: { signed_in: true, email: 'member@example.test', points: 10, plan: 'free', stage_line_points: 0.5 } }) }
+      if (url.pathname.startsWith('/api/')) return route.fulfill({ status: 404, json: { detail: 'none' } })
+      return url.hostname === '127.0.0.1' || ['blob:', 'data:'].includes(url.protocol) ? route.continue() : route.abort()
+    })
+    const tab = await app.newPage(); tab.setDefaultTimeout(testTimeout(30000)); tab.on('pageerror', (e) => errors.push(e.message))
+    await tab.goto(origin + '/', { waitUntil: 'networkidle' })
+    let status = ''
+    for (let i = 0; i < 80 && status !== 'in'; i++) { status = await tab.evaluate(async () => (await import('/src/livliv.ts')).accountNow().status); if (status !== 'in') await tab.waitForTimeout(250) }
+    assert.equal(status, 'in', 'signed in by the site\'s cookie in the desktop app too')
+    assert.ok(asked > 0, 'the site was asked who is there')
+    assert.equal(await tab.evaluate(() => window.__stage.conversation().running), false)
+    await app.close()
   }
   assert.deepEqual(errors, [])
   // Space with 免按键 while livliv.ai's voices are on: what you say would be recognised through livliv.ai, which charges

@@ -13,9 +13,9 @@ import { getLocale, tr } from './i18n'
 // In the desktop client a model's API is reached through the app (its /__ai pass-through, desktop stageApp.ts): no
 // CORS, so local servers (Ollama) and APIs without browser access work too
 import { useSyncExternalStore } from 'react'
-import { desktopFetch } from './request'
+import { desktopFetch, unreachable } from './request'
 import { features } from './core/platform'
-import { readKeyed, writeKeyed } from './core/secrets'
+import { clearKey, readKeyed, writeKeyed } from './core/secrets'
 import type { PrefKey } from './core/prefs'
 import { ageGate, hasSession, onAccount, refresh, sessionToken, signedIn } from './livliv'
 import { demoReply } from './demo'
@@ -128,6 +128,13 @@ const snap = () => {
   if (now.text !== snapshot.text || now.voice !== snapshot.voice || choice.text !== snapshot.chosen.text || choice.voice !== snapshot.chosen.voice) snapshot = { ...now, chosen: { ...choice } }
   return snapshot
 }
+/** the text model's key cleared (Settings › 连接's 清除): from the model of one's own, saved here and apart, and in the
+ *  desktop app's encrypted store. The model stays chosen, and needs a key again */
+export function clearBrainKey() {
+  for (const name of [KEY, LAST_MODEL] as const) { try { void clearKey(name) } catch { /* private mode */ } }
+  own = { ...own, key: '' }
+  changed()
+}
 /** livliv.ai's parts, now and as chosen, for the settings */
 export const useLivLiv = () => useSyncExternalStore((f) => { const a = onAccount(f); subs.add(f); return () => { a(); subs.delete(f) } }, snap)
 
@@ -197,7 +204,7 @@ export async function aiFetch(url: string, init: RequestInit) {
     if (signal.aborted) throw signal.reason
     let host = url
     try { host = new URL(url).host } catch { /* not a URL */ }
-    throw new Error(tr("连不上 {0}", host), { cause: e })
+    throw unreachable(e, host)
   }
 }
 /** livliv.ai refused a call as longer than it takes (its input limit): the turn is asked again with less, silently
@@ -211,7 +218,7 @@ export function isTooLong(error: unknown): boolean {
 /** livliv.ai's text: on this page's own address (the desktop app passes /api on to LivLiv with its sign-in). The age
  *  question first, when the site asks it; a refusal for points or the sign-in has the account asked again */
 async function livlivFetch(url: string, init: RequestInit & { signal: AbortSignal }) {
-  const send = () => desktopFetch(url, init).catch((e) => { if (init.signal.aborted) throw init.signal.reason; throw new Error(tr('连不上 LivLiv'), { cause: e }) })
+  const send = () => desktopFetch(url, init).catch((e) => { if (init.signal.aborted) throw init.signal.reason; throw unreachable(e, 'livliv.ai', init.signal) })
   let r = await send()
   if (r.status === 428 && ageGate.ask) {
     const stopped = new Promise<never>((_, no) => init.signal.addEventListener('abort', () => no(init.signal.reason), { once: true }))
