@@ -134,8 +134,12 @@ export default function App() {
   const conv = useConversation()
   useEffect(() => {
     if (!conv.needModel) return
-    talk.modelAsked(); store.setMode('edit'); ui.openModels('chat', conv.modelIntent !== 'input')
-  }, [conv.needModel])
+    talk.modelAsked()
+    // a phone on show keeps its own view, whose intro says a model is set up on a computer: the editor and its model
+    // card are a computer's
+    if (phone && store.mode() === 'show') return
+    store.setMode('edit'); ui.openModels('chat', conv.modelIntent !== 'input')
+  }, [conv.needModel])  // eslint-disable-line react-hooks/exhaustive-deps
   const continueAfterModel = () => {
     if (conv.modelIntent === 'chat') void talk.startChat().catch(() => {})
     else if (conv.modelIntent === 'live') startNow()
