@@ -117,7 +117,8 @@ const server = createServer(async (req, res) => {
       } else event(res, 'I have your note.')
       return finish(res)
     }
-    assert.doesNotMatch(prompt, /private-scope-fixture|APRICOT771|OldCardName/)
+    // the private note's text, its end or its index line's start (APRICOT771 is past what the index holds)
+    assert.doesNotMatch(prompt, /private-scope-fixture|APRICOT771|Private setting for Rally Nana|OldCardName/)
     if (publicReply) {
       // a session an output made public: no private memory or line, and no memory tool to reach one
       publicCalls.push(body)
@@ -269,7 +270,7 @@ try {
   await ownerSays('Recall my private detail', publicReply)
   assert.equal(memoryCalls.length, 3, 'no private prompt while recording')
   assert.ok(publicCalls.length > 0)
-  assert.doesNotMatch(JSON.stringify(publicCalls), /APRICOT771|private-scope-fixture|I remember the private detail/)
+  assert.doesNotMatch(JSON.stringify(publicCalls), /APRICOT771|Private setting for Rally Nana|private-scope-fixture|I remember the private detail/)
   await page.evaluate(async () => {
     const { rec, recording } = window.__stage, stopped = rec.stop()
     for (let i = 0; i < 200 && recording().phase === 'recording'; i++) await new Promise((resolve) => setTimeout(resolve, 25))
