@@ -3,7 +3,8 @@ import { useSyncExternalStore } from 'react'
 import { wav16k } from './audio'
 import { inputs, microphoneConstraints, onInputs, refreshDevices } from './devices'
 import { conversation, onConv, sessionScope, talk } from './conversation'
-import { recognize, signedIn } from './livliv'
+import { recognize } from './livliv'
+import { livlivNow } from './brain'
 import { busGain, onMixer } from './mixer'
 import { routeMicrophone } from './microphone'
 import { activeSpeech, asrReady, transcribeApi } from './voiceApi'
@@ -18,7 +19,7 @@ const subs = new Set<() => void>()
 const set = (change: Partial<PttState>) => { state = { ...state, ...change }; subs.forEach((f) => f()) }
 export const pttState = () => state
 export const usePtt = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => state)
-export const canHear = () => asrReady(activeSpeech()) || signedIn()
+export const canHear = () => livlivNow().voice || asrReady(activeSpeech())
 
 const MAX = 30, MIN = .4, WARM = 30_000
 // The session owns the device; each capture owns only its recording. ASR never stops the next capture.
@@ -113,9 +114,9 @@ async function drain(run: MicSession) {
         const pcm = buffer.getChannelData(0).slice(0, Math.round(MAX * buffer.sampleRate))
         const wav = await wav16k(pcm, buffer.sampleRate), speech = activeSpeech()
         signal.throwIfAborted()
-        // a session that started on your own recognition never turns to LivLiv's (points) when yours goes away: hearing
-        // stops instead (sessions/spend.ts)
-        const hearing = hearingNow(asrReady(speech), current()?.spend)
+        // livliv.ai's recognition while its voices are on, else your own; a session that started on your own never turns
+        // to livliv.ai's (points): hearing stops instead (sessions/spend.ts)
+        const hearing = hearingNow(livlivNow().voice, asrReady(speech), current()?.spend)
         if (hearing === 'stop') { cancel(); set({ error: tr('自己的语音识别不可用了：已停止听你说话，不会改用积分识别') }); return }
         const said = hearing === 'own' ? await transcribeApi(speech, wav, signal) : await recognize(wav, signal)
         signal.throwIfAborted()

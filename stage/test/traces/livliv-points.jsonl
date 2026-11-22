@@ -1,10 +1,12 @@
-{"scenario":"livliv-points","about":"Desktop, signed in to LivLiv, 对谈 with LivLiv's points model: each line is one stage-line request that brings its voice (no /say)"}
+{"scenario":"livliv-points","about":"Desktop, signed in, livliv.ai on: 对谈 on livliv.ai's text, written from Stage's card with its memories, each line voiced whole by one /say call"}
 {"t":"record","scope":"private","earlier":0}
 {"t":"start","mode":"conversation","scope":"private"}
-{"t":"model","engine":"livliv","speaker":"Kai","memories":[],"voiced":true}
+{"t":"model","engine":"livliv","speaker":"Kai","scope":"private","memories":[]}
+{"t":"voice","via":"livliv","text":"Kai的第1句。我接着说下去。"}
 {"t":"line","from":"ai","name":"Kai","text":"Kai的第1句。我接着说下去。","scope":"private"}
 {"t":"save","scope":"private","lines":1}
-{"t":"model","engine":"livliv","speaker":"Nana","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫"],"voiced":true}
+{"t":"model","engine":"livliv","speaker":"Nana","scope":"private","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫"]}
+{"t":"voice","via":"livliv","text":"Nana的第1句。我接着说下去。"}
 {"t":"line","from":"ai","name":"Nana","text":"Nana的第1句。我接着说下去。","scope":"private"}
 {"t":"save","scope":"private","lines":2}
 {"t":"end","mode":"conversation","scope":"private","turns":2,"generations":0}

@@ -1,8 +1,8 @@
-// A LivLiv voice is paid per /say call (a point at least), so a line in it is voiced whole, one call, however the
+// A livliv.ai voice is paid per /say call (a point at least), so a line in it is voiced whole, one call, however the
 // session says it: on the site's build, signed in (the site is faked: nothing is spent), a chat with a model of one's
-// own in the characters' LivLiv voices makes exactly one /say per AI line, each with the whole line; the same chat in
-// the system voice says the reply sentence by sentence and makes no /say; a 对谈 on LivLiv's own model brings each
-// line with its voice in one stage-line call, and no /say.
+// own in the characters' livliv.ai voices makes exactly one /say per AI line, each with the whole line; the same chat in
+// the system voice says the reply sentence by sentence and makes no /say; a 对谈 on livliv.ai's text makes one text
+// call and one /say per line.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { readFile } from 'node:fs/promises'
@@ -24,9 +24,9 @@ try {
   await context.route('**/*', async (route) => {
     const req = route.request(), url = new URL(req.url())
     if (url.pathname === '/api/me') return route.fulfill({ json: { signed_in: true, email: 'member@example.test', points: 10, plan: 'plus', record_seconds: 300, record_mark: false, stage_line_points: 0.5, stage_silent_free: true } })
-    if (/^\/api\/chat\/[^/]+\/stage-line$/.test(url.pathname)) {
-      const body = req.postDataJSON(); lines.push({ voice: body.voice })
-      return route.fulfill({ json: { text: REPLY, emotion: 'happy', action: 'none', to: null, look: null, audio: body.voice ? '/api/chat/say/line.mp3' : null, points: 10 } })
+    if (url.pathname === '/api/stage/v1/chat/completions') {
+      lines.push(req.postDataJSON())
+      return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: REPLY, emotion: 'happy', action: 'none', to: null, look: null }) } }] } })
     }
     if (url.pathname === '/api/chat/say/line.mp3') return route.fulfill({ body: clip, contentType: 'audio/mpeg' })
     if (/^\/api\/chat\/[^/]+\/say$/.test(url.pathname)) {
@@ -74,16 +74,16 @@ try {
   assert.deepEqual(system.slice(0, 3), SENTENCES, 'a reply in another voice is said sentence by sentence')
   assert.equal(said.length, 0, 'no /say without the LivLiv voice')
 
-  // a 对谈 on LivLiv's model, in the LivLiv voices: each line comes with its voice in one stage-line call, no /say
+  // a 对谈 on livliv.ai's text, in the livliv.ai voices: one text call and one /say a line
   await page.evaluate(async () => (await import('/src/brain.ts')).saveBrainConfig({ kind: 'livliv' }))
   await voices('livliv')
   said.length = 0; lines.length = 0
   await page.evaluate(() => { window.__stage.talk.setLimit(2); window.__stage.talk.start() })
   await page.waitForFunction(() => !window.__stage.conversation().running && window.__stage.conversation().turns >= 2, null, { timeout: testTimeout(60000) })
-  assert.equal(lines.filter((line) => line.voice).length, 2, 'two lines, each asked with its voice: ' + JSON.stringify(lines))
-  assert.equal(said.length, 0, 'no /say: the voice came with the line')
+  assert.equal(lines.length, 2, 'two lines from livliv.ai\'s text: ' + lines.length)
+  assert.equal(said.length, 2, 'each voiced whole by one /say: ' + JSON.stringify(said))
   assert.deepEqual(errors, [])
-  console.log(JSON.stringify({ ok: true, livliv: { lines: livliv.length, say: livliv.length }, system: { lines: system.length }, duet: { stageLines: lines.length } }))
+  console.log(JSON.stringify({ ok: true, livliv: { lines: livliv.length, say: livliv.length }, system: { lines: system.length }, duet: { lines: lines.length, say: said.length } }))
 } finally {
   await browser?.close(); server?.kill('SIGTERM')
 }

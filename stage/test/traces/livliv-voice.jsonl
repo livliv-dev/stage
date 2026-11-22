@@ -1,4 +1,4 @@
-{"scenario":"livliv-voice","about":"Desktop, signed in, 持续聊天 with a model of one's own in the LivLiv voice: the standard engine (not AIRI), each line voiced whole by one /say call"}
+{"scenario":"livliv-voice","about":"Desktop, signed in, 持续聊天 with a model of one's own in livliv.ai's voices: the standard engine (not AIRI), each line voiced whole by one /say call"}
 {"t":"record","scope":"private","earlier":0}
 {"t":"start","mode":"chat","scope":"private"}
 {"t":"record","scope":"private","earlier":0}

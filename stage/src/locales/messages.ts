@@ -11,7 +11,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "好友联播的角色": {"zh-Hans":"好友联播的角色","zh-Hant":"好友聯播的角色","en":"a friend's character","ja":"フレンドのキャラクター"},
   "AIRI 已关闭": {"zh-Hans":"AIRI 已关闭","zh-Hant":"AIRI 已關閉","en":"AIRI is off","ja":"AIRI はオフ"},
   "选中的不是这位角色": {"zh-Hans":"选中的不是这位角色","zh-Hant":"選中的不是這位角色","en":"another character was chosen","ja":"別のキャラクターが選ばれている"},
-  "LivLiv 声音": {"zh-Hans":"LivLiv 声音","zh-Hant":"LivLiv 聲音","en":"a LivLiv voice","ja":"LivLiv の音声"},
   "AI 搭档的声音": {"zh-Hans":"AI 搭档的声音","zh-Hant":"AI 搭檔的聲音","en":"AI partner's voice","ja":"AI パートナーの声"},
   "AI 搭档的文字模型": {"zh-Hans":"AI 搭档的文字模型","zh-Hant":"AI 搭檔的文字模型","en":"AI partner's text model","ja":"AI パートナーのテキストモデル"},
   "AI 来开播": {"zh-Hans":"AI 来开播","zh-Hant":"AI 來開播","en":"AI goes live","ja":"AI が配信"},
@@ -53,12 +52,10 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "可选：口型跟着你的声音": {"zh-Hans":"可选：口型跟着你的声音","zh-Hant":"可選：口型跟著你的聲音","en":"Optional: the mouth follows your voice","ja":"任意：口の動きがあなたの声に合わせる"},
   "可选：说话代替打字": {"zh-Hans":"可选：说话代替打字","zh-Hant":"可選：說話代替打字","en":"Optional: speak instead of typing","ja":"任意：入力のかわりに話す"},
   "和 AI 搭档": {"zh-Hans":"和 AI 搭档","zh-Hant":"和 AI 搭檔","en":"with an AI partner","ja":"AI パートナーと"},
-  "和一个角色直接通话：用服务商自己的声音，要自己的 OpenAI 或阿里云百炼密钥。": {"zh-Hans":"和一个角色直接通话：用服务商自己的声音，要自己的 OpenAI 或阿里云百炼密钥。","zh-Hant":"和一個角色直接通話：用服務商自己的聲音，要自己的 OpenAI 或阿里雲百鍊金鑰。","en":"Talk with one character directly, in the provider's own voice. Needs your own OpenAI or Alibaba Bailian key.","ja":"キャラクター1人と直接通話：サービス自身の声を使い、自分の OpenAI または Alibaba 百錬のキーが必要です。"},
   "和角色聊天": {"zh-Hans":"和角色聊天","zh-Hant":"和角色聊天","en":"Chat with a character","ja":"キャラと話す"},
   "回应观众（接上 Twitch，或不接弹幕）": {"zh-Hans":"回应观众（接上 Twitch，或不接弹幕）","zh-Hant":"回應觀眾（接上 Twitch，或不接彈幕）","en":"Answers an audience (with Twitch chat, or without chat)","ja":"視聴者に応える（Twitch のコメントあり、またはなし）"},
   "在 livliv.ai 创建角色": {"zh-Hans":"在 livliv.ai 创建角色","zh-Hant":"在 livliv.ai 建立角色","en":"Create a character on livliv.ai","ja":"livliv.ai でキャラを作る"},
   "在控制台打字": {"zh-Hans":"在控制台打字","zh-Hant":"在控制台打字","en":"Type in the console","ja":"コンソールに入力"},
-  "声音、语音识别和实时通话用文字模型的密钥": {"zh-Hans":"声音、语音识别和实时通话用文字模型的密钥","zh-Hant":"聲音、語音辨識和即時通話用文字模型的金鑰","en":"Voices, speech recognition and realtime calls use the text model's key","ja":"声・音声認識・リアルタイム通話にテキストモデルのキーを使う"},
   "声音与语音识别": {"zh-Hans":"声音与语音识别","zh-Hant":"聲音與語音辨識","en":"Voices and speech recognition","ja":"声と音声認識"},
   "实时通话": {"zh-Hans":"实时通话","zh-Hant":"即時通話","en":"Realtime call","ja":"リアルタイム通話"},
   "已打开": {"zh-Hans":"已打开","zh-Hant":"已開啟","en":"On","ja":"オン"},
@@ -96,7 +93,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "游戏": {"zh-Hans":"游戏","zh-Hant":"遊戲","en":"Game","ja":"ゲーム"},
   "状态": {"zh-Hans":"状态","zh-Hant":"狀態","en":"Status","ja":"状態"},
   "现在只有字幕": {"zh-Hans":"现在只有字幕","zh-Hant":"現在只有字幕","en":"Subtitles only for now","ja":"今は字幕のみ"},
-  "用 livliv.ai 积分时，开始后才会生成台词": {"zh-Hans":"用 livliv.ai 积分时，开始后才会生成台词","zh-Hant":"用 livliv.ai 積分時，開始後才會生成台詞","en":"With livliv.ai points, lines are made once you start","ja":"livliv.ai ポイントでは、開始してから台詞を作ります"},
   "用你的脸和声音演角色，可以加一个 AI 搭档": {"zh-Hans":"用你的脸和声音演角色，可以加一个 AI 搭档","zh-Hant":"用你的臉和聲音演角色，可以加一個 AI 搭檔","en":"Play a character with your face and voice, with an AI partner if you like","ja":"顔と声でキャラを演じる。AI パートナーも追加できる"},
   "直接说，停顿后自动发送": {"zh-Hans":"直接说，停顿后自动发送","zh-Hant":"直接說，停頓後自動送出","en":"Just speak; it sends when you pause","ja":"そのまま話す。間を置くと送信"},
   "直播间": {"zh-Hans":"直播间","zh-Hant":"直播間","en":"Live audience","ja":"配信の視聴者"},
@@ -109,8 +105,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "舞台上还没有角色": {"zh-Hans":"舞台上还没有角色","zh-Hant":"舞台上還沒有角色","en":"No character on the stage yet","ja":"ステージにまだキャラクターがいません"},
   "角色之间聊": {"zh-Hans":"角色之间聊","zh-Hant":"角色之間聊","en":"The characters talk among themselves","ja":"キャラ同士で話す"},
   "角色卡": {"zh-Hans":"角色卡","zh-Hant":"角色卡","en":"Character card","ja":"キャラカード"},
-  "角色念台词，和你说话变成文字。每个角色用哪个音色，在角色卡里选。": {"zh-Hans":"角色念台词，和你说话变成文字。每个角色用哪个音色，在角色卡里选。","zh-Hant":"角色念台詞，和你說話變成文字。每個角色用哪個音色，在角色卡裡選。","en":"Characters speak their lines, and what you say becomes text. Each character's voice is chosen on its card.","ja":"キャラが台詞を話し、あなたの声を文字にします。各キャラの声はキャラカードで選びます。"},
-  "角色想台词用的模型，所有角色共用一个。": {"zh-Hans":"角色想台词用的模型，所有角色共用一个。","zh-Hant":"角色想台詞用的模型，所有角色共用一個。","en":"The model the characters think with; one for all of them.","ja":"キャラが台詞を考えるモデル。全員でひとつ。"},
   "让几个角色聊一段，录下来": {"zh-Hans":"让几个角色聊一段，录下来","zh-Hant":"讓幾個角色聊一段，錄下來","en":"Let a few characters talk, and record it","ja":"何人かのキャラに話させて録画する"},
   "语音识别": {"zh-Hans":"语音识别","zh-Hant":"語音辨識","en":"Speech recognition","ja":"音声認識"},
   "说点什么…": {"zh-Hans":"说点什么…","zh-Hant":"說點什麼…","en":"Say something…","ja":"何か話す…"},
@@ -338,11 +332,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "当前帐号暂无可用官方模型": {"zh-Hans": "当前帐号暂无可用官方模型", "zh-Hant": "目前帳號暫無可用官方模型", "en": "No LivLiv models are available for this account", "ja": "このアカウントで利用できる公式モデルはありません"},
   "管理 LivLiv 帐号": {"zh-Hans": "管理 LivLiv 帐号", "zh-Hant": "管理 LivLiv 帳號", "en": "Manage LivLiv account", "ja": "LivLivアカウントを管理"},
   "刷新模型": {"zh-Hans": "刷新模型", "zh-Hant": "重新整理模型", "en": "Refresh models", "ja": "モデルを更新"},
-  "登录后可试听和使用官方音色。": {"zh-Hans": "登录后可试听和使用官方音色。", "zh-Hant": "登入後可試聽和使用官方音色。", "en": "Sign in to preview and use LivLiv voices.", "ja": "ログインすると公式の声を試聴・使用できます。"},
-  "浏览官方音色": {"zh-Hans": "浏览官方音色", "zh-Hant": "瀏覽官方音色", "en": "Browse LivLiv voices", "ja": "公式の声を見る"},
-  "LivLiv 官方音色": {"zh-Hans": "LivLiv 官方音色", "zh-Hant": "LivLiv 官方音色", "en": "LivLiv voices", "ja": "LivLiv公式の声"},
-  "可先浏览音色，登录后试听和使用。": {"zh-Hans": "可先浏览音色，登录后试听和使用。", "zh-Hant": "可先瀏覽音色，登入後試聽和使用。", "en": "Browse voices now. Sign in to preview and use them.", "ja": "声の一覧は閲覧できます。試聴・使用にはログインしてください。"},
-  "登录使用": {"zh-Hans": "登录使用", "zh-Hant": "登入使用", "en": "Sign in to use", "ja": "ログインして使用"},
   "识别暂时跟不上，请稍后重新开启免按键语音": {"zh-Hans": "识别暂时跟不上，请稍后重新开启免按键语音", "zh-Hant": "辨識暫時跟不上，請稍後重新開啟免按鍵語音", "en": "Speech recognition is falling behind. Restart hands-free voice shortly.", "ja": "音声認識が追いついていません。少し待ってハンズフリー音声を再開してください"},
   "免按键语音": {"zh-Hans": "免按键语音", "zh-Hant": "免按鍵語音", "en": "Hands-free voice", "ja": "ハンズフリー音声"},
   "免按键": {"zh-Hans": "免按键", "zh-Hant": "免按鍵", "en": "Hands-free", "ja": "ハンズフリー"},
@@ -1449,23 +1438,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Heard: {0}",
     "ja": "認識結果：{0}"
   },
-  "用 AI 模型的密钥，不用再填": {
-    "zh-Hans": "用 AI 模型的密钥，不用再填",
-    "zh-Hant": "用 AI 模型的金鑰，不用再填",
-    "en": "Use the AI model’s key without entering it again",
-    "ja": "AIモデルと同じAPIキーを使用"
-  },
   "跟模型一样": {
     "zh-Hans": "跟模型一样",
     "zh-Hant": "跟模型一樣",
     "en": "Same as model",
     "ja": "モデルと共通"
-  },
-  "没有语音接口：角色用 LivLiv 的声音，没有就只出字幕": {
-    "zh-Hans": "没有语音接口：角色用 LivLiv 的声音，没有就只出字幕",
-    "zh-Hant": "沒有語音介面：角色用 LivLiv 的聲音，沒有就只出字幕",
-    "en": "Without a speech API, use LivLiv voices or captions",
-    "ja": "音声APIなしでは、LivLivの音声または字幕を使用します"
   },
   "不用": {
     "zh-Hans": "不用",
@@ -1796,12 +1773,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "接入語音介面",
     "en": "Connect a voice API",
     "ja": "音声APIを接続"
-  },
-  "保存后，此角色会使用你的语音接口。": {
-    "zh-Hans": "保存后，此角色会使用你的语音接口。",
-    "zh-Hant": "儲存後，此角色會使用你的語音介面。",
-    "en": "Save to use this voice API for this character.",
-    "ja": "保存すると、このキャラクターで設定した音声APIを使用します。"
   },
   "分享麦克风": {
     "zh-Hans": "分享麦克风",
@@ -2145,12 +2116,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Connect your livliv.ai account in Settings",
     "ja": "設定でlivliv.aiアカウントにログインすると利用できます"
   },
-  "我的接口": {
-    "zh-Hans": "我的接口",
-    "zh-Hant": "我的介面",
-    "en": "My API",
-    "ja": "自分のAPI"
-  },
   "在设置里接上语音接口后可用": {
     "zh-Hans": "在设置里接上语音接口后可用",
     "zh-Hant": "在設置里接上語音介面後可用",
@@ -2210,12 +2175,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "zh-Hant": "音調",
     "en": "Pitch",
     "ja": "声の高さ"
-  },
-  "当前只显示字幕。选择系统朗读，或在设置里接入语音接口后出声。": {
-    "zh-Hans": "当前只显示字幕。选择系统朗读，或在设置里接入语音接口后出声。",
-    "zh-Hant": "當前只顯示字幕。選擇系統朗讀，或在設置里接入語音介面後出聲。",
-    "en": "Captions only. Choose system speech or connect a voice API in Settings.",
-    "ja": "現在は字幕のみです。システム読み上げを選ぶか、設定で音声APIを接続できます。"
   },
   "上一句没有出声：": {
     "zh-Hans": "上一句没有出声：",
@@ -4198,18 +4157,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Enter this code if the website asks for it.",
     "ja": "コードが必要な場合は、ブラウザーで入力してください。"
   },
-  "在设置里连上 livliv.ai 帐号后可用": {
-    "zh-Hans": "在设置里连上 livliv.ai 帐号后可用",
-    "zh-Hant": "在設置里連上 livliv.ai 帳號後可用",
-    "en": "Sign in to livliv.ai in Settings to use this",
-    "ja": "設定でlivliv.aiにログインすると利用できます"
-  },
-  "角色在 livliv.ai 上的声音": {
-    "zh-Hans": "角色在 livliv.ai 上的声音",
-    "zh-Hant": "角色在 livliv.ai 上的聲音",
-    "en": "This avatar’s voice on livliv.ai",
-    "ja": "livliv.aiで設定したキャラクターの声"
-  },
   "设置：AI 用什么想台词、livliv.ai 帐号": {
     "zh-Hans": "设置：AI 用什么想台词、livliv.ai 帐号",
     "zh-Hant": "設置：AI 用什麼想台詞、livliv.ai 帳號",
@@ -4587,7 +4534,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "重新做视频": {"zh-Hans": "重新做视频", "zh-Hant": "重新製作影片", "en": "Make video again", "ja": "動画を作り直す"},
   "启用全局热键": {"zh-Hans": "启用全局热键", "zh-Hant": "啟用全域熱鍵", "en": "Turn on global hotkeys", "ja": "グローバルホットキーを有効にする"},
   "在 livliv.ai 管理": {"zh-Hans": "在 livliv.ai 管理", "zh-Hant": "在 livliv.ai 管理", "en": "Manage on livliv.ai", "ja": "livliv.aiで管理"},
-  "网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。": {"zh-Hans": "网页版只列出能在浏览器里直接调用的服务。本机的 Ollama 和其他接口，请用桌面版。", "zh-Hant": "網頁版只列出能在瀏覽器裡直接呼叫的服務。本機的 Ollama 和其他介面，請用桌面版。", "en": "The web version lists only services a browser can call directly. For Ollama on your computer or other APIs, use the desktop app.", "ja": "Web版にはブラウザから直接呼び出せるサービスだけを表示しています。ローカルのOllamaやその他のAPIはデスクトップ版で使えます。"},
   "{0} 已经在舞台上": {"zh-Hans": "{0} 已经在舞台上", "zh-Hant": "{0} 已經在舞台上", "en": "{0} is already on the stage", "ja": "{0}はもうステージにいます"},
   "{0} 上台了": {"zh-Hans": "{0} 上台了", "zh-Hant": "{0} 上台了", "en": "{0} is on the stage", "ja": "{0}がステージに上がりました"},
   "最长 {0} 秒": {"zh-Hans": "最长 {0} 秒", "zh-Hant": "最長 {0} 秒", "en": "Up to {0} s", "ja": "最長{0}秒"},
@@ -4641,19 +4587,14 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "摄像头 {0} 秒看不到你，角色就闭眼打瞌睡，回来就醒": {"zh-Hans": "摄像头 {0} 秒看不到你，角色就闭眼打瞌睡，回来就醒", "zh-Hant": "攝影機 {0} 秒看不到你，角色就閉眼打瞌睡，回來就醒", "en": "After {0} s without you in the camera, the character dozes off; it wakes when you’re back", "ja": "カメラに{0}秒映らないとキャラクターが居眠りし、戻ると起きます"},
   "别让其他窗口完全盖住输出窗口，否则画面会停住。": {"zh-Hans": "别让其他窗口完全盖住输出窗口，否则画面会停住。", "zh-Hant": "別讓其他視窗完全蓋住輸出視窗，否則畫面會停住。", "en": "Don’t let another window cover the output window completely, or its picture stops.", "ja": "ほかのウィンドウで出力ウィンドウを完全に隠すと、映像が止まります。"},
   "未满 18 岁不能用 AI 让角色说话": {"zh-Hans": "未满 18 岁不能用 AI 让角色说话", "zh-Hant": "未滿 18 歲不能用 AI 讓角色說話", "en": "You need to be 18 or over to let AI speak for characters", "ja": "18 歳未満は AI でキャラクターを話させることはできません"},
-  "积分用完了，或者今天、这个月的次数到了上限": {"zh-Hans": "积分用完了，或者今天、这个月的次数到了上限", "zh-Hant": "積分用完了，或者今天、這個月的次數到了上限", "en": "Out of points, or today’s or this month’s limit is reached", "ja": "ポイントが足りないか、今日または今月の上限に達しました"},
-  "只有作者能在 Stage 里用这个角色": {"zh-Hans": "只有作者能在 Stage 里用这个角色", "zh-Hant": "只有作者能在 Stage 裡用這個角色", "en": "Only its author can use this character in Stage", "ja": "このキャラクターを Stage で使えるのは作者だけです"},
   "说得太快了，歇一下再继续": {"zh-Hans": "说得太快了，歇一下再继续", "zh-Hant": "說得太快了，歇一下再繼續", "en": "Too fast. Take a moment, then continue", "ja": "速すぎます。少し待ってから続けてください"},
   "角色暂时没有回应，稍后再试": {"zh-Hans": "角色暂时没有回应，稍后再试", "zh-Hant": "角色暫時沒有回應，稍後再試", "en": "The character isn’t answering right now. Try again later", "ja": "キャラクターが応答していません。しばらくしてからもう一度お試しください"},
   "确认年龄": {"zh-Hans": "确认年龄", "zh-Hant": "確認年齡", "en": "Confirm your age", "ja": "年齢の確認"},
   "用 AI 让角色说话前，请确认你已年满 18 岁。": {"zh-Hans": "用 AI 让角色说话前，请确认你已年满 18 岁。", "zh-Hant": "用 AI 讓角色說話前，請確認你已年滿 18 歲。", "en": "Before AI speaks for characters, please confirm you are 18 or over.", "ja": "AI でキャラクターを話させる前に、18 歳以上であることを確認してください。"},
   "未满 18 岁": {"zh-Hans": "未满 18 岁", "zh-Hant": "未滿 18 歲", "en": "Under 18", "ja": "18 歳未満"},
   "已满 18 岁": {"zh-Hans": "已满 18 岁", "zh-Hant": "已滿 18 歲", "en": "18 or over", "ja": "18 歳以上"},
-  "LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型": {"zh-Hans": "LivLiv 只能让 LivLiv 的角色说话：给「{0}」接上你自己的模型", "zh-Hant": "LivLiv 只能讓 LivLiv 的角色說話：給「{0}」接上你自己的模型", "en": "LivLiv works for LivLiv characters only: connect your own model for “{0}”", "ja": "LivLiv で話せるのは LivLiv のキャラクターだけです。「{0}」には自分のモデルをつないでください"},
   "登录 livliv.ai 后可用": {"zh-Hans": "登录 livliv.ai 后可用", "zh-Hant": "登入 livliv.ai 後可用", "en": "Available after you sign in to livliv.ai", "ja": "livliv.ai にログインすると使えます"},
-  "这句的声音没有生成": {"zh-Hans": "这句的声音没有生成", "zh-Hant": "這句的聲音沒有生成", "en": "This line’s voice wasn’t made", "ja": "このセリフの音声は作られませんでした"},
   "用积分的台词，请点按钮开始": {"zh-Hans": "用积分的台词，请点按钮开始", "zh-Hant": "用積分的台詞，請點按鈕開始", "en": "Lines paid with points start from a button, not from Space", "ja": "ポイントを使うセリフはボタンから始めてください"},
-  "无需密钥。消耗 livliv.ai 积分，每句台词 {0} 积分，只能用于 LivLiv 的角色。": {"zh-Hans": "无需密钥。消耗 livliv.ai 积分，每句台词 {0} 积分，只能用于 LivLiv 的角色。", "zh-Hant": "無需金鑰。消耗 livliv.ai 積分，每句台詞 {0} 積分，只能用於 LivLiv 的角色。", "en": "No key needed. Uses your livliv.ai points, {0} points a line. LivLiv characters only.", "ja": "キー不要。livliv.ai のポイントを使います。1 行あたり {0} ポイント。LivLiv のキャラクターのみ。"},
   "记忆": {"zh-Hans": "记忆", "zh-Hant": "記憶", "en": "Memory", "ja": "記憶"},
   "已记住": {"zh-Hans": "已记住", "zh-Hant": "已記住", "en": "Remembered", "ja": "記憶しました"},
   "来源对话已删除": {"zh-Hans": "来源对话已删除", "zh-Hant": "來源對話已刪除", "en": "The source conversation was deleted", "ja": "元の会話は削除されました"},
@@ -4754,7 +4695,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "跟随角色的默认设置": {"zh-Hans":"跟随角色的默认设置","zh-Hant":"跟隨角色的預設設定","en":"Follow the character’s default","ja":"キャラクターの標準設定を使う"},
   "这个角色自己的声音": {"zh-Hans":"这个角色自己的声音","zh-Hant":"這個角色自己的聲音","en":"The voice made for this character","ja":"このキャラクター専用の声"},
   "已保存的音色": {"zh-Hans":"已保存的音色","zh-Hant":"已儲存的音色","en":"Saved voice","ja":"保存済みの声"},
-  "先选一个试听，满意后再应用。": {"zh-Hans":"先选一个试听，满意后再应用。","zh-Hant":"先選一個試聽，滿意後再套用。","en":"Try a voice, then apply your choice.","ja":"試聴してから、気に入った声を適用できます。"},
   "搜索音色": {"zh-Hans":"搜索音色","zh-Hant":"搜尋音色","en":"Search voices","ja":"声を検索"},
   "搜名字或声音特点，如温柔、低沉": {"zh-Hans":"搜名字或声音特点，如温柔、低沉","zh-Hant":"搜尋名字或聲音特點，如溫柔、低沉","en":"Search by name or description","ja":"名前や声の特徴で検索"},
   "音色分类": {"zh-Hans":"音色分类","zh-Hant":"音色分類","en":"Voice categories","ja":"声のカテゴリ"},
@@ -4773,7 +4713,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "查看全部音色": {"zh-Hans":"查看全部音色","zh-Hant":"查看全部音色","en":"Show all voices","ja":"すべての声を見る"},
   "使用中": {"zh-Hans":"使用中","zh-Hant":"使用中","en":"In use","ja":"使用中"},
   "停止试听 {0}": {"zh-Hans":"停止试听 {0}","zh-Hant":"停止試聽 {0}","en":"Stop previewing {0}","ja":"{0}の試聴を停止"},
-  "试听会生成一句角色语音，按 LivLiv 的用量规则计费。": {"zh-Hans":"试听会生成一句角色语音，按 LivLiv 的用量规则计费。","zh-Hant":"試聽會生成一句角色語音，按 LivLiv 的用量規則計費。","en":"Previews generate a short line and follow LivLiv’s usage pricing.","ja":"試聴用の短い音声を生成します。LivLivの利用料金が適用されます。"},
   "试听失败：{0}": {"zh-Hans":"试听失败：{0}","zh-Hant":"試聽失敗：{0}","en":"Preview failed: {0}","ja":"試聴できませんでした：{0}"},
   "请选择音色": {"zh-Hans":"请选择音色","zh-Hant":"請選擇音色","en":"Choose a voice","ja":"声を選んでください"},
   "应用音色": {"zh-Hans":"应用音色","zh-Hant":"套用音色","en":"Apply voice","ja":"この声を使う"},
@@ -4813,16 +4752,13 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "回应直播间的观众弹幕": {"zh-Hans": "回应直播间的观众弹幕", "zh-Hant": "回應直播間的觀眾彈幕", "en": "Respond to live chat", "ja": "配信のコメントに応答"},
   "让多位角色轮流聊起来": {"zh-Hans": "让多位角色轮流聊起来", "zh-Hant": "讓多位角色輪流聊起來", "en": "Have characters take turns talking", "ja": "複数のキャラクターが交代で話す"},
   "Voicebox 只能在 LivLiv Stage 桌面版里用": {"zh-Hans": "Voicebox 只能在 LivLiv Stage 桌面版里用", "zh-Hant": "Voicebox 只能在 LivLiv Stage 桌面版裡使用", "en": "Voicebox works only in the LivLiv Stage desktop app", "ja": "Voicebox は LivLiv Stage デスクトップ版でのみ使えます"},
-  "Voicebox 在运行：{0} 个声音，免费，在本机": {"zh-Hans": "Voicebox 在运行：{0} 个声音，免费，在本机", "zh-Hant": "Voicebox 正在執行：{0} 個聲音，免費，在本機", "en": "Voicebox is running: {0} voices, free, on this computer", "ja": "Voicebox は起動中です：{0} 個の声、無料、このコンピューターで動作"},
   "Voicebox 没有在运行：打开 Voicebox 后再试": {"zh-Hans": "Voicebox 没有在运行：打开 Voicebox 后再试", "zh-Hant": "Voicebox 沒有在執行：打開 Voicebox 後再試", "en": "Voicebox isn't running. Open Voicebox and try again", "ja": "Voicebox が起動していません。Voicebox を開いてからもう一度試してください"},
   "Voicebox 没有说出这句：{0}": {"zh-Hans": "Voicebox 没有说出这句：{0}", "zh-Hant": "Voicebox 沒有說出這句：{0}", "en": "Voicebox couldn't say this line: {0}", "ja": "Voicebox はこのセリフを読み上げられませんでした：{0}"},
   "Voicebox 的声音": {"zh-Hans": "Voicebox 的声音", "zh-Hant": "Voicebox 的聲音", "en": "Voicebox voice", "ja": "Voicebox の声"},
   "Voicebox 还在下载模型，下载好后再试": {"zh-Hans": "Voicebox 还在下载模型，下载好后再试", "zh-Hant": "Voicebox 還在下載模型，下載好後再試", "en": "Voicebox is still downloading a model. Try again once it's done", "ja": "Voicebox はまだモデルをダウンロード中です。完了してからもう一度試してください"},
   "Voicebox 里还没有声音：在 Voicebox 里添加一个预设声音或克隆一个": {"zh-Hans": "Voicebox 里还没有声音：在 Voicebox 里添加一个预设声音或克隆一个", "zh-Hant": "Voicebox 裡還沒有聲音：在 Voicebox 裡新增一個預設聲音或複製一個", "en": "Voicebox has no voice yet. Add a preset voice or clone one in Voicebox", "ja": "Voicebox にまだ声がありません。Voicebox でプリセットの声を追加するか、声をクローンしてください"},
   "下载 Voicebox": {"zh-Hans": "下载 Voicebox", "zh-Hant": "下載 Voicebox", "en": "Get Voicebox", "ja": "Voicebox を入手"},
-  "也用它听你说话（Whisper，本机，免费）": {"zh-Hans": "也用它听你说话（Whisper，本机，免费）", "zh-Hant": "也用它聽你說話（Whisper，本機，免費）", "en": "Also use it to hear you (Whisper, on this computer, free)", "ja": "あなたの声の認識にも使う（Whisper、このコンピューター、無料）"},
   "克隆": {"zh-Hans": "克隆", "zh-Hant": "複製", "en": "Cloned", "ja": "クローン"},
-  "声音在 Voicebox 里添加：预设，或用你的录音克隆。": {"zh-Hans": "声音在 Voicebox 里添加：预设，或用你的录音克隆。", "zh-Hant": "聲音在 Voicebox 裡新增：預設，或用你的錄音複製。", "en": "Add voices in Voicebox: a preset, or one cloned from your recording.", "ja": "声は Voicebox で追加します：プリセット、または録音からクローン。"},
   "按角色分配": {"zh-Hans": "按角色分配", "zh-Hant": "依角色分配", "en": "One per character", "ja": "キャラクターごとに割り当て"},
   "未知原因": {"zh-Hans": "未知原因", "zh-Hant": "未知原因", "en": "unknown reason", "ja": "原因不明"},
   "正在查找本机的 Voicebox…": {"zh-Hans": "正在查找本机的 Voicebox…", "zh-Hant": "正在尋找本機的 Voicebox…", "en": "Looking for Voicebox on this computer…", "ja": "このコンピューターの Voicebox を探しています…"},
@@ -4858,7 +4794,6 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "图片素材": {"zh-Hans": "图片素材", "zh-Hant": "圖片素材", "en": "Pictures", "ja": "画像素材"},
   "模型未下载": {"zh-Hans": "模型未下载", "zh-Hant": "模型未下載", "en": "model not downloaded", "ja": "モデル未ダウンロード"},
   "这台电脑上保存的密钥读不出来了，请重新填写": {"zh-Hans": "这台电脑上保存的密钥读不出来了，请重新填写", "zh-Hant": "這台電腦上保存的密鑰讀不出來了，請重新填寫", "en": "The key saved on this computer can no longer be read. Please enter it again.", "ja": "このコンピューターに保存したキーが読み取れなくなりました。もう一度入力してください。"},
-  "它的声音接口停了：这句只出字幕，不会改用积分的声音": {"zh-Hans": "它的声音接口停了：这句只出字幕，不会改用积分的声音", "zh-Hant": "它的聲音介面停了：這句只出字幕，不會改用積分的聲音", "en": "Its voice service stopped: this line is shown as subtitles only, never voiced with points.", "ja": "音声サービスが止まりました。このセリフは字幕だけで表示し、ポイントの音声には切り替えません。"},
   "这台电脑上保存的登录读不出来了，请重新登录": {"zh-Hans": "这台电脑上保存的登录读不出来了，请重新登录", "zh-Hant": "這台電腦上保存的登入讀不出來了，請重新登入", "en": "The sign-in saved on this computer can no longer be read. Please sign in again.", "ja": "このコンピューターに保存したログインが読み取れなくなりました。もう一度ログインしてください。"},
   "自己的语音识别不可用了：已停止听你说话，不会改用积分识别": {"zh-Hans": "自己的语音识别不可用了：已停止听你说话，不会改用积分识别", "zh-Hant": "自己的語音辨識不可用了：已停止聽你說話，不會改用積分辨識", "en": "Your own speech recognition is no longer available: listening stopped, and it won't switch to recognition with points.", "ja": "自分の音声認識が使えなくなりました。聞き取りを止めました。ポイントの認識には切り替えません。"},
   "Voicebox 里还没下载这个声音的模型：在 Voicebox 里用这个声音生成一句（它会先下载模型），或在它的模型设置里下载，再回来试": {"zh-Hans": "Voicebox 里还没下载这个声音的模型：在 Voicebox 里用这个声音生成一句（它会先下载模型），或在它的模型设置里下载，再回来试", "zh-Hant": "Voicebox 裡還沒下載這個聲音的模型：在 Voicebox 裡用這個聲音生成一句（它會先下載模型），或在它的模型設定裡下載，再回來試", "en": "Voicebox hasn't downloaded this voice's model yet: generate a line with this voice in Voicebox (it downloads the model first), or download it in its model settings, then try again.", "ja": "Voicebox にこの声のモデルがまだありません。Voicebox でこの声で一度生成するか（先にモデルをダウンロードします）、モデル設定でダウンロードしてから、もう一度試してください。"},
@@ -4877,4 +4812,22 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "实时通话太忙或额度用完了（429），稍后再试": {"zh-Hans": "实时通话太忙或额度用完了（429），稍后再试", "zh-Hant": "即時通話太忙或額度用完了（429），稍後再試", "en": "The realtime service is busy or out of quota (429). Try again later.", "ja": "リアルタイム通話が混雑しているか上限に達しました（429）。しばらくしてから試してください"},
   "实时通话连接失败，请检查网络后重新开始": {"zh-Hans": "实时通话连接失败，请检查网络后重新开始", "zh-Hant": "即時通話連接失敗，請檢查網路後重新開始", "en": "The realtime call couldn't connect. Check the network and start again.", "ja": "リアルタイム通話に接続できませんでした。ネットワークを確認してからもう一度始めてください"},
   "实时通话连接超时，请检查网络": {"zh-Hans": "实时通话连接超时，请检查网络", "zh-Hant": "即時通話連接逾時，請檢查網路", "en": "The realtime call timed out connecting. Check the network.", "ja": "リアルタイム通話の接続がタイムアウトしました。ネットワークを確認してください"},
+  "自己的服务": {"zh-Hans": "自己的服务", "zh-Hant": "自己的服務", "en": "Your own", "ja": "自分のサービス"},
+  "livliv.ai 音色": {"zh-Hans": "livliv.ai 音色", "zh-Hant": "livliv.ai 音色", "en": "livliv.ai voices", "ja": "livliv.ai の声"},
+  "试听按积分": {"zh-Hans": "试听按积分", "zh-Hant": "試聽按積分", "en": "Previews use credits", "ja": "試聴はポイントを使います"},
+  "这次会话开始时它没用 livliv.ai 的声音：这句只出字幕": {"zh-Hans": "这次会话开始时它没用 livliv.ai 的声音：这句只出字幕", "zh-Hant": "這次會話開始時它沒用 livliv.ai 的聲音：這句只出字幕", "en": "It wasn't on a livliv.ai voice when this session started: subtitles only", "ja": "このセッションの開始時は livliv.ai の声ではありませんでした：字幕のみ"},
+  "积分用完了，或者这个月的额度到了上限": {"zh-Hans": "积分用完了，或者这个月的额度到了上限", "zh-Hant": "積分用完了，或者這個月的額度到了上限", "en": "Out of credits, or this month's limit is reached", "ja": "ポイントが足りないか、今月の上限に達しました"},
+  "livliv.ai 声音": {"zh-Hans": "livliv.ai 声音", "zh-Hant": "livliv.ai 聲音", "en": "a livliv.ai voice", "ja": "livliv.ai の声"},
+  "本机 Ollama 等接口请用桌面版": {"zh-Hans": "本机 Ollama 等接口请用桌面版", "zh-Hant": "本機 Ollama 等介面請用桌面版", "en": "For Ollama and other local APIs, use the desktop app", "ja": "Ollama などローカルの API はデスクトップ版で"},
+  "用文字模型的密钥": {"zh-Hans": "用文字模型的密钥", "zh-Hant": "用文字模型的金鑰", "en": "Uses the text model's key", "ja": "テキストモデルのキーを使う"},
+  "只出字幕": {"zh-Hans": "只出字幕", "zh-Hant": "只出字幕", "en": "Subtitles only", "ja": "字幕のみ"},
+  "Voicebox 在运行：{0} 个声音": {"zh-Hans": "Voicebox 在运行：{0} 个声音", "zh-Hant": "Voicebox 執行中：{0} 個聲音", "en": "Voicebox is running: {0} voices", "ja": "Voicebox 実行中：声 {0} 個"},
+  "也用它听你说话": {"zh-Hans": "也用它听你说话", "zh-Hant": "也用它聽你說話", "en": "Also use it to hear you", "ja": "聞き取りにも使う"},
+  "用自己的 OpenAI 或百炼密钥": {"zh-Hans": "用自己的 OpenAI 或百炼密钥", "zh-Hant": "用自己的 OpenAI 或百煉金鑰", "en": "Your own OpenAI or Bailian key", "ja": "自分の OpenAI または百煉のキー"},
+  "由 livliv.ai 提供": {"zh-Hans": "由 livliv.ai 提供", "zh-Hant": "由 livliv.ai 提供", "en": "From livliv.ai", "ja": "livliv.ai が提供"},
+  "用 livliv.ai": {"zh-Hans": "用 livliv.ai", "zh-Hant": "用 livliv.ai", "en": "Use livliv.ai", "ja": "livliv.ai を使う"},
+  "按积分": {"zh-Hans": "按积分", "zh-Hant": "按積分", "en": "Uses credits", "ja": "ポイント制"},
+  "{0} 积分": {"zh-Hans": "{0} 积分", "zh-Hant": "{0} 積分", "en": "{0} credits", "ja": "{0} ポイント"},
+  "可以在角色卡里单独设置": {"zh-Hans": "可以在角色卡里单独设置", "zh-Hant": "可以在角色卡裡單獨設定", "en": "Can be set per character", "ja": "キャラクターごとに設定できます"},
+  "音色在角色卡里选": {"zh-Hans": "音色在角色卡里选", "zh-Hant": "音色在角色卡裡選", "en": "Pick voices on each character", "ja": "声はキャラクターごとに選びます"},
 }

@@ -3,13 +3,13 @@ import { tr } from '../i18n'
 // starts in, and what it opens and closes (the record, the cast loaded, AIRI bound, a game connected). Then the runner
 // runs it with the policy (sessions/policies) over the stage (sessions/env.ts).
 import { actors } from '../actors'
-import { brainReady, loadBrainConfig, type ModelConfig } from '../brain'
+import { brainReady, livlivNow, loadBrainConfig, modelOf, type ModelConfig } from '../brain'
 import { airiFits, chooseEngine } from '../brains/select'
 import { chatHistory } from '../chatHistory'
 import { features } from '../core/platform'
 import { desktop } from '../desktopBridge'
 import { participants, store, uid } from '../scene'
-import { activeSpeech, asrReady, voiceRoute } from '../voiceApi'
+import { voiceRoute } from '../voiceApi'
 import { airiGameError, airiGameText } from '../airiEngine'
 import type { MemoryScope } from '../memory'
 import type { ExternalEvent } from '../externalEvents'
@@ -36,9 +36,11 @@ import { gameName } from './games'
 /** a session of this kind takes over: on AIRI with this model, else on the brain set up turn by turn */
 function takeOver(kind: Run['kind'], airi: ModelConfig | null = null) {
   const run = new Run(kind)
-  // what it may spend: how you are heard and each AI character's voice, as it starts (sessions/spend.ts)
+  // what it may spend: its lines, how you are heard and each AI character's voice, as it starts (sessions/spend.ts)
+  const livliv = livlivNow()
   run.spend = {
-    hearing: asrReady(activeSpeech()) ? 'own' : 'points',
+    text: livliv.text,
+    hearing: livliv.voice ? 'points' : 'own',
     voices: Object.fromEntries(participants(store.get()).filter((c) => c.lines === 'ai').map((c) => [c.id, voiceRoute(c)])),
   }
   handOver(run, stageEnv, airi)
@@ -129,7 +131,7 @@ export function startLive(options: LiveOptions, event: (event: ExternalEvent) =>
   if (choice?.reason === 'livliv-voice') {
     set({ error: tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕') }); return
   }
-  const airiModel = choice?.engine === 'airi' && config.kind === 'openai' ? config : null
+  const airiModel = choice?.engine === 'airi' ? modelOf(config) : null
   // a muted character speaks no line aloud: only the ones that speak need a voice, else the session is subtitles only
   if (!options.textOnly && cast.some((c) => !c.muted && voiceRoute(c) === 'none')) { set({ error: tr("AI 角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕") }); return }
   const run = takeOver('live', airiModel), signal = run.signal

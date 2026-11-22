@@ -18,7 +18,7 @@ export function StatusLine({ goal, partner, checks, onModel, onVoice, onAudience
   const { scene } = useScene(), brain = useBrainConfig(), speech = useActiveSpeech(), conv = useConversation(), chat = useChat()
   const ai = participants(scene).filter((c) => c.lines === 'ai' && !c.remote)
   const options = optionsOf(scene.talk, goal, partner), plan = planNow(goal, options)
-  const model = brain.kind === 'demo' ? tr('演示') : !brainReady(brain) ? null : brain.kind === 'livliv' ? 'LivLiv' : brain.model
+  const model = brain.kind === 'demo' ? tr('演示') : !brainReady(brain) ? null : brain.kind === 'livliv' ? 'livliv.ai' : brain.model
   const silent = ai.filter((c) => !c.muted && voiceRoute(c, speech) === 'none')
   const session = conv.running ? conv.mode : 'blocked' in plan ? null : plan.session
   // running: the engine it started on (AIRI, or the standard one for the reason the rule gives); else the one it would

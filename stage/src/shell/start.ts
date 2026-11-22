@@ -1,11 +1,10 @@
 // The one start: a goal and its options, run as one of today's sessions (shell/goals.ts says which, and
 // shell/startCalls.ts with which arguments).
 import { talk } from '../conversation'
-import { loadBrainConfig } from '../brain'
+import { livlivNow, loadBrainConfig } from '../brain'
 import { features } from '../core/platform'
 import { tr } from '../i18n'
 import { asrReady, activeSpeech, voiceRoute } from '../voiceApi'
-import { accountNow } from '../livliv'
 import { participants, store, type Goal } from '../scene'
 import { rec } from '../recording'
 import { setHandsFree } from '../ptt'
@@ -13,7 +12,7 @@ import { startPlan, type StartOptions, type StartPlan, type StartStage } from '.
 import { liveSetup } from './liveSetup'
 import { startCalls, type StartInput } from './startCalls'
 
-const stageNow = (): StartStage => ({ cast: participants(store.get()), hear: asrReady(activeSpeech()) || accountNow().status === 'in', demo: loadBrainConfig().kind === 'demo' })
+const stageNow = (): StartStage => ({ cast: participants(store.get()), hear: livlivNow().voice || asrReady(activeSpeech()), demo: loadBrainConfig().kind === 'demo' })
 
 /** what the stage offers a start now */
 export const planNow = (goal: Goal, options: StartOptions): StartPlan => startPlan(goal, options, stageNow())
@@ -43,6 +42,6 @@ export const firstLineStart = (goal: Goal, options: StartOptions) => goal === 'c
 /** what a start would turn on that makes it public: a 直播间, a recording */
 export const startGoesOut = (goal: Goal, options: StartOptions) => options.audience === 'live' || goal === 'video'
 
-/** speech recognition a start would pay for with points: holding to talk or hands-free with no recognition API of
- *  one's own (it goes through livliv.ai's, which charges each utterance). Space starts nothing that pays */
-export const paidHearing = (options: StartOptions) => (options.you === 'hold' || options.you === 'handsfree') && !asrReady(activeSpeech())
+/** speech recognition a start would pay for with points: holding to talk or hands-free while livliv.ai's voices are
+ *  on (its recognition charges each utterance). Space starts nothing that pays */
+export const paidHearing = (options: StartOptions) => (options.you === 'hold' || options.you === 'handsfree') && livlivNow().voice

@@ -1,7 +1,7 @@
 import { tr } from '../i18n'
 // A session on AIRI is bound to one character and its model: the one rule (brains/select.ts) chooses it, and a change of
 // that character (another cast, renamed, played by you) stops the session.
-import { loadBrainConfig, type ModelConfig } from '../brain'
+import { loadBrainConfig, modelOf, type ModelConfig } from '../brain'
 import { chooseEngine } from '../brains/select'
 import { features } from '../core/platform'
 import { participants, store, type CharacterItem } from '../scene'
@@ -26,5 +26,6 @@ export function bindAiri(run: Run, model: ModelConfig, actor: CharacterItem, win
 export function preferredAiriForChat(config: ReturnType<typeof loadBrainConfig>, target?: string) {
   const cast = participants(store.get()).filter((character) => character.lines === 'ai'), actor = cast[0]
   const choice = chooseEngine(config, cast, { kind: 'chat', target, voice: actor && voiceRoute(actor) }, features)
-  return choice.engine === 'airi' && config.kind === 'openai' ? { model: config as ModelConfig, actor } : null
+  const model = choice.engine === 'airi' ? modelOf(config) : null
+  return model ? { model, actor } : null
 }

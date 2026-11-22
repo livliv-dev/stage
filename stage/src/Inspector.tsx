@@ -12,10 +12,10 @@ import {
   type CharacterItem, type Item, type SubtitleItem, type TextItem,
 } from './scene'
 import { onVoices, voices } from './speech'
-import { modelId, useAccount, voiceLine, voicesOf, type Voices } from './livliv'
+import { modelId, systemVoiceOf, useAccount, voiceLine, voicesOf, type Voices } from './livliv'
 import { VoicePicker } from './VoicePicker'
 import { demoVoice } from './demo'
-import { useBrainConfig } from './brain'
+import { useBrainConfig, useLivLiv } from './brain'
 import { apiVoice, listVoices, speechProviderOf, speechReady, useActiveSpeech, voiceRoute } from './voiceApi'
 import { detectVoicebox, OPEN_ENGINES, profileName, useVoicebox, voiceboxError, voiceboxHere } from './voicebox'
 import { DevicePanel } from './DevicePanel'
@@ -92,9 +92,10 @@ function Slider({ label, value, min, max, step, show, set, commit = false }: { l
 }
 
 
-/** The character's LivLiv voice, voice API or system speech. */
-function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patch: (p: Partial<CharacterItem>) => void; onAccount: () => void; onVoice: (character: string) => void }) {
-  const brain = useBrainConfig(), conversation = useConversation()
+/** The character's voice: livliv.ai's (its own on the site, else a system voice) while livliv.ai's voices are on, your
+ *  own speech service, or the system's. */
+function VoiceSection({ c, patch, onVoice }: { c: CharacterItem; patch: (p: Partial<CharacterItem>) => void; onAccount: () => void; onVoice: (character: string) => void }) {
+  const brain = useBrainConfig(), conversation = useConversation(), livlivOn = useLivLiv().voice
   const demo = brain.kind === 'demo' ? demoVoice(c, participants(store.get())) : null
   const [testing, setTesting] = useState(false), preview = useRef<AbortController | null>(null)
   useEffect(() => { setTesting(false); return () => { preview.current?.abort(); preview.current = null } }, [c.id])
@@ -104,12 +105,15 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
   const [voicesError, setVoicesError] = useState(''), [loadingVoices, setLoadingVoices] = useState(false), [voiceAttempt, setVoiceAttempt] = useState(0)
   useEffect(() => {
     let active = true
-    setList(null); setVoicesError(''); setLoadingVoices(!!mid)
-    if (mid) void voicesOf(mid).then((value) => { if (active) { setList(value); setLoadingVoices(false) } }, (error: unknown) => { if (active) { setVoicesError(error instanceof Error ? error.message : String(error)); setLoadingVoices(false) } })
+    setList(null); setVoicesError(''); setLoadingVoices(livlivOn)
+    if (livlivOn) void voicesOf(mid).then((value) => { if (active) { setList(value); setLoadingVoices(false) } }, (error: unknown) => { if (active) { setVoicesError(error instanceof Error ? error.message : String(error)); setLoadingVoices(false) } })
     return () => { active = false }
-  }, [mid, voiceAttempt, account.status, account.email])
-  const speech = useActiveSpeech(), can = !!mid && account.status === 'in', api = speechReady(speech), v = c.voice
+  }, [mid, voiceAttempt, account.status, account.email, livlivOn])
+  const speech = useActiveSpeech(), api = speechReady(speech), v = c.voice
   const route = voiceRoute(c, speech), livliv = route === 'livliv'
+  // a character that isn't on the site: the system voice it gets when none is picked (by gender, in turn on the stage)
+  const fallback = mid ? '' : systemVoiceOf({ ...c, voice: { ...v, livliv: '' } }, participants(store.get()))
+  const catalog = list && !mid ? { ...list, voice: fallback } : list
   const [apiVoices, setApiVoices] = useState<string[]>([])
   useEffect(() => { if (route === 'api') void listVoices(speech).then(setApiVoices) }, [route, speech])
   // Voicebox's voices are its profiles: looked for again as the page opens
@@ -126,32 +130,30 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
     finally { if (preview.current === controller) { preview.current = null; setTesting(false) } }
   }
   const audition = <button disabled={a?.status !== 'ready' || conversation.running} onClick={() => void test()}>{tr(testing ? '停止试听' : '试听')}</button>
-  const officialPicker = <VoicePicker key={`${c.id}:${mid}`} value={v.livliv} catalog={list} loading={loadingVoices} error={voicesError}
-    disabledReason={!can ? tr('登录后可试听和使用官方音色。') : conversation.running ? tr('聊天进行中，结束聊天后可试听。') : a?.status !== 'ready' ? tr('角色载入后可试听。') : undefined}
-    onSignIn={!can ? onAccount : undefined} onRetry={() => setVoiceAttempt((value) => value + 1)} onChange={(livliv) => patch({ voice: { ...v, livliv } })}
+  const picker = <VoicePicker key={`${c.id}:${mid}`} value={v.livliv} catalog={catalog} loading={loadingVoices} error={voicesError}
+    disabledReason={conversation.running ? tr('聊天进行中，结束聊天后可试听。') : a?.status !== 'ready' ? tr('角色载入后可试听。') : undefined}
+    onRetry={() => setVoiceAttempt((value) => value + 1)} onChange={(livliv) => patch({ voice: { ...v, livliv } })}
     onPreview={async (voice, signal) => {
-      if (!mid || !a || a.status !== 'ready' || conversation.running || !can) throw new Error(tr('角色暂时无法试听'))
-      const text = tr('你好，我是{0}。', c.name), clip = await voiceLine(mid, text, 'happy', voice, signal)
+      if (!a || a.status !== 'ready' || conversation.running) throw new Error(tr('角色暂时无法试听'))
+      const text = tr('你好，我是{0}。', c.name), clip = await voiceLine(mid, text, 'happy', voice || fallback, signal)
       signal.throwIfAborted(); await a.perform({ text, clip, seconds: clip.seconds, aloud: true, mute: false }, 'happy', 'none', signal)
     }} />
   if (demo) return <Section title={tr('声音')}><p className="voice-demo"><Volume2 size={14} />{tr('演示声音')}</p>{audition}{a?.voiceError && <p className="hint error" role="alert">{tr(a.voiceError)}</p>}</Section>
   return (
     <Section title={tr("声音")}>
-      <Seg value={route as 'livliv' | 'api' | 'system'} set={(source) => { if (source === 'livliv' && !can) onAccount(); else if (source === 'api' && !api) onVoice(c.id); else patch({ voice: { ...v, source } }) }} options={[
-        ...(mid ? [{ id: 'livliv' as const, label: tr("角色声音"), title: can ? tr("角色在 livliv.ai 上的声音") : tr("在设置里连上 livliv.ai 帐号后可用") }] : []),
-        { id: 'api' as const, label: tr("我的接口"), title: api ? `${tr(speechProviderOf(speech).label)} · ${speech.model}` : tr("接入语音接口") },
+      <Seg value={route as 'livliv' | 'api' | 'system'} set={(source) => { if (source === 'api' && !api) onVoice(c.id); else patch({ voice: { ...v, source } }) }} options={[
+        ...(livlivOn ? [{ id: 'livliv' as const, label: 'livliv.ai' }] : []),
+        { id: 'api' as const, label: tr("自己的服务"), title: api ? `${tr(speechProviderOf(speech).label)} · ${speech.model}` : undefined },
         { id: 'system' as const, label: tr("系统朗读") },
       ]} />
-      {livliv ? <>
-        {officialPicker}
-      </> : route === 'api' && onVoicebox ? <>
+      {livliv ? picker : route === 'api' && onVoicebox ? <>
         <label className="field spaced"><span>{tr("Voicebox 的声音")}</span>
           <select value={v.api} onChange={(e) => patch({ voice: { ...v, api: e.target.value } })}>
             <option value="">{tr("默认（{0}）", profileName(apiVoice({ ...c, voice: { ...v, api: '' } }, speech, participants(store.get()))) || tr("还没有声音"))}</option>
             {voicebox.profiles.map((p) => <option key={p.id} value={p.id}>{p.name} · {tr(p.kind === 'preset' ? '预设' : p.kind === 'cloned' ? '克隆' : p.kind === 'designed' ? '设计' : '其他')}{OPEN_ENGINES.has(p.engine) ? '' : ` · ${p.engine}`}{p.ready ? '' : ` · ${tr('模型未下载')}`}</option>)}
           </select>
         </label>
-        <p className="hint">{voicebox.error ? voiceboxError(voicebox.error, voicebox.detail) : tr("声音在 Voicebox 里添加：预设，或用你的录音克隆。")}</p>
+        {voicebox.error && <p className="hint">{voiceboxError(voicebox.error, voicebox.detail)}</p>}
       </> : route === 'api' ? <>
         <label className="field spaced"><span>{tr("音色")}</span>
           <input list={`api-voices-${c.id}`} value={v.api} placeholder={tr("默认（{0}）", apiVoice(c, speech, participants(store.get())).split(':').at(-1) || tr("接口的"))} onChange={(e) => patch({ voice: { ...v, api: e.target.value } })} />
@@ -167,8 +169,7 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
           <Slider label={tr("音调")} value={v.pitch} min={0.5} max={1.6} step={0.05} show={v.pitch.toFixed(2)} set={(pitch) => patch({ voice: { ...v, pitch } })} />
           <Slider label={tr("语速")} value={v.rate} min={0.6} max={1.6} step={0.05} show={v.rate.toFixed(2)} set={(rate) => patch({ voice: { ...v, rate } })} />
         </div>
-      </> : <p className="hint">{tr("当前只显示字幕。选择系统朗读，或在设置里接入语音接口后出声。")}</p>}
-      {mid && !can && officialPicker}
+      </> : <p className="hint">{tr("只有字幕")}</p>}
       {a?.voiceError && route !== 'system' && route !== 'none' && <p className="hint error">{tr("上一句没有出声：")}{tr(a.voiceError ?? '')}</p>}
       {(route === 'api' || route === 'livliv') && <Slider label={tr("角色语音音量")} value={c.tuning.volume} min={0} max={1} step={0.05} show={`${Math.round(c.tuning.volume * 100)}%`} set={(volume) => patch({ tuning: { ...c.tuning, volume } })} />}
       {route !== 'none' && audition}

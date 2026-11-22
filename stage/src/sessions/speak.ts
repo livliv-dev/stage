@@ -1,11 +1,11 @@
 import { tr } from '../i18n'
 // One AI turn, said: the engine's answer (brains/engines) a line at a time, each voiced and played on the stage
-// (performance.ts). A whole reply from a model of one's own, LivLiv or the demo is made first (with its voice); in a
-// chat with a model of one's own it is said sentence by sentence, so the first is heard sooner (never in the LivLiv
-// voice: livliv.ai charges every /say call, so a line in it is voiced whole, one call); AIRI's reply streams and each
+// (performance.ts). A whole reply from a model (one's own or livliv.ai's) or the demo is made first (with its voice); in
+// a chat it is said sentence by sentence, so the first is heard sooner (never in a livliv.ai voice: livliv.ai charges
+// every /say call, so a line in it is voiced whole, one call); AIRI's reply streams and each
 // sentence is said as it comes. In a 对谈 the next line is made while this one is said (one ahead).
 import { actors, type Take } from '../actors'
-import { brainReady, loadBrainConfig } from '../brain'
+import { brainReady, loadBrainConfig, previousModelConfig } from '../brain'
 import { chatHistory } from '../chatHistory'
 import { conversationContext, speechSegments } from '../chatContext'
 import { demoFor, demoSpeaker } from '../demo'
@@ -29,6 +29,7 @@ import { conversation, set } from './state'
 import { untilFree, waitWhile } from './wake'
 import { sayEach } from './stream'
 import { bySentence as sentenceBySentence, streamable } from './voicing'
+import { brainNow } from './spend'
 
 /** the lines a 对谈 runs to: a prepared demo always reaches its ending, paid conversations keep the user's limit */
 export const turnLimit = () => linesFor(loadBrainConfig().kind === 'demo' ? demoFor(voices())?.script.lines.length : undefined, conversation().limit)
@@ -47,7 +48,7 @@ function castFor(me: CharacterItem): TurnRequest['cast'] {
 
 /** a turn as every engine is asked it: the speaker and its card, the cast, what it answers from, how to answer */
 function turnRequest(me: CharacterItem, cast: TurnRequest['cast'], context: Pick<TurnRequest['context'], 'lines' | 'summary' | 'memories' | 'viewer' | 'event' | 'replyToOwner' | 'game' | 'frame'>,
-  constraints: Pick<TurnRequest['constraints'], 'cutIn' | 'voiced' | 'allowBatch' | 'verifyMemory'>): TurnRequest {
+  constraints: Pick<TurnRequest['constraints'], 'cutIn' | 'allowBatch' | 'verifyMemory'>): TurnRequest {
   const s = store.get(), { sessionId, scope, mode } = conversation()
   return {
     speaker: me, persona: personaOf(me, s.talk.language, scope), cast,
@@ -56,8 +57,11 @@ function turnRequest(me: CharacterItem, cast: TurnRequest['cast'], context: Pick
   }
 }
 
+/** the brain a turn of this session thinks with: the one set up now, but never livliv.ai's text in a session that
+ *  started without it (sessions/spend.ts) */
+export const brainOf = (run: Run | null) => brainNow(loadBrainConfig(), previousModelConfig(), run?.spend)
 /** the engine a turn runs on: the session's when it was chosen at the start (AIRI), else the brain set up now */
-export const engineNow = (run: Run | null) => run?.engine ?? brainEngine(loadBrainConfig())
+export const engineNow = (run: Run | null) => run?.engine ?? brainEngine(brainOf(run))
 
 /** a line and its voice, made ready (an engine that answers whole: a model of one's own, LivLiv or the demo). The
  *  answer is read to its end */
@@ -68,8 +72,7 @@ async function makeLine(run: Run, me: CharacterItem, signal: AbortSignal, audien
   const cutIn = takeCutting()
   const chat = audience === undefined ? conversation().scope === 'public' ? someViewer() : null : audience
   if (conversation().mode !== 'conversation') set(spend(conversation()))
-  const cfg = loadBrainConfig(), aloud = !run.liveOptions?.textOnly && !me.muted
-  const voiced = aloud && sessionRoute(me) === 'livliv'
+  const cfg = brainOf(run), aloud = !run.liveOptions?.textOnly && !me.muted
   const sessionId = conversation().sessionId
   const context = cfg.kind === 'demo' ? { lines: conversation().lines, summary: undefined, memories: [], revision: 0 } : await chatHistory.context(me.profileId ?? me.id, conversation().lines, conversation().scope)
   signal.throwIfAborted()
@@ -77,7 +80,7 @@ async function makeLine(run: Run, me: CharacterItem, signal: AbortSignal, audien
   const memoryIds = memoryIdsOf(context)
   const request = turnRequest(me, cast, { lines: context.lines, summary: context.summary, memories: context.memories, viewer: chat && { user: chat.user, text: chat.text },
     event: run.event ?? undefined, replyToOwner: false },
-    { cutIn, voiced, allowBatch: false })
+    { cutIn, allowBatch: false })
   const answer: Utterance[] = []
   for await (const said of engine.reply(request, signal)) answer.push(said)
   signal.throwIfAborted()
@@ -87,10 +90,9 @@ async function makeLine(run: Run, me: CharacterItem, signal: AbortSignal, audien
   if (summary && used.updateSummary) {
     await chatHistory.summarize(summary, used.sourceIds, memoryIds, context.revision, sessionId, conversation().lines)
   }
-  // its voice is made while it still shows 在想 (a LivLiv voice takes about a second)
-  const recorded = r.audio ?? (voiced && cfg.kind === 'livliv' ? null : undefined)
-  const bySentence = sentenceBySentence(conversation().mode, cfg.kind, sessionRoute(me))
-  const take = bySentence ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, recorded)
+  // its voice is made while it still shows 在想 (a livliv.ai voice takes about a second); the demo's comes recorded
+  const bySentence = sentenceBySentence(conversation().mode, sessionRoute(me))
+  const take = bySentence ? undefined : await actors.get(me.id)?.prepare(r.text, r.emotion, aloud, signal, r.audio)
   signal.throwIfAborted()
   if (run.liveOptions && !run.liveOptions.textOnly && take?.mute) throw new Error(actors.get(me.id)?.voiceError || tr("角色还没有声音：在角色卡「人设和声音」里选一个，或者把它静音，只出字幕"))
   return { r: { ...reply, memoryIds, memoryRevision: context.revision }, take, chat, memoryRevision: context.revision, bySentence }
@@ -113,7 +115,7 @@ export function dropAhead(run: Run | null) {
 function makeAhead(run: Run) {
   const t = store.get().talk, last = conversation().lines.at(-1)
   if (conversation().mode !== 'conversation' || run.ahead || current() !== run || run.single || !last || inbox.has(YOURS) || conversation().turns >= turnLimit()) return
-  const cfg = loadBrainConfig()
+  const cfg = brainOf(run)
   if (!brainReady(cfg) || (cfg.kind !== 'demo' && t.interrupt)) return
   const who = cfg.kind === 'demo' ? demoSpeaker(voices(), conversation().lines) : byOrder(store.get().talk, voices(), conversation().lines)
   if (!who) return
@@ -174,7 +176,7 @@ async function streamedTurn(run: Run, me: CharacterItem, chat: Chat | null | und
   const request = turnRequest(me, castFor(me), {
     lines: context.lines, summary: context.summary, memories, viewer: chat ? { id: chat.id, user: chat.user, text: chat.text } : null, event: event ?? undefined, replyToOwner,
     game: snapshot?.state, ...(frame ? { frame } : {}),
-  }, { cutIn: false, voiced: false, allowBatch: !airi.game && !windowId, verifyMemory })
+  }, { cutIn: false, allowBatch: !airi.game && !windowId, verifyMemory })
   const answer = engine.reply(request, signal)[Symbol.asyncIterator]()
   const speech: LineSpeech = {
     final: false, onStart, onEnd,
@@ -200,7 +202,7 @@ async function streamedTurn(run: Run, me: CharacterItem, chat: Chat | null | und
 export async function speakTurn(run: Run, me: CharacterItem, parent: AbortSignal, audience?: Chat | null, replyToOwner = false) {
   parent.throwIfAborted()
   await waitWhile(() => holds.dialogue.size > 0 || holds.decisions > 0 || holds.hearing, wake, parent)
-  const model = run.airi?.model ?? loadBrainConfig()
+  const model = run.airi?.model ?? brainOf(run)
   const scope = conversation().scope
   if (!brainReady(model)) throw new NeedModel()
   const turn = new AbortController(), signal = AbortSignal.any([parent, turn.signal])

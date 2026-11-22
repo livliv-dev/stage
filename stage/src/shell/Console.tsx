@@ -6,9 +6,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot, LoaderCircle, MessagesSquare, Mic, Pause, Play, Send, SkipForward, Square } from 'lucide-react'
 import { tr } from '../i18n'
-import { useBrainConfig } from '../brain'
+import { useBrainConfig, useLivLiv } from '../brain'
 import { talk, useConversation } from '../conversation'
-import { useAccount } from '../livliv'
 import { cancel as pttCancel, clearError as pttClear, press as pttPress, release as pttRelease, setHandsFree, usePtt } from '../ptt'
 import { useRealtime } from '../realtime'
 import { participants, store, useScene, type Goal } from '../scene'
@@ -26,8 +25,8 @@ export type ConsoleProps = {
 }
 
 export function Console({ goal, partner, checks, optionsOpen, onOptions, onChecklist, onStart, onOwnModel, onModel, onVoice, onRoom, onRealtime, onLog, onMemory }: ConsoleProps) {
-  const { scene } = useScene(), conv = useConversation(), ptt = usePtt(), account = useAccount(), speech = useActiveSpeech(), brain = useBrainConfig(), realtime = useRealtime()
-  const hear = asrReady(speech) || account.status === 'in'
+  const { scene } = useScene(), conv = useConversation(), ptt = usePtt(), livliv = useLivLiv(), speech = useActiveSpeech(), brain = useBrainConfig(), realtime = useRealtime()
+  const hear = livliv.voice || asrReady(speech)
   useEffect(() => { if (ptt.automatic && !hear) pttCancel() }, [hear, ptt.automatic])
   const [mine, setMine] = useState(''), input = useRef<HTMLInputElement>(null), [first, setFirst] = useState('')
   const typed = brain.kind !== 'demo' && firstLineStart(goal, optionsOf(scene.talk, goal, partner))

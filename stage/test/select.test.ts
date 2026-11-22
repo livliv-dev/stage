@@ -10,8 +10,9 @@ const chat: Show = { kind: 'chat', voice: 'api' }
 const choose = (over: { brain?: BrainConfig; cast?: { id: string; remote?: boolean; muted: boolean }[]; show?: Show; features?: { airi: boolean } } = {}) =>
   chooseEngine(over.brain ?? model, over.cast ?? [nana], over.show ?? chat, over.features ?? desktop)
 
-test('AIRI: the desktop app, a model of one\'s own, one local AI character, AIRI on, not a LivLiv voice', () => {
+test('AIRI: the desktop app, a model of one\'s own or livliv.ai\'s text, one local AI character, AIRI on, not a livliv.ai voice', () => {
   assert.deepEqual(choose(), { engine: 'airi', reason: 'airi' })
+  assert.deepEqual(choose({ brain: { kind: 'livliv' } }), { engine: 'airi', reason: 'airi' }, 'livliv.ai\'s text is a model like one\'s own')
   assert.deepEqual(choose({ show: { kind: 'live', voice: 'system' } }), { engine: 'airi', reason: 'airi' })
   assert.deepEqual(choose({ show: { kind: 'test' } }), { engine: 'airi', reason: 'airi' }, 'the model card\'s test asks no voice')
 })
@@ -20,8 +21,7 @@ test('not the desktop app: the standard engine', () => {
   assert.deepEqual(choose({ features: web }), { engine: 'standard', reason: 'web' })
 })
 
-test('not a model of one\'s own (OpenAI-compatible): the standard engine', () => {
-  assert.deepEqual(choose({ brain: { kind: 'livliv' } }), { engine: 'standard', reason: 'model' })
+test('the demo (no model): the standard engine', () => {
   assert.deepEqual(choose({ brain: { kind: 'demo' } }), { engine: 'standard', reason: 'model' })
 })
 
@@ -42,7 +42,8 @@ test('AIRI switched off: the standard engine, unless a game or a window asks for
   assert.deepEqual(choose({ brain: off, show: { kind: 'live', voice: 'api', needsAiri: true } }), { engine: 'airi', reason: 'airi' })
 })
 
-test('a LivLiv voice on the character: the standard engine (each /say is charged), unless muted or subtitles only', () => {
+test('a livliv.ai voice on the character: the standard engine (each /say is charged), unless muted or subtitles only', () => {
+  assert.deepEqual(choose({ brain: { kind: 'livliv' }, show: { kind: 'chat', voice: 'livliv' } }), { engine: 'standard', reason: 'livliv-voice' })
   assert.deepEqual(choose({ show: { kind: 'chat', voice: 'livliv' } }), { engine: 'standard', reason: 'livliv-voice' })
   assert.deepEqual(choose({ show: { kind: 'live', voice: 'livliv', needsAiri: true } }), { engine: 'standard', reason: 'livliv-voice' })
   assert.deepEqual(choose({ cast: [{ ...nana, muted: true }], show: { kind: 'chat', voice: 'livliv' } }), { engine: 'airi', reason: 'airi' })
@@ -58,7 +59,8 @@ test('whether AIRI could run the cast and model at all, whatever the switch or t
   assert.equal(airiFits(choose()), true)
   assert.equal(airiFits(choose({ show: { kind: 'chat', voice: 'livliv' } })), true)
   assert.equal(airiFits(choose({ brain: { ...model, airi: false } as BrainConfig })), true)
-  for (const over of [{ features: web }, { brain: { kind: 'livliv' } as BrainConfig }, { cast: [nana, kai] }, { cast: [] }, { cast: [{ ...nana, remote: true }] }]) assert.equal(airiFits(choose(over)), false)
+  assert.equal(airiFits(choose({ brain: { kind: 'livliv' } })), true)
+  for (const over of [{ features: web }, { brain: { kind: 'demo' } as BrainConfig }, { cast: [nana, kai] }, { cast: [] }, { cast: [{ ...nana, remote: true }] }]) assert.equal(airiFits(choose(over)), false)
 })
 
 test('every reason has words for the status line', () => {

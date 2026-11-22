@@ -13,7 +13,7 @@ export type Check = { id: CheckId; label: string; state: CheckState; detail: str
   link?: { label: string; url: string } }
 
 export type CheckContext = {
-  /** the model the AI characters think with: its name, 'LivLiv', or null when none is set up (the demo is none) */
+  /** the model the AI characters think with: its name, 'livliv.ai', or null when none is set up (the demo is none) */
   model: string | null
   /** the AI characters on the stage, and how each would speak */
   ai: readonly { name: string; voice: VoiceRoute; muted: boolean }[]

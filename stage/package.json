@@ -42,6 +42,7 @@
     "test:recording-scope": "node test/recording-scope.mjs",
     "test:model-switch": "node test/model-switch.mjs",
     "test:app-livliv": "node test/app-livliv.mjs",
+    "test:livliv-switch": "node test/livliv-switch.mjs",
     "test:start": "node test/start.mjs",
     "test:privacy": "node test/privacy.mjs",
     "test:traces": "node test/traces.mjs",

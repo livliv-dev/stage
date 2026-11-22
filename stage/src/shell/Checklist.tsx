@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Check as Tick, CircleAlert, ChevronRight, ExternalLink, LoaderCircle, Minus, X } from 'lucide-react'
 import { tr } from '../i18n'
 import { actors } from '../actors'
-import { brainReady, loadBrainConfig, testModel } from '../brain'
+import { brainReady, loadBrainConfig, modelOf, testModel } from '../brain'
 import { useConversation } from '../conversation'
 import { participants, store, type Goal } from '../scene'
 import { GOALS } from './goals'
@@ -59,8 +59,9 @@ async function testItem(id: CheckId, signal: AbortSignal): Promise<string> {
   const ai = participants(store.get()).filter((c) => c.lines === 'ai' && !c.remote)
   if (id === 'model') {
     const brain = loadBrainConfig()
-    if (brain.kind !== 'openai' || !brainReady(brain)) throw new Error(tr(brain.kind === 'livliv' ? '用 livliv.ai 积分时，开始后才会生成台词' : '先在「设置 → 连接」填好文字模型'))
-    return tr('{0} 秒后回复', (await testModel(brain, signal)).toFixed(1))
+    const model = modelOf(brain)
+    if (!model || !brainReady(brain)) throw new Error(tr('先在「设置 → 连接」填好文字模型'))
+    return tr('{0} 秒后回复', (await testModel(model, signal)).toFixed(1))
   }
   if (id === 'voice' || id === 'record-voice') {
     const a = ai.map((c) => actors.get(c.id)).find((x) => x?.status === 'ready')

@@ -1,4 +1,4 @@
-import { getLocale, tr } from './i18n'
+import { tr } from './i18n'
 // LivLiv, the site the characters come from: your account there and a character's own voice.
 //  - account: connected through the browser with a code (/api/connect: the site's /connect page, signed in there any
 //    way, Google and Discord too): the session the site gives back is kept here and sent as a bearer token, and the
@@ -6,12 +6,15 @@ import { getLocale, tr } from './i18n'
 //    player fetches by itself carry it too; points as the site counts them
 //  - speech recognition: what you said into the microphone, as text (push to talk, ptt.ts)
 //  - voice: a line said in the character's LivLiv voice (/api/chat/<id>/say, what 录制 uses): its tone follows the
-//    line's feeling, and the site picks the model's expression for it. Each call costs points (at least 1); a line said
-//    before is free. The MP3 is fetched whole and its length read, so the subtitle and a cut-off go by the real voice
+//    line's feeling, and the site picks the model's expression for it. A character that isn't on the site (a VRM, a
+//    PNGTuber) speaks in one of the site's system voices (/api/chat/say). Each call costs points (at least 1); a line
+//    said before is free. The MP3 is fetched whole and its length read, so the subtitle and a cut-off go by the real voice
+//  - a character's card: an account's own character carries only its tagline here; its chat card is on the site
+//    (/api/chat/<id>/card), read once when it comes on the stage (watchSiteCards)
 import { useSyncExternalStore } from 'react'
 import { desktopFetch } from './request'
 import type { Emotion, StreamingVoice } from './core/lines'
-import type { CharacterItem } from './scene'
+import { store, type CharacterItem } from './scene'
 import { SAMPLES } from './samples'
 import { signInUrl } from './host'
 import { features } from './core/platform'
@@ -95,6 +98,8 @@ export async function checkConnect() {
 }
 /** a session kept from an earlier sign-in (the desktop app), before the site has said whether it still holds */
 export const hasSession = () => !!token()
+/** the session the desktop app keeps, as a model key for livliv.ai's text ('' on the site: its cookie) */
+export const sessionToken = () => token()
 const device = () => (!features.shell ? tr("浏览器") : /Mac/i.test(navigator.platform) ? 'Mac' : /Win/i.test(navigator.platform) ? 'Windows' : /Linux/i.test(navigator.platform) ? 'Linux' : tr("浏览器"))
 const sleep = (ms: number, signal: AbortSignal) => new Promise<void>((ok, no) => {
   const t = setTimeout(ok, ms)
@@ -150,43 +155,13 @@ export async function logout() {
   set({ status: 'out', email: '', points: 0, error: '' })
 }
 
-// ---------------------------------------------------------------- AI lines paid with points (livliv.ai/stage)
+// ---------------------------------------------------------------- the age question (livliv.ai's text, brain.ts)
 
 /** asks the visitor whether they are 18 or over (App's AgeDialog); true: they are. Unset: nobody can answer */
 export const ageGate: { ask: null | (() => Promise<boolean>) } = { ask: null }
 /** answers the site's age question (chat's), for this account */
 export async function setAge(adult: boolean) {
   await answer(await post('/api/chat/profile/age', { age_group: adult ? 'adult' : 'minor' }))
-}
-
-export type StageLineBody = {
-  cast: string[]; topic: string; lines: { name: string; text: string; me: boolean }[]; viewer: { user: string; text: string } | null
-  language: string; length: string; role: 'host' | 'guest' | null; voice: boolean; voice_id: string | null
-}
-export type StageLine = { text: string; emotion: string; action: string; to: string | null; look: string | null; audio: string | null; points?: number }
-
-/** the character's next line on the stage, from the site (written, checked, voiced, paid with points). The age
- *  question first, when the site asks it; the site's refusals as plain messages */
-export async function stageLine(mid: string, body: StageLineBody, signal?: AbortSignal): Promise<StageLine> {
-  const url = `/api/chat/${encodeURIComponent(mid)}/stage-line`
-  let r = await post(url, body, signal)
-  if (r.status === 428 && ageGate.ask) {
-    // the question stays open for the next line; this one stops waiting when its turn is called off
-    signal?.throwIfAborted()
-    const stopped = new Promise<never>((_, no) => signal?.addEventListener('abort', () => no(signal.reason), { once: true }))
-    if (!(await Promise.race([ageGate.ask(), stopped]))) throw new Error(tr("未满 18 岁不能用 AI 让角色说话"))
-    r = await post(url, body, signal)
-  }
-  if (!r.ok) {
-    const said = (await r.json().catch(() => ({})))?.detail, detail = typeof said === 'string' ? said : ''
-    if (r.status === 401 || r.status === 402) void refresh()
-    const zh = getLocale().startsWith('zh') && detail
-    throw new Error(zh ? detail : r.status === 402 ? tr("积分用完了，或者今天、这个月的次数到了上限") : r.status === 403 ? tr("只有作者能在 Stage 里用这个角色")
-      : r.status === 429 ? tr("说得太快了，歇一下再继续") : tr("角色暂时没有回应，稍后再试"))
-  }
-  const j = await r.json() as StageLine
-  if (typeof j.points === 'number') set({ points: j.points })
-  return j
 }
 
 /** a LivLiv character's id (a sample that comes with Stage, or one of LivLiv's by id); null for a model package
@@ -202,8 +177,10 @@ export function modelId(c: CharacterItem): string | null {
 export type VoiceOption = { id: string; name: string; desc: string; group?: string }
 export type Voices = { voices: VoiceOption[]; voice: string; own: { id: string; name: string } | null }
 
-/** the voices a character can speak in, and the one it speaks in by default (its own, or its author's pick) */
-export function voicesOf(mid: string): Promise<Voices> {
+/** the voices a character can speak in, and the one it speaks in by default (its own, or its author's pick); with no
+ *  id, the site's system voices (a character that isn't on the site) */
+export function voicesOf(mid: string | null): Promise<Voices> {
+  if (!mid) return systemVoices()
   let p = lists.get(mid)
   if (!p) {
     p = api(`/api/chat/${encodeURIComponent(mid)}/voices`).then(answer)
@@ -216,11 +193,41 @@ export function voicesOf(mid: string): Promise<Voices> {
 /** live: the sound is still coming in (voiceApi speakLive): blob comes with it, seconds is a guess until then */
 export type Clip = { blob: Blob; seconds: number; expression: string | null; live?: StreamingVoice }
 
-/** a line in the character's voice (`voice`: one of its voices by id, '' its default) */
-export async function voiceLine(mid: string, text: string, emotion: Emotion, voice: string, signal?: AbortSignal): Promise<Clip> {
+const SYSTEM = '/api/chat/voices'
+/** the site's system voices, for a character that isn't on the site */
+function systemVoices(): Promise<Voices> {
+  let p = lists.get(SYSTEM)
+  if (!p) {
+    p = api(SYSTEM).then(answer)
+    p.catch(() => { if (lists.get(SYSTEM) === p) lists.delete(SYSTEM) })
+    lists.set(SYSTEM, p)
+  }
+  return p
+}
+
+// the system voices a character that isn't on the site gets when none is chosen for it, by its gender, the best first
+// (the site's 少女 and 少年 groups); each on the stage gets the next free one, either in turn when it isn't known
+const WOMEN = ['longhua', 'longfeifei', 'qiaoxiaojiao', 'longanlingxi', 'anyuqing'].map((v) => `${v}_v3.1`)
+const MEN = ['longanyang', 'longshao', 'longze', 'anmingyuan'].map((v) => `${v}_v3.1`)
+/** the system voice of a character that isn't on the site: its own choice, else one nobody else on the stage has */
+export function systemVoiceOf(c: CharacterItem, cast: readonly CharacterItem[]): string {
+  if (c.voice.livliv) return c.voice.livliv
+  const mine = cast.filter((x) => x.gender === c.gender && !modelId(x) && !x.voice.livliv), i = Math.max(0, mine.findIndex((x) => x.id === c.id))
+  const list = c.gender === 'f' ? WOMEN : c.gender === 'm' ? MEN : WOMEN.flatMap((v, k) => (MEN[k] ? [v, MEN[k]] : [v]))
+  return list[i % list.length]
+}
+
+/** a line in livliv.ai's voice for this character: its own on the site, else its system voice */
+export function livlivLine(c: CharacterItem, text: string, emotion: Emotion, cast: readonly CharacterItem[], signal?: AbortSignal): Promise<Clip> {
+  const mid = modelId(c)
+  return mid ? voiceLine(mid, text, emotion, c.voice.livliv, signal) : voiceLine(null, text, emotion, systemVoiceOf(c, cast), signal)
+}
+
+/** a line in the character's voice (`voice`: one of its voices by id, '' its default); with no id, in a system voice */
+export async function voiceLine(mid: string | null, text: string, emotion: Emotion, voice: string, signal?: AbortSignal): Promise<Clip> {
   let r
   try {
-    r = await answer(await post(`/api/chat/${encodeURIComponent(mid)}/say`, { lines: [{ text, emotion }], voice: voice || null }, signal))
+    r = await answer(await post(mid ? `/api/chat/${encodeURIComponent(mid)}/say` : '/api/chat/say', { lines: [{ text, emotion }], voice: voice || null }, signal))
   } catch (e) {
     const status = (e as { status?: number }).status
     if (status === 401 || status === 402) void refresh()  // signed out elsewhere, or out of points
@@ -255,4 +262,31 @@ export async function length(b: Blob) {
   } catch {
     return 0
   }
+}
+
+// ---------------------------------------------------------------- a character's chat card, from the site
+
+type SiteCard = { name: string; persona: string; style: string; examples: string[]; greeting: string; gender: 'f' | 'm' | null }
+const asked = new Set<string>()
+/** an account's own character (one of LivLiv's that came without its card) gets its chat card from the site once, so
+ *  its lines come from the same card as on the site: what it came with is kept if it was changed here meanwhile */
+export function watchSiteCards() {
+  const look = () => {
+    for (const c of store.get().items) {
+      if (c.kind !== 'character' || c.remote || c.cardName) continue
+      const mid = modelId(c)
+      if (!mid || asked.has(c.id)) continue
+      asked.add(c.id)
+      const before = c.persona
+      void api(`/api/chat/${encodeURIComponent(mid)}/card`).then(answer).then((card: SiteCard) => {
+        const now = store.get().items.find((i) => i.id === c.id)
+        if (now?.kind !== 'character' || now.cardName || now.persona !== before || !card.persona) return
+        store.patch(c.id, { persona: card.persona, cardName: card.name || now.name, ...(card.style ? { style: card.style } : {}),
+          ...(card.examples?.length ? { examples: card.examples } : {}), ...(card.greeting ? { greeting: card.greeting } : {}),
+          ...(card.gender && !now.gender ? { gender: card.gender } : {}) })
+      }, () => { /* not readable (signed out, someone else's): it keeps what it came with */ })
+    }
+  }
+  look()
+  return store.subscribe(look)
 }
