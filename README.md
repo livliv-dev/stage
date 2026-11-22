@@ -15,30 +15,30 @@
 
 <p align="center"><img src="media/demo.gif" alt="Ruri, Nana and Konatsu talking on one stage, with a speech bubble" width="720"></p>
 
-- Up to 30 characters on one stage (15 in a browser): LivLiv half-body and full-body, VRM and PNGTuber
-- Start from what you want to do: **I perform** (with an AI partner if you like), **AI goes live**, **Chat with a character**, **Make a video**. Each opens a short checklist of only what it needs
-- Long-term memory and realtime calls
-- Characters that talk to each other and to your Twitch chat
-- Emotional reactions as they speak
-- AI chat that remembers, in the desktop app: each character keeps its own memory, powered by [Project AIRI](https://github.com/moeru-ai/airi)
-- Game connections in the desktop app: Minecraft through [Airicraft](https://github.com/proj-airi/airicraft), Factorio through [Autorio](https://github.com/moeru-ai/airi-factorio), or any game window the character watches
-- Built-in Neuro SDK support (desktop app)
-- Free voices on your own computer with [Voicebox](https://voicebox.sh) (desktop app): found when it runs, and the characters' voice when no other is set
-- All the basics: webcam face tracking (phone apps and VMC/OSC in the desktop app), OBS output, video recording
-- 27 featured characters, ready to use. Built on [LivLiv Player](https://github.com/livliv-dev/player)
+## New in 1.0 Preview
 
-The AI runs on your own model key (OpenAI, Qwen, DeepSeek and more), or your LivLiv.ai account. A realtime call
-needs your own OpenAI or Alibaba Cloud Bailian key.
+Stage is reorganised around what you came to do. [Download the 1.0 Preview](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview).
+
+- **Start with a goal**: **I perform**, **AI goes live**, **Chat with a character** or **Make a video**. Each shows only what it needs, and one button starts it
+- **Free voices on your computer** with [Voicebox](https://voicebox.sh) (desktop app)
+- **Import character cards** from SillyTavern and AIRI
+
+## Also in Stage
+
+- Up to 30 characters on one stage: LivLiv, VRM and PNGTuber, with 27 featured characters
+- Characters talk to each other and to your Twitch chat, with memory ([Project AIRI](https://github.com/moeru-ai/airi)) and realtime calls
+- Face tracking, OBS output, recording, games and the Neuro SDK
+
+The AI runs on your own model key (OpenAI, Qwen, DeepSeek and more) or your LivLiv.ai account.
 
 ## Try it
 
-- **Desktop app**: macOS and Windows from [Releases](https://github.com/livliv-dev/stage/releases/latest).
-  If GitHub is slow, use the [backup download](https://downloads.livliv.ai/stage/index.html).
-  On macOS, one line in Terminal installs it with no first-open prompt: `curl -fsSL https://livliv.ai/stage/install.sh | bash`
+- **Desktop app** (macOS, Windows): the [1.0 Preview](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview), or the [stable version](https://github.com/livliv-dev/stage/releases/latest) ([backup download](https://downloads.livliv.ai/stage/index.html)).
+  On macOS, one line installs the stable version with no first-open prompt: `curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **Online (Web, limited features)**: [livliv.ai/stage](https://livliv.ai/stage)
 - **From source**: see [Develop](#develop)
 
-<p align="center"><img src="media/editor.jpg" alt="The Stage editor: six characters on one stage, Ruri saying a line" width="720"></p>
+<p align="center"><img src="media/editor.jpg" alt="Stage 1.0: Sena, Nana and Kai on stage, Nana saying a line" width="720"></p>
 
 ## Characters
 
@@ -56,7 +56,7 @@ Come say hello on [Discord](https://discord.gg/ac5qF36T2H) and follow us on [X (
 
 ## Develop
 
-Node.js 22.18 or later.
+Node.js 22.18 or later. Stage uses a temporary LivLiv Player build until the next Player release ([vendor/player-temporary](vendor/player-temporary/README.md)).
 
 ```sh
 git clone https://github.com/livliv-dev/stage

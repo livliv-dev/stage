@@ -15,30 +15,30 @@
 
 <p align="center"><img src="media/demo.gif" alt="Ruri、Nana 和 Konatsu 在同一个舞台上聊天，带对话气泡" width="720"></p>
 
-- 一张舞台最多 30 个角色（浏览器里 15 个）：LivLiv 半身和全身、VRM、PNGTuber
-- 从想做的事开始：**我来演**（可以加一个 AI 搭档）、**AI 来开播**、**和角色聊天**、**做一段视频**。每个目标只列它需要的准备清单
-- 长期记忆和实时通话
-- 角色之间互相对话，也回应 Twitch 弹幕
-- 说话时跟着情绪变的表情
-- 桌面版和角色聊天，每个角色有自己的记忆，由 [Project AIRI](https://github.com/moeru-ai/airi) 驱动
-- 桌面版的游戏连接：Minecraft（[Airicraft](https://github.com/proj-airi/airicraft)）、Factorio（[Autorio](https://github.com/moeru-ai/airi-factorio)），或者让角色看着任意游戏窗口
-- 内置 Neuro SDK 支持（桌面版）
-- 用 [Voicebox](https://voicebox.sh) 在本机免费出声（桌面版）：打开 Voicebox 就能找到它，没设置别的声音时角色就用它说话
-- 基础功能都有：摄像头面捕（手机面捕 App 和 VMC/OSC 用桌面版）、OBS 输出、录视频
-- 27 个精选角色，开箱即用。基于 [LivLiv Player](https://github.com/livliv-dev/player)
+## 1.0 预览版新功能
 
-AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等），也可以使用 LivLiv.ai 帐号。
-实时通话需要你自己的 OpenAI 或阿里云百炼密钥。
+Stage 按「你来做什么」重新整理了一遍。[下载 1.0 预览版](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview)。
+
+- **从目标开始**：**我来演**、**AI 来开播**、**和角色聊天**、**做一段视频**，每个目标只列它需要的准备，一个按钮开始
+- **本机免费的声音**：接入 [Voicebox](https://voicebox.sh)（桌面版）
+- **导入角色卡**：支持 SillyTavern 和 AIRI
+
+## 其他功能
+
+- 一张舞台最多 30 个角色：LivLiv、VRM、PNGTuber，自带 27 个精选角色
+- 角色之间对话、回应 Twitch 弹幕，有记忆（[Project AIRI](https://github.com/moeru-ai/airi)）和实时通话
+- 面捕、OBS 输出、录视频、游戏连接和 Neuro SDK
+
+AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等），也可以用 LivLiv.ai 帐号。
 
 ## 试一试
 
-- **桌面版**：macOS 和 Windows，到 [Releases](https://github.com/livliv-dev/stage/releases/latest) 下载。
-  GitHub 下载较慢时，可使用[备用下载](https://downloads.livliv.ai/stage/index.html)。
-  macOS 也可以在终端里一行装好，第一次打开不会被拦：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
+- **桌面版**（macOS、Windows）：[1.0 预览版](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview)，或[稳定版](https://github.com/livliv-dev/stage/releases/latest)（[备用下载](https://downloads.livliv.ai/stage/index.html)）。
+  macOS 也可以用一行命令装稳定版，打开时不会被拦：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **在线（网页版，功能受限）**：[livliv.ai/stage](https://livliv.ai/stage)
 - **从源码运行**：见[开发](#开发)
 
-<p align="center"><img src="media/editor.jpg" alt="Stage 编辑器：六个角色同台，Ruri 正在说话" width="720"></p>
+<p align="center"><img src="media/editor.jpg" alt="Stage 1.0：Sena、Nana 和 Kai 同台，Nana 正在说话" width="720"></p>
 
 ## 角色
 
@@ -55,7 +55,7 @@ VRM 或 PNGTuber。
 
 ## 开发
 
-需要 Node.js 22.18 或更新版本。
+需要 Node.js 22.18 或更新版本。在 Player 下一个版本发布前，Stage 使用一个临时的 LivLiv Player 构建（[vendor/player-temporary](vendor/player-temporary/README.md)）。
 
 ```sh
 git clone https://github.com/livliv-dev/stage

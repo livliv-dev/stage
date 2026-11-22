@@ -15,30 +15,30 @@
 
 <p align="center"><img src="media/demo.gif" alt="Ruri、Nana、Konatsu がひとつのステージで会話する様子（吹き出し付き）" width="720"></p>
 
-- ひとつのステージに最大 30 体（ブラウザでは 15 体）：LivLiv の半身・全身、VRM、PNGTuber
-- やりたいことから始める：**自分で演じる**（AI パートナーも追加可）、**AI が配信**、**キャラと話す**、**動画を作る**。それぞれ必要なものだけの準備リストが開きます
-- 長期記憶とリアルタイム通話
-- キャラクター同士の掛け合いと、Twitch コメントへの返事
-- 話しながら感情に合わせて変わる表情
-- デスクトップ版の AI チャット：キャラクターごとに記憶を持ちます。[Project AIRI](https://github.com/moeru-ai/airi) を利用
-- デスクトップ版のゲーム接続：Minecraft（[Airicraft](https://github.com/proj-airi/airicraft)）、Factorio（[Autorio](https://github.com/moeru-ai/airi-factorio)）、または任意のゲームウィンドウ
-- Neuro SDK に標準対応（デスクトップ版）
-- [Voicebox](https://voicebox.sh) でこのコンピューター上の無料の声（デスクトップ版）：起動していれば見つけて、ほかの声が未設定ならキャラクターの声に使います
-- 基本機能：Web カメラのフェイストラッキング（スマホアプリと VMC/OSC はデスクトップ版）、OBS 出力、動画の録画
-- 厳選キャラクター 27 体、すぐに使えます。[LivLiv Player](https://github.com/livliv-dev/player) がベース
+## 1.0 プレビュー版の新機能
 
-AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）、または LivLiv.ai アカウントで利用できます。
-リアルタイム通話には OpenAI か Alibaba Cloud Bailian のキーが必要です。
+Stage を「何をしたいか」から組み立て直しました。[1.0 プレビュー版をダウンロード](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview)。
+
+- **やりたいことから始める**：**自分で演じる**、**AI が配信**、**キャラと話す**、**動画を作る**。必要な準備だけが表示され、ボタンひとつで開始
+- **このコンピューター上の無料の声**：[Voicebox](https://voicebox.sh) に対応（デスクトップ版）
+- **キャラクターカードの読み込み**：SillyTavern と AIRI に対応
+
+## そのほかの機能
+
+- ひとつのステージに最大 30 体：LivLiv、VRM、PNGTuber。厳選キャラクター 27 体付き
+- キャラクター同士の掛け合い、Twitch コメントへの返事、記憶（[Project AIRI](https://github.com/moeru-ai/airi)）とリアルタイム通話
+- フェイストラッキング、OBS 出力、録画、ゲーム接続、Neuro SDK
+
+AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）か、LivLiv.ai アカウントで動きます。
 
 ## 試してみる
 
-- **デスクトップ版**：macOS と Windows 版を [Releases](https://github.com/livliv-dev/stage/releases/latest) から。
-  GitHub からのダウンロードが遅い場合は[予備のダウンロード](https://downloads.livliv.ai/stage/index.html)をご利用ください。
-  macOS はターミナルで 1 行入力してもインストールでき、初回の確認は出ません：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
+- **デスクトップ版**（macOS、Windows）：[1.0 プレビュー版](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview)、または[安定版](https://github.com/livliv-dev/stage/releases/latest)（[予備のダウンロード](https://downloads.livliv.ai/stage/index.html)）。
+  macOS は 1 行で安定版をインストールでき、初回の確認は出ません：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **オンライン（Web版・機能制限あり）**：[livliv.ai/stage](https://livliv.ai/stage)
 - **ソースから**：[開発](#開発)を参照
 
-<p align="center"><img src="media/editor.jpg" alt="Stage のエディター：6 体のキャラクターが同じステージに。Ruri が話しているところ" width="720"></p>
+<p align="center"><img src="media/editor.jpg" alt="Stage 1.0：Sena、Nana、Kai が同じステージに。Nana が話しているところ" width="720"></p>
 
 ## キャラクター
 
@@ -55,7 +55,7 @@ AI を使ったキャラクター制作のツール群、[プレイヤーとそ�
 
 ## 開発
 
-Node.js 22.18 以降が必要です。
+Node.js 22.18 以降が必要です。次の Player リリースまで、Stage は一時的な LivLiv Player ビルドを使います（[vendor/player-temporary](vendor/player-temporary/README.md)）。
 
 ```sh
 git clone https://github.com/livliv-dev/stage
