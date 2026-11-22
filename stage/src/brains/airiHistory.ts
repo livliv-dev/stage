@@ -1,11 +1,12 @@
 // The conversation AIRI is given each turn (airiEngine.ts priorMessages), kept the same from one call to the next so the
 // provider's cache can keep the start of it: each line keeps the time Stage first passed it on (AIRI stamps a user
-// message that has none with the current minute, which changed every past line's text each turn); the window holds up
-// to HISTORY_LINES lines and its start moves HISTORY_STEP lines at a time, not one line a turn; and an event line (a
-// game's or another app's, up to 4,000 characters in the conversation) carries at most EVENT_CHARS. Pure:
-// test/airiHistory.test.ts.
+// message that has none with the current minute, which changed every past line's text each turn; the owner's line, the
+// turn's input, is seen as the turn starts); the window grows to HISTORY_LINES lines and is then trimmed HISTORY_STEP
+// at a time, so it holds no fewer than HISTORY_LINES - HISTORY_STEP and its start moves a step at a time, not one line
+// a turn; and an event line (a game's or another app's, up to 4,000 characters in the conversation) carries at most
+// EVENT_CHARS. Pure: test/airiHistory.test.ts.
 
-export const HISTORY_LINES = 24, HISTORY_STEP = 12, EVENT_CHARS = 500
+export const HISTORY_LINES = 30, HISTORY_STEP = 12, EVENT_CHARS = 500
 
 /** where the window starts in a conversation of `count` lines: at 0 until it is full, then at a multiple of the step,
  *  so between trims only new lines are added at its end */
