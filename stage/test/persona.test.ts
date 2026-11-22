@@ -34,6 +34,14 @@ test('Stage\'s brain: the persona opens its prompt', () => {
   assert.ok(!brainPersona(personaOf(nana, 'auto', 'private'), 'en').some((line) => line.includes('只学语气')), 'Chinese examples only for a Chinese reply')
 })
 
+test('asked in earnest whether it is a real person or an AI, a character says it is a virtual one: Stage\'s brain and AIRI, every language and scope', () => {
+  for (const language of ['zh', 'en', 'ja', 'auto'] as const) for (const scope of ['private', 'public'] as const) {
+    const p = personaOf(card('Mio'), language, scope)
+    for (const said of ['zh', 'en', 'ja'] as const) assert.ok(brainPersona(p, said).includes('你可以一直保持角色；但有人认真问你是真人还是 AI 时，要说明你是虚拟角色，绝不声称自己是真人。'), `${language} ${scope} ${said}`)
+    assert.ok(airiIdentity(p).split('\n').includes('Stay in character, but when someone sincerely asks whether you are a real person or an AI, say you are a virtual character; never claim to be a real human.'), `${language} ${scope}`)
+  }
+})
+
 test('what each engine is told of the card', () => {
   const p = personaOf(nana, 'zh', 'public')
   const realtime = realtimeInstructions(p, { topic: '' }), airi = airiIdentity(p), brain = brainPersona(p, 'zh').join('\n')

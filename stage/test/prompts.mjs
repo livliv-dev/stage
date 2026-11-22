@@ -69,6 +69,13 @@ try {
     out['realtime-japanese-bare-card'] = await realtime({ topic: '', language: 'ja', depth: 'casual', scope: 'private' }, card('Mio'))
     return out
   })
+  // asked in earnest whether it is a real person or an AI, a character says it is a virtual one: every prompt of Stage's
+  // own brain (Chinese) and every AIRI system prompt (English) says so, whatever language the reply is in
+  const honest = { brain: '有人认真问你是真人还是 AI 时，要说明你是虚拟角色，绝不声称自己是真人。', airi: 'when someone sincerely asks whether you are a real person or an AI, say you are a virtual character; never claim to be a real human.' }
+  for (const [name, text] of Object.entries(prompts)) {
+    const engine = name.split('-')[0]
+    if (honest[engine] && name !== 'brain-input-memories') assert.ok(text.includes(honest[engine]), `${name}: says it is a virtual character when sincerely asked`)
+  }
   await mkdir(dir, { recursive: true })
   for (const [name, text] of Object.entries(prompts)) {
     const file = join(dir, `${name}.txt`)
