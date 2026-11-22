@@ -87,10 +87,12 @@ try {
     store.patch(a.id, first); store.patch(b.id, { lines: 'ai', ...second }); store.patch(c.id, { lines: 'none' })
     return [a.id, b.id]
   }, { first, second })
-  /** a chat: the character greets, you say a line, it answers */
+  /** a chat: the character greets, you say a line, it answers (the engine it ran on: `engine`) */
+  let engine
   async function chat(page, between) {
     await page.evaluate(async () => { const { talk } = window.__stage; talk.stop(); await talk.newChat(); await talk.startChat('private') })
     await page.waitForFunction(() => window.__stage.conversation().waitingInput)
+    engine = await page.evaluate(() => window.__stage.conversation().engine)
     await between?.()
     await page.evaluate(() => window.__stage.talk.say('那就聊聊周末吧'))
     await page.waitForFunction(() => { const c = window.__stage.conversation(); return (c.waitingInput && c.lines.filter((l) => !l.human).length >= 2 && !c.speaking) || !!c.error }, null, { timeout: testTimeout(40000) })
@@ -98,10 +100,12 @@ try {
     await page.evaluate(() => window.__stage.talk.stop())
     return error
   }
-  /** a line of yours typed, as your character (read aloud as its card says), and the AI character's answer */
+  /** a line of yours typed, as your character (read aloud as its card says), and the AI character's answer (once, or
+   *  the chat it starts in the desktop app) */
   async function typed(page, me) {
     await page.evaluate((me) => { const { talk } = window.__stage; talk.stop(); talk.setAs(me); talk.say('我先说一句') }, me)
-    await page.waitForFunction(() => { const c = window.__stage.conversation(); return !c.running && c.lines.some((l) => l.human && l.text === '我先说一句') && c.lines.some((l) => !l.human) }, null, { timeout: testTimeout(40000) })
+    await page.waitForFunction(() => { const c = window.__stage.conversation(), at = c.lines.findIndex((l) => l.human && l.text === '我先说一句'); return at >= 0 && c.lines.slice(at + 1).some((l) => !l.human) && !c.speaking }, null, { timeout: testTimeout(40000) })
+    await page.evaluate(() => window.__stage.talk.stop())
   }
   const voiceError = (page, id) => page.evaluate((id) => window.__stage.actors.get(id).voiceError, id)
 
@@ -147,7 +151,7 @@ try {
   await cast(page, { lines: 'none' })
   calls.length = 0
   await chat(page)
-  assert.equal(await page.evaluate(() => window.__stage.conversation().engine), 'airi', 'the chat ran on AIRI')
+  assert.equal(engine, 'airi', 'the chat ran on AIRI')
   await page.locator('.status-line .st-tag', { hasText: '声音' }).click()
   await page.getByRole('button', { name: '试听', exact: true }).first().click()
   await page.getByRole('button', { name: '试听', exact: true }).first().waitFor()
@@ -155,7 +159,8 @@ try {
   await page.keyboard.press('Escape')
   await page.evaluate(async () => (await import('/src/shell/ui.ts')).ui.setPop('checklist'))
   const checks = page.locator('.popover.checklist')
-  for (const name of ['文字', '声音']) {
+  await page.evaluate(() => window.__stage.store.setTalk({ goal: 'chat', audience: 'me', you: 'type' }))
+  for (const name of ['文字模型', '声音']) {
     await checks.locator('.check', { hasText: name }).first().getByRole('button', { name: '测试', exact: true }).click()
     await checks.locator('.check', { hasText: name }).first().locator('.ok, .error').waitFor({ timeout: testTimeout(30000) })
   }
@@ -169,13 +174,14 @@ try {
   // ---- AIRI on livliv.ai's text: a call refused as too long is sent again shorter, its tool round not asked again
   ;({ page, context } = await open({ 'livliv-stage:brain': { kind: 'livliv' }, 'livliv-stage:livliv-voice': '0' }, { desktop: true }))
   await cast(page, { lines: 'none' }, { muted: true })
-  const remembered = await page.evaluate(async () => {
+  // a memory longer than AIRI's index shows, so the tool to read the rest is offered (brains/airiMemory.ts)
+  await page.evaluate(async () => {
     const { memory } = await import('/src/memory.ts'), { store } = window.__stage, c = store.get().items.find((i) => i.kind === 'character' && i.lines === 'ai')
-    return (await memory.remember({ profileId: c.profileId ?? c.id, scope: 'private', text: '喜欢周末去海边' })).id
+    await memory.remember({ profileId: c.profileId ?? c.id, scope: 'private', text: '喜欢周末去海边，' + '看日落、捡贝壳、吹海风，'.repeat(14) })
   })
   await page.evaluate(async () => { const { talk } = window.__stage; talk.stop(); await talk.newChat(); await talk.startChat('private') })
   await page.waitForFunction(() => window.__stage.conversation().waitingInput)
-  calls.length = 0; plan.tool = remembered
+  calls.length = 0; plan.tool = 'm1'
   // the tool round answered, the call after it refused once: sent again, trimmed
   await page.route('**/api/stage/v1/chat/completions', async (route) => {
     const body = route.request().postDataJSON()
@@ -191,12 +197,14 @@ try {
     'the tool round once, the call after it refused and sent again (not the turn from its start): ' + JSON.stringify(turn.map((c) => c.body.messages.map((m) => m.role))))
   assert.ok(JSON.stringify(turn[2].body.messages).length < JSON.stringify(turn[1].body.messages).length, 'sent again shorter')
   await page.unroute('**/api/stage/v1/chat/completions')
-  // refused every time: said so, after the same call twice more and no more
+  // refused every time: said so, after the same call sent again shorter (at most twice), down to the identity alone
   calls.length = 0; plan.refuse = 3
   await page.evaluate(() => window.__stage.talk.say('再说说'))
   await page.waitForFunction(() => !!window.__stage.conversation().error, null, { timeout: testTimeout(30000) })
   assert.match(await page.evaluate(() => window.__stage.conversation().error), /这次对话太长了/)
-  assert.equal(calls.filter((c) => c.kind === 'livliv-text').length, 3, 'three tries of the one call')
+  const tries = calls.filter((c) => c.kind === 'livliv-text'), lastOf = (c) => JSON.stringify(c.body.messages.findLast((m) => m.role === 'user'))
+  assert.ok(tries.length >= 2 && tries.length <= 3 && tries.every((c) => lastOf(c) === lastOf(tries[0])), 'the one call, tried again: ' + tries.length)
+  assert.ok(!JSON.stringify(tries.at(-1).body.messages[0]).includes('Remembered facts'), 'last, the identity alone')
   plan.refuse = 0
   await page.evaluate(() => window.__stage.talk.stop())
   await context.close()

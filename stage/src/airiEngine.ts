@@ -107,12 +107,18 @@ function provider(config: ModelConfig, signal: AbortSignal, options: {
             return post()
           }
           const post = () => aiFetch(String(url), { ...init, headers, body: JSON.stringify(body), signal })
-          // livliv.ai refusing the call as too long: the same call again, shorter, twice at most (brains/trimCall.ts),
-          // never the turn from its start (that would ask a tool round again); still too long, said so (not asked again)
+          // livliv.ai refusing the call as too long: the same call again, shorter, twice at most (brains/trimCall.ts; a
+          // level that leaves nothing out is skipped), never the turn from its start (that would ask a tool round again);
+          // still too long, said so (not asked again)
           const sent = async () => {
-            const whole = body.messages
+            const whole = body.messages, size = (messages: unknown) => JSON.stringify(messages).length
+            let length = size(whole)
             for (const level of [0, 1, 2] as const) {
-              if (level) body.messages = trimCall(whole, level)
+              if (level) {
+                const shorter = trimCall(whole, level)
+                if (size(shorter) >= length) continue
+                body.messages = shorter; length = size(shorter)
+              }
               try { return level ? await post() : await send() } catch (error) {
                 if (!isTooLong(error) || signal.aborted) throw error
               }
