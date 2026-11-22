@@ -5,8 +5,9 @@ import { tr } from './i18n'
 // again. Not on a phone (its intro says to use a computer), nor in OBS. Only the browser's limits, not the plan's
 // (recording length and the mark): the WebGL contexts (contexts.ts: 15 in a browser, 30 in the app), a green output
 // that stops when covered (outputFeed.ts; the app's can be transparent), no 联播 (its relay runs on your computer),
-// no phone or network face tracking (desktop tracking), no global hotkeys, and the services a browser can't call
-// (brain.ts PROVIDERS_HERE).
+// no phone or network face tracking (desktop tracking), no global hotkeys, the services a browser can't call: models
+// and voices on this computer, any other API (brain.ts PROVIDERS_HERE, voiceApi.ts SPEECH_HERE), and AIRI with a window
+// or a game (brains/select.ts: the web build runs it for 持续聊天 only).
 import { useSyncExternalStore } from 'react'
 import { Download, Minus } from 'lucide-react'
 import { REPO } from './GitHubLink'
@@ -33,7 +34,8 @@ const ITEMS = (): string[] => [
   tr('没有好友联播'),
   tr('不能用手机面捕（iFacialMocap）和 VMC/OSC'),
   tr('没有全局热键，切到游戏里就控制不了角色'),
-  tr('接不了 Ollama 等本机模型，以及其他接口'),
+  tr('接不了 Ollama、Voicebox 等本机的模型和声音，以及其他接口'),
+  tr('AI 不能看窗口、玩游戏'),
 ]
 
 export function DesktopNotice() {

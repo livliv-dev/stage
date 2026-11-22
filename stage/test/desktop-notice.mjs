@@ -57,8 +57,9 @@ try {
   await page.evaluate(() => window.__stage.talk.stop())
   await notice(page).waitFor()
   assert.equal(await notice(page).locator('.big').innerText(), '网页版的限制')
-  assert.equal(await notice(page).locator('li').count(), 6, "the browser's six limits")
-  assert.match(await notice(page).innerText(), /没有好友联播/)
+  assert.deepEqual(await notice(page).locator('li').allInnerTexts(), ['同台角色上限为 15 个角色且数量多更容易卡顿（桌面版为 30 个）', 'OBS 只能用绿幕，输出窗口被完全挡住时画面会停',
+    '没有好友联播', '不能用手机面捕（iFacialMocap）和 VMC/OSC', '没有全局热键，切到游戏里就控制不了角色', '接不了 Ollama、Voicebox 等本机的模型和声音，以及其他接口', 'AI 不能看窗口、玩游戏'],
+  "the browser's limits, each still true of the web version (AIRI on the web chats, without a window or a game)")
   const project = notice(page).locator('.hint.after a')
   assert.deepEqual([await project.innerText(), await project.getAttribute('href'), await project.getAttribute('target')], ['LivLiv Stage', 'https://github.com/livliv-dev/stage', '_blank'], 'the closing line links the project on GitHub')
   assert.match(await notice(page).locator('.hint.after').innerText(), /^欢迎使用桌面端，以及关注我们的开源项目 LivLiv Stage$/)
