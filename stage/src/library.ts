@@ -8,7 +8,7 @@ import { cardOf, local, sampleUrl, SAMPLES, type Card as SampleCard } from './sa
 import { api, signedIn } from './livliv'
 import { keep, type Kept } from './vault'
 import type { PngSlot } from './bodies/png'
-import { checkModel, checkPackage, checkPicture, checkVrm } from './modelCheck'
+import { checkModel, checkPackage, checkPicture, checkVrm, modelJsonOf } from './modelCheck'
 
 /** label: how the picker names it (when two share a name); live: how it goes live, as its page on the site sets it */
 export type Pick = { name: string; persona: string; model: ModelRef; thumb?: string; label?: string; id?: string; card?: SampleCard; live?: LiveSettings }
@@ -87,8 +87,8 @@ export async function fromFiles(files: FileList | File[]): Promise<Pick> {
   } else {
     for (const f of list) map.set(f.webkitRelativePath || f.name, f)
   }
-  // the shallowest model.json: the package's (a zip may hold one folder, or the files at its top)
-  const json = [...map.keys()].filter((p) => p.split('/').pop() === 'model.json').sort((a, b) => a.split('/').length - b.split('/').length)[0]
+  // the package's own model.json, picked as the player picks it (a zip may hold one folder, or the files at its top)
+  const json = modelJsonOf(map.keys())
   if (!json) throw new Error(tr("里面没有 model.json：选 LivLiv 导出的模型包（.livliv、zip 或文件夹）"))
   await checkModel(map.get(json)!)
   let name = tr("角色")
