@@ -16,10 +16,11 @@ import { saveBrainConfig, savedBrain } from './brain'
 import { logout } from './livliv'
 import { detectVoicebox, voiceboxState } from './voicebox'
 import { lostKey, migrateKeys } from './core/secrets'
+import { memory } from './memory'
 import './styles.css'
 
 // the dev server only: the live objects, for measuring motion and testing from the console
-if (import.meta.env.DEV) Object.assign(window, { __stage: { onHeard, onConv, actors, store, talk, conversation, rec, recording, voice: { activeSpeech, asrReady, saveSpeech, transcribeApi, voicebox: voiceboxState, detectVoicebox }, brain: savedBrain, keys: { lostKey, saveBrain: saveBrainConfig, logout }, memoryLines: { brief: briefLine, index: indexLine, body: memoryBody } } })
+if (import.meta.env.DEV) Object.assign(window, { __stage: { onHeard, onConv, actors, store, talk, conversation, rec, recording, voice: { activeSpeech, asrReady, saveSpeech, transcribeApi, voicebox: voiceboxState, detectVoicebox }, brain: savedBrain, keys: { lostKey, saveBrain: saveBrainConfig, logout }, memoryLines: { brief: briefLine, index: indexLine, body: memoryBody }, memory } })
 
 // the desktop app: keys saved the old way move to the system's encrypted store, all at once as it starts
 if (!isOutput) void migrateKeys()

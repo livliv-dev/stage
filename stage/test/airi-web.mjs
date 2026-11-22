@@ -76,7 +76,7 @@ try {
     if (url.origin === origin && path === '/api/me') return route.fulfill({ json: { signed_in: true, email: 'member@example.test', points: 100, plan: 'free' } })
     if (url.origin === origin && path === '/api/stage/v1/chat/completions') {
       const body = req.postDataJSON()
-      asked.push({ where: 'livliv', stream: !!body.stream })
+      asked.push({ where: 'livliv', stream: !!body.stream, body })
       if (refuse) return route.fulfill({ status: refuse, json: { detail: '聊天功能仅面向年满 18 周岁的用户' } })
       return route.fulfill(reply(body))
     }
@@ -131,6 +131,28 @@ try {
   assert.ok(said.length >= 4 && said.every((s) => s.stage === true && s.line), 'voiced by livliv.ai, as Stage\'s, by the line: ' + JSON.stringify(said))
   const lines = new Set(said.map((s) => s.line))
   assert.equal(lines.size, 2, 'two replies (the opening and the answer), each one line however many sentences: ' + JSON.stringify([...lines]))
+
+  // an output comes on (a recording) in a private AIRI chat: the next turn is public, with public memories only
+  await page.evaluate(async () => {
+    const { store, memory } = window.__stage, c = store.get().items.find((i) => i.kind === 'character' && i.lines === 'ai')
+    await memory.remember({ profileId: c.profileId ?? c.id, scope: 'private', text: '私下的暗号是木瓜' })
+    await memory.remember({ profileId: c.profileId ?? c.id, scope: 'public', text: '公开的爱好是猫' })
+  })
+  asked.length = 0
+  await page.evaluate(async () => { const { talk } = window.__stage; talk.stop(); await talk.newChat(); await talk.startChat('private') })
+  await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.waitingInput && !c.speaking })
+  const system = (a) => JSON.stringify(a.body.messages[0])
+  assert.equal(await page.evaluate(() => window.__stage.conversation().engine), 'airi')
+  assert.ok(asked.length && /私下的暗号是木瓜/.test(system(asked[0])) && /公开的爱好是猫/.test(system(asked[0])), 'private: both memories')
+  await page.evaluate(() => window.__stage.rec.start({ mic: false, talk: false }))
+  await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.scope === 'public' && !!c.sessionId && c.waitingInput && !c.speaking && !c.thinking })
+  asked.length = 0
+  await page.evaluate(() => window.__stage.talk.say('现在在录像'))
+  await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.waitingInput && !c.speaking && c.lines.some((l) => l.human && l.text === '现在在录像') && !c.lines.at(-1).human })
+  assert.ok(asked.length, 'AIRI answered in public')
+  assert.ok(asked.every((a) => /公开的爱好是猫/.test(system(a)) && !/私下的暗号是木瓜/.test(system(a)) && !JSON.stringify(a.body.messages).includes('in a private LivLiv Stage conversation')), 'public: the public memory only')
+  await page.evaluate(async () => { const { talk, rec } = window.__stage; talk.stop(); await rec.stop() })
+  await page.waitForFunction(() => !['starting', 'recording', 'making'].includes(window.__stage.recording().phase), null, { timeout: testTimeout(60000) })
 
   // livliv.ai refusing an account under 18: its words, not a key error; nothing voiced
   refuse = 403; said.length = 0
