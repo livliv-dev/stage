@@ -3273,11 +3273,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Other",
     "ja": "その他"
   },
-  "连不上 {0}": {
-    "zh-Hans": "连不上 {0}",
-    "zh-Hant": "連不上 {0}",
-    "en": "Could not connect to {0}",
-    "ja": "{0}に接続できません"
+  "连不上 {0}，请检查网络后再试": {
+    "zh-Hans": "连不上 {0}，请检查网络后再试",
+    "zh-Hant": "連不上 {0}，請檢查網路後再試",
+    "en": "Could not connect to {0}. Check your network and try again",
+    "ja": "{0}に接続できません。ネットワークを確認してもう一度お試しください"
   },
   "密钥不对": {
     "zh-Hans": "密钥不对",

@@ -12,7 +12,7 @@ import { tr } from './i18n'
 // In the desktop client a model's API is reached through the app (its /__ai pass-through, desktop stageApp.ts): no
 // CORS, so local servers (Ollama) and APIs without browser access work too
 import { useSyncExternalStore } from 'react'
-import { desktopFetch } from './request'
+import { desktopFetch, unreachable } from './request'
 import { features } from './core/platform'
 import { readKeyed, writeKeyed } from './core/secrets'
 import { hasSession, modelId, onAccount, signedIn, stageLine } from './livliv'
@@ -132,7 +132,7 @@ export async function aiFetch(url: string, init: RequestInit) {
     if (signal.aborted) throw signal.reason
     let host = url
     try { host = new URL(url).host } catch { /* not a URL */ }
-    throw new Error(tr("连不上 {0}", host), { cause: e })
+    throw unreachable(e, host)
   }
 }
 const endpoint = (c: ModelConfig, path: string) => `${c.base.replace(/\/+$/, '')}${path}`

@@ -1,5 +1,13 @@
 // The desktop protocol needs an explicit cancellation ticket; ordinary browser fetch already owns its signal.
 import { features } from './core/platform'
+import { tr } from './i18n'
+
+/** a request that got no answer at all (offline, the service out of reach), in words people can act on: never the
+ *  browser's own "Failed to fetch". A request called off (its signal) stays as it was */
+export function unreachable(error: unknown, host: string, signal?: AbortSignal | null): unknown {
+  if (signal?.aborted || (error instanceof Error && error.name === 'AbortError')) return error
+  return new Error(tr('连不上 {0}，请检查网络后再试', host), { cause: error })
+}
 
 export async function desktopFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const bridge = window.livlivDesktop?.requests, signal = init.signal

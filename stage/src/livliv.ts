@@ -9,7 +9,7 @@ import { getLocale, tr } from './i18n'
 //    line's feeling, and the site picks the model's expression for it. Each call costs points (at least 1); a line said
 //    before is free. The MP3 is fetched whole and its length read, so the subtitle and a cut-off go by the real voice
 import { useSyncExternalStore } from 'react'
-import { desktopFetch } from './request'
+import { desktopFetch, unreachable } from './request'
 import type { Emotion, StreamingVoice } from './core/lines'
 import type { CharacterItem } from './scene'
 import { SAMPLES } from './samples'
@@ -50,10 +50,10 @@ const token = () => { if (features.host === 'site') return ''; try { return read
 const keep = (t: string) => { try { void writeSecret(TOKEN, t) } catch { /* private mode: the cookie still works */ } }
 
 /** a request to LivLiv's API, as this app's session */
-export function api(url: string, init: RequestInit = {}) {
+export async function api(url: string, init: RequestInit = {}) {
   const t = token(), headers = new Headers(init.headers)
   if (t) headers.set('Authorization', `Bearer ${t}`)
-  return desktopFetch(url, { ...init, headers })
+  try { return await desktopFetch(url, { ...init, headers }) } catch (error) { throw unreachable(error, 'livliv.ai', init.signal) }
 }
 const post = (url: string, body: unknown, signal?: AbortSignal) =>
   api(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal })
@@ -229,7 +229,7 @@ export async function voiceLine(mid: string, text: string, emotion: Emotion, voi
   if (typeof r.points === 'number') set({ points: r.points })
   const line = r.lines?.[0]
   if (!line?.audio) throw new Error(tr("这句没有配出声音"))
-  const a = await desktopFetch(line.audio, { signal })
+  const a = await desktopFetch(line.audio, { signal }).catch((error: unknown) => { throw unreachable(error, 'livliv.ai', signal) })
   if (!a.ok) throw new Error(tr("这句没有配出声音"))
   const blob = await a.blob()
   return { blob, seconds: await length(blob), expression: line.expression ?? null }
