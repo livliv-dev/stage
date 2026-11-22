@@ -111,8 +111,8 @@ function VoiceSection({ c, patch, onVoice }: { c: CharacterItem; patch: (p: Part
   }, [mid, voiceAttempt, account.status, account.email, livlivOn])
   const speech = useActiveSpeech(), api = speechReady(speech), v = c.voice
   const route = voiceRoute(c, speech), livliv = route === 'livliv'
-  // a character that isn't on the site: the system voice it gets when none is picked (by gender, in turn on the stage)
-  const fallback = mid ? '' : systemVoiceOf({ ...c, voice: { ...v, livliv: '' } }, participants(store.get()))
+  // a character that isn't on the site: the system voice it gets when none is picked (by its gender and id)
+  const fallback = mid ? '' : systemVoiceOf({ ...c, voice: { ...v, livliv: '' } }, participants(store.get()), list?.voices)
   const catalog = list && !mid ? { ...list, voice: fallback } : list
   const [apiVoices, setApiVoices] = useState<string[]>([])
   useEffect(() => { if (route === 'api') void listVoices(speech).then(setApiVoices) }, [route, speech])

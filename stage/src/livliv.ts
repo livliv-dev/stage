@@ -19,15 +19,16 @@ import { SAMPLES } from './samples'
 import { signInUrl } from './host'
 import { features } from './core/platform'
 import { lostKey, readSecret, writeSecret } from './core/secrets'
+import { systemVoiceFor, type Voiced } from './core/systemVoice'
 
 /** connect: a code waiting for its approval on the site (shown here, the same on the page). recordSeconds,
  *  recordMark: on livliv.ai/stage, how long a recording may run and whether it carries the LivLiv mark (the plan's, as
- *  the site's 录制: free 30 s with the mark, paid 5 min); elsewhere unused. linePoints: what a LivLiv line takes, as
- *  the site says it (/api/me), so a new price needs no Stage release */
-export type Account = { status: 'unknown' | 'out' | 'in'; email: string; points: number; error: string; closed: boolean; connect: { code: string; url: string } | null; recordSeconds: number; recordMark: boolean; linePoints: number }
+ *  the site's 录制: free 30 s with the mark, paid 5 min); elsewhere unused. prices: what livliv.ai's text call and voiced
+ *  line take, as the site says them (/api/me), so a new price needs no Stage release; null when it doesn't say */
+export type Prices = { text: number | null; voice: number | null }
+export type Account = { status: 'unknown' | 'out' | 'in'; email: string; points: number; error: string; closed: boolean; connect: { code: string; url: string } | null; recordSeconds: number; recordMark: boolean; prices: Prices }
 const FREE = { recordSeconds: 30, recordMark: true }
-const LINE_POINTS = 0.3  // when the site doesn't say
-let account: Account = { status: 'unknown', email: '', points: 0, error: '', closed: false, connect: null, ...FREE, linePoints: LINE_POINTS }
+let account: Account = { status: 'unknown', email: '', points: 0, error: '', closed: false, connect: null, ...FREE, prices: { text: null, voice: null } }
 const subs = new Set<() => void>()
 const lists = new Map<string, Promise<Voices>>()
 const set = (p: Partial<Account>) => {
@@ -35,6 +36,9 @@ const set = (p: Partial<Account>) => {
   account = { ...account, ...p }; subs.forEach((f) => f())
 }
 export const onAccount = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
+/** once the site has said whether anyone is signed in (at once when it has) */
+export const accountKnown = () => account.status !== 'unknown' ? Promise.resolve()
+  : new Promise<void>((resolve) => { const off = onAccount(() => { if (account.status !== 'unknown') { off(); resolve() } }) })
 export const useAccount = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => account)
 export const signedIn = () => account.status === 'in'
 export const accountNow = () => account
@@ -77,9 +81,10 @@ export async function refresh() {
     // the plan's recording: what the site says, else by the plan (any paid plan: 5 min, no mark)
     const paid = !!me.plan && me.plan !== 'free'
     const plan = { recordSeconds: typeof me.record_seconds === 'number' ? me.record_seconds : paid ? 300 : 30, recordMark: typeof me.record_mark === 'boolean' ? me.record_mark : !paid }
-    const linePoints = typeof me.stage_line_points === 'number' && me.stage_line_points >= 0 ? me.stage_line_points : LINE_POINTS
-    set(me.signed_in ? { status: 'in', email: me.email || me.name || '', points: me.points ?? 0, error: '', ...plan, linePoints }
-      : { status: 'out', email: '', points: 0, ...FREE, linePoints, ...(lapsed ? { error: tr("登录过期了，重新登录一下") } : {}) })
+    const price = (n: unknown) => (typeof n === 'number' && n >= 0 ? n : null)
+    const prices = { text: price(me.stage_text_points), voice: price(me.stage_voice_points) }
+    set(me.signed_in ? { status: 'in', email: me.email || me.name || '', points: me.points ?? 0, error: '', ...plan, prices }
+      : { status: 'out', email: '', points: 0, ...FREE, prices, ...(lapsed ? { error: tr("登录过期了，重新登录一下") } : {}) })
   } catch {
     if (version !== refreshVersion || token() !== session) return
     set({ status: 'out', email: '', points: 0, ...FREE, error: tr("连不上 LivLiv") })
@@ -175,7 +180,7 @@ export function modelId(c: CharacterItem): string | null {
   return m[1] === 'characters' && SAMPLES.find((s) => s.id === m[2])?.onSite === false ? null : m[2]
 }
 
-export type VoiceOption = { id: string; name: string; desc: string; group?: string }
+export type VoiceOption = { id: string; name: string; desc: string; group?: string; core?: boolean }
 export type Voices = { voices: VoiceOption[]; voice: string; own: { id: string; name: string } | null }
 
 /** the voices a character can speak in, and the one it speaks in by default (its own, or its author's pick); with no
@@ -206,31 +211,28 @@ function systemVoices(): Promise<Voices> {
   return p
 }
 
-// the system voices a character that isn't on the site gets when none is chosen for it, by its gender, the best first
-// (the site's 少女 and 少年 groups); each on the stage gets the next free one, either in turn when it isn't known
-const WOMEN = ['longhua', 'longfeifei', 'qiaoxiaojiao', 'longanlingxi', 'anyuqing'].map((v) => `${v}_v3.1`)
-const MEN = ['longanyang', 'longshao', 'longze', 'anmingyuan'].map((v) => `${v}_v3.1`)
-/** the system voice of a character that isn't on the site: its own choice, else one nobody else on the stage has */
-export function systemVoiceOf(c: CharacterItem, cast: readonly CharacterItem[]): string {
-  if (c.voice.livliv) return c.voice.livliv
-  const mine = cast.filter((x) => x.gender === c.gender && !modelId(x) && !x.voice.livliv), i = Math.max(0, mine.findIndex((x) => x.id === c.id))
-  const list = c.gender === 'f' ? WOMEN : c.gender === 'm' ? MEN : WOMEN.flatMap((v, k) => (MEN[k] ? [v, MEN[k]] : [v]))
-  return list[i % list.length]
+const voiced = (c: CharacterItem): Voiced => ({ id: c.id, gender: c.gender, voice: { livliv: c.voice.livliv }, onSite: !!modelId(c) })
+/** the system voice of a character that isn't on the site: its own choice, else one of the site's listing (`voices`) by
+ *  its id (core/systemVoice.ts); '' when there is none to pick: the site speaks by its gender */
+export function systemVoiceOf(c: CharacterItem, cast: readonly CharacterItem[], voices: readonly VoiceOption[] | undefined): string {
+  return systemVoiceFor(voiced(c), cast.map(voiced), voices ?? [])
 }
 
 /** a line in livliv.ai's voice for this character: its own on the site, else its system voice. `line`: the line this is
  *  a sentence of (its sentences share the line's price); none, a line of its own */
-export function livlivLine(c: CharacterItem, text: string, emotion: Emotion, cast: readonly CharacterItem[], signal?: AbortSignal, line?: string): Promise<Clip> {
+export async function livlivLine(c: CharacterItem, text: string, emotion: Emotion, cast: readonly CharacterItem[], signal?: AbortSignal, line?: string): Promise<Clip> {
   const mid = modelId(c)
-  return mid ? voiceLine(mid, text, emotion, c.voice.livliv, signal, line) : voiceLine(null, text, emotion, systemVoiceOf(c, cast), signal, line)
+  if (mid) return voiceLine(mid, text, emotion, c.voice.livliv, signal, line)
+  const listing = c.voice.livliv ? null : await systemVoices().catch(() => null)
+  return voiceLine(null, text, emotion, systemVoiceOf(c, cast, listing?.voices), signal, line, c.gender)
 }
 
 /** a line in the character's voice (`voice`: one of its voices by id, '' its default); with no id, in a system voice.
  *  Stage's price: livliv.ai's by the line (`line`: the one this is a sentence of; none, a line of its own) */
-export async function voiceLine(mid: string | null, text: string, emotion: Emotion, voice: string, signal?: AbortSignal, line?: string): Promise<Clip> {
+export async function voiceLine(mid: string | null, text: string, emotion: Emotion, voice: string, signal?: AbortSignal, line?: string, gender?: 'f' | 'm' | null): Promise<Clip> {
   let r
   try {
-    r = await answer(await post(mid ? `/api/chat/${encodeURIComponent(mid)}/say` : '/api/chat/say', { lines: [{ text, emotion }], voice: voice || null, line: line || uid(), stage: true }, signal))
+    r = await answer(await post(mid ? `/api/chat/${encodeURIComponent(mid)}/say` : '/api/chat/say', { lines: [{ text, emotion }], voice: voice || null, line: line || uid(), stage: true, ...(!mid && !voice && gender ? { gender } : {}) }, signal))
   } catch (e) {
     const status = (e as { status?: number }).status
     if (status === 401 || status === 402) void refresh()  // signed out elsewhere, or out of points
@@ -272,12 +274,15 @@ export async function length(b: Blob) {
 
 type SiteCard = { name: string; persona: string; style: string; examples: string[]; greeting: string; gender: 'f' | 'm' | null }
 const asked = new Set<string>()
+let askedAs = ''  // the account the cards were read as
 /** an account's own character (one of LivLiv's that came without its card) gets its chat card from the site once, so
  *  its lines come from the same card as on the site: what it came with is kept if it was changed here meanwhile.
  *  Signed in only (its own characters are read as the account), and looked for again once signed in */
 export function watchSiteCards() {
   if (!features.points) return () => {}  // a copy hosted elsewhere has no livliv.ai account
   const look = () => {
+    // another account: its own characters are another's, read again
+    if (account.email !== askedAs) { asked.clear(); askedAs = account.email }
     if (!signedIn()) return
     for (const c of store.get().items) {
       if (c.kind !== 'character' || c.remote || c.cardName) continue

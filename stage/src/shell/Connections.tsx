@@ -8,7 +8,7 @@ import { ChevronRight, ExternalLink, LoaderCircle } from 'lucide-react'
 import { tr } from '../i18n'
 import { setLivLiv, useBrainConfig, useLivLiv, wantLivLiv } from '../brain'
 import { features } from '../core/platform'
-import { cancelConnect, connect, openConnect, signedIn, useAccount } from '../livliv'
+import { accountKnown, cancelConnect, connect, openConnect, signedIn, useAccount } from '../livliv'
 import { saveSpeech, SPEECH_UNSET, speechOfModel, useSpeech } from '../voiceApi'
 import { RealtimeModelForm } from '../RealtimeModelForm'
 import { ModelForm, SpeechForm } from './ConnectForms'
@@ -60,15 +60,19 @@ function LivLivSection({ forStart, onContinue, onDone }: { forStart?: boolean; o
   const [waiting, setWaiting] = useState(false)
   const turn = async (want: boolean) => {
     if (!want) { wantLivLiv(false); setLivLiv({ text: false, voice: false }); return }
-    if (account.status === 'in') { setLivLiv({ text: true, voice: true }); return }
-    wantLivLiv(true); setWaiting(true)
+    // the sign-in kept from before is asked about first: signed in, no code is needed
+    setWaiting(true)
+    await accountKnown()
+    if (signedIn()) { setWaiting(false); setLivLiv({ text: true, voice: true }); return }
+    wantLivLiv(true)
     // the site's own sign-in leaves this page: the wish waits for its return
     try { await connect() } finally { setWaiting(false); if (features.host !== 'site' && !signedIn()) wantLivLiv(false) }
   }
   // both parts off: livliv.ai is off
   const part = (p: 'text' | 'voice', value: boolean) => setLivLiv({ ...livliv.chosen, [p]: value })
   return <section className="connect-section livliv" data-section="livliv">
-    <label className="switch main"><span>{tr('用 livliv.ai')}<small className="hint">{tr('按积分')}</small></span>
+    {/* on, the prices are by its two parts */}
+    <label className="switch main"><span>{tr('用 livliv.ai')}{!on && <small className="hint">{tr('按积分')}</small>}</span>
       {account.status === 'in' && <b className="balance num">{tr('{0} 积分', account.points)}</b>}
       <input type="checkbox" checked={on} disabled={waiting && !account.connect} onChange={(e) => void turn(e.target.checked)} /><i /></label>
     {account.connect && <div className="connect-wait">
@@ -77,8 +81,8 @@ function LivLivSection({ forStart, onContinue, onDone }: { forStart?: boolean; o
     </div>}
     {account.status === 'out' && account.error && !account.closed && <p className="hint error" role="alert">{tr(account.error)}</p>}
     {on && <div className="livliv-parts">
-      <label className="switch"><span>{tr('文字')}</span><input type="checkbox" checked={livliv.chosen.text} onChange={(e) => part('text', e.target.checked)} /><i /></label>
-      <label className="switch"><span>{tr('声音')}<small className="hint">{tr('可以在角色卡里单独设置')}</small></span><input type="checkbox" checked={livliv.chosen.voice} onChange={(e) => part('voice', e.target.checked)} /><i /></label>
+      <label className="switch"><span>{tr('文字')}{account.prices.text !== null && <span className="chip price">{tr('{0} 积分/句', account.prices.text)}</span>}</span><input type="checkbox" checked={livliv.chosen.text} onChange={(e) => part('text', e.target.checked)} /><i /></label>
+      <label className="switch"><span>{tr('声音')}{account.prices.voice !== null && <span className="chip price">{tr('{0} 积分/句', account.prices.voice)}</span>}<small className="hint">{tr('可以在角色卡里单独设置')}</small></span><input type="checkbox" checked={livliv.chosen.voice} onChange={(e) => part('voice', e.target.checked)} /><i /></label>
     </div>}
     {forStart && livliv.text && <div className="row end"><button className="primary" onClick={() => { onDone?.(); onContinue() }}>{tr('开始')}</button></div>}
   </section>
