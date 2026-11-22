@@ -38,6 +38,7 @@
     "test:goals": "node test/goals.mjs",
     "test:live": "node test/live.mjs",
     "test:points": "node test/points.mjs",
+    "test:site-phone": "node test/site-phone.mjs",
     "test:say-once": "node test/say-once.mjs",
     "test:recording-scope": "node test/recording-scope.mjs",
     "test:model-switch": "node test/model-switch.mjs",

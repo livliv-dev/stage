@@ -1,4 +1,4 @@
-import { readKeyed, writeKeyed } from './core/secrets'
+import { clearKey, readKeyed, writeKeyed } from './core/secrets'
 import { useSyncExternalStore } from 'react'
 import { aiFetch, loadBrainConfig, previousModelConfig } from './brain'
 import type { Line } from './core/lines'
@@ -40,6 +40,8 @@ export function loadRealtime(): RealtimeSettings {
 export function saveRealtime(settings: RealtimeSettings) {
   void writeKeyed(KEY, settings)
 }
+/** the realtime call's own key cleared (Settings › 连接's 清除), here and in the desktop app's encrypted store */
+export function clearRealtimeKey() { void clearKey(KEY) }
 /** the desktop app opens a realtime WebSocket (Bailian with a standard key); a web page can't */
 export const realtimeSocketHere = () => typeof window !== 'undefined' && !!window.livlivDesktop?.realtimeSocket
 /** a call's settings as it connects: the key and address (the model's, or the speech API's, where they are the same

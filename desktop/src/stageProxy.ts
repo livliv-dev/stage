@@ -4,6 +4,7 @@
 // control API, and each redirect is checked again before it is followed. Plain Node: stageApp.ts hands it the network.
 import { BlockList, isIP } from 'node:net'
 import { REQUEST_HEADER } from './requests'
+import { UNREACHABLE_HEADER } from '#protocol/unreachable'
 
 export const AI_HEADER = 'x-livliv-ai'
 const REDIRECTS = 3
@@ -46,6 +47,8 @@ export function blockedAddress(ip: string, port: number, controlPort: number | n
 }
 
 const fail = (status: number, message: string) => Response.json({ error: { message } }, { status })
+/** no answer from `url`'s host: a 502 naming it in UNREACHABLE_HEADER, for the page to say in its own words */
+const unreachable = (url: URL, why?: string) => Response.json({ error: { message: `连不上 ${url.host}${why ? `（${why}）` : ''}` } }, { status: 502, headers: { [UNREACHABLE_HEADER]: url.host } })
 
 /** why a request may not go to `url`, or null when it may */
 async function refuse(url: URL, deps: ModelDeps): Promise<'blocked' | Response | null> {
@@ -53,8 +56,8 @@ async function refuse(url: URL, deps: ModelDeps): Promise<'blocked' | Response |
   const host = url.hostname.replace(/^\[|\]$/g, '').replace(/\.$/, '').toLowerCase()
   if (METADATA_NAMES.has(host)) return 'blocked'
   let ips: string[]
-  try { ips = isIP(host) ? [host] : await deps.resolve(host) } catch (e) { return fail(502, `连不上 ${url.host}（${(e as Error).message}）`) }
-  if (!ips.length) return fail(502, `连不上 ${url.host}`)
+  try { ips = isIP(host) ? [host] : await deps.resolve(host) } catch (e) { return unreachable(url, (e as Error).message) }
+  if (!ips.length) return unreachable(url)
   const port = Number(url.port) || (url.protocol === 'https:' ? 443 : 80)
   return ips.some((ip) => blockedAddress(ip, port, deps.controlPort())) ? 'blocked' : null
 }
@@ -72,7 +75,7 @@ export async function passToModel(req: Request, to: string, signal: AbortSignal,
     // a redirect somewhere it may not go is the service's doing, not the page's
     if (refused) return refused === 'blocked' ? fail(redirects ? 502 : 400, '接口地址不对') : refused
     let r: Response | Redirect
-    try { r = await deps.hop(url, { method, headers, body, signal }) } catch (e) { return fail(502, `连不上 ${url.host}（${(e as Error).message}）`) }
+    try { r = await deps.hop(url, { method, headers, body, signal }) } catch (e) { return unreachable(url, (e as Error).message) }
     if (r instanceof Response) {
       const out = new Headers(r.headers)
       out.delete('set-cookie')

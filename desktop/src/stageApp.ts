@@ -13,6 +13,7 @@ import { net, protocol, session } from 'electron'
 import { STAGE_SCHEME } from './config'
 import { proxyRequest } from './requests'
 import { forward, passToModel, type HopInit, type ModelDeps, type Redirect } from './stageProxy'
+import { UNREACHABLE_HEADER } from '#protocol/unreachable'
 
 /** before the app is ready */
 export function registerStageScheme() {
@@ -90,6 +91,7 @@ async function pass(req: Request, u: URL, api: string, signal: AbortSignal): Pro
     out.delete('set-cookie')
     return new Response(r.body, { status: r.status, statusText: r.statusText, headers: out })
   } catch {
-    return Response.json({ detail: `连不上 LivLiv（${new URL(api).host}）` }, { status: 502 })
+    // no answer: the page says so in its own words (UNREACHABLE_HEADER)
+    return Response.json({ detail: `连不上 LivLiv（${new URL(api).host}）` }, { status: 502, headers: { [UNREACHABLE_HEADER]: new URL(api).host } })
   }
 }
