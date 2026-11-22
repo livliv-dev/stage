@@ -17,11 +17,11 @@ test('AIRI wherever it fits: the desktop app, a model of one\'s own or livliv.ai
   assert.deepEqual(choose({ show: { kind: 'test' } }), { engine: 'airi', reason: 'airi' }, 'the model card\'s test asks no voice')
 })
 
-test('a copy hosted elsewhere: the standard engine', () => {
+test('a page without AIRI (a desktop bridge without window capture): the standard engine', () => {
   assert.deepEqual(choose({ features: web }), { engine: 'standard', reason: 'web' })
 })
 
-test('livliv.ai/stage: AIRI for 持续聊天 (no window, no game); AI 直播 on the standard engine', () => {
+test('a web page (livliv.ai/stage, a copy hosted elsewhere): AIRI for 持续聊天 (no window, no game); AI 直播 on the standard engine', () => {
   assert.deepEqual(choose({ features: site }), { engine: 'airi', reason: 'airi' })
   assert.deepEqual(choose({ features: site, brain: { kind: 'livliv' } }), { engine: 'airi', reason: 'airi' })
   assert.deepEqual(choose({ features: site, show: { kind: 'live' } }), { engine: 'standard', reason: 'web' })

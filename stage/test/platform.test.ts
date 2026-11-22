@@ -10,8 +10,9 @@ const full = bridge({ vision: {}, airiGame: {}, neuro: {}, tracking: {}, onMotio
 const old = (from: { siteBuild: boolean; appScheme: boolean; bridge: { vision?: unknown; airiGame?: unknown; tracking?: unknown; onMotion?: unknown } | undefined; hasBridge: boolean }) => {
   const onSite = from.siteBuild, inApp = from.appScheme || from.hasBridge, desktop = !!from.bridge
   return {
-    // since then AIRI runs on livliv.ai/stage too (持续聊天 only); window capture has a flag of its own
-    site: onSite, shell: inApp, bridgeChecks: desktop, points: onSite || inApp, collab: !onSite, desktopConsole: !!from.bridge?.vision, airi: !!from.bridge?.vision || onSite, vision: !!from.bridge?.vision,
+    // since then AIRI runs on any web page too, livliv.ai/stage or a copy hosted elsewhere (持续聊天 only); window
+    // capture has a flag of its own
+    site: onSite, shell: inApp, bridgeChecks: desktop, points: onSite || inApp, collab: !onSite, desktopConsole: !!from.bridge?.vision, airi: !!from.bridge?.vision || onSite || !inApp, vision: !!from.bridge?.vision,
     games: !!from.bridge?.airiGame, tracking: !!from.bridge?.tracking && !!from.bridge?.onMotion, globalHotkeys: desktop, appScheme: from.appScheme,
   }
 }
@@ -52,6 +53,11 @@ test('the site inside the desktop shell: the site\'s sign-in and services, the s
 
 test('livliv.ai/stage in a browser: AIRI for 持续聊天, no window capture', () => {
   const f = detectFeatures(HOSTS['livliv.ai/stage in a browser'])
+  assert.equal(f.airi, true); assert.equal(f.vision, false); assert.equal(f.games, false); assert.equal(f.desktopConsole, false)
+})
+
+test('a copy hosted elsewhere: AIRI for 持续聊天, no window capture', () => {
+  const f = detectFeatures(HOSTS['a copy hosted anywhere else (the dev server, your own)'])
   assert.equal(f.airi, true); assert.equal(f.vision, false); assert.equal(f.games, false); assert.equal(f.desktopConsole, false)
 })
 
