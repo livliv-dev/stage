@@ -7,6 +7,7 @@ import type { ReactionCue } from './reactions'
 import type { CharacterItem, Talk } from './scene'
 import type { AiriGameFrame, AiriGameMessage } from '../../protocol/src/airiGame'
 import { aiFetch } from './brain'
+import { firstSeen, historyText, windowStart } from './brains/airiHistory'
 import { airiIdentity, personaOf, type PersonaSpec } from './brains/persona'
 import { readableModelError } from './brains/modelErrors'
 import { parseAiriMarkers } from './airiMarkers'
@@ -146,12 +147,16 @@ function spoken(core: Core, signal: AbortSignal, output: ReadableStreamDefaultCo
   }
 }
 
+/** the conversation as AIRI's history (brains/airiHistory.ts): a window trimmed a step at a time, each user line with the
+ *  time Stage first passed it on, an event line cut short */
 function priorMessages(turn: AiriTurn): Message[] {
-  return turn.lines.filter((line) => !line.cut && (line.human || line.who === turn.actor.id)).slice(-24).map((line) => ({
+  const lines = turn.lines.filter((line) => !line.cut && (line.human || line.who === turn.actor.id))
+  return lines.slice(windowStart(lines.length)).map((line) => ({
     id: line.id,
     role: line.human ? 'user' : 'assistant',
-    content: line.human ? line.name + ': ' + line.text : line.text,
-  }))
+    content: line.human ? line.name + ': ' + historyText(line) : line.text,
+    ...(line.human ? { createdAt: firstSeen(line.id) } : {}),
+  }) as Message)
 }
 
 function addFrame(conversation: Conversation, frame: Frame | undefined): Conversation {
