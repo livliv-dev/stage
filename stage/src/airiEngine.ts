@@ -247,7 +247,7 @@ export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
           const history = priorMessages(turn)
           const context = core.createContextRegistry()
           const { records, index: memoryIndex, longer } = memoryIndexOf(turn.context.memories, turn.context.memoryCount)
-          // the index holds every memory up to 150 characters whole: the tool reads the rest of a longer one
+          // the index holds every memory up to INDEX_CHARS whole: the tool reads the rest of a longer one
           const readTools = longer ? (await core.createMemoryTools({
             read: (id) => {
               signal.throwIfAborted()

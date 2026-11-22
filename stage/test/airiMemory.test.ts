@@ -1,6 +1,6 @@
 // What AIRI is told a character remembers (src/brains/airiMemory.ts): short ids counted from the oldest, stable as
-// memories come and go; the index holding each up to 150 characters; the tool only when one is longer; a body cut to
-// 600; two calls a turn.
+// memories come and go; the index holding each up to 120 characters; the tool only when one is longer; a body cut to
+// 400; two calls a turn.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { airiSystemPrompt, BODY_CHARS, INDEX_CHARS, MAX_REQUESTS, memoryBody, memoryIndexOf } from '../src/brains/airiMemory'
@@ -30,7 +30,7 @@ test('the system prompt: who it is, then the index, and the tool\'s use only whe
   assert.match(airiSystemPrompt('You are Nana.', 'm1 长…', true), /Use builtIn_readMemory/)
 })
 
-test('short memories whole and no tool; a longer one cut at 150 with …, and the tool to read the rest', () => {
+test('short memories whole and no tool; a longer one cut at 120 with …, and the tool to read the rest', () => {
   const short = memoryIndexOf([memory('a\nb', 2), memory('喜欢猫', 1)])
   assert.equal(short.longer, false)
   assert.equal(short.index, 'm1 喜欢猫\nm2 a b')
@@ -39,7 +39,7 @@ test('short memories whole and no tool; a longer one cut at 150 with …, and th
   assert.equal(long.index, 'm1 ' + '长'.repeat(INDEX_CHARS) + '…')
 })
 
-test('a body the tool gives is at most 600 characters; a turn makes at most two calls', () => {
+test('a body the tool gives is at most 400 characters; a turn makes at most two calls', () => {
   assert.equal(memoryBody('长'.repeat(2000)).length, BODY_CHARS)
   assert.equal(memoryBody('短'), '短')
   assert.equal(MAX_REQUESTS, 2)

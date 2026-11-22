@@ -4,9 +4,9 @@
 // the next number and the others keep theirs, also when one drops out of the picked ones. Only when a memory is longer
 // than INDEX_CHARS does AIRI get the tool to read the rest, which gives at most BODY_CHARS of an entry, at most four
 // entries a call (vendor/airi-core/patches.mjs). A turn makes at most MAX_REQUESTS model calls: one round of the tool,
-// then the reply, the last one made without tools. Pure: test/airiMemory.test.ts.
+// then the reply: the last one may not call a tool (so it answers). Pure: test/airiMemory.test.ts.
 
-export const INDEX_CHARS = 150, BODY_CHARS = 600, MAX_REQUESTS = 2
+export const INDEX_CHARS = 120, BODY_CHARS = 400, MAX_REQUESTS = 2
 
 const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim()
 /** a memory as the index shows it: one line, its first INDEX_CHARS */
