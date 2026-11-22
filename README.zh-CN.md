@@ -17,30 +17,24 @@
 
 ## 1.0 预览版新功能
 
-Stage 按「你来做什么」重新整理了一遍。[下载 1.0 预览版](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview)，在 1.0 正式版之前告诉我们哪里不顺手。
+Stage 按「你来做什么」重新整理了一遍。[下载 1.0 预览版](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview)。
 
-- **从目标开始**：**我来演**（可以加一个 AI 搭档）、**AI 来开播**、**和角色聊天**、**做一段视频**。每个目标只列它需要的准备清单，每一项都能**测试**
-- **一个开始按钮**，名字就是它要做的事（**开播**、**开始聊天**、**开录**），旁边三个选项：**谁上场**、**谁在看**、**你参与吗**
-- **私聊留在私下**：直播间、录制或输出窗口开着时，角色不读也不写私聊记忆。状态栏显示现在是私聊还是公开，以及模型、声音和引擎
-- **本机免费的声音**：用 [Voicebox](https://voicebox.sh)（桌面版），没设置别的声音时角色就用它说话，免费开始的对话不会变成付费
-- **角色卡**：导入 SillyTavern 或 AIRI 角色卡（V2 和 V3，JSON 或 PNG）作为角色的人设
-- **设置 → 连接**管所有密钥，服务商允许时一个密钥通用。桌面版用系统加密保存密钥
+- **从目标开始**：**我来演**、**AI 来开播**、**和角色聊天**、**做一段视频**，每个目标只列它需要的准备，一个按钮开始
+- **本机免费的声音**：接入 [Voicebox](https://voicebox.sh)（桌面版）
+- **导入角色卡**：支持 SillyTavern 和 AIRI
 
 ## 其他功能
 
-- 一张舞台最多 30 个角色（浏览器里 15 个）：LivLiv 半身和全身、VRM、PNGTuber，27 个精选角色开箱即用
-- 角色之间互相对话，也回应 Twitch 弹幕，说话时跟着情绪变表情，有长期记忆和实时通话。桌面版每个角色有自己的记忆，由 [Project AIRI](https://github.com/moeru-ai/airi) 驱动
-- 桌面版：游戏连接（Minecraft 用 [Airicraft](https://github.com/proj-airi/airicraft)、Factorio 用 [Autorio](https://github.com/moeru-ai/airi-factorio)，或者让角色看着任意游戏窗口）、Neuro SDK、手机面捕和 VMC/OSC
-- 摄像头面捕、OBS 输出、录视频。基于 [LivLiv Player](https://github.com/livliv-dev/player)
+- 一张舞台最多 30 个角色：LivLiv、VRM、PNGTuber，自带 27 个精选角色
+- 角色之间对话、回应 Twitch 弹幕，有记忆（[Project AIRI](https://github.com/moeru-ai/airi)）和实时通话
+- 面捕、OBS 输出、录视频、游戏连接和 Neuro SDK
 
-AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等），也可以使用 LivLiv.ai 帐号。
-实时通话需要你自己的 OpenAI 或阿里云百炼密钥。
+AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等），也可以用 LivLiv.ai 帐号。
 
 ## 试一试
 
-- **桌面版**：macOS 和 Windows。下载 [1.0 预览版](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview)（预发布），或到 [Releases](https://github.com/livliv-dev/stage/releases/latest) 下载稳定版。
-  GitHub 下载较慢时，可使用[备用下载](https://downloads.livliv.ai/stage/index.html)（稳定版）。
-  macOS 也可以在终端里一行装好稳定版，第一次打开不会被拦：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
+- **桌面版**（macOS、Windows）：[1.0 预览版](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview)，或[稳定版](https://github.com/livliv-dev/stage/releases/latest)（[备用下载](https://downloads.livliv.ai/stage/index.html)）。
+  macOS 也可以用一行命令装稳定版，打开时不会被拦：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **在线（网页版，功能受限）**：[livliv.ai/stage](https://livliv.ai/stage)
 - **从源码运行**：见[开发](#开发)
 
