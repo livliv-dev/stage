@@ -62,8 +62,9 @@ const post = (url: string, body: unknown, signal?: AbortSignal) =>
 let refreshVersion = 0
 export async function refresh() {
   const version = ++refreshVersion, session = token()
-  // no account here: LivLiv isn't asked (a sign-in the app could no longer decrypt: sign in again)
-  if (features.shell && !token()) { set({ status: 'out', email: '', points: 0, ...(lostKey(TOKEN) ? { error: tr('这台电脑上保存的登录读不出来了，请重新登录') } : {}) }); return }
+  // the desktop app with no sign-in of its own: LivLiv isn't asked (a sign-in the app could no longer decrypt: sign in
+  // again). The app showing livliv.ai/stage is the site: its cookie is the sign-in, so the site is asked as in a browser
+  if (features.shell && features.host !== 'site' && !token()) { set({ status: 'out', email: '', points: 0, ...(lostKey(TOKEN) ? { error: tr('这台电脑上保存的登录读不出来了，请重新登录') } : {}) }); return }
   try {
     const me = await answer(await api('/api/me'))
     if (version !== refreshVersion || token() !== session) return
