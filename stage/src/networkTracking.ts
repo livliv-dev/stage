@@ -1,16 +1,16 @@
 import { useSyncExternalStore } from 'react'
 import { defaultParams } from '@livliv-dev/player'
-import { defaultMotionSettings, type MotionEvent, type MotionFrame, type MotionSettings, type MotionState } from '../../desktop/src/trackingProtocol'
+import { defaultMotionSettings, type MotionEvent, type MotionFrame, type MotionSettings, type MotionState } from '../../protocol/src/tracking'
 import { desktop } from './desktopBridge'
+import { features } from './core/platform'
 import type { InputPose } from './inputTracking'
 import { tr } from './i18n'
 
 let state: MotionState = { settings: defaultMotionSettings(), listening: false, addresses: [], source: null, packets: 0, discarded: 0, frame: null, error: null }
 let latest: MotionFrame | null = null, received = 0
 const listeners = new Set<() => void>()
-export const motionSupported = () => !!desktop?.tracking && !!desktop.onMotion
+export const motionSupported = () => features.tracking
 export const useMotion = () => useSyncExternalStore((f) => { listeners.add(f); return () => { listeners.delete(f) } }, () => state)
-export const motionState = () => state
 export const currentMotion = () => ({ frame: latest, active: state.listening && !!latest?.available && performance.now() - received < 500 })
 const frame = (next: MotionFrame | null) => { latest = next; received = next ? performance.now() - Math.max(0, Date.now() - next.at) : 0 }
 const hydrate = (next: MotionState) => { state = next; frame(next.frame); listeners.forEach((f) => f()) }

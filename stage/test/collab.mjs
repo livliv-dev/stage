@@ -4,9 +4,9 @@ import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { startRelay } from '../../collab/server.mjs'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'livliv-stage-collab-'))
 let server, browser, relay, output, stalled
 const stalledSockets = new Set()
@@ -18,9 +18,7 @@ function wav(seconds, hz) {
   return data
 }
 async function serve() {
-  const socket = createServer(); await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve)); const port = socket.address().port; await new Promise((resolve) => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite start timed out')), 15000); server.stdout.on('data', (data) => { if (String(data).includes('Local:')) { clearTimeout(timer); resolve() } }); server.once('exit', (code) => reject(new Error('Vite exited ' + code))) })
+  const port = await freePort(); server = await startVite({ port })
   return `http://127.0.0.1:${port}`
 }
 async function meter(page, ms = 600) {
@@ -65,7 +63,7 @@ try {
       window.RTCPeerConnection = class extends Peer { constructor(config) { super(config); window.testPeers.push(this); const i = window.testPeers.length; this.addEventListener('iceconnectionstatechange', () => window.rtcLog.push([i, 'ice', this.iceConnectionState])); this.addEventListener('connectionstatechange', () => window.rtcLog.push([i, 'connection', this.connectionState])); this.addEventListener('icecandidate', (e) => { if (e.candidate) window.rtcLog.push([i, 'candidate', e.candidate.candidate]) }) } }
     })
     await context.route('**/*', (route) => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) || /^(blob|data):/.test(route.request().url()) ? route.continue() : route.abort())
-    const page = await context.newPage(); pages.push(page); page.on('pageerror', (error) => errors.push(error.message)); page.setDefaultTimeout(20000)
+    const page = await context.newPage(); pages.push(page); page.on('pageerror', (error) => errors.push(error.message)); page.setDefaultTimeout(testTimeout(20000))
     await page.goto(origin, { waitUntil: 'networkidle' })
     await page.evaluate(async ({ format, index }) => {
       const { store, newCharacter, emptyScene, localModels } = await import('/src/scene.ts')
@@ -80,15 +78,18 @@ try {
       store.replace({ ...scene, items: [character] }); store.select(key)
     }, { format, index })
     await page.waitForFunction(() => window.__stage.actors.size === 1 && [...window.__stage.actors.values()][0].status === 'ready')
-    await page.getByRole('button', { name: /^联播/ }).click(); await page.getByLabel('你的名字', { exact: true }).fill(['Host', 'Guest', 'Third'][index])
+    await page.locator('.cast-friend').click(); await page.getByLabel('你的名字', { exact: true }).fill(['Host', 'Guest', 'Third'][index])
   }
   const [host, guest, third] = pages
-  await host.locator('.collab-service summary').click(); await host.getByLabel('服务地址', { exact: true }).fill(service); await host.getByRole('button', { name: '分享并创建联播' }).click()
+  await host.locator('.collab-service summary').click(); await host.getByLabel('服务地址', { exact: true }).fill(service); await host.getByRole('button', { name: '分享并创建好友联播' }).click()
   await host.getByLabel('邀请码', { exact: true }).waitFor(); const invite = await host.getByLabel('邀请码', { exact: true }).inputValue()
   for (const [index, page] of [guest, third].entries()) {
-    await page.getByRole('button', { name: '加入联播', exact: true }).click(); await page.getByLabel('朋友的邀请码', { exact: true }).fill(invite); await page.getByRole('button', { name: '分享并申请加入' }).click(); await page.getByText('等待房主接纳', { exact: true }).waitFor()
+    await page.getByRole('button', { name: '加入好友联播', exact: true }).click(); await page.getByLabel('朋友的邀请码', { exact: true }).fill(invite); await page.getByRole('button', { name: '分享并申请加入' }).click(); await page.getByText('等待房主接纳', { exact: true }).waitFor()
     assert.equal(await page.locator('.room-members').count(), 0)
+    // the host sees the request where 好友联播 is entered: 请朋友上台 counts who waits, by the room's dot
+    await host.locator('.cast-friend .room-count').filter({ hasText: '1' }).waitFor(); assert.equal(await host.locator('.cast-friend .live-dot.on').count(), 1)
     await host.locator('.collab-pending .room-member').filter({ hasText: index ? 'Third' : 'Guest' }).getByRole('button', { name: '接纳', exact: true }).click()
+    await host.locator('.cast-friend .room-count').waitFor({ state: 'detached' })
     for (const target of pages.slice(0, index + 2)) await target.waitForFunction((count) => window.__stage.actors.size === count && [...window.__stage.actors.values()].every((actor) => actor.status === 'ready'), index + 2, { timeout: 30000 })
     if (index === 0) await host.evaluate(async () => { const { record } = await import('/src/tape.ts'); window.testTake = await record(false) })
   }
@@ -114,8 +115,8 @@ try {
   report.tts = await Promise.all([guest, third].map((page) => meter(page, 750))); await speaking
   for (const values of report.tts) { assert.ok(values.find((value) => value.id === ids[0]).peak > .005); assert.ok(values.find((value) => value.id !== ids[0]).peak < .001, JSON.stringify(values)) }
   // Model assets and decoded voices remain exportable after the session has released its remote cast.
-  await guest.getByRole('button', { name: '离开联播', exact: true }).click(); await host.waitForFunction(() => window.__stage.actors.size === 2)
-  await third.getByRole('button', { name: '离开联播', exact: true }).click(); await host.waitForFunction(() => window.__stage.actors.size === 1)
+  await guest.getByRole('button', { name: '离开好友联播', exact: true }).click(); await host.waitForFunction(() => window.__stage.actors.size === 2)
+  await third.getByRole('button', { name: '离开好友联播', exact: true }).click(); await host.waitForFunction(() => window.__stage.actors.size === 1)
   await output.waitForFunction(() => window.__stage.actors.size === 1)
   report.outputReleased = await output.evaluate(async () => [...(await import('/src/scene.ts')).localModels.keys()].filter((key) => key.startsWith('remote:')).length)
   assert.equal(report.outputReleased, 0)
@@ -123,8 +124,8 @@ try {
   assert.equal(report.recording.tracks, 3); assert.equal(report.recording.retained, 3); assert.equal(report.recording.cuts, 0); assert.ok(report.recording.remote.every((size) => size > 1000))
   report.export = await host.evaluate(async () => { const { renderTake } = await import('/src/render.ts'), made = await renderTake(window.savedTake, 'collab-export', () => {}, new AbortController().signal); const video = document.createElement('video'), url = URL.createObjectURL(made.file); video.src = url; video.muted = true; await new Promise((resolve, reject) => { video.onloadeddata = resolve; video.onerror = reject }); const result = { size: made.file.size, width: video.videoWidth, height: video.videoHeight }; URL.revokeObjectURL(url); return result })
   assert.ok(report.export.size > 10000); assert.equal(report.export.width, 640); assert.equal(report.export.height, 360)
-  await host.getByRole('button', { name: '结束联播', exact: true }).click()
-  await host.getByRole('button', { name: '分享并创建联播' }).waitFor()
+  await host.getByRole('button', { name: '结束好友联播', exact: true }).click()
+  await host.getByRole('button', { name: '分享并创建好友联播' }).waitFor()
   const advertised = 'ws://192.168.100.55:5234/room'
   await host.evaluate(async ({ service, advertised }) => (await import('/src/collab/session.ts')).room.create(service, 'Host', 'own-0', false, advertised), { service, advertised })
   await host.getByLabel('邀请码', { exact: true }).waitFor()

@@ -1,4 +1,4 @@
-// Going live from the site (entry.ts, live.ts, GoLive.tsx, outputFeed.ts), on the site's build (VITE_STAGE_HOST=livliv):
+// Going live from the site (entry.ts, characterKeys.ts, GoLive.tsx, outputFeed.ts), on the site's build (VITE_STAGE_HOST=livliv):
 // ?c=<id>&as=face lands in the 开播 shot (green, the character alone, your face and microphone on it), the live keys
 // and the three expression modes, the modes and settings a site character's card gives, the shot reused, ?as=ai with
 // the AI 直播 panel and the 「AI 生成」 label (editor, output window and recording), the LivLiv mark on the output by
@@ -7,11 +7,11 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-live-')), errors = [], report = { artifacts }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -23,9 +23,7 @@ const k01 = JSON.parse(await readFile(join(root, 'public/characters/k01/model.js
 const moved = { ...k01, expressions: k01.expressions.map((x) => ({ ...x, hotkey: { smile: '3', shy: '1', angry: '2', sad: '9' }[x.id] })) }
 const SITE_LIVE = { smooth: 0.8, follow: 1.2, talk: 1.8, bounce: true, autoAway: 120, expr: { shy: { mode: 'hold' }, angry: { mode: 'timed', secs: 1 }, bogus: { mode: 'sometimes' } }, view: { x: 0, y: 0, zoom: 1 } }
 try {
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, VITE_STAGE_HOST: 'livliv' } })
-  await new Promise((resolve, reject) => { const t = setTimeout(() => reject(new Error('Vite timeout')), 15000); server.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(t); resolve() } }); server.once('exit', (c) => { clearTimeout(t); reject(new Error('Vite exited ' + c)) }) })
+  const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: 'livliv' } })
   const origin = 'http://127.0.0.1:' + port
   browser = await chromium.launch({ args: FLAGS })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['camera', 'microphone'] })
@@ -44,7 +42,7 @@ try {
     if (url.hostname === '127.0.0.1' || ['blob:', 'data:'].includes(url.protocol)) return route.continue()
     return route.abort()
   })
-  page = await context.newPage(); page.setDefaultTimeout(30000); page.on('pageerror', (e) => errors.push(e.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(30000)); page.on('pageerror', (e) => errors.push(e.message))
   const live = (id) => page.waitForFunction((id) => { const a = id ? window.__stage.actors.get(id) : [...window.__stage.actors.values()].find((a) => !a.item.hidden); return a?.status === 'ready' && (a.item.driver !== 'face' || a.inputPhase === 'on') }, id, { timeout: 45000 })
   const shot = () => page.evaluate(() => { const s = window.__stage.store, scene = s.get(); return { id: scene.id, name: scene.name, background: scene.background, scenes: s.project().scenes.length, seen: scene.items.filter((i) => !i.hidden).map((i) => ({ kind: i.kind, id: i.id, name: i.name, lines: i.lines, driver: i.driver, faceMic: i.faceMic, x: i.x, w: i.w, h: i.h, smooth: i.smooth, talk: i.talk, autoAway: i.autoAway, exprModes: i.exprModes, follow: i.tuning?.faceFollow, bounce: i.tuning?.bounce })), width: scene.width, height: scene.height } })
   const actor = (id) => page.evaluate((id) => { const a = window.__stage.actors.get(id); return { expression: a.expression, away: a.away } }, id)
@@ -104,7 +102,8 @@ try {
   await page.keyboard.press('3'); assert.equal((await actor(one.id)).expression, 'smile', 'its own key 3 is smile')
   await page.keyboard.press('2'); assert.equal((await actor(one.id)).expression, 'angry')
   await page.waitForFunction((id) => window.__stage.actors.get(id).expression === null, one.id, { timeout: 3000 })
-  // the inspector shows each one's key and mode
+  // the inspector shows each one's key and mode (the card's 身体 page)
+  await page.getByRole('tab', { name: '身体', exact: true }).click()
   await page.locator('.key-modes > summary').click()
   assert.equal(await page.getByLabel(/的触发方式$/).count(), 4)
   report.siteCharacter = { exprModes: one.exprModes, seeded: { smooth: one.smooth, follow: one.follow, talk: one.talk, bounce: one.bounce, autoAway: one.autoAway } }
@@ -139,16 +138,16 @@ try {
   await output.locator('.stage-mark').waitFor()
   report.mark = 'free plan: the mark on the output window; a member: none, as the account changes'
 
-  // AI 直播: the character as AI, the panel open, 「AI 生成」 on the stage, the output and in a recording
+  // AI 来开播: the character as AI, its checklist open, 「AI 生成」 on the stage, the output and in a recording
   await output.close()
   await page.goto(origin + '/?c=k01&as=ai', { waitUntil: 'networkidle' })
   await live()
-  await page.locator('.live-settings').waitFor()
+  await page.locator('.popover.checklist').waitFor()
   const ai = await shot()
   assert.equal(ai.seen.find((i) => i.kind === 'character').lines, 'ai'); assert.ok(ai.seen.some((i) => i.kind === 'subtitle'))
   await page.locator('.stage .ai-label', { hasText: 'AI 生成' }).waitFor()
   await page.screenshot({ path: join(artifacts, 'golive-ai.png') })
-  await page.locator('.live-settings button[data-close]').click()
+  await page.locator('.popover.checklist button[data-close]').click()
   await page.getByRole('button', { name: '输出到 OBS', exact: true }).click()
   const popup2 = page.waitForEvent('popup'); await page.locator('.output-settings').getByRole('button', { name: '打开输出窗口', exact: true }).click()
   const output2 = await popup2; await output2.locator('.ai-label', { hasText: 'AI 生成' }).waitFor()
@@ -172,9 +171,11 @@ try {
 
   // the editor's page out of sight (raw CDP, see the top): poses keep reaching the output window
   profile = await mkdtemp(join(tmpdir(), 'stage-live-cdp-'))
-  chrome = spawn(chromium.executablePath(), ['--headless=new', '--remote-debugging-port=0', '--user-data-dir=' + profile, '--no-first-run', '--no-default-browser-check', '--window-size=1280,800', ...FLAGS, 'about:blank'], { stdio: 'ignore' })
+  // Linux runners (Ubuntu 24.04) refuse Chrome's sandbox; Playwright's own launches go without it there too
+  chrome = spawn(chromium.executablePath(), ['--headless=new', '--remote-debugging-port=0', '--user-data-dir=' + profile, '--no-first-run', '--no-default-browser-check', '--window-size=1280,800', ...(process.platform === 'linux' ? ['--no-sandbox'] : []), ...FLAGS, 'about:blank'], { stdio: 'ignore' })
   let cdpPort
-  for (let i = 0; i < 150 && !cdpPort; i++) { await sleep(100); cdpPort = (await readFile(join(profile, 'DevToolsActivePort'), 'utf8').catch(() => '')).split('\n')[0] }
+  for (let i = 0; i < testTimeout(150) && !cdpPort; i++) { await sleep(100); cdpPort = (await readFile(join(profile, 'DevToolsActivePort'), 'utf8').catch(() => '')).split('\n')[0] }
+  if (!cdpPort) throw new Error('Chromium did not open its DevTools port: ' + chromium.executablePath())
   const ws = new WebSocket((await (await fetch(`http://127.0.0.1:${cdpPort}/json/version`)).json()).webSocketDebuggerUrl); await new Promise((r) => ws.addEventListener('open', r, { once: true }))
   let n = 0; const waiting = new Map()
   ws.addEventListener('message', (e) => { const m = JSON.parse(e.data); const p = waiting.get(m.id); if (p) { waiting.delete(m.id); if (m.error) p.no(new Error(m.error.message)); else p.ok(m.result) } })
@@ -195,13 +196,13 @@ try {
   await until(out, "!!document.querySelector('canvas.character')")
   await evaluate(out, "(() => { window.got = 0; new BroadcastChannel('livliv-stage').onmessage = (e) => { if (e.data.t === 'pose') window.got++ } })()")
   const count = async (label, ms) => { await evaluate(out, 'window.got = 0'); await sleep(ms); const poses = await evaluate(out, 'window.got'), editor = await evaluate(ed, 'document.visibilityState'); return { label, editor, poses, perSecond: +(poses / ms * 1000).toFixed(1) } }
-  const hidden = [await count('editor in sight', 3000)]
+  const hidden = [await count('editor in sight', testTimeout(3000))]
   const { targetId: tab } = await send('Target.createTarget', { url: 'about:blank', newWindow: false }); await send('Target.activateTarget', { targetId: tab }); await sleep(500)
-  hidden.push(await count('another tab in front', 4000))
+  hidden.push(await count('another tab in front', testTimeout(4000)))
   await send('Target.activateTarget', { targetId: editorId }); await sleep(500)
   const { windowId } = await send('Browser.getWindowForTarget', { targetId: editorId })
   await send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'minimized' } }); await sleep(500)
-  hidden.push(await count('editor window minimised', 4000))
+  hidden.push(await count('editor window minimised', testTimeout(4000)))
   await send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'normal' } })
   ws.close()
   report.hiddenEditor = hidden; console.log(JSON.stringify(hidden))

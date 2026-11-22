@@ -1,8 +1,7 @@
 import { ExternalLink } from 'lucide-react'
 import { NetworkPanel } from './NetworkPanel'
-import { motionSupported } from './networkTracking'
 import { StageApiPanel } from './StageApiPanel'
-import { desktop } from './desktop'
+import { features } from './core/platform'
 import { useScene, participants } from './scene'
 import { talk } from './conversation'
 import { NeuroPanel } from './NeuroPanel'
@@ -22,13 +21,14 @@ export function GeneralPanel({ onDesktop, onResetLayout }: { onDesktop?: () => v
       <label className="general-language"><span>{tr("界面语言")}</span><select className="language-select" value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>{LANGUAGES.map((language) => <option key={language.id} value={language.id}>{language.label}</option>)}</select></label>
       <label className="general-language"><span>{tr("画面质量")}</span><select value={quality} onChange={(event) => setQuality(event.target.value as Quality)}>{QUALITIES.map((q) => <option key={q.id} value={q.id}>{tr(q.label)}</option>)}</select></label>
     </section>
-    {motionSupported() && <NetworkPanel />}
+    {/* phone and network tracking: in the desktop app; on the web in its place, marked 桌面版 */}
+    <NetworkPanel />
     <StageApiPanel />
     <NeuroPanel characters={participants(scene).filter((character) => character.lines === 'ai' && !character.remote)} onStart={(character) => talk.startChat('public', character)} />
     <ResetPreferences onResetLayout={onResetLayout} />
     <section className="general-about">
       <h3>{tr("关于")}</h3>
-      <div className="about-brand"><img src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" /><span className="about-version num">v{__STAGE_VERSION__}{!desktop && ` · ${tr("网页版")}`}</span></div>
+      <div className="about-brand"><img src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" /><span className="about-version num">v{__STAGE_VERSION__}{!features.shell && ` · ${tr("网页版")}`}</span></div>
       <p>{tr("面捕出镜、AI 互动和朋友同台。")}</p>
       <span className="about-player">{tr("由 LivLiv Player 驱动")}</span>
       <p className="about-legal">© LivLiv (livliv.ai)<br />{tr("代码采用 Apache 2.0 许可，精选角色另有自己的许可。")}</p>

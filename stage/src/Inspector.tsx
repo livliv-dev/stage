@@ -4,11 +4,11 @@ import { getLocale, tr } from './i18n'
 // what moves it, how it moves and looks; a subtitle's speaker and style; a text's words. With nothing selected, the
 // stage's: shape, background, and the talk rules (order, cutting in, language, length).
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, Captions, Copy, X, Crosshair, Eye, EyeOff, Image as ImageIcon, ImagePlus, LayoutGrid, Lock, LockOpen, Trash, Type, UserRound, Volume2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Captions, Copy, Crosshair, Eye, EyeOff, Image as ImageIcon, ImagePlus, LayoutGrid, Lock, LockOpen, Trash, Type, UserRound, Volume2 } from 'lucide-react'
 import { actors, onActors } from './actors'
 import { talk, useConversation } from './conversation'
 import {
-  bubbleFor, characters, participants, COLORS, DRIVERS, GAZES, LENGTHS, MOTIONS, ORDERS, arrange, reshape, store, SUB_STYLES, useScene,
+  bubbleFor, characters, participants, COLORS, DRIVERS, GAZES, LENGTHS, MOTIONS, arrange, reshape, store, SUB_STYLES, useScene,
   type CharacterItem, type Item, type SubtitleItem, type TextItem,
 } from './scene'
 import { onVoices, voices } from './speech'
@@ -17,7 +17,7 @@ import { VoicePicker } from './VoicePicker'
 import { demoVoice } from './demo'
 import { useBrainConfig } from './brain'
 import { apiVoice, listVoices, speechProviderOf, speechReady, useActiveSpeech, voiceRoute } from './voiceApi'
-import { AudiencePanel } from './AudiencePanel'
+import { detectVoicebox, OPEN_ENGINES, profileName, useVoicebox, voiceboxError, voiceboxHere } from './voicebox'
 import { DevicePanel } from './DevicePanel'
 import { TrackingPanel } from './TrackingPanel'
 import { NetworkPanel } from './NetworkPanel'
@@ -27,8 +27,11 @@ import { PropPanel } from './PropPanel'
 import { AvatarView } from './AvatarView'
 import { SidebarToggle } from './SidebarToggle'
 import { CONTROLS, controlOf, controlSettings } from './workflow'
-import { keysOf, modeOf, MOVE_KEYS } from './live'
+import { keysOf, MOVE_KEYS } from './characterKeys'
+import { modeOf } from './control'
 import { readReactionSettings, type ReactionFeeling } from './reactions'
+import { showCardPage, useCardPage } from './shell/cardPage'
+import { CardImport } from './CardImport'
 
 const settingsLabel = (item?: Item) => tr(item ? ({ character: '角色设置', subtitle: '字幕设置', text: '文字设置', image: '图片设置' })[item.kind] : '舞台设置')
 
@@ -109,6 +112,9 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
   const route = voiceRoute(c, speech), livliv = route === 'livliv'
   const [apiVoices, setApiVoices] = useState<string[]>([])
   useEffect(() => { if (route === 'api') void listVoices(speech).then(setApiVoices) }, [route, speech])
+  // Voicebox's voices are its profiles: looked for again as the page opens
+  const voicebox = useVoicebox(), onVoicebox = speech.provider === 'voicebox'
+  useEffect(() => { if (voiceboxHere()) void detectVoicebox() }, [])
   const test = async () => {
     if (preview.current) { preview.current.abort(); return }
     if (!a || a.status !== 'ready' || conversation.running) return
@@ -138,6 +144,14 @@ function VoiceSection({ c, patch, onAccount, onVoice }: { c: CharacterItem; patc
       ]} />
       {livliv ? <>
         {officialPicker}
+      </> : route === 'api' && onVoicebox ? <>
+        <label className="field spaced"><span>{tr("Voicebox 的声音")}</span>
+          <select value={v.api} onChange={(e) => patch({ voice: { ...v, api: e.target.value } })}>
+            <option value="">{tr("默认（{0}）", profileName(apiVoice({ ...c, voice: { ...v, api: '' } }, speech, participants(store.get()))) || tr("还没有声音"))}</option>
+            {voicebox.profiles.map((p) => <option key={p.id} value={p.id}>{p.name} · {tr(p.kind === 'preset' ? '预设' : p.kind === 'cloned' ? '克隆' : p.kind === 'designed' ? '设计' : '其他')}{OPEN_ENGINES.has(p.engine) ? '' : ` · ${p.engine}`}{p.ready ? '' : ` · ${tr('模型未下载')}`}</option>)}
+          </select>
+        </label>
+        <p className="hint">{voicebox.error ? voiceboxError(voicebox.error, voicebox.detail) : tr("声音在 Voicebox 里添加：预设，或用你的录音克隆。")}</p>
       </> : route === 'api' ? <>
         <label className="field spaced"><span>{tr("音色")}</span>
           <input list={`api-voices-${c.id}`} value={v.api} placeholder={tr("默认（{0}）", apiVoice(c, speech, participants(store.get())).split(':').at(-1) || tr("接口的"))} onChange={(e) => patch({ voice: { ...v, api: e.target.value } })} />
@@ -202,7 +216,8 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
   const tracked = c.driver === 'face' || c.driver === 'replay'
   const speech = useActiveSpeech(), route = voiceRoute(c, speech)
   const talkMotion = voiced && !tracked && (route === 'api' || route === 'livliv')
-  if (c.remote) return <Section title={tr("联播角色")}>
+  const page = useCardPage()
+  if (c.remote) return <Section title={tr("好友联播角色")}>
     <p className="hint">{tr("由 {0} 控制", c.remote.person)}</p>
     <label className="field"><span>{tr("角色名称")}</span><input value={c.name} onChange={(event) => patch({ name: event.target.value })} /></label>
     <Switch label={tr("显示在舞台上")} on={!c.hidden} set={(visible) => patch({ hidden: !visible })} />
@@ -210,16 +225,12 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
     <Switch label={tr("左右翻转")} on={c.mirror} set={(mirror) => patch({ mirror })} />
     <Switch label={tr("投影")} on={c.shadow} set={(shadow) => patch({ shadow })} />
   </Section>
-  return <>
-    <Section title={tr("谁来控制")}>
-      <Seg value={controlOf(c)} options={CONTROLS} set={(control) => { patch(controlSettings(control)); if (control === 'human') talk.setAs(c.id) }} />
+  const control = <Section title={tr("谁来控制")}>
+      <Seg value={controlOf(c)} options={CONTROLS} set={(control) => { patch(controlSettings(control)); if (control === 'me') talk.setAs(c.id) }} />
       <p className="hint">{tr(CONTROLS.find((x) => x.id === controlOf(c))?.hint ?? '')}</p>
       <Switch label={tr("静音角色声音")} on={c.muted} set={(muted) => patch({ muted })} />
     </Section>
-    {c.lines === 'me' && <DevicePanel character={c} />}
-    {voiced && <VoiceSection c={c} patch={patch} onAccount={onAccount} onVoice={onVoice} />}
-    <details className="advanced"><summary>{tr("外观")}</summary>
-    <Section title={tr("外观")}>
+  const looks = <Section title={tr("外观")}>
       <label className="field"><span>{tr("名字")}</span><input value={c.name} onChange={(e) => patch({ name: e.target.value })} /></label>
       <div className="field"><span>{tr("字幕颜色")}</span>
         <div className="row">
@@ -230,9 +241,9 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
       <Switch label={tr("投影")} on={c.shadow} set={(shadow) => patch({ shadow })} hint={tr("身后一层柔和的影子，浅色背景上更立体")} />
       <AvatarView c={c} patch={patch} />
       {!hasBubble && <button className="link" onClick={() => store.add(bubbleFor(c))}>{tr("给它加一个字幕气泡")}</button>}
-    </Section></details>
-    {c.lines === 'ai' && <details className="advanced persona-settings" key={`persona:${c.id}`}><summary>{tr('人设与风格')}</summary>
-      <Section title={tr('人设与风格')}>
+    </Section>
+  const persona = <Section title={tr('人设与风格')}>
+        <CardImport key={c.id} c={c} patch={patch} />
         <label className="field spaced"><span>{tr("人设")}</span>
           {/* its example lines go with the card as written */}
           <textarea rows={3} value={c.persona} placeholder={tr("她是谁、怎么说话，一两句就够")} onChange={(e) => patch({ persona: e.target.value, examples: undefined })} />
@@ -240,19 +251,18 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
         {c.style !== undefined && <label className="field"><span>{tr("说话风格")}</span>
           <textarea rows={3} value={c.style} onChange={(e) => patch({ style: e.target.value, examples: undefined })} />
         </label>}
+        {c.greeting !== undefined && <label className="field"><span>{tr('开场白')}</span>
+          <textarea rows={2} maxLength={400} value={c.greeting} placeholder={tr('没人说话时，它开口的第一句')} onChange={(e) => patch({ greeting: e.target.value })} />
+        </label>}
         <label className="field"><span>{tr('关系设定')}</span><textarea rows={2} maxLength={2000} value={c.relationship ?? ''} placeholder={tr('与操作者和观众是什么关系')} onChange={(event) => patch({ relationship: event.target.value })} /></label>
         <label className="field"><span>{tr('立场与兴趣')}</span><textarea rows={2} maxLength={2000} value={c.stance ?? ''} placeholder={tr('角色坚持的观点、感兴趣的事')} onChange={(event) => patch({ stance: event.target.value })} /></label>
         <div className="field"><span>{tr("每句多长")}</span><Seg value={c.length} options={LENGTHS} set={(length) => patch({ length })} /></div>
         <Slider label={tr("发言频率")} value={c.chatty} min={0.3} max={2} step={0.1} show={c.chatty < 0.8 ? tr("少") : c.chatty > 1.3 ? tr("多") : tr("一般")} set={(chatty) => patch({ chatty })} />
       </Section>
-    </details>}
-    {c.lines === 'ai' && <ReactionSection key={`reactions:${c.id}`} c={c} patch={patch} />}
-    {c.lines === 'me' && <Section title={tr('台词')}>
+  const lines = c.lines === 'me' && <Section title={tr('台词')}>
       <Switch label={tr("用角色的声音念出来")} on={c.readAloud} set={(readAloud) => patch({ readAloud })} hint={tr("关掉：你自己对着麦克风说，控制台打的字只当字幕")} />
-    </Section>}
-    <TrackingPanel c={c} patch={patch} />
-    <details className="advanced"><summary>{tr("动作与更多设置")}</summary>
-    <Section title={tr("动作由什么驱动")}>
+    </Section>
+  const drive = <Section title={tr("动作由什么驱动")}>
       <div className="driver-choices"><Seg value={c.driver} options={DRIVERS.map((d) => ({ id: d.kind, label: d.label, hint: d.hint, disabled: d.kind === 'network' && !motionSupported() }))} set={(driver) => patch({ driver })} /></div>
       {tracked && <>
         <Slider commit label={tr("面捕平滑")} value={c.smooth} min={0} max={1} step={0.05} show={(value) => value < 0.35 ? tr("灵敏") : value > 0.65 ? tr("稳") : tr("适中")} set={(smooth) => patch({ smooth })} />
@@ -268,7 +278,7 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
       </>}
       {c.driver === 'mic' && <Slider label={tr("麦克风灵敏度")} value={c.micGain} min={0.3} max={3} step={0.1} show={`${c.micGain.toFixed(1)}×`} set={(micGain) => patch({ micGain })} />}
     </Section>
-    <Section title={tr("动作")}>
+  const motion = <Section title={tr("动作")}>
       {c.driver !== 'pointer' && <Switch label={tr("待机动作")} on={c.tuning.idle} set={(idle) => patch({ tuning: { ...c.tuning, idle } })} />}
       {talkMotion && <Switch label={tr("说话时轻跳")} on={c.tuning.bounce} set={(bounce) => patch({ tuning: { ...c.tuning, bounce } })} />}
       <Slider label={tr('肩膀与身体摆动')} value={c.tuning.bodyMotion} min={0} max={1} step={0.05} show={`${Math.round(c.tuning.bodyMotion * 100)}%`} set={(bodyMotion) => patch({ tuning: { ...c.tuning, bodyMotion } })} />
@@ -276,8 +286,7 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
       {talkMotion && <Slider label={tr("说话时的动作")} value={c.talk} min={0} max={1.5} step={0.05} show={`${Math.round(c.talk * 100)}%`} set={(t) => patch({ talk: t })} />}
       {!tracked && c.driver !== 'pointer' && c.tuning.idle && <div className="field"><span>{tr("眼神")}</span><Seg value={c.gaze} options={GAZES} set={(gaze) => patch({ gaze })} /></div>}
     </Section>
-    </details>
-    {a?.status === 'ready' && <Section title={a.format === 'png' ? tr("动作") : tr("表情与动作")}>
+  const expressions = a?.status === 'ready' && <Section title={a.format === 'png' ? tr("动作") : tr("表情与动作")}>
       {a.format !== 'png' && <Slider label={tr("表情强度")} value={c.tuning.expressionStrength} min={0} max={1} step={.05} show={`${Math.round(c.tuning.expressionStrength * 100)}%`} set={(expressionStrength) => patch({ tuning: { ...c.tuning, expressionStrength } })} />}
       {a.format !== 'png' && <div className="chips">
         {a.player.expressions.map((x) => <button key={x.id} className={a.expression === x.id ? 'on' : ''} onClick={() => a.setExpression(x.id)}>{nameOf(x)}{keys.get(x.id) && <kbd>{keys.get(x.id)}</kbd>}</button>)}
@@ -302,7 +311,17 @@ function CharacterPanel({ c, patch, onAccount, onVoice }: { c: CharacterItem; pa
           </label>
         })}
       </details>}
-    </Section>}
+    </Section>
+  const voice = voiced && <VoiceSection c={c} patch={patch} onAccount={onAccount} onVoice={onVoice} />
+  const reactions = c.lines === 'ai' && <ReactionSection key={`reactions:${c.id}`} c={c} patch={patch} />
+  // the card in pages (身体 / 谁来演 / 人设和声音): voice only here, who plays it with what moves it in sight
+  return <>
+    <div className="seg card-pages" role="tablist" aria-label={tr('角色卡')}>{([['body', '身体'], ['who', '谁来演'], ['persona', '人设和声音']] as const).map(([id, label]) =>
+      <button key={id} role="tab" aria-selected={page === id} className={page === id ? 'on' : ''} onClick={() => showCardPage(id)}>{tr(label)}</button>)}</div>
+    {page === 'body' && <>{looks}{expressions}{motion}</>}
+    {page === 'who' && <>{control}{c.lines === 'me' && <DevicePanel character={c} />}{drive}<TrackingPanel c={c} patch={patch} />{lines}</>}
+    {page === 'persona' && <>{c.lines === 'ai' ? persona : <p className="hint card-note">{tr('人设只在「AI 来演」时用到。')}</p>}{voice}{reactions}
+      {!voiced && <p className="hint card-note">{tr('这个角色不出声：「只展示」，或者你自己说话。')}</p>}</>}
   </>
 }
 
@@ -398,40 +417,6 @@ function SceneSettings() {
     </Section>
     <Layers />
   </>
-}
-
-/** 对话设置, from the console: who speaks when, interrupting, the language, the pace, viewers' messages (the stage panel
- *  keeps the picture and the layers) */
-export function TalkSettings({ onClose }: { onClose: () => void }) {
-  const { scene } = useScene(), conv = useConversation()
-  const t = scene.talk, cs = participants(scene).filter((c) => c.lines !== 'none')
-  return <div className="card popover talk-settings" onPointerDown={(event) => event.stopPropagation()}>
-    <header><span className="title">{tr('对话设置')}</span><button className="icon" data-close="true" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button></header>
-    <Section title={tr('持续聊天')}>
-      <div className="field"><span>{tr('聊天方式')}</span><Seg value={t.depth ?? 'casual'} options={[{ id: 'casual', label: '日常陪聊' }, { id: 'discussion', label: '深入讨论' }] as const} set={(depth) => store.setTalk({ depth })} /></div>
-      <p className="hint">{tr(t.depth === 'discussion' ? '围绕观点和理由继续聊，回复可以更充分。' : '轻松接话，回复简短自然。')}</p>
-      <label className="field"><span>{tr('主动接话')}</span><select value={t.proactiveSeconds ?? 0} onChange={(event) => store.setTalk({ proactiveSeconds: +event.target.value })}><option value={0}>{tr('等我说话')}</option>{[30, 60, 120].map((seconds) => <option key={seconds} value={seconds}>{tr('安静 {0} 秒后接话', seconds)}</option>)}</select></label>
-      <p className="hint">{tr('没有回应时最多主动接话一次，然后继续等待。')}</p>
-      <label className="field"><span>{tr('说什么语言')}</span><select value={t.language} onChange={(event) => store.setTalk({ language: event.target.value as typeof t.language })}><option value="auto">{tr('跟话题一样')}</option><option value="zh">{tr('中文')}</option><option value="en">English</option><option value="ja">{tr('日本語')}</option></select></label>
-      <details className="chat-limits"><summary>{tr('使用上限 · {0} 分钟 / {1} 次', t.chatMinutes ?? 60, t.chatGenerations ?? 100)}</summary>
-        <label className="field"><span>{tr('时长上限')}</span><select value={t.chatMinutes ?? 60} onChange={(event) => store.setTalk({ chatMinutes: +event.target.value })}>{[15,30,60,120].map((minutes) => <option key={minutes} value={minutes}>{minutes} {tr('分钟')}</option>)}</select></label>
-        <label className="field"><span>{tr('生成次数上限')}</span><input type="number" min={1} max={500} value={t.chatGenerations ?? 100} onChange={(event) => { const value = +event.target.value; if (Number.isInteger(value) && value >= 1 && value <= 500) store.setTalk({ chatGenerations: value }) }} /></label>
-      </details>
-    </Section>
-    <details className="advanced"><summary>{tr('对谈与直播设置')}</summary>
-      <Section title={tr('谁先说、谁接话')}>
-        <Seg value={t.order} options={ORDERS} set={(order) => store.setTalk({ order, host: order === 'host' ? t.host ?? cs[0]?.id ?? null : t.host })} />
-        {t.order === 'host' && <label className="field spaced"><span>{tr('主持人')}</span><select value={t.host ?? ''} onChange={(event) => store.setTalk({ host: event.target.value || null })}>{cs.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}</select></label>}
-        <div className="field spaced"><span>{tr('AI 抢话')}</span><Seg value={t.interrupt} options={[{ id: 0, label: '不抢' }, { id: 1, label: '偶尔' }, { id: 2, label: '经常' }] as const} set={(interrupt) => store.setTalk({ interrupt })} /></div>
-        <div className="field"><span>{tr('对谈时，你在控制台说话')}</span><Seg value={t.cutIn ? 'cut' : 'wait'} options={[{ id: 'wait', label: '等这句说完' }, { id: 'cut', label: '立刻打断' }] as const} set={(value) => store.setTalk({ cutIn: value === 'cut' })} /></div>
-      </Section>
-      <Section title={tr('节奏')}>
-        <Slider label={tr('一轮最多几句（AI）')} value={conv.limit} min={2} max={60} show={String(conv.limit)} set={talk.setLimit} />
-        <Slider label={tr('句子之间停多久')} value={conv.gap} min={0} max={3} step={0.1} show={tr('{0} 秒', conv.gap.toFixed(1))} set={talk.setGap} />
-      </Section>
-      <AudiencePanel preferences />
-    </details>
-  </div>
 }
 
 const KIND_ICON = { character: UserRound, subtitle: Captions, text: Type, image: ImageIcon }

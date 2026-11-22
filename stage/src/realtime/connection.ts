@@ -56,20 +56,62 @@ export function offerRequest(options: RealtimeOptions, sdp: string, signal: Abor
     headers.set('Content-Type', 'application/sdp'); body = sdp
   }
   const target = new URL(url)
-  if (!['https:', 'http:'].includes(target.protocol) || target.username || target.password) throw new Error('实时语音接口地址无效')
+  if (!['https:', 'http:'].includes(target.protocol) || target.username || target.password) throw new Error('实时通话接口地址无效')
   return { url, init: { method: 'POST', headers, body, signal } satisfies RequestInit }
 }
 
+/** a call's connection, whichever way it goes: WebRTC here, a WebSocket in socket.ts */
+export interface RealtimeCall {
+  start(): Promise<void>
+  send(event: Record<string, unknown>): boolean
+  pause(paused: boolean): void
+  stop(): void
+}
+
+/** the requests a call makes that the service may refuse (a cancel, a create), and what a refusal means */
+export class RealtimeRequests {
+  private readonly cancellations = new Set<string>()
+  private readonly creations = new Set<string>()
+  /** an outgoing event, with an id for a cancel or a create, remembered */
+  mark(event: Record<string, unknown>) {
+    if (event.type === 'response.cancel') {
+      const id = typeof event.event_id === 'string' ? event.event_id : 'cancel_' + crypto.randomUUID()
+      event = { ...event, event_id: id }; this.cancellations.add(id)
+      if (this.cancellations.size > 32) this.cancellations.delete(this.cancellations.values().next().value!)
+    }
+    if (event.type === 'response.create') {
+      const id = typeof event.event_id === 'string' ? event.event_id : 'create_' + crypto.randomUUID()
+      event = { ...event, event_id: id }; this.creations.add(id)
+      if (this.creations.size > 32) this.creations.delete(this.creations.values().next().value!)
+    }
+    return event
+  }
+  /** a service error: one of ours refused (the call goes on), else the error the call ends with */
+  refused(error: { event_id?: unknown; code?: unknown; message?: unknown } | undefined): { id: string; reason: 'inactive' | 'busy' } | Error {
+    const cancelling = typeof error?.event_id === 'string' && this.cancellations.delete(error.event_id)
+    // Completion and a local cancellation can cross in flight. Ignore only this cancellation's no-active-response error.
+    if (cancelling && (error?.code === 'response_cancel_not_active' || (typeof error?.message === 'string' && /no active response|no response (?:is )?in progress|response.*(?:not active|already (?:completed|finished))/i.test(error.message)))) {
+      return { id: error!.event_id as string, reason: 'inactive' }
+    }
+    const creating = typeof error?.event_id === 'string' && this.creations.delete(error.event_id)
+    if (creating && (error?.code === 'conversation_already_has_active_response' || (typeof error?.message === 'string' && /already.*(?:active response|response.*in progress)/i.test(error.message)))) {
+      return { id: error!.event_id as string, reason: 'busy' }
+    }
+    if (error?.code === 'COMMON_ERROR' && typeof error.message === 'string' && /\bInternalError\./.test(error.message)) return new Error('实时通话服务暂时出错，请稍后重新开始')
+    return new Error('实时通话服务拒绝了请求，请检查模型、音色和权限')
+  }
+  clear() { this.cancellations.clear(); this.creations.clear() }
+}
+
 /** Audio travels in both directions on media tracks. No recorded-file upload or per-sentence TTS is involved. */
-export class RealtimeConnection {
+export class RealtimeConnection implements RealtimeCall {
   private readonly controller = new AbortController()
   private pc: RTCPeerConnection | null = null
   private sender: RTCRtpSender | null = null
   private microphone: MediaStream | null = null
   private remote = new Set<MediaStreamTrack>()
   private channels = new Set<RTCDataChannel>()
-  private cancellations = new Set<string>()
-  private creations = new Set<string>()
+  private readonly requests = new RealtimeRequests()
   private channel: RTCDataChannel | null = null
   private created = false
   private configured = false
@@ -101,13 +143,13 @@ export class RealtimeConnection {
       pc.onconnectionstatechange = () => {
         if (this.closed) return
         if (pc.connectionState === 'connected') this.configure()
-        else if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) this.fail(new Error('实时语音连接已断开，请重新开始'))
+        else if (['failed', 'disconnected', 'closed'].includes(pc.connectionState)) this.fail(new Error('实时通话连接已断开，请重新开始'))
       }
       const microphone = await this.deps.microphone()
       if (this.closed) { microphone.getTracks().forEach((track) => track.stop()); return }
       this.microphone = microphone
       for (const track of microphone.getAudioTracks()) track.onended = () => this.fail(new Error('麦克风已断开，请重新开始'))
-      this.timer = setTimeout(() => this.fail(new Error('实时语音连接超时，请检查接口地址和网络')), 25_000)
+      this.timer = setTimeout(() => this.fail(new Error('实时通话连接超时，请检查接口地址和网络')), 25_000)
       await pc.setLocalDescription(await pc.createOffer())
       if (this.closed) return
       await this.gatherIce(pc)
@@ -122,7 +164,7 @@ export class RealtimeConnection {
       }
       const sdp = (await response.text()).trim().replace(/\r?\n/g, '\r\n') + '\r\n'
       if (this.closed) return
-      if (!sdp.startsWith('v=0\r\n')) throw new Error('实时语音接口没有返回有效连接信息')
+      if (!sdp.startsWith('v=0\r\n')) throw new Error('实时通话接口没有返回有效连接信息')
       await pc.setRemoteDescription({ type: 'answer', sdp })
     } catch (error) { if (!this.closed) this.fail(error instanceof Error ? error : new Error(String(error))) }
   }
@@ -149,30 +191,20 @@ export class RealtimeConnection {
       if (this.closed) return
       try {
         const event: unknown = JSON.parse(data)
-        if (!event || typeof event !== 'object' || !('type' in event) || typeof event.type !== 'string') throw new Error('实时语音事件无效')
+        if (!event || typeof event !== 'object' || !('type' in event) || typeof event.type !== 'string') throw new Error('实时通话事件无效')
         this.receive(event as ModelEvent, channel)
-      } catch (error) { this.fail(error instanceof Error ? error : new Error('实时语音事件无效')) }
+      } catch (error) { this.fail(error instanceof Error ? error : new Error('实时通话事件无效')) }
     }
-    channel.onclose = () => { this.channels.delete(channel); if (!this.closed && channel === this.channel) this.fail(new Error('实时语音连接已断开，请重新开始')) }
-    channel.onerror = () => { if (!this.closed) this.fail(new Error('实时语音连接已断开，请重新开始')) }
+    channel.onclose = () => { this.channels.delete(channel); if (!this.closed && channel === this.channel) this.fail(new Error('实时通话连接已断开，请重新开始')) }
+    channel.onerror = () => { if (!this.closed) this.fail(new Error('实时通话连接已断开，请重新开始')) }
   }
 
   private receive(event: ModelEvent, channel: RTCDataChannel) {
     if (event.type === 'error') {
-      const error = event.error as { event_id?: unknown; code?: unknown; message?: unknown } | undefined
-      const cancelling = typeof error?.event_id === 'string' && this.cancellations.delete(error.event_id)
-      // Completion and a local cancellation can cross in flight. Ignore only this cancellation's no-active-response error.
-      if (cancelling && (error?.code === 'response_cancel_not_active' || (typeof error?.message === 'string' && /no active response|no response (?:is )?in progress|response.*(?:not active|already (?:completed|finished))/i.test(error.message)))) {
-        this.handlers.requestRejected?.(error!.event_id as string, 'inactive'); return
-      }
-      const creating = typeof error?.event_id === 'string' && this.creations.delete(error.event_id)
-      if (creating && (error?.code === 'conversation_already_has_active_response' || (typeof error?.message === 'string' && /already.*(?:active response|response.*in progress)/i.test(error.message)))) {
-        this.handlers.requestRejected?.(error!.event_id as string, 'busy'); return
-      }
-      if (error?.code === 'COMMON_ERROR' && typeof error.message === 'string' && /\bInternalError\./.test(error.message)) {
-        this.fail(new Error('实时语音服务暂时出错，请稍后重新开始')); return
-      }
-      this.fail(new Error('实时语音服务拒绝了请求，请检查模型、音色和权限')); return
+      const refused = this.requests.refused(event.error as { event_id?: unknown; code?: unknown; message?: unknown } | undefined)
+      if (refused instanceof Error) this.fail(refused)
+      else this.handlers.requestRejected?.(refused.id, refused.reason)
+      return
     }
     if (event.type === 'session.created') { this.created = true; this.channel = channel; this.configure() }
     if (event.type === 'session.updated' && this.configured && !this.ready) {
@@ -192,17 +224,7 @@ export class RealtimeConnection {
 
   send(event: Record<string, unknown>) {
     if (this.closed || this.channel?.readyState !== 'open') return false
-    if (event.type === 'response.cancel') {
-      const id = typeof event.event_id === 'string' ? event.event_id : 'cancel_' + crypto.randomUUID()
-      event = { ...event, event_id: id }; this.cancellations.add(id)
-      if (this.cancellations.size > 32) this.cancellations.delete(this.cancellations.values().next().value!)
-    }
-    if (event.type === 'response.create') {
-      const id = typeof event.event_id === 'string' ? event.event_id : 'create_' + crypto.randomUUID()
-      event = { ...event, event_id: id }; this.creations.add(id)
-      if (this.creations.size > 32) this.creations.delete(this.creations.values().next().value!)
-    }
-    this.channel.send(JSON.stringify(event)); return true
+    this.channel.send(JSON.stringify(this.requests.mark(event))); return true
   }
 
   pause(paused: boolean) {
@@ -215,7 +237,7 @@ export class RealtimeConnection {
     this.closed = true; clearTimeout(this.timer); this.controller.abort()
     this.microphone?.getTracks().forEach((track) => { track.onended = null; track.stop() }); this.microphone = null
     for (const channel of this.channels) channel.close()
-    this.channels.clear(); this.cancellations.clear(); this.creations.clear(); this.channel = null
+    this.channels.clear(); this.requests.clear(); this.channel = null
     this.pc?.close(); this.pc = null
     for (const track of this.remote) track.stop()
     this.remote.clear(); this.handlers.closed()

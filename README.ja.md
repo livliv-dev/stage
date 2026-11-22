@@ -16,15 +16,19 @@
 <p align="center"><img src="media/demo.gif" alt="Ruri、Nana、Konatsu がひとつのステージで会話する様子（吹き出し付き）" width="720"></p>
 
 - ひとつのステージに最大 30 体（ブラウザでは 15 体）：LivLiv の半身・全身、VRM、PNGTuber
-- 長期記憶とリアルタイム音声会話
+- やりたいことから始める：**自分で演じる**（AI パートナーも追加可）、**AI が配信**、**キャラと話す**、**動画を作る**。それぞれ必要なものだけの準備リストが開きます
+- 長期記憶とリアルタイム通話
 - キャラクター同士の掛け合いと、Twitch コメントへの返事
 - 話しながら感情に合わせて変わる表情
+- デスクトップ版の AI チャット：キャラクターごとに記憶を持ちます。[Project AIRI](https://github.com/moeru-ai/airi) を利用
+- デスクトップ版のゲーム接続：Minecraft（[Airicraft](https://github.com/proj-airi/airicraft)）、Factorio（[Autorio](https://github.com/moeru-ai/airi-factorio)）、または任意のゲームウィンドウ
 - Neuro SDK に標準対応（デスクトップ版）
+- [Voicebox](https://voicebox.sh) でこのコンピューター上の無料の声（デスクトップ版）：起動していれば見つけて、ほかの声が未設定ならキャラクターの声に使います
 - 基本機能：Web カメラのフェイストラッキング（スマホアプリと VMC/OSC はデスクトップ版）、OBS 出力、動画の録画
 - 厳選キャラクター 27 体、すぐに使えます。[LivLiv Player](https://github.com/livliv-dev/player) がベース
 
 AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）、または LivLiv.ai アカウントで利用できます。
-リアルタイム音声には OpenAI か Alibaba Cloud Bailian のキーが必要です。
+リアルタイム通話には OpenAI か Alibaba Cloud Bailian のキーが必要です。
 
 ## 試してみる
 
@@ -61,9 +65,10 @@ npm --prefix desktop ci && npm --prefix desktop run stage:dev  # デスクトッ
 ```
 
 テスト：`npm --prefix stage run check && npm --prefix stage test`、`npm --prefix desktop test`、`npm --prefix collab test`。
-AI チャットと記憶は [docs/ai-conversations.md](docs/ai-conversations.md)、リアルタイム音声は [docs/realtime-voice.md](docs/realtime-voice.md)、
-Neuro SDK ブリッジは [neuro/README.md](neuro/README.md)、ローカル制御 API は [docs/stage-api.md](docs/stage-api.md)、共同配信は [collab/README.md](collab/README.md) にあります。
-モデルの API キーはブラウザかアプリの中にだけ保存され、サービスへ直接送られます。コントリビュートは [CONTRIBUTING.md](CONTRIBUTING.md)、
+ブラウザのテストは [stage/package.json](stage/package.json) の `test:*` スクリプトです。プルリクエストごとに GitHub Actions がこれらを実行します。
+AI チャットと記憶は [docs/ai-conversations.md](docs/ai-conversations.md)、リアルタイム通話は [docs/realtime-voice.md](docs/realtime-voice.md)、
+Neuro SDK ブリッジは [neuro/README.md](neuro/README.md)、ローカル制御 API は [docs/stage-api.md](docs/stage-api.md)、フレンドコラボは [collab/README.md](collab/README.md) にあります。
+モデルの API キーはブラウザかアプリの中にだけ保存され、サービスへ直接送られます。デスクトップ版はキーと LivLiv のログインをシステムの暗号化（キーチェーン、DPAPI、Linux のキーリング）で保存し、書き込めたらページのストレージから移します。コントリビュートは [CONTRIBUTING.md](CONTRIBUTING.md)、
 セキュリティの報告は [SECURITY.md](SECURITY.md) へ。
 
 ## ライセンス

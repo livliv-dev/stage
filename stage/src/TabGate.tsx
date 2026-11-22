@@ -8,7 +8,7 @@ import { recording } from './recording'
 import { conversation } from './conversation'
 import { isOutput, outputOpen } from './link'
 
-const BUSY = { rec: '录制', talk: '对谈', out: 'OBS 输出' } as const
+const BUSY = { rec: '录制', talk: '聊天', out: 'OBS 输出' } as const
 
 // the output window never edits: it takes no part
 if (!isOutput) startTabs({

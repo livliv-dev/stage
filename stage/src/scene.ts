@@ -3,8 +3,7 @@ import { tr } from './i18n'
 // origin). A character has two separate choices: what moves it (its driver: by itself, a face, the microphone, the
 // mouse) and who gives it its lines (AI, you, or nobody). Kept in a small store the components read with useScene(),
 // with undo / redo; saved in localStorage; imported model files are kept in IndexedDB.
-import { shareCast, type Project } from './shots'
-import { readAttachment, type PropAttachment } from './attachments'
+import { readAttachment, type PropAttachment } from './attachmentData'
 import { readAudienceRules, type AudienceRule } from './triggers'
 import { readReactionSettings, type ReactionSettings } from './reactions'
 import { useSyncExternalStore } from 'react'
@@ -66,9 +65,10 @@ export type CharacterItem = Box & {
   reactions?: ReactionSettings
   relationship?: string
   stance?: string
-  /** from a sample's card: how it talks, example lines (the prompt's, Chinese only), a line about it for the others'
-   *  prompts, the name the card was written with (a rename shows through), its gender for picking a voice */
-  style?: string; examples?: string[]; tagline?: string; cardName?: string; gender?: 'f' | 'm'
+  /** from a sample's card, or one imported (characterCard.ts): how it talks, example lines (the prompt's, when the
+   *  reply is in their language), a line about it for the others' prompts, the name the card was written with (a rename
+   *  shows through), its gender for picking a voice, its first message (the line it opens with when nothing was said) */
+  style?: string; examples?: string[]; tagline?: string; cardName?: string; gender?: 'f' | 'm'; greeting?: string
   driver: DriverKind
   lines: LinesBy
   /** a line you type is said in the character's voice (off: you speak for real, it only shows the words) */
@@ -96,7 +96,7 @@ export type CharacterItem = Box & {
   faceMic?: boolean
   /** seconds without a face before it dozes off by itself (away), 0 never; unset: AUTO_AWAY */
   autoAway?: number
-  /** how its number keys show each expression, by id (live.ts); one not here goes on and off */
+  /** how its number keys show each expression, by id (characterKeys.ts, control.ts); one not here goes on and off */
   exprModes?: Record<string, ExprMode>
 }
 /** how a number key shows an expression live: on and off (toggle), while held (hold), or for `secs` seconds (timed).
@@ -158,7 +158,24 @@ export type Talk = {
   danmaku: 0 | 1 | 2
   triggersOn: boolean
   triggers: AudienceRule[]
+  /** what the console's main button starts: set by the template the stage came from (templates.ts); unset, 持续聊天 */
+  start?: StartKind
+  /** what the stage is for (the start page's goals, shell/goals.ts), and how its start was last set: who watches,
+   *  how you take part */
+  goal?: Goal
+  audience?: Audience
+  you?: You
 }
+/** the start page's goals: 我来演, AI 来开播, 和角色聊天, 做一段视频 */
+export type Goal = 'perform' | 'live' | 'chat' | 'video'
+/** 谁在看: only you, or a live audience (AI 直播) */
+export type Audience = 'me' | 'live'
+/** 你参与吗: not (the characters talk among themselves), typing, holding to talk, hands-free, on camera */
+export type You = 'none' | 'type' | 'hold' | 'handsfree' | 'camera'
+const GOAL_IDS: Goal[] = ['perform', 'live', 'chat', 'video'], AUDIENCE_IDS: Audience[] = ['me', 'live'], YOU_IDS: You[] = ['none', 'type', 'hold', 'handsfree', 'camera']
+/** the sessions a template's main button can start: 持续聊天, 对谈, AI 直播 */
+export type StartKind = 'chat' | 'conversation' | 'live'
+const START_KINDS: StartKind[] = ['chat', 'conversation', 'live']
 
 export type Scene = {
   id: string
@@ -234,7 +251,9 @@ function withoutLive(i: CharacterItem): CharacterItem {
  *  from this browser's kept packages (vault.ts); one that isn't kept here says so on the stage */
 export function loadable(s: Partial<Scene> | null, keepRemote = true): Scene | null {
   if (!s || !Array.isArray(s.items)) return null
-  const value: Scene = { ...emptyScene(), ...s, id: typeof s.id === 'string' && s.id ? s.id : uid(), talk: { ...TALK, ...s.talk, depth: s.talk?.depth === 'discussion' ? 'discussion' : 'casual', proactiveSeconds: [30, 60, 120].includes(s.talk?.proactiveSeconds ?? 0) ? s.talk!.proactiveSeconds : 0, chatMinutes: [15, 30, 60, 120].includes(s.talk?.chatMinutes ?? 0) ? s.talk!.chatMinutes : 60, chatGenerations: Number.isInteger(s.talk?.chatGenerations) && s.talk!.chatGenerations! >= 1 && s.talk!.chatGenerations! <= 500 ? s.talk!.chatGenerations : 100, triggersOn: s.talk?.triggersOn === true, triggers: readAudienceRules(s.talk?.triggers ?? []) ?? [] }, items: s.items.map(normalize) }
+  const value: Scene = { ...emptyScene(), ...s, id: typeof s.id === 'string' && s.id ? s.id : uid(), talk: { ...TALK, ...s.talk, depth: s.talk?.depth === 'discussion' ? 'discussion' : 'casual', proactiveSeconds: [30, 60, 120].includes(s.talk?.proactiveSeconds ?? 0) ? s.talk!.proactiveSeconds : 0, chatMinutes: [15, 30, 60, 120].includes(s.talk?.chatMinutes ?? 0) ? s.talk!.chatMinutes : 60, chatGenerations: Number.isInteger(s.talk?.chatGenerations) && s.talk!.chatGenerations! >= 1 && s.talk!.chatGenerations! <= 500 ? s.talk!.chatGenerations : 100, triggersOn: s.talk?.triggersOn === true, triggers: readAudienceRules(s.talk?.triggers ?? []) ?? [],
+    goal: GOAL_IDS.includes(s.talk?.goal as Goal) ? s.talk!.goal : undefined, audience: AUDIENCE_IDS.includes(s.talk?.audience as Audience) ? s.talk!.audience : undefined, you: YOU_IDS.includes(s.talk?.you as You) ? s.talk!.you : undefined }, items: s.items.map(normalize) }
+  if (value.talk.start !== undefined && !START_KINDS.includes(value.talk.start)) delete value.talk.start
   return keepRemote ? value : persistentScene(value)
 }
 
@@ -466,6 +485,29 @@ export const store = {
 export function useScene() { return useSyncExternalStore(store.subscribe, () => snapshot) }
 
 export function uid() { return Math.random().toString(36).slice(2, 10) }
+export type Project = { active: string; scenes: Scene[] }
+
+/** A shot owns placement and framing; the cast keeps its devices, voice and identity across cuts. */
+export function shareCast(scenes: Scene[], active: Scene): Scene[] {
+  const cast = new Map<string, CharacterItem>()
+  for (const scene of [...scenes.filter((s) => s.id !== active.id), active]) {
+    for (const item of scene.items) if (item.kind === 'character') cast.set(item.id, item)
+  }
+  return scenes.map((scene) => {
+    const present = new Set(scene.items.map((i) => i.id))
+    const items = scene.items.map((item) => {
+      if (item.kind !== 'character') return item
+      const source = cast.get(item.id)!
+      if (source === item) return item
+      return { ...source, x: item.x, y: item.y, w: item.w, h: item.h, hidden: item.hidden, locked: item.locked,
+        mirror: item.mirror, shadow: item.shadow, color: item.color, tuning: { ...source.tuning, view: item.tuning.view } }
+    })
+    for (const item of cast.values()) if (!present.has(item.id)) items.push({ ...item, hidden: true })
+    if (scene.topic === active.topic && scene.talk === active.talk && items.length === scene.items.length && items.every((item, i) => item === scene.items[i])) return scene
+    return { ...scene, topic: active.topic, talk: active.talk, items }
+  })
+}
+
 export const participants = (s: Scene) => s.items.filter((i): i is CharacterItem => i.kind === 'character')
 export const characters = (s: Scene) => participants(s).filter((i) => !i.hidden)
 

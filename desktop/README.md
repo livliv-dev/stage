@@ -13,6 +13,8 @@ npm run stage:win       # Windows NSIS 安装包
 
 `npm run test:stage`、`test:stage-api` 和 `test:stage-contexts`（在 Stage 的开发服务上放 20 个角色，看 WebGL 上下文够不够，做完一段视频后是否都还在）启动真实的 Electron 窗口，需要先在 `stage/` 装好 Playwright；脚本目前使用 macOS 的 Electron 可执行文件路径。
 
+同样启动 Electron 窗口的还有：`test:stage-collab`（好友联播）、`test:handsfree-stage`（免按键语音）、`test:neuro-stage`（Neuro 游戏接口）、`test:tracking`（手机和 VMC/OSC 面捕），以及 `test:airi-stage` 和 `test:airi-native-games`（内置 AIRI 与游戏连接，脚本会先把 Stage 的开发版构建到 `stage/dist-dev`）。这些只在本机跑；GitHub Actions 只跑 `npm test`。
+
 网站外壳：`npm run dev` 连本机网页开发服务（`LIVLIV_URL`，默认 `http://127.0.0.1:5173`），`npm start` 连 https://livliv.ai，`npm run pack` 写入 `release/`。
 
 开发时可用的参数（打包后忽略）：

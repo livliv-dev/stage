@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-chat-'))
 let server, browser, page
@@ -19,16 +18,7 @@ function wav() {
   return buffer
 }
 try {
-  const socket = createServer(); await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve))
-  const port = socket.address().port; await new Promise((resolve) => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--configLoader', 'native', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  let output = ''
-  await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Vite did not start: ' + output)), 20000)
-    server.stdout.on('data', (bytes) => { output += String(bytes); if (output.includes('Local:')) { clearTimeout(timer); resolve() } })
-    server.stderr.on('data', (bytes) => { output += String(bytes) })
-    server.once('exit', (code) => { clearTimeout(timer); reject(new Error('Vite exited ' + code + ': ' + output)) })
-  })
+  const port = await freePort(); server = await startVite({ port, args: ['--configLoader', 'native'] })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   await context.addInitScript(() => { localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1') })
@@ -48,7 +38,7 @@ try {
     if (['127.0.0.1', 'localhost'].includes(url.hostname) || ['data:', 'blob:'].includes(url.protocol)) await route.continue()
     else await route.abort()
   })
-  page = await context.newPage(); page.setDefaultTimeout(15000); page.on('pageerror', (error) => errors.push(error.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(15000)); page.on('pageerror', (error) => errors.push(error.message))
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'networkidle' })
   await page.evaluate(async () => {
     const { store, emptyScene, newCharacter } = await import('/src/scene.ts')
@@ -64,7 +54,7 @@ try {
   })
   await page.waitForFunction(() => [...window.__stage.actors.values()].length === 1 && [...window.__stage.actors.values()].every((actor) => actor.status === 'ready'))
   await page.evaluate(() => { window.__speechEvents = []; window.__stage.talk.onSpeech((event) => window.__speechEvents.push(event)) })
-  await page.getByRole('button', { name: '持续聊天', exact: true }).click()
+  await page.locator('.console .start-button').click()
   await page.waitForFunction(() => window.__stage.conversation().waitingInput)
   assert.equal(await page.evaluate(() => window.__speechEvents.filter((event) => event.final === true).length), 1, 'segmented replies publish only one final speech event')
   const send = async (text) => {
@@ -81,7 +71,7 @@ try {
   await page.evaluate(() => window.__stage.talk.stop())
   await page.reload({ waitUntil: 'networkidle' })
   await page.waitForFunction((id) => window.__stage.conversation().sessionId === id && window.__stage.conversation().lines.some((line) => line.text.includes('暗号')), privateId)
-  await page.getByRole('button', { name: '持续聊天', exact: true }).click()
+  await page.locator('.console .start-button').click()
   await page.waitForFunction(() => window.__stage.conversation().waitingInput)
   const beforeCalls = calls.length
   slow = true
@@ -136,11 +126,11 @@ try {
   await page.waitForFunction(() => !window.__stage.conversation().running)
   assert.equal(await page.evaluate(() => { const cast = window.__stage.store.get().items.filter((item) => item.kind === 'character'); return cast.length === 2 && cast[0].profileId !== cast[1].profileId }), true, 'duplicated characters use independent profiles')
   await page.getByRole('button', { name: '对话记录', exact: true }).click()
-  await page.getByRole('button', { name: '记忆', exact: true }).click()
+  await page.getByRole('tab', { name: '记忆', exact: true }).click()
   await page.locator('.memory-entry').getByText('我的暗号是橘子。', { exact: true }).waitFor()
-  assert.ok(await page.locator('.topic-zone input').evaluate((input) => input.getBoundingClientRect().width >= 120), 'topic remains usable at desktop width')
+  assert.ok(await page.locator('.console .run-bar input').evaluate((input) => input.getBoundingClientRect().width >= 120), 'topic remains usable at desktop width')
   await page.screenshot({ path: join(artifacts, 'chat-memory-1440.png') })
-  await page.setViewportSize({ width: 1280, height: 800 }); assert.ok(await page.locator('.topic-zone input').evaluate((input) => input.getBoundingClientRect().width >= 120), 'topic remains usable at 1280px'); await page.screenshot({ path: join(artifacts, 'chat-memory-1280.png') })
+  await page.setViewportSize({ width: 1280, height: 800 }); assert.ok(await page.locator('.console .run-bar input').evaluate((input) => input.getBoundingClientRect().width >= 120), 'topic remains usable at 1280px'); await page.screenshot({ path: join(artifacts, 'chat-memory-1280.png') })
   reactionCase = true
   await page.evaluate(async () => {
     const { Actor, onHeard } = await import('/src/actors.ts')

@@ -1,7 +1,7 @@
 import { tr } from './i18n'
 import { desktop } from './desktopBridge'
 export { desktop, type Shortcut } from './desktopBridge'
-import type { CmdBody } from '../../desktop/src/commands'
+import type { CmdBody } from '../../protocol/src/commands'
 import { performStageCommand, stageState } from './control'
 
 export const command = (cmd: CmdBody) => performStageCommand(cmd)

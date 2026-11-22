@@ -63,7 +63,9 @@ export function readListenerReactions(value: unknown, cast: readonly { id: strin
   return []
 }
 
-/** Model output is a boundary: only a short, valid timeline reaches the player. */
+/** Model output is a boundary: only a short, valid timeline reaches the player. The cues of a JSON reply (brain.ts);
+ *  AIRI's come as <|ACT|> markers in its stream (airiMarkers.ts) and a realtime call's as tool calls
+ *  (realtime/reactions.ts): three formats, so three readers, each giving the same ReactionCue */
 export function readReactionCues(value: unknown): ReactionCue[] {
   if (!Array.isArray(value)) return []
   const result: ReactionCue[] = []

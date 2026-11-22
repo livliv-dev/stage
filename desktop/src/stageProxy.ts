@@ -80,8 +80,11 @@ export async function passToModel(req: Request, to: string, signal: AbortSignal,
     }
     if (redirects === REDIRECTS) return fail(502, `${url.host}: too many redirects`)
     const next = new URL(r.location, url)
-    // as fetch() does: the user's key stays with the origin it was sent to, and a redirect to GET drops the body
-    if (next.origin !== url.origin) headers.delete('authorization')
+    // Keep prompts, private memories, and captured frames on the configured origin.
+    if (next.origin !== url.origin) {
+      if (body && r.method === method) return fail(400, '模型接口将请求转发到了其他域名，请设置最终接口地址')
+      headers.delete('authorization')
+    }
     if (r.method !== method) {
       method = r.method; body = undefined
       for (const h of ['content-type', 'content-length', 'content-encoding', 'content-language', 'content-location']) headers.delete(h)

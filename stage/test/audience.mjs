@@ -1,24 +1,21 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
 import { mkdtemp, writeFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-audience-'))
 let server, browser, page
 const report = { artifacts }, errors = [], requests = []
 try {
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite timeout')), 15000); server.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(timer); resolve() } }); server.once('exit', (c) => { clearTimeout(timer); reject(new Error('Vite exited ' + c)) }) })
+  const port = await freePort(); server = await startVite({ port })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   await context.addInitScript(() => { localStorage.setItem('livliv-stage:coached', '1'); if (!localStorage.getItem('livliv-stage:locale')) localStorage.setItem('livliv-stage:locale', 'zh-Hans') })
   await context.route('**/*', (route) => { const url = new URL(route.request().url()); if (['127.0.0.1', 'localhost'].includes(url.hostname) || ['data:', 'blob:'].includes(url.protocol)) return route.continue(); requests.push(url.origin); return route.abort() })
-  page = await context.newPage(); page.setDefaultTimeout(15000); page.on('pageerror', (e) => errors.push(e.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(15000)); page.on('pageerror', (e) => errors.push(e.message))
   const origin = 'http://127.0.0.1:' + port
   await page.goto(origin, { waitUntil: 'networkidle' })
   await page.evaluate(async () => {
@@ -35,7 +32,14 @@ try {
   })
   await page.waitForFunction(() => window.__stage.actors.get('stella')?.status === 'ready')
   await page.evaluate(() => { const a = window.__stage.actors.get('stella'), act = a.player.act.bind(a.player); window.moves = []; a.player.act = (id) => { window.moves.push(id); return act(id) } })
-  await page.getByRole('button', { name: '观众弹幕', exact: true }).click()
+  // a stage without an AI character: its 准备清单 has 直播间弹幕, which opens the 直播间 card with Twitch and its actions
+  const room = async () => {
+    await page.locator('.solo-checks').click()
+    await page.locator('.popover.checklist .check', { hasText: '直播间弹幕' }).getByRole('button', { name: '去设置', exact: true }).click()
+    await page.locator('.live-settings .audience-panel').waitFor()
+  }
+  await room()
+  assert.equal(await page.evaluate(() => window.__stage.store.get().items.map((i) => i.id).join()), 'stella')
   await page.locator('.audience-actions > summary').click()
   await page.getByRole('button', { name: '添加弹幕动作', exact: true }).click()
   const message = (text) => page.evaluate(async (text) => (await import('/src/danmaku.ts')).simulate('Viewer', text), text)
@@ -98,7 +102,7 @@ try {
   await page.evaluate(() => window.__stage.store.switchScene(window.__stage.store.project().scenes[0].id))
   await page.reload(); await page.waitForFunction(() => window.__stage.actors.get('stella')?.status === 'ready')
   assert.equal(await page.evaluate(() => window.__stage.store.get().talk.triggers.length), 1)
-  await page.getByRole('button', { name: '观众弹幕', exact: true }).click()
+  await room()
   await page.locator('.audience-actions > summary').click()
   report.locales = []
   await page.setViewportSize({ width: 1100, height: 700 })

@@ -11,8 +11,8 @@ import { join, relative, resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '..'), out = resolve(root, process.argv[2] || 'dist-site')
 const git = (...a) => execFileSync('git', a, { cwd: root, encoding: 'utf8' }).trim()
-const commit = git('rev-parse', 'HEAD'), dirty = git('status', '--porcelain', '--', '.', '../desktop/src') !== ''
-if (dirty && !process.env.STAGE_ALLOW_DIRTY) { console.error('Uncommitted changes in stage/ or desktop/src: commit first (or STAGE_ALLOW_DIRTY=1 for a local try)'); process.exit(1) }
+const commit = git('rev-parse', 'HEAD'), dirty = git('status', '--porcelain', '--', '.', '../desktop/src', '../collab', '../vendor/airi-core') !== ''
+if (dirty && !process.env.STAGE_ALLOW_DIRTY) { console.error('Uncommitted changes in stage/, desktop/src, collab/ or vendor/airi-core/: commit first (or STAGE_ALLOW_DIRTY=1 for a local try)'); process.exit(1) }
 
 execFileSync('npx', ['tsc', '-p', 'tsconfig.json', '--noEmit'], { cwd: root, stdio: 'inherit' })
 execFileSync('npx', ['vite', 'build', '--base', '/stage/', '--outDir', out, '--emptyOutDir'], { cwd: root, stdio: 'inherit', env: { ...process.env, VITE_STAGE_HOST: 'livliv' } })

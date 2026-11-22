@@ -6,6 +6,7 @@ import { store, type CharacterItem } from '../scene'
 import { packageFor, PackageReceiver, sendPackage, type Package } from './assets'
 import { PublishAudio } from './audio'
 import { checkPackage } from './headers'
+import { handshake } from './handshake'
 import { actorFor, characterFor, receiveCharacter, removeCharacter } from './scene'
 import { attachSound, removeSound, volumeFor } from './streams'
 import { decodeInvite, encodeInvite, MAX_MEMBERS, object, personName, ROOM_VERSION, serviceUrl, validSignal, type Invite, type Member } from './protocol'
@@ -22,10 +23,21 @@ export const useRoom = () => useSyncExternalStore((listener) => { listeners.add(
 export const onRoom = (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } }
 type Peer = { member: Member; pc: RTCPeerConnection; stateChannel: RTCDataChannel | null; poseChannel: RTCDataChannel | null; receiver: PackageReceiver; pendingIce: RTCIceCandidateInit[]; pose: ReturnType<typeof readPose>; asset: AbortController; status: PeerState }
 function membersFrom(raw: unknown, limit = MAX_MEMBERS): Member[] {
-  if (!Array.isArray(raw) || raw.length > limit || raw.some((member) => !object(member) || typeof member.id !== 'string' || !/^[\w-]{1,64}$/.test(member.id) || !personName(member.name) || typeof member.host !== 'boolean')) throw new Error(tr("联播成员信息有问题"))
+  if (!Array.isArray(raw) || raw.length > limit || raw.some((member) => !object(member) || typeof member.id !== 'string' || !/^[\w-]{1,64}$/.test(member.id) || !personName(member.name) || typeof member.host !== 'boolean')) throw new Error(tr("好友联播成员信息有问题"))
   const members = raw as Member[]
-  if (new Set(members.map((member) => member.id)).size !== members.length) throw new Error(tr("联播成员重复"))
+  if (new Set(members.map((member) => member.id)).size !== members.length) throw new Error(tr("好友联播成员重复"))
   return members.map((member) => ({ ...member, name: personName(member.name) }))
+}
+
+/** the channel open, waiting while it connects; false once it is closing or closed */
+function opened(channel: RTCDataChannel, signal: AbortSignal): Promise<boolean> {
+  if (channel.readyState === 'open') return Promise.resolve(true)
+  if (channel.readyState !== 'connecting') return Promise.resolve(false)
+  return new Promise((resolve) => {
+    const done = (value: boolean) => { channel.removeEventListener('open', yes); channel.removeEventListener('close', no); signal.removeEventListener('abort', no); resolve(value) }
+    const yes = () => done(true), no = () => done(false)
+    channel.addEventListener('open', yes, { once: true }); channel.addEventListener('close', no, { once: true }); signal.addEventListener('abort', no, { once: true })
+  })
 }
 
 class Session {
@@ -56,11 +68,11 @@ class Session {
     this.audio.connectActor(this.actor)
     this.audio.onError = (error) => { if (!this.stopped) set({ microphoneError: error }) }
     this.socket = new WebSocket(url)
-    this.connecting = setTimeout(() => this.fail(tr('连接联播服务超时，请确认服务地址、网络和防火墙设置。')), 10000)
+    this.connecting = setTimeout(() => this.fail(tr('连接好友联播服务超时，请确认服务地址、网络和防火墙设置。')), 10000)
     this.socket.onopen = () => this.send(message)
     this.socket.onmessage = (event) => { void this.signal(event.data).catch((error: Error) => this.fail(error.message)) }
-    this.socket.onerror = () => this.fail(tr("联播服务未连接，请检查服务地址"))
-    this.socket.onclose = () => { if (!this.stopped) this.fail(tr("联播连接已断开")) }
+    this.socket.onerror = () => this.fail(tr("好友联播服务未连接，请检查服务地址"))
+    this.socket.onclose = () => { if (!this.stopped) this.fail(tr("好友联播连接已断开")) }
     this.offs = [store.subscribe(() => this.sceneChanged()), onActors(() => this.actorsChanged()), onFrame((actor) => this.frame(actor))]
     let microphoneId = inputs().microphone
     this.offs.push(onInputs(() => { const id = inputs().microphone; if (id !== microphoneId) { microphoneId = id; if (this.microphone && this.me) void this.audio.microphoneOn(true) } }))
@@ -74,16 +86,16 @@ class Session {
   private async signal(text: unknown) {
     if (this.stopped || typeof text !== 'string' || text.length > 64 * 1024) return
     const value: unknown = JSON.parse(text)
-    if (!object(value)) throw new Error(tr("联播服务消息有问题"))
-    if (value.t === 'error' || value.t === 'ended') { this.fail(typeof value.reason === 'string' ? value.reason : tr("联播已结束")); return }
+    if (!object(value)) throw new Error(tr("好友联播服务消息有问题"))
+    if (value.t === 'error' || value.t === 'ended') { this.fail(typeof value.reason === 'string' ? value.reason : tr("好友联播已结束")); return }
     if (value.t === 'waiting') { clearTimeout(this.connecting); set({ phase: 'waiting' }); return }
     if (value.t === 'pending') { set({ pending: membersFrom(value.people, 8) }); return }
     if (value.t === 'joined') {
-      if (value.version !== ROOM_VERSION || typeof value.id !== 'string' || typeof value.room !== 'string' || typeof value.token !== 'string' || !Array.isArray(value.iceServers) || value.iceServers.length > 16) throw new Error(tr("联播服务版本不兼容"))
+      if (value.version !== ROOM_VERSION || typeof value.id !== 'string' || typeof value.room !== 'string' || typeof value.token !== 'string' || !Array.isArray(value.iceServers) || value.iceServers.length > 16) throw new Error(tr("好友联播服务版本不兼容"))
       this.me = value.id; this.room = value.room
       this.configuration = { iceServers: value.iceServers as RTCIceServer[], iceTransportPolicy: value.relayOnly === true ? 'relay' : 'all' }
       const members = membersFrom(value.members)
-      if (!members.some((member) => member.id === this.me)) throw new Error(tr("联播身份有问题"))
+      if (!members.some((member) => member.id === this.me)) throw new Error(tr("好友联播身份有问题"))
       clearTimeout(this.connecting)
       set({ phase: 'on', id: this.me, room: this.room, invite: encodeInvite({ server: this.url, room: value.room, token: value.token }), microphone: this.microphone })
       if (this.microphone) void this.audio.microphoneOn(true)
@@ -139,17 +151,23 @@ class Session {
     }
     if (channel.label !== 'model' || peer.stateChannel) { channel.close(); return }
     peer.stateChannel = channel; channel.binaryType = 'arraybuffer'
-    channel.onopen = () => { void this.share(peer) }
+    // our character goes once both ends listen (handshake.ts): once, on an open channel; one announced by the other
+    // side may be open already
+    const ready = handshake(() => { if (channel.readyState === 'open') channel.send(JSON.stringify({ t: 'ready' })) }, () => { void this.share(peer) })
+    peer.asset.signal.addEventListener('abort', () => ready.close(), { once: true })
+    channel.onopen = () => ready.opened()
+    if (channel.readyState === 'open') queueMicrotask(() => ready.opened())
     channel.onmessage = (event) => {
       if (this.stopped || peer.status.phase === 'error') return
       try {
         if (event.data instanceof ArrayBuffer) { peer.receiver.chunk(event.data); if (performance.now() - this.lastProgress > 100) { this.lastProgress = performance.now(); peer.status.progress = peer.receiver.progress; this.publish() } }
         else {
-          if (typeof event.data !== 'string' || new TextEncoder().encode(event.data).length > 64 * 1024) throw new Error(tr("联播消息过大"))
+          if (typeof event.data !== 'string' || new TextEncoder().encode(event.data).length > 64 * 1024) throw new Error(tr("好友联播消息过大"))
           const message: unknown = JSON.parse(event.data)
-          if (!object(message)) throw new Error(tr("联播消息无效"))
+          if (!object(message)) throw new Error(tr("好友联播消息无效"))
           if (message.t === 'model') { peer.receiver.begin(message.model); peer.status.phase = 'receiving'; this.publish() }
           else if (message.t === 'model-end') { const value = peer.receiver.end(message.id); peer.status.phase = 'loading'; peer.status.progress = 1; this.publish(); void this.load(peer, value) }
+          else if (message.t === 'ready') ready.heard()
           else if (message.t === 'pose') {
             const pose = readPose(message.pose)
             if (!pose) throw new Error(tr("收到的角色动作有问题"))
@@ -159,7 +177,7 @@ class Session {
         }
       } catch (error) { this.peerError(peer, (error as Error).message) }
     }
-    channel.onclose = () => { if (!this.stopped && this.peers.has(peer.member.id) && peer.pc.connectionState !== 'closed') this.peerError(peer, tr("角色同步已断开")) }
+    channel.onclose = () => { ready.close(); if (!this.stopped && this.peers.has(peer.member.id) && peer.pc.connectionState !== 'closed') this.peerError(peer, tr("角色同步已断开")) }
   }
   private async load(peer: Peer, value: Package) {
     try { await checkPackage(value.files) } catch (error) { this.peerError(peer, (error as Error).message); return }
@@ -170,6 +188,9 @@ class Session {
       this.asset ??= packageFor(this.character(), this.controller.signal)
       const value = await this.asset
       if (this.stopped || peer.asset.signal.aborted) return
+      // the package can take longer to make than the channel to change: send on an open channel only (one that has
+      // closed says so itself, and the peer is set up again when the friend comes back)
+      if (!await opened(peer.stateChannel!, peer.asset.signal)) return
       await sendPackage(peer.stateChannel!, value, peer.asset.signal)
       // A paused or backgrounded publisher may not draw another frame after joining.
       if (!this.stopped && !peer.asset.signal.aborted && this.actor?.status === 'ready') peer.stateChannel!.send(JSON.stringify({ t: 'pose', pose: this.actor.lastPose }))
@@ -195,7 +216,7 @@ class Session {
   private sceneChanged() {
     if (this.stopped) return
     const character = store.get().items.find((item) => item.id === this.characterId && item.kind === 'character')
-    if (!character || character.kind !== 'character' || JSON.stringify(character.model) !== this.model) { this.fail(tr("共享角色已更换，联播已结束")); return }
+    if (!character || character.kind !== 'character' || JSON.stringify(character.model) !== this.model) { this.fail(tr("共享角色已更换，好友联播已结束")); return }
     for (const peer of this.peers.values()) { const remote = characterFor(peer.member.id); if (!remote) continue; volumeFor(peer.member.id, remote.muted ? 0 : remote.tuning.volume); if (peer.status.muted !== remote.muted) { peer.status.muted = remote.muted; this.publish() } }
   }
   private publish() { if (!this.stopped) set({ members: this.members.map((member) => member.id === this.me ? { ...member, phase: 'ready', progress: 1, error: '', muted: false } : { ...this.peers.get(member.id)!.status }) }) }

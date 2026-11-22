@@ -1,28 +1,26 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
 import { mkdtemp, writeFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-mixer-'))
 let server, browser, page
 const report = { artifacts }, errors = []
 const range = (locator, value) => locator.evaluate((input, v) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, String(v)); input.dispatchEvent(new Event('input', { bubbles: true })); input.dispatchEvent(new Event('change', { bubbles: true })) }, value)
 try {
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite timeout')), 15000); server.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(timer); resolve() } }); server.once('exit', (c) => { clearTimeout(timer); reject(new Error('Vite exited ' + c)) }) })
+  const port = await freePort(); server = await startVite({ port })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--mute-audio'] })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   await context.addInitScript(() => { localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1') })
   await context.route('**/api/**', (route) => route.fulfill({ status: route.request().url().endsWith('/me') ? 200 : 404, json: { signed_in: false } }))
   await context.route('https://voice-fixture.test/**', (route) => route.fulfill({ json: { voices: [] } }))
-  page = await context.newPage(); page.setDefaultTimeout(20000); page.on('pageerror', (e) => errors.push(e.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(20000)); page.on('pageerror', (e) => errors.push(e.message))
   await page.goto('http://127.0.0.1:' + port, { waitUntil: 'networkidle' })
-  await page.evaluate(async () => {
+  await page.evaluate(async (settleMs) => {
+    window.settleMs = settleMs
     const { fromPngs } = await import('/src/library.ts'), { emptyScene, newCharacter } = await import('/src/scene.ts'), { saveSpeech } = await import('/src/voiceApi.ts'), { wav16k } = await import('/src/audio.ts')
     const canvas = new OffscreenCanvas(80, 120), g = canvas.getContext('2d'); g.fillStyle = '#3388ee'; g.fillRect(0, 0, 80, 120)
     const png = await canvas.convertToBlob(), pick = await fromPngs({ closed: new File([png], 'closed.png'), open: new File([png], 'open.png') }, 'Mixer avatar'), s = window.__stage.store
@@ -43,13 +41,20 @@ try {
       if (id === 'slow') return new Promise((resolve) => pending.push(() => resolve(clone())))
       return clone()
     }
-    window.measure = async (stream) => {
+    // a stream's level; with done, it keeps listening until the level is what the step should have led to (a gain
+    // change reaches another context's stream later on a busy machine), up to settleMs, and returns the last level
+    window.measure = async (stream, done) => {
       const ctx = new AudioContext(); await ctx.resume(); const source = ctx.createMediaStreamSource(stream), analyser = ctx.createAnalyser(); analyser.fftSize = 2048; source.connect(analyser)
-      const samples = new Float32Array(2048); let squares = 0
+      const samples = new Float32Array(2048)
+      const level = async () => { let squares = 0; for (let n = 0; n < 5; n++) { analyser.getFloatTimeDomainData(samples); for (const v of samples) squares += v * v; await new Promise((r) => setTimeout(r, 20)) } return Math.sqrt(squares / (5 * samples.length)) }
       await new Promise((r) => setTimeout(r, 180))
-      for (let n = 0; n < 5; n++) { analyser.getFloatTimeDomainData(samples); for (const v of samples) squares += v * v; await new Promise((r) => setTimeout(r, 20)) }
-      source.disconnect(); analyser.disconnect(); await ctx.close(); return Math.sqrt(squares / (5 * samples.length))
+      let value = await level()
+      for (const until = performance.now() + window.settleMs; done && !done(value) && performance.now() < until;) value = await level()
+      source.disconnect(); analyser.disconnect(); await ctx.close(); return value
     }
+    /** a level that has settled: above min, and two readings in a row within 2 % */
+    window.steady = (min) => { let last = -1; return (v) => { const ok = v > min && Math.abs(v - last) <= v * .02; last = v; return ok } }
+    window.near = (base, ratio, tolerance) => (v) => Math.abs(v / base - ratio) < tolerance / 2
     window.decode = async (blob, times) => {
       const ctx = new AudioContext(), decoded = await ctx.decodeAudioData(await blob.arrayBuffer()), pcm = decoded.getChannelData(0), rate = decoded.sampleRate
       const result = times.map((at) => {
@@ -60,17 +65,17 @@ try {
       await ctx.close(); return result
     }
     window.playVoice = () => window.__stage.actors.get(window.avatarId).perform({ text: 'Fixture', seconds: 6, clip: { blob: window.voiceClip, seconds: 6, expression: null }, aloud: true }, 'neutral', 'none')
-  })
+  }, testTimeout(3000))
   await page.waitForFunction(() => window.__stage.actors.get(window.avatarId)?.status === 'ready')
   const panel = page.locator('.mixer-panel')
   if (!process.env.STAGE_MIXER_LAYOUT_ONLY) {
   report.voices = await page.evaluate(async () => {
     const { setBus } = await import('/src/mixer.ts'), s = window.__stage.store, actor = window.__stage.actors.get(window.avatarId)
     actor.unlock(); void window.playVoice()
-    const full = await window.measure(actor.audio)
-    setBus('characters', { volume: .5 }); const half = await window.measure(actor.audio)
-    s.patch(actor.item.id, { tuning: { ...actor.item.tuning, volume: .4 } }); const individual = await window.measure(actor.audio)
-    setBus('characters', { muted: true }); const muted = await window.measure(actor.audio); actor.silence()
+    const full = await window.measure(actor.audio, window.steady(.2))
+    setBus('characters', { volume: .5 }); const half = await window.measure(actor.audio, window.near(full, .5, .04))
+    s.patch(actor.item.id, { tuning: { ...actor.item.tuning, volume: .4 } }); const individual = await window.measure(actor.audio, window.near(full, .2, .03))
+    setBus('characters', { muted: true }); const muted = await window.measure(actor.audio, (v) => v < 1e-5); actor.silence()
     s.patch(actor.item.id, { tuning: { ...actor.item.tuning, volume: 1 } }); setBus('characters', { volume: 1, muted: false })
     return { full, half, individual, muted }
   })
@@ -78,13 +83,13 @@ try {
   report.publish = await page.evaluate(async () => {
     const { PublishAudio } = await import('/src/collab/audio.ts'), { attachSound, removeSound } = await import('/src/collab/streams.ts'), { setBus } = await import('/src/mixer.ts')
     const pub = new PublishAudio(); await pub.context.resume(); const actor = window.__stage.actors.get(window.avatarId); pub.connectActor(actor); void window.playVoice()
-    const voice = await window.measure(pub.stream); pub.connectActor(null); actor.silence()
+    const voice = await window.measure(pub.stream, window.steady(.2)); pub.connectActor(null); actor.silence()
     const remote = window.fixture.b.stream.clone(); attachSound('fixture-peer', remote)
-    const noBackfeed = await window.measure(pub.stream)
-    await pub.microphoneOn(true); const microphone = await window.measure(pub.stream)
-    setBus('microphone', { volume: .5 }); const half = await window.measure(pub.stream)
-    setBus('microphone', { muted: true }); const muted = await window.measure(pub.stream)
-    setBus('microphone', { muted: false, volume: 2 }); const boosted = await window.measure(pub.stream)
+    const noBackfeed = await window.measure(pub.stream, (v) => v < 1e-5)
+    await pub.microphoneOn(true); const microphone = await window.measure(pub.stream, window.steady(.01))
+    setBus('microphone', { volume: .5 }); const half = await window.measure(pub.stream, window.near(microphone, .5, .05))
+    setBus('microphone', { muted: true }); const muted = await window.measure(pub.stream, (v) => v < 1e-5)
+    setBus('microphone', { muted: false, volume: 2 }); const boosted = await window.measure(pub.stream, window.near(microphone, 2, .1))
     pub.close(); removeSound('fixture-peer'); remote.getTracks().forEach((t) => t.stop()); setBus('microphone', { volume: 1 })
     return { voice, noBackfeed, microphone, half, muted, boosted }
   })

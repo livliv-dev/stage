@@ -1,13 +1,12 @@
-import type { StageCommand, StageResult } from '../../desktop/src/stageCommands'
-import { ACTION_IDS } from '../../desktop/src/commands'
+import type { StageCommand, StageResult } from '../../protocol/src/stageCommands'
+import { ACTION_IDS } from '../../protocol/src/commands'
 import { mixer } from './mixer'
-import { actors } from './actors'
+import { actors, type Actor } from './actors'
 import { formatOf } from './bodies'
 import { conversation, talk } from './conversation'
 import { getLocale } from './i18n'
 import { cancel as cancelPtt, canHear, pttState, togglePtt } from './ptt'
-import { store, type CharacterItem } from './scene'
-import { liveCharacter } from './live'
+import { store, type CharacterItem, type ExprMode } from './scene'
 
 export function stageState() {
   const scene = store.get(), conv = conversation()
@@ -26,8 +25,61 @@ export function stageState() {
   }
 }
 
-/** One command path for native shortcuts, audience actions and authenticated external clients. */
-export function performStageCommand(cmd: StageCommand): StageResult {
+/** the character 开播 (going live with your own face) put on the stage: the keys, hotkeys and commands that name no
+ *  character play it while it is in sight (entry.ts sets it) */
+let face: string | null = null
+export const setFaceCharacter = (id: string | null) => { face = id }
+export const faceCharacter = () => face
+
+/** whom a command that names no character is for: the one 开播 put on the stage, else the selected one, else the
+ *  first you play, in sight. The keys on the stage (characterKeys.ts) look only at your own characters and stop
+ *  there; the hotkeys and the API then take any local one in sight, and a friend's one answers that a friend plays it */
+export function commandTarget(cast: CharacterItem[], by: 'keys' | 'command'): CharacterItem | undefined {
+  if (by === 'keys') {
+    const own = cast.filter((c) => !c.hidden && !c.remote)
+    return own.find((c) => c.id === face) ?? own.find((c) => c.id === store.selected()) ?? own.find((c) => c.lines === 'me')
+  }
+  const visible = cast.filter((c) => !c.hidden)
+  return visible.find((c) => c.id === face && !c.remote) ?? visible.find((c) => c.id === store.selected()) ?? visible.find((c) => c.lines === 'me') ?? visible.find((c) => !c.remote)
+}
+
+/** what a key on the stage does to the character it plays (characterKeys.ts): an expression by its key's mode (down,
+ *  up, or a press with no release to come), none (0), dozing off and back (B), a move (Q W E R T) */
+export type KeyCommand = { do: 'key'; character: string; key: { is: 'expr'; id: string; how: 'down' | 'up' | 'press' } | { is: 'clear' } | { is: 'away' } | { is: 'move'; id: Exclude<(typeof ACTION_IDS)[number], 'away'> } }
+
+/** how an expression's key shows it: on and off (toggle), while held (hold), for a few seconds (timed) */
+export const modeOf = (c: CharacterItem, id: string): ExprMode => c.exprModes?.[id] ?? { mode: 'toggle' }
+
+/** one expression's key: down and up (a key), or press (no release to come: a held one shows for 3 s) */
+function trigger(a: Actor, id: string, how: 'down' | 'up' | 'press') {
+  const m = modeOf(a.item, id)
+  if (how === 'up') { if (m.mode === 'hold' && a.expression === id) a.setExpression(null); return }
+  if (m.mode !== 'hold' && a.expression === id) { a.setExpression(null); return }  // pressed again: off
+  if (m.mode === 'timed') a.pulseExpression(id, m.secs ?? 3)
+  else if (m.mode === 'hold' && how === 'press') a.pulseExpression(id, 3)
+  else a.setExpression(id)
+}
+
+/** a move; shy also shows the character's own shy face for as long, when it has one and no expression is showing */
+function move(a: Actor, id: Exclude<(typeof ACTION_IDS)[number], 'away'>) {
+  a.act(id)
+  const shy = id === 'shy' && !a.expression && a.format !== 'png' && a.player.expressions.find((x) => x.id === 'shy' || [x.label, ...Object.values(x.labels ?? {})].some((l) => /害羞|shy|照れ/i.test(l)))
+  if (shy) a.pulseExpression(shy.id, 2.4)
+}
+
+function performKey(cmd: KeyCommand): StageResult {
+  const a = actors.get(cmd.character), k = cmd.key
+  if (!a) return { ok: false, status: 404, error: 'Avatar not found' }
+  if (k.is === 'expr') trigger(a, k.id, k.how)
+  else if (k.is === 'clear') a.setExpression(null)
+  else if (k.is === 'away') a.setAway(!a.away)
+  else move(a, k.id)
+  return { ok: true, character: cmd.character }
+}
+
+/** One command path for the keys on the stage, native shortcuts, audience actions and authenticated external clients. */
+export function performStageCommand(cmd: StageCommand | KeyCommand): StageResult {
+  if (cmd.do === 'key') return performKey(cmd)
   if (cmd.do === 'scene') {
     if (!store.project().scenes.some((s) => s.id === cmd.id)) return { ok: false, status: 404, error: 'Scene not found' }
     store.switchScene(cmd.id); return { ok: true, scene: cmd.id }
@@ -51,9 +103,7 @@ export function performStageCommand(cmd: StageCommand): StageResult {
     for (const c of cast) store.patch(c.id, { muted })
     return { ok: true }
   }
-  const visible = cast.filter((c) => !c.hidden)
-  // as the live keys (live.ts): the one 开播 put on the stage first
-  const target = cmd.character ? cast.find((c) => c.id === cmd.character) : visible.find((c) => c.id === liveCharacter() && !c.remote) ?? visible.find((c) => c.id === store.selected()) ?? visible.find((c) => c.lines === 'me') ?? visible.find((c) => !c.remote)
+  const target = cmd.character ? cast.find((c) => c.id === cmd.character) : commandTarget(cast, 'command')
   if (!target) return { ok: false, status: 404, error: 'Avatar not found' }
   if (cmd.do === 'mute') { store.patch(target.id, { muted: cmd.on ?? !target.muted }); return { ok: true, character: target.id } }
   if (target.remote) return { ok: false, status: 409, error: 'This avatar is controlled by a friend' }

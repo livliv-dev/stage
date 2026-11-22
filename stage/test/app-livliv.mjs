@@ -1,4 +1,4 @@
-// LivLiv's points AI in the desktop app (livliv.ts livlivHere, brain.ts, App.tsx ModelForm), on Stage's own build with the
+// LivLiv's points AI in the desktop app (core/platform.ts features.points, brain.ts, shell/ConnectForms.tsx ModelForm), on Stage's own build with the
 // app's bridge stood in for (window.livlivDesktop) and the site faked. Signed out: LivLiv is the first option, chosen it
 // says the site's price and offers 登录 livliv.ai, which starts the connect code (shown in the form, the site's page
 // opened), and once allowed LivLiv becomes the model. Signed in (a kept token): LivLiv is the model from the start and a
@@ -7,11 +7,10 @@
 // Nothing is spent.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), errors = []
 const TOKEN = 'app.test-token'
@@ -20,9 +19,7 @@ let server, browser
 const asked = []
 let allowAfter = Infinity, polls = 0
 try {
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, VITE_STAGE_HOST: '' } })
-  await new Promise((resolve, reject) => { const t = setTimeout(() => reject(new Error('Vite timeout')), 15000); server.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(t); resolve() } }); server.once('exit', (c) => { clearTimeout(t); reject(new Error('Vite exited ' + c)) }) })
+  const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: '' } })
   const origin = 'http://127.0.0.1:' + port
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
 
@@ -53,16 +50,19 @@ try {
       return url.hostname === '127.0.0.1' || ['blob:', 'data:'].includes(url.protocol) ? route.continue() : route.abort()
     })
     const page = await context.newPage()
-    page.setDefaultTimeout(30000); page.on('pageerror', (e) => errors.push(e.message))
+    page.setDefaultTimeout(testTimeout(30000)); page.on('pageerror', (e) => errors.push(e.message))
     await page.goto(origin + path, { waitUntil: 'networkidle' })
     return { page, context }
   }
   const row = (page) => page.locator('.model-form .providers button').allInnerTexts()
-  const chip = (page) => page.locator('.model-btn').innerText()
+  /** livliv.ai/stage's own parts (the web branch): the way to make a character, the logo link */
+  /** the console's model tag (the status line's first) and the way into Settings → 连接 */
+  const chip = (page) => page.locator('.status-line .st-tag').first().innerText()
+  const models = (page) => page.locator('.status-line .st-tag').first().click()
 
   // the desktop app, signed out, nothing chosen: LivLiv first, the price, sign in with a code; allowed, it is the model
   let { page, context } = await open({ app: true }, '/?c=k01&as=ai')
-  await page.locator('.model-btn').click()
+  await models(page)
   assert.equal((await row(page))[0], 'livliv.ai', 'LivLiv is the first option in the app')
   await page.locator('.model-form .providers button', { hasText: 'livliv.ai' }).click()
   await page.locator('.account-panel').waitFor()
@@ -73,14 +73,14 @@ try {
   await page.waitForFunction(() => !document.querySelector('.account-connect'), null, { timeout: 15000 })
   assert.equal(await page.evaluate(() => localStorage.getItem('livliv-stage:session')), TOKEN, 'the connect token is kept')
   await page.keyboard.press('Escape')
-  await page.waitForFunction(() => document.querySelector('.model-btn')?.textContent?.includes('LivLiv'))
+  await page.waitForFunction(() => document.querySelector('.status-line .st-tag')?.textContent?.includes('LivLiv'))
   assert.match(await chip(page), /LivLiv/, 'signed in with nothing chosen yet: LivLiv is the model')
   await context.close()
 
   // the desktop app, signed in (a kept token): LivLiv from the start; a line asked with the app's token
   ;({ page, context } = await open({ app: true, token: TOKEN }, '/?c=k01&as=ai'))
   await page.waitForFunction(() => [...window.__stage.actors.values()].some((a) => a.status === 'ready'), null, { timeout: 60000 })
-  await page.waitForFunction(() => document.querySelector('.model-btn')?.textContent?.includes('LivLiv'))
+  await page.waitForFunction(() => document.querySelector('.status-line .st-tag')?.textContent?.includes('LivLiv'))
   const first = async (start) => {
     asked.length = 0
     await page.evaluate(start)
@@ -102,7 +102,7 @@ try {
 
   // a copy of Stage hosted anywhere else (neither the site nor the app): no LivLiv
   ;({ page, context } = await open({ app: false }, '/?c=k01&as=ai'))
-  await page.locator('.model-btn').click()
+  await models(page)
   assert.ok(!(await row(page)).includes('LivLiv'), 'no LivLiv outside the site and the app')
   assert.equal(await page.locator('.topbar .create-button').count(), 0, 'no way to livliv.ai either')
   assert.equal(await page.locator('.topbar a.mark-link').count(), 0)

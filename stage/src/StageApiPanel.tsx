@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check, Copy, LoaderCircle, RefreshCw } from 'lucide-react'
-import type { StageApiState } from '../../desktop/src/stageCommands'
+import type { StageApiState } from '../../protocol/src/stageCommands'
 import { desktop } from './desktop'
 import { tr } from './i18n'
 
@@ -13,7 +13,8 @@ export function StageApiPanel() {
     void api.get().then((value) => { if (active) setState(value) }, (e) => { if (active) setError((e as Error).message) })
     return () => { active = false }
   }, [api])
-  if (!api) return null
+  // the web: where it is in the desktop app
+  if (!api) return <section className="stage-api"><h3>{tr('外部控制 API')} <span className="desk-tag">{tr('桌面版')}</span></h3><p className="hint">{tr('桌面版可以让 Stream Deck 等本机工具控制角色。')}</p></section>
   const change = async (operation: () => Promise<StageApiState>) => {
     setBusy(true); setError('')
     try { setState(await operation()) } catch (e) { setError((e as Error).message) } finally { setBusy(false) }

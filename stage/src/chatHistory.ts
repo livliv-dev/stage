@@ -1,5 +1,5 @@
 import { memory, type MemoryArchive, type MemoryScope, type SessionSummary, type StoredSession } from './memory'
-import type { Line } from './brain'
+import type { Line } from './core/lines'
 
 export class ChatHistory {
   current: StoredSession | null = null

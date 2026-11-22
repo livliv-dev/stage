@@ -111,6 +111,8 @@ input[type="range"]:focus-visible { outline: 2px solid var(--accent-soft); outli
   padding: 0 14px; z-index: var(--z-top); }
 .topbar .left { flex: 1; display: flex; align-items: center; gap: 12px; min-width: 0; }
 .topbar .right { flex: none; display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
+.topbar .stream-entry { border-color: #b9c6e3; background: #edf2ff; color: #29416c; padding-inline: 11px; font-weight: 650; }
+.topbar .stream-entry:hover, .topbar .stream-entry.on { border-color: #6f86bc; background: #e1e9fd; color: #1c325c; }
 .mark { display: block; height: 26px; width: auto; flex: none; }
 .mark-link { display: block; flex: none; border-radius: 6px; }
 .topbar .github-link { display: inline-flex; align-items: center; justify-content: center; padding: 6px; border-radius: 9px; color: var(--fg-2); flex: none; }
@@ -248,6 +250,8 @@ canvas.character.shadow { filter: drop-shadow(0 18px 28px rgb(40 30 20 / .16)); 
 .tag i { width: 8px; height: 8px; border-radius: 50%; background: var(--who); }
 .tag { transition: opacity .15s; }
 .tag.quiet { opacity: 0; }
+/* shown only for the mouse or the selection, it gives way to a subtitle showing a line (both sit at the stage's foot) */
+.stage-box:has(.subtitle.on) .tag.near { opacity: 0; }
 .tag em { font-style: normal; font-weight: 500; font-size: 12px; color: var(--fg-2); background: var(--hover); border-radius: 6px; padding: 0 6px; }
 .tag svg { color: var(--fg-3); }
 .tag.speaking { border-color: var(--who); box-shadow: 0 0 0 2px var(--who); }
@@ -294,9 +298,10 @@ canvas.character.shadow { filter: drop-shadow(0 18px 28px rgb(40 30 20 / .16)); 
 .talkbar .model-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .talkbar .model-btn.need { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 7%, #fff); }
 .talkbar .model-btn.on { border-color: var(--fg-3); }
+.talkbar .demo-own-model { flex: none; gap: 5px; white-space: nowrap; }
 @media (max-width:1399px) {
-  .talkbar .realtime-toggle { padding:5px 8px; }
-  .talkbar .realtime-toggle span { display:none; }
+  .talkbar .realtime-toggle, .talkbar .demo-own-model { padding:5px 8px; }
+  .talkbar .realtime-toggle span, .talkbar .demo-own-model span { display:none; }
   .talkbar .model-btn { flex:none;max-width:40px;padding:5px 8px;gap:0; }
   .talkbar .model-btn span, .talkbar .model-btn>svg:last-child { display:none; }
 }
@@ -542,6 +547,9 @@ button.link.get { padding: 0; font-size: 12px; }
 .solo-mode .cast { bottom:84px }
 .live-settings { width:420px;right:328px;bottom:136px;max-height:calc(100vh - 208px);overflow:auto }
 .live-settings .section { padding:16px 18px }
+.popover.desktop-live-settings { top: 62px; right: 14px; bottom: auto; width: min(430px, calc(100vw - 28px)); max-height: calc(100dvh - 164px); }
+.desktop-live-settings .hint, .desktop-live-settings .field > span { overflow-wrap: anywhere; text-wrap: balance; }
+.airi-game-status .row input { min-width: 0; flex: 1; }
 .realtime-settings { position:fixed;width:min(420px,calc(100vw - 32px));max-height:calc(100dvh - 180px) }
 .realtime-fields { border:0;padding:0;margin:0;min-width:0 }
 .realtime-settings .field { align-items:flex-start }
@@ -725,6 +733,7 @@ button.account-cta:hover:not(:disabled) { background:#68549e;border-color:#68549
 .reset-confirm p.hint { color:var(--fg-3);font-size:12px;line-height:19px }
 .reset-confirm p.error { color:var(--error) }
 .reset-confirm .row.end { margin-top:20px;gap:8px;flex-wrap:wrap;justify-content:flex-end }
+.reset-confirm .reset-groups { display: grid; gap: 4px; margin: 8px 0; }
 .popover.settings .general-about h3 { margin-bottom:18px }
 .about-brand { display:flex;align-items:center;gap:12px }
 .about-brand img { display:block;width:160px;height:auto }
@@ -957,3 +966,9 @@ button.account-cta:hover:not(:disabled) { background:#68549e;border-color:#68549
 .desktop-notice .row.end { justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .desktop-notice .row.end button { display: inline-flex; align-items: center; gap: 6px; }
 .about-links button.link { padding: 0; font-size: 12px; height: auto; }
+/* a character card imported as the persona (CardImport.tsx): what came over, what didn't */
+.card-import { margin: 0 0 12px; }
+.card-import-result { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--hover); }
+.card-import-result p { margin: 0; font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+.card-import-result p + p { margin-top: 4px; }
+.card-import-result .link { margin-top: 6px; display: inline-flex; align-items: center; gap: 4px; }

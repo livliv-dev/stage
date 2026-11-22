@@ -7,9 +7,9 @@ import { tr } from './i18n'
 //  - the sound: each LivLiv clip with when it was heard and where it was cut off, and the microphone when asked for.
 //    The system's own voice gives no sound to take down: those lines are in the video without it
 import { actors, onActors, onFrame, onHeard, type Actor, type Heard } from './actors'
-import { conversation, onConv } from './conversation'
+import { conversation, onConv, shownConv } from './sessions/state'
 import { store, type Scene } from './scene'
-import type { Line } from './brain'
+import type { Line } from './core/lines'
 import type { Params, View } from '@livliv-dev/player'
 import { routeMicrophone } from './microphone'
 import { deviceError, inputs, microphoneConstraints, onInputs } from './devices'
@@ -107,7 +107,8 @@ export async function record(mic: boolean, inputStatus?: (error: Error | null) =
     const c = conversation()
     if (stream || liveAudio || !c.running || c.speaking || c.mode === 'chat' || c.mode === 'live' || c.mode === 'realtime') endWait()
     else if (!waiting) { waiting = { from: performance.now(), to: Infinity }; take.cuts.push(waiting) }
-    take.convs.push({ t: sec(), lines: c.lines, speaking: c.speaking })
+    const shown = shownConv(c)
+    take.convs.push({ t: sec(), lines: shown.lines, speaking: shown.speaking })
   }
   conv()
   const pose = (a: Actor) => {
@@ -140,7 +141,7 @@ export async function record(mic: boolean, inputStatus?: (error: Error | null) =
     recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data) }
     recorder.onstart = () => { sound.at = sec() }
     recorder.onstop = () => { sound.blob = new Blob(chunks, { type: recorder.mimeType }); finish() }
-    recorder.onerror = (event) => { failure = new Error(tr("联播声音录制失败"), { cause: event }); finish() }
+    recorder.onerror = (event) => { failure = new Error(tr("好友联播声音录制失败"), { cause: event }); finish() }
     const value = { stream: source, stop: () => { if (recorder.state !== 'inactive') recorder.stop() }, done }
     // kept for stop() to wait on only once it has started: one that never started never ends
     recorder.start(1000); captures.push(value)

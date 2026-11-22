@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { readStageCommand, type StageCommand, type StageResult } from './stageCommands'
+import { readStageCommand, type StageCommand, type StageResult } from '#protocol/stageCommands'
 
 export type StageApiDeps = { state(): Promise<unknown>; command(command: StageCommand): Promise<StageResult> }
 type Respond = (response: ServerResponse, status: number, body: object) => void

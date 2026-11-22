@@ -2,11 +2,13 @@ import { tr } from './i18n'
 import { useSyncExternalStore } from 'react'
 import { wav16k } from './audio'
 import { inputs, microphoneConstraints, onInputs, refreshDevices } from './devices'
-import { conversation, onConv, talk } from './conversation'
+import { conversation, onConv, sessionScope, talk } from './conversation'
 import { recognize, signedIn } from './livliv'
 import { busGain, onMixer } from './mixer'
 import { routeMicrophone } from './microphone'
 import { activeSpeech, asrReady, transcribeApi } from './voiceApi'
+import { current } from './sessions/run'
+import { hearingNow } from './sessions/spend'
 import { isBackchannel, VoiceActivity } from './voiceActivity'
 
 export type PttPhase = 'idle' | 'opening' | 'armed' | 'listening' | 'recognizing'
@@ -111,7 +113,11 @@ async function drain(run: MicSession) {
         const pcm = buffer.getChannelData(0).slice(0, Math.round(MAX * buffer.sampleRate))
         const wav = await wav16k(pcm, buffer.sampleRate), speech = activeSpeech()
         signal.throwIfAborted()
-        const said = asrReady(speech) ? await transcribeApi(speech, wav, signal) : await recognize(wav, signal)
+        // a session that started on your own recognition never turns to LivLiv's (points) when yours goes away: hearing
+        // stops instead (sessions/spend.ts)
+        const hearing = hearingNow(asrReady(speech), current()?.spend)
+        if (hearing === 'stop') { cancel(); set({ error: tr('自己的语音识别不可用了：已停止听你说话，不会改用积分识别') }); return }
+        const said = hearing === 'own' ? await transcribeApi(speech, wav, signal) : await recognize(wav, signal)
         signal.throwIfAborted()
         if (said) talk.say(said, { transcribed: run.automatic, respond: !run.automatic || !isBackchannel(said, capture.seconds, capture.duringReply) })
         set({ error: said ? '' : tr('没听清，请再说一次') })
@@ -175,7 +181,7 @@ export async function setHandsFree(on: boolean) {
   if (state.automatic) return
   if (!canHear()) { set({ error: tr('在设置里接上语音识别后可用') }); return }
   const conv = conversation()
-  if (!conv.running || !['chat', 'live'].includes(conv.mode)) { set({ error: tr('先开始持续聊天，再开启免按键语音') }); return }
+  if (!conv.running || !['chat', 'live'].includes(conv.mode)) { set({ error: tr('先开始聊天，再开启免按键语音') }); return }
   if (!busGain('microphone')) { set({ error: tr('请先取消麦克风静音，再开启免按键语音') }); return }
   cancel(); set({ automatic: true, error: '' }); await arm()
 }
@@ -212,11 +218,16 @@ export function cancel() {
   if (automatic) close(); else later()
 }
 
-let liveActive = false
+const inputScope = (conv: ReturnType<typeof conversation>) => conv.running ? conv.scope : sessionScope()
+let previous = conversation()
 onConv(() => {
-  const conv = conversation(), active = conv.running && conv.mode !== 'conversation', ended = liveActive && !active
-  liveActive = active
-  if (ended || (state.automatic && conv.mode === 'realtime')) { cancel(); return }
+  const conv = conversation(), active = conv.running && conv.mode !== 'conversation'
+  const ended = previous.running && previous.mode !== 'conversation' && !active
+  const openedLive = conv.running && conv.mode === 'live' && (!previous.running || previous.mode !== 'live')
+  const changedScope = inputScope(conv) !== inputScope(previous)
+  previous = conv
+  // A pending capture must not be published into a new live session or a different scope.
+  if (ended || (session && (openedLive || changedScope)) || (state.automatic && conv.mode === 'realtime')) { cancel(); return }
   if (state.automatic && conv.paused) { abortSession(); close() }
   else if (state.automatic && !session) void arm()
 })

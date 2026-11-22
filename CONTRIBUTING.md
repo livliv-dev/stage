@@ -23,7 +23,16 @@ For a code change, run this first:
 npm --prefix stage run check && npm --prefix stage test && npm --prefix desktop test && npm --prefix collab test
 ```
 
-For a change to the interface, also run `npm --prefix stage run test:browser` (see the README for the Playwright setup).
+For a change to the interface, also run `npm --prefix stage run test:browser` and the other `test:*` scripts in
+`stage/package.json` that cover it (install the headless browser once with `cd stage && npx playwright-core install
+chromium-headless-shell`). Every pull request runs all of them in GitHub Actions.
+
+For a change to how sessions run (`stage/src/sessions/`: the runner, its policies, the inbox and the speak path;
+`stage/src/brains/`, its engines included; the `talk.*` facade in `stage/src/conversation.ts`), the runner and the
+policies have unit tests that run without a browser (`stage/test/runner.test.ts`, against a fake stage). Also run
+`npm --prefix stage run test:traces`, which compares what every way of starting a session does with
+`stage/test/traces/`, and `test:prompts`, which compares the persona prompts word for word with `stage/test/prompts/`.
+Their files change only on purpose: `-- --update` writes them anew, and the diff belongs in the pull request.
 
 ## What we can't take
 

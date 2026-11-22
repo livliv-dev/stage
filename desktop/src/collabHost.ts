@@ -1,6 +1,6 @@
 import { networkInterfaces } from 'node:os'
 import { startRelay, type Relay, type RelayOptions } from 'livliv-stage-collab'
-import type { CollabConfig, CollabError, CollabState } from './collabProtocol'
+import type { CollabConfig, CollabError, CollabState } from '#protocol/collab'
 
 type Editor = {
   isDestroyed(): boolean; isLoadingMainFrame(): boolean

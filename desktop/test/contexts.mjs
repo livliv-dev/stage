@@ -3,29 +3,25 @@
 // so, the stage says it once, and both go when it is removed, hidden, or another character leaves room. Runs the app
 // on Stage's dev server, for its __stage hooks.
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
-import { createServer as createSocket } from 'node:net'
 import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { _electron as electron } from '../../stage/node_modules/playwright-core/index.mjs'
+import { freePort, startVite } from '../../stage/test/vite.mjs'
 
 const COUNT = 20
-const root = fileURLToPath(new URL('..', import.meta.url)), stage = join(root, '..', 'stage')
+const root = fileURLToPath(new URL('..', import.meta.url))
 const artifacts = await mkdtemp(join(tmpdir(), 'livliv-stage-contexts-'))
 const errors = [], report = { artifacts }
 // LivLiv's /api, signed out (the dev server passes /api on to LM_API_PORT)
 const api = createServer((req, res) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ signed_in: false, available: false })))
 await new Promise((resolve) => api.listen(0, '127.0.0.1', resolve))
-const socket = createSocket(); await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve))
-const port = socket.address().port; await new Promise((resolve) => socket.close(resolve))
+const port = await freePort()
 let vite, app
 try {
-  vite = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd: stage, env: { ...process.env, LM_API_PORT: String(api.address().port) }, stdio: ['ignore', 'pipe', 'pipe'] })
-  vite.stderr.on('data', () => {})
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite timeout')), 20000); vite.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(timer); resolve() } }); vite.once('exit', (code) => reject(new Error('Vite exited ' + code))) })
+  vite = await startVite({ port, env: { LM_API_PORT: String(api.address().port) } })
   const origin = `http://127.0.0.1:${port}`
   app = await electron.launch({ executablePath: join(root, 'node_modules/electron/dist/Electron.app/Contents/MacOS/Electron'), args: [root, '--app=stage', `--url=${origin}`, `--user-data=${join(artifacts, 'profile')}`, `--api=http://127.0.0.1:${api.address().port}`], timeout: 30000 })
   report.switch = await app.evaluate(({ app }) => app.commandLine.getSwitchValue('max-active-webgl-contexts'))

@@ -7,11 +7,12 @@ import { dirname, join } from 'node:path'
 import { app } from 'electron'
 import { APP } from './config'
 import { readStageHotkeys, stagePrefix } from './hotkeys'
-import { defaultMotionSettings, readMotionSettings, type MotionSettings } from './trackingProtocol'
+import { defaultMotionSettings, readMotionSettings, type MotionSettings } from '#protocol/tracking'
+import type { Binding } from '#protocol/bridge'
 
 export type ClickMode = 'alpha' | 'all' | 'off'
 export type Rect = { x: number; y: number; width: number; height: number }
-export type Binding = { accelerator: string; do: string }
+export type { Binding }
 
 export type Settings = {
   /** 2: LivLiv Stage's global hotkeys start off */

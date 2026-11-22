@@ -1,35 +1,36 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
 import { mkdtemp, writeFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-gamepad-'))
 let server, browser, page, output
 const report = { artifacts }, errors = []
 try {
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite timeout')), 15000); server.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(timer); resolve() } }); server.once('exit', (c) => { clearTimeout(timer); reject(new Error('Vite exited ' + c)) }) })
+  const port = await freePort(); server = await startVite({ port })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   await context.addInitScript(() => {
     localStorage.setItem('livliv-stage:coached', '1'); if (!localStorage.getItem('livliv-stage:locale')) localStorage.setItem('livliv-stage:locale', 'zh-Hans')
-    window.pads = []; window.mediaRequests = 0; window.padListeners = new Map()
-    navigator.getGamepads = () => window.pads
+    window.pads = []; window.mediaRequests = 0; window.padListeners = new Map(); window.padPolls = 0
+    // the input loop's reads (not the panel's) are counted, so a step waits for the loop to have seen it
+    navigator.getGamepads = () => { if (/\bpoll\b/.test(new Error().stack)) window.padPolls++; return window.pads }
     navigator.mediaDevices.getUserMedia = async () => { window.mediaRequests++; throw new Error('No camera in this test') }
     const add = window.addEventListener.bind(window), remove = window.removeEventListener.bind(window)
     window.addEventListener = (type, fn, ...args) => { if (type.startsWith('gamepad')) { if (!window.padListeners.has(type)) window.padListeners.set(type, new Set()); window.padListeners.get(type).add(fn) } return add(type, fn, ...args) }
     window.removeEventListener = (type, fn, ...args) => { if (type.startsWith('gamepad')) window.padListeners.get(type)?.delete(fn); return remove(type, fn, ...args) }
   })
   await context.route('**/*', (route) => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) || /^(blob|data):/.test(route.request().url()) ? route.continue() : route.abort())
-  page = await context.newPage(); page.setDefaultTimeout(20000); page.on('pageerror', (e) => errors.push(e.message)); const origin = 'http://127.0.0.1:' + port
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(20000)); page.on('pageerror', (e) => errors.push(e.message)); const origin = 'http://127.0.0.1:' + port
+  /** changes the pads, then waits until the input loop has read them twice (the second read is wholly after the change) */
+  const change = async (fn) => { const n = await page.evaluate(fn); await page.waitForFunction((n) => window.padPolls >= n + 2, n) }
   await page.goto(origin, { waitUntil: 'networkidle' })
   await page.evaluate(async () => { const { store, emptyScene, newCharacter } = await import('/src/scene.ts'), scene = { ...emptyScene(), width: 640, height: 360 }, c = { ...newCharacter(scene, 'Stella', { type: 'url', url: '/characters/k01/' }), id: 'pad-avatar', driver: 'auto', lines: 'none', shadow: false }; c.tuning.idle = false; store.replace({ ...scene, items: [c] }); store.select(c.id) })
   await page.waitForFunction(() => window.__stage.actors.get('pad-avatar')?.status === 'ready')
-  await page.locator('details.advanced > summary').filter({ hasText: '动作与更多设置' }).click()
+  // what drives the motion: on the card's 谁来演 page
+  await page.getByRole('tab', { name: '谁来演', exact: true }).click()
   await page.getByRole('button', { name: '手柄', exact: true }).click()
   await page.getByText('连接手柄后，按一下任意按钮', { exact: true }).waitFor()
   if (process.env.STAGE_GAMEPAD_LAYOUT_ONLY) await page.locator('.pad-mappings > summary').click()
@@ -43,18 +44,18 @@ try {
   await page.waitForFunction(() => window.__stage.actors.get('pad-avatar').inputPhase === 'on' && Math.abs(window.__stage.actors.get('pad-avatar').lastPose.params.angleX - 15) < .1)
   assert.equal(await page.evaluate(() => window.moves.length), 0)
   assert.equal(await page.evaluate(() => window.__stage.actors.get('pad-avatar').lastPose.params.eyeLOpen), .1)
-  await page.evaluate(() => { window.pads[0].buttons[0] = { pressed: false, value: 0 } }); await page.waitForTimeout(60)
-  await page.evaluate(() => { window.pads[0].buttons[0] = { pressed: true, value: 1 } }); await page.waitForTimeout(300)
+  await change(() => { window.pads[0].buttons[0] = { pressed: false, value: 0 }; return window.padPolls })
+  await change(() => { window.pads[0].buttons[0] = { pressed: true, value: 1 }; return window.padPolls })
   assert.deepEqual(await page.evaluate(() => window.moves), ['nod'])
   // Disconnect/reconnect occurs between two polls; its held button must not fire.
-  await page.evaluate(() => { const pad = { ...window.pads[0], buttons: window.pads[0].buttons.map((b, i) => ({ pressed: i === 1, value: i === 1 ? 1 : 0 })) }; window.pads = [pad]; for (const type of ['gamepaddisconnected', 'gamepadconnected']) { const e = new Event(type); Object.defineProperty(e, 'gamepad', { value: pad }); window.dispatchEvent(e) } })
-  await page.waitForTimeout(250); assert.deepEqual(await page.evaluate(() => window.moves), ['nod'])
+  await change(() => { const pad = { ...window.pads[0], buttons: window.pads[0].buttons.map((b, i) => ({ pressed: i === 1, value: i === 1 ? 1 : 0 })) }; window.pads = [pad]; for (const type of ['gamepaddisconnected', 'gamepadconnected']) { const e = new Event(type); Object.defineProperty(e, 'gamepad', { value: pad }); window.dispatchEvent(e) } return window.padPolls })
+  assert.deepEqual(await page.evaluate(() => window.moves), ['nod'])
   report.buttons = 'one action per press; held buttons do not fire on connection or reconnect'
   await page.waitForTimeout(1500)
   await page.getByRole('button', { name: '把摇杆现在的位置设为中心', exact: true }).click()
   await page.waitForFunction(() => Math.abs(window.__stage.actors.get('pad-avatar').lastPose.params.angleX) < .1)
   await page.getByLabel('手柄灵敏度', { exact: true }).focus(); await page.getByLabel('手柄灵敏度', { exact: true }).press('End')
-  await page.waitForTimeout(300); assert.ok(Math.abs(await page.evaluate(() => window.__stage.actors.get('pad-avatar').lastPose.params.angleX)) < .1)
+  await change(() => window.padPolls); assert.ok(Math.abs(await page.evaluate(() => window.__stage.actors.get('pad-avatar').lastPose.params.angleX)) < .1)
   await page.evaluate(() => { window.pads[0].axes[0] = 1 })
   await page.waitForFunction(() => window.__stage.actors.get('pad-avatar').lastPose.params.angleX > 19)
   await page.evaluate(() => { const s = window.__stage.store, c = s.get().items[0]; s.patch(c.id, { tuning: { ...c.tuning, tracking: { angleX: { input: [-30, 30], output: [30, -30], smoothing: 0, curve: 1 } } } }) })
@@ -65,7 +66,7 @@ try {
   const parts = await page.getByLabel('调节部位', { exact: true }).locator('option').allTextContents(); assert.ok(parts.includes('左眼开合') && parts.includes('张嘴'), 'shared motion tuning also covers idle blink and speech while using a gamepad')
   await page.locator('.pad-mappings > summary').click()
   await page.getByLabel('按钮 1', { exact: true }).selectOption('expr:smile')
-  await page.evaluate(() => { window.pads[0].buttons[0] = { pressed: false, value: 0 } }); await page.waitForTimeout(70)
+  await change(() => { window.pads[0].buttons[0] = { pressed: false, value: 0 }; return window.padPolls })
   await page.evaluate(() => { window.pads[0].buttons[0] = { pressed: true, value: 1 } })
   await page.waitForFunction(() => window.__stage.actors.get('pad-avatar').expression === 'smile')
   await page.waitForFunction(() => window.__stage.actors.get('pad-avatar').expression === null)

@@ -2,7 +2,7 @@
 // local endpoint takes exactly what the server takes.
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { isCmdBody, parseDo } from '../commands'
+import { isCmdBody, parseDo } from '#protocol/commands'
 import { checkAccelerator, cleanBindings, defaultBindings, readStageHotkeys, stageBindings, stagePrefix } from '../hotkeys'
 import { route, stageFromPath, stageOutput, stageUrl } from '../urls'
 

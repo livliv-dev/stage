@@ -1,5 +1,7 @@
+import { readKeyed, writeKeyed } from './core/secrets'
 import { useSyncExternalStore } from 'react'
-import { aiFetch, loadBrainConfig, previousModelConfig, type Line } from './brain'
+import { aiFetch, loadBrainConfig, previousModelConfig } from './brain'
+import type { Line } from './core/lines'
 import { actors, onActors, onFrame } from './actors'
 import { conversation, talk, type RealtimeSession } from './conversation'
 import { cancel as cancelPtt } from './ptt'
@@ -7,9 +9,13 @@ import { inputs, microphoneConstraints, onInputs } from './devices'
 import { store, uid, type CharacterItem } from './scene'
 import { loadSpeech } from './voiceApi'
 import { tr } from './i18n'
+import { personaOf, realtimeInstructions } from './brains/persona'
 import type { MemoryScope } from './memory'
 import { routeMicrophone } from './microphone'
-import { RealtimeConnection, RealtimeHttpError, type ModelEvent, type RealtimeOptions, type RealtimeProvider } from './realtime/connection'
+import { RealtimeConnection, RealtimeHttpError, type ModelEvent, type RealtimeCall, type RealtimeHandlers, type RealtimeOptions, type RealtimeProvider } from './realtime/connection'
+import { RealtimeSocket, type SocketDeps } from './realtime/socket'
+import { realtimeFailure, realtimeRoute, standardBailian } from './realtime/route'
+import { captureMicrophone, pcmPlayer } from './realtime/audio'
 import { reactionTool, readReactionCall } from './realtime/reactions'
 
 export type RealtimeSettings = Omit<RealtimeOptions, 'instructions'> & { minutes: number }
@@ -21,7 +27,7 @@ export const realtimeDefaults = (provider: RealtimeProvider = 'qwen'): RealtimeS
 })
 export function loadRealtime(): RealtimeSettings {
   try {
-    const value = JSON.parse(localStorage.getItem(KEY) || 'null')
+    const value = JSON.parse(readKeyed(KEY) || 'null')
     if (!value || !['qwen', 'openai'].includes(value.provider)) return realtimeDefaults()
     const settings = realtimeDefaults(value.provider)
     for (const key of ['base', 'key', 'model', 'voice'] as const) if (typeof value[key] === 'string') settings[key] = value[key]
@@ -32,14 +38,18 @@ export function loadRealtime(): RealtimeSettings {
   } catch { return realtimeDefaults() }
 }
 export function saveRealtime(settings: RealtimeSettings) {
-  localStorage.setItem(KEY, JSON.stringify(settings))
+  void writeKeyed(KEY, settings)
 }
+/** the desktop app opens a realtime WebSocket (Bailian with a standard key); a web page can't */
+export const realtimeSocketHere = () => typeof window !== 'undefined' && !!window.livlivDesktop?.realtimeSocket
+/** a call's settings as it connects: the key and address (the model's, or the speech API's, where they are the same
+ *  service) and the way it goes (realtime/route.ts); no address when this combination can't connect here */
 export function realtimeCredentials(settings: RealtimeSettings) {
   const current = loadBrainConfig(), model = current.kind === 'openai' ? current : previousModelConfig(), speech = loadSpeech()
   const source = model.provider === settings.provider ? model : speech.provider === settings.provider ? speech : null
-  let base = source?.base.replace(/\/(?:compatible-mode\/v1|api\/v1)\/?$/, '') || ''
-  if (settings.provider === 'qwen' && settings.model.startsWith('qwen3.8-') && !/\.maas\.aliyuncs\.com(?:\/|$)/.test(base)) base = ''
-  return { ...settings, key: settings.key || source?.key || '', base: settings.base || base }
+  const wanted = settings.base || source?.base.replace(/\/(?:compatible-mode\/v1|api\/v1)\/?$/, '') || ''
+  const route = realtimeRoute(settings.provider, wanted, settings.model, realtimeSocketHere())
+  return { ...settings, key: settings.key || source?.key || '', base: route?.base ?? '', transport: route?.transport ?? 'webrtc', socket: route?.transport === 'websocket' ? route.socket : '', standard: standardBailian(wanted) }
 }
 type Phase = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking' | 'paused' | 'error'
 type State = { phase: Phase; character: string; until: number; error: string }
@@ -49,26 +59,20 @@ const set = (update: Partial<State>) => { state = { ...state, ...update }; liste
 export const realtimeState = () => state
 export const useRealtime = () => useSyncExternalStore((listener) => { listeners.add(listener); return () => { listeners.delete(listener) } }, realtimeState)
 
-function instructions(character: CharacterItem) {
-  const scene = store.get(), language = { auto: '跟随用户当前说话的语言。', zh: '使用中文。', en: 'Speak English.', ja: '日本語で話してください。' }[scene.talk.language]
-  return [
-    `你在实时语音通话中扮演「${character.name}」，正在和操作者交谈。`,
-    character.persona, character.style, character.examples?.length ? `语气示例，只参考语气：${character.examples.join(' / ')}` : '',
-    scene.topic ? `当前话题：${scene.topic}` : '', language,
-    scene.talk.depth === 'discussion' ? '回应用户的具体问题，允许有层次地深入讨论，说明依据和不确定之处，按需要追问。先说要点，再展开。' : '自然接话，先回应具体内容，再按需要追问。通常先说一两个短句。',
-    conversation().scope === 'public' ? '这是公开互动，不要声称知道没有提供的私聊内容。' : '这是与操作者的私聊。',
-    '可以安静倾听。不要朗读动作、旁白、JSON、表情标签或思考过程。',
-    '舞台交互规则：用户庆祝成果、直接夸你可爱，或你明确惊讶、疑惑、不同意时，必须先调用一次 stage_reaction 做符合内容的小反应，再自然回答。例如用户完成项目时用 happy，直接夸你可爱时用 shy，疑惑时歪头。不能只在台词里说「我害羞了」来代替调用，那不会触发舞台表情。',
-    '说话者反应用 speaking，倾听用户或其他角色时用 listening。每次回复最多给自己和另一位 AI 各一次反应；普通事实、追问和没有明确情绪的聊天不必做动作，开心也不必一直闭眼笑。工具只控制表情和小动作，执行后继续接话，不朗读工具结果、不说「正在调用」或确认动作完成。',
-  ].filter(Boolean).join('\n')
+/** what the call is told: the character's persona for it (brains/persona.ts), the stage's topic and depth
+ *  (test/prompts.mjs pins it word for word) */
+export function instructions(character: CharacterItem) {
+  const scene = store.get()
+  return realtimeInstructions(personaOf(character, scene.talk.language, conversation().scope), { topic: scene.topic, depth: scene.talk.depth })
 }
 
 /** The model connection does not know about Stage. Only this adapter owns a character, controls and transcript. */
-export async function startRealtime(settings: RealtimeSettings, characterId: string, scope: MemoryScope = conversation().scope) {
+export async function startRealtime(settings: RealtimeSettings, characterId: string, scope?: MemoryScope) {
   if (conversation().running) return
   const actor = actors.get(characterId), character = actor?.item, config = realtimeCredentials(settings)
   if (!character || actor.status !== 'ready' || character.remote || character.lines !== 'ai') { set({ phase: 'error', error: tr('先选择一个已载入的 AI 角色') }); return }
-  if (!config.key || !config.base || !config.model) { set({ phase: 'error', error: tr('请配置实时语音的接口地址、模型和密钥') }); return }
+  if (settings.provider === 'qwen' && config.standard && !config.base) { set({ phase: 'error', error: tr('网页版的百炼实时通话要用百炼工作空间的专属地址（….maas.aliyuncs.com）；桌面版用标准密钥即可') }); return }
+  if (!config.key || !config.base || !config.model) { set({ phase: 'error', error: tr('请配置实时通话的接口地址、模型和密钥') }); return }
   try { saveRealtime(settings) } catch { /* The active call can use unsaved settings. */ }
   cancelPtt()
   const until = Date.now() + Math.max(1, Math.min(30, settings.minutes)) * 60_000
@@ -77,7 +81,7 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
   const micContext = new AudioContext(), micOutput = micContext.createMediaStreamDestination(), micReady = micContext.resume()
   void micReady.catch(() => {})
   let rawMicrophone: MediaStream | null = null, micRoute: ReturnType<typeof routeMicrophone> | null = null
-  let connection: RealtimeConnection | undefined, sink: RealtimeSession | null = null, timer = 0, offActors = () => {}, offInputs = () => {}, offFrame = () => {}, finished = false, paused = false
+  let connection: RealtimeCall | undefined, sink: RealtimeSession | null = null, timer = 0, offActors = () => {}, offInputs = () => {}, offFrame = () => {}, finished = false, paused = false
   let output: Line | null = null, responseId = '', generating = false
   let quietSince = 0, played = false, turnOpen = false, bufferPlaying = false, speakingNotified = false, autoInterrupt = config.provider === 'openai'
   const cast = store.get().items.filter((item): item is CharacterItem => item.kind === 'character' && item.lines === 'ai' && !item.remote && !item.hidden)
@@ -119,7 +123,7 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
   }
   const fail = (error: Error) => {
     if (finished) return
-    const message = error instanceof RealtimeHttpError ? tr('实时语音连接失败（{0}）', error.status) : tr(error.message)
+    const message = error instanceof RealtimeHttpError ? realtimeFailure(config.provider, error.status) : tr(error.message)
     set({ error: message, phase: 'error' }); if (sink) sink.end(message); else close()
   }
   try {
@@ -205,7 +209,7 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
       if (typeof event.item_id !== 'string' || typeof event.transcript !== 'string') return
       sink!.line({ id: 'rt:' + event.item_id, who: 'me', name: tr('我'), text: event.transcript, emotion: 'neutral', action: 'none', to: null, human: true })
     } else if (kind === 'conversation.item.input_audio_transcription.failed') {
-      fail(new Error('实时语音识别失败，请重新开始'))
+      fail(new Error('实时通话识别失败，请重新开始'))
     } else if (kind === 'response.created') {
       const response = event.response as { id?: string; metadata?: { livliv_epoch?: string } } | undefined
       if (response?.id) inFlight.add(response.id)
@@ -246,7 +250,7 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
       }
       if (response?.id && response.id !== responseId) return
       generating = false
-      if (response?.status === 'failed') { fail(new Error('实时语音回应失败，请检查模型和额度')); return }
+      if (response?.status === 'failed') { fail(new Error('实时通话回应失败，请检查模型和额度')); return }
       if (response?.status === 'cancelled') { interrupt(false); phase('listening'); return }
       for (const item of response?.output ?? []) if (item.type === 'function_call') react({ type: 'response.output_item.done', response_id: responseId, item })
       const hasAudio = played || response?.output?.some((item) => item.content?.some((content) => content.type === 'audio' || content.type === 'output_audio'))
@@ -270,7 +274,7 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
       bufferPlaying = false; finishOutput(false); phase('listening')
     }
   }
-  connection = new RealtimeConnection({ ...config, instructions: instructions(character), tools: [reactionTool(cast.map((item) => item.name))] }, {
+  const handlers: RealtimeHandlers = {
     ready() {
       // History is untrusted conversation data, never session instructions. Creating an item alone does not request a reply.
       const context = sink!.context
@@ -287,20 +291,23 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
       }
     },
     closed() { if (!finished) sink!.end() },
-  }, {
-    peer: () => new RTCPeerConnection(),
-    microphone: async () => {
-      await micReady
-      const raw = await navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints() })
-      if (finished) { raw.getTracks().forEach((track) => track.stop()); return raw }
-      rawMicrophone = raw
-      for (const track of raw.getAudioTracks()) track.onended = () => fail(new Error('麦克风已断开，请重新开始'))
-      micRoute = routeMicrophone(micContext, raw); micRoute.node.connect(micOutput)
-      return micOutput.stream
-    }, exchange: aiFetch,
-  })
+  }
+  const openMicrophone = async () => {
+    await micReady
+    const raw = await navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints() })
+    if (finished) { raw.getTracks().forEach((track) => track.stop()); return raw }
+    rawMicrophone = raw
+    for (const track of raw.getAudioTracks()) track.onended = () => fail(new Error('麦克风已断开，请重新开始'))
+    micRoute = routeMicrophone(micContext, raw); micRoute.node.connect(micOutput)
+    return micOutput.stream
+  }
+  const options = { ...config, instructions: instructions(character), tools: [reactionTool(cast.map((item) => item.name))] }
+  // Bailian with a standard key: a WebSocket the desktop app opens (realtime/socket.ts); else WebRTC
+  connection = config.transport === 'websocket' && config.socket
+    ? new RealtimeSocket({ ...options, socket: config.socket }, handlers, { open: openSocket, microphone: openMicrophone, capture: captureMicrophone, player: pcmPlayer })
+    : new RealtimeConnection(options, handlers, { peer: () => new RTCPeerConnection(), microphone: openMicrophone, exchange: aiFetch })
   timer = window.setTimeout(() => sink!.end('', tr('已达到本次时长上限')), Math.max(0, until - Date.now()))
-  offActors = onActors(() => { if (!finished && (actors.get(characterId) !== actor || actor.item.lines !== 'ai' || actor.status !== 'ready')) sink!.end('', tr('实时语音角色已离开')) })
+  offActors = onActors(() => { if (!finished && (actors.get(characterId) !== actor || actor.item.lines !== 'ai' || actor.status !== 'ready')) sink!.end('', tr('实时通话角色已离开')) })
   offFrame = onFrame((value) => {
     if (value !== actor || finished || paused || !turnOpen || hearing || cancellation) return
     if (sound.level() > .02) {
@@ -314,7 +321,16 @@ export async function startRealtime(settings: RealtimeSettings, characterId: str
     } else if (!generating && output && !quietSince) quietSince = performance.now()
   })
   const microphone = inputs().microphone
-  offInputs = onInputs(() => { if (inputs().microphone !== microphone) sink!.end('', tr('麦克风已更改，请重新开始实时语音')) })
+  offInputs = onInputs(() => { if (inputs().microphone !== microphone) sink!.end('', tr('麦克风已更改，请重新开始实时通话')) })
   try { await sound.ready; if (!finished) await connection.start() } catch (error) { fail(error as Error) }
+}
+/** a realtime WebSocket, opened by the desktop app with the key in its header (desktop/src/realtimeSocket.ts) */
+const openSocket: SocketDeps['open'] = async (url, key, on) => {
+  const bridge = window.livlivDesktop?.realtimeSocket
+  if (!bridge) return null
+  const id = 'rt-' + uid()
+  const off = bridge.onEvent((socket, event) => { if (socket === id) on(event) })
+  if (!(await bridge.open(id, url, key))) { off(); return null }
+  return { send: (data) => { void bridge.send(id, data) }, close: () => { off(); void bridge.close(id) } }
 }
 addEventListener('pagehide', () => { if (conversation().running && conversation().mode === 'realtime') talk.stop() })

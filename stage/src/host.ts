@@ -1,14 +1,8 @@
-// Where this copy of Stage runs.
-//  - livliv.ai/stage (built with VITE_STAGE_HOST=livliv, `npm run build:site`): a page of the site itself. The visitor's
-//    LivLiv account is the site's own sign-in (its cookie; no connect code), the face model comes from the site's
-//    /mediapipe/, the AI services offered are the ones a web page can call straight (no /__ai pass-through), there is
-//    no 联播 (its relay runs on your own computer), and recordings follow the visitor's LivLiv plan (free: 30 s with
-//    the LivLiv mark; paid: 5 min)
-//  - anywhere else (the desktop app, the dev server, a copy you host yourself): all of Stage, as before
-export const onSite = import.meta.env.VITE_STAGE_HOST === 'livliv'
+// Addresses and sizes that depend on where Stage runs (which host it is: core/platform.ts).
+import { features } from './core/platform'
 
 /** where the face tracker's files are: the site's own copy there (the same files), Stage's elsewhere */
-export const mediapipeBase = onSite ? '/mediapipe/' : `${import.meta.env.BASE_URL}mediapipe/`
+export const mediapipeBase = features.host === 'site' ? '/mediapipe/' : `${import.meta.env.BASE_URL}mediapipe/`
 
 /** the site's sign-in, coming back to this page (and the character it was opened with) */
 export const signInUrl = () => `/login?next=${encodeURIComponent(location.pathname + location.search)}`

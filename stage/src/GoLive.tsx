@@ -6,7 +6,7 @@ import { Check, MonitorPlay, X } from 'lucide-react'
 import { actors, onActors } from './actors'
 import { openOutput, outputOpen } from './link'
 import { participants, useScene } from './scene'
-import { desktop } from './desktopBridge'
+import { features } from './core/platform'
 
 export function GoLiveGuide({ id, onClose }: { id: string; onClose: () => void }) {
   const { scene } = useScene()
@@ -29,6 +29,6 @@ export function GoLiveGuide({ id, onClose }: { id: string; onClose: () => void }
     <p className="golive-keys">{tr('1–9 表情 · 0 恢复 · Q–T 动作 · B 暂离')}</p>
     {/* a browser stops drawing a window that is wholly covered, and OBS then captures a still picture (the desktop
         app's output window never stops) */}
-    {!desktop && <p className="golive-keys">{tr('别让其他窗口完全盖住输出窗口，否则画面会停住。')}</p>}
+    {!features.shell && <p className="golive-keys">{tr('别让其他窗口完全盖住输出窗口，否则画面会停住。')}</p>}
   </div>
 }

@@ -1,5 +1,5 @@
 // livliv.ai/stage's note on the desktop app (DesktopNotice.tsx), on the site's build with the site faked: on a computer's
-// first visit it waits for the welcome to close and for the demo to end, then says what the web version can't do (the
+// first visit it waits for the start page to close and for the demo to end, then says what the web version can't do (the
 // browser's limits) and links the project on GitHub, with 下载桌面版 (GitHub's latest release, a new tab) and 继续用网页版; once closed it stays closed in this
 // browser, and Settings › General › About opens it again. Never with the sign-in prompt, nor on a phone, nor in OBS.
 import assert from 'node:assert/strict'
@@ -43,14 +43,14 @@ try {
   const notice = (page) => page.locator('.desktop-notice')
   const none = async (page, why) => { await page.waitForTimeout(800); assert.equal(await notice(page).count(), 0, why) }
 
-  // a computer's first visit: not with the welcome, nor while the demo plays; then what the desktop app adds
+  // a computer's first visit: not with the start page, nor while the demo plays; then what the desktop app adds
   signedIn = true
   let c = await context()
   let page = await visit(c)
-  await page.locator('.site-welcome').waitFor()
-  await none(page, 'not with the welcome')
+  await page.locator('.start-overlay .start-page').waitFor()
+  await none(page, 'not with the start page')
   await page.waitForFunction(() => { const a = [...window.__stage.actors.values()]; return a.length === 3 && a.every((x) => x.status === 'ready') }, null, { timeout: 60000 })
-  await page.locator('.site-welcome .welcome-demo').click()
+  await page.locator('.start-overlay .welcome-demo').click()
   await page.waitForFunction(() => window.__stage.conversation().running)
   await none(page, 'not while the demo plays')
   await page.evaluate(() => window.__stage.talk.stop())
@@ -76,10 +76,10 @@ try {
   await notice(page).waitFor({ state: 'detached' })
   await c.close()
 
-  // closing the welcome another way, then 继续用网页版; English
+  // closing the start page another way, then 继续用网页版; English
   c = await context({ locale: 'en' })
   page = await visit(c)
-  await page.locator('.site-welcome .close').click()
+  await page.locator('.start-overlay .start-page .close').click()
   await notice(page).waitFor()
   assert.equal(await notice(page).locator('.big').innerText(), 'Limits of the web version')
   assert.equal(await notice(page).locator('.hint.after').innerText(), 'Try the desktop app, and follow our open-source project LivLiv Stage')
@@ -94,7 +94,7 @@ try {
   signedIn = false
   c = await context()
   page = await visit(c, { clock: true })
-  await page.locator('.site-welcome .close').click()
+  await page.locator('.start-overlay .start-page .close').click()
   await notice(page).waitFor()
   await page.clock.fastForward(181_000)
   await page.locator('.guest-gate').waitFor()
@@ -115,7 +115,7 @@ try {
   // OBS's own browser: never
   c = await context({ userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 OBS/31.0.2' })
   page = await visit(c)
-  await page.locator('.site-welcome .close').click()
+  await page.locator('.start-overlay .start-page .close').click()
   await none(page, 'never in OBS')
   await c.close()
 

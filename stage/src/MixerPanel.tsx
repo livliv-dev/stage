@@ -123,7 +123,7 @@ export function MixerPanel({ onClose, onSettings }: { onClose: () => void; onSet
     </section>
     <section className="mix-bus">
       {group('friends', tr('朋友声音'), levels.friends)}
-      {friends.length > 0 ? <details className="individual-mix"><summary>{tr('分别调整朋友')}<span className="num">{friends.length}</span></summary>{friends.map(individual)}</details> : <span className="hint mixer-empty">{tr('联播后在这里调整朋友的声音')}</span>}
+      {friends.length > 0 ? <details className="individual-mix"><summary>{tr('分别调整朋友')}<span className="num">{friends.length}</span></summary>{friends.map(individual)}</details> : <span className="hint mixer-empty">{tr('好友联播后在这里调整朋友的声音')}</span>}
     </section>
     </div>
     {(state.error || error) && <p className="error" role="alert">{state.error || error}</p>}

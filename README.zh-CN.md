@@ -16,15 +16,19 @@
 <p align="center"><img src="media/demo.gif" alt="Ruri、Nana 和 Konatsu 在同一个舞台上聊天，带对话气泡" width="720"></p>
 
 - 一张舞台最多 30 个角色（浏览器里 15 个）：LivLiv 半身和全身、VRM、PNGTuber
-- 长期记忆和实时语音对话
+- 从想做的事开始：**我来演**（可以加一个 AI 搭档）、**AI 来开播**、**和角色聊天**、**做一段视频**。每个目标只列它需要的准备清单
+- 长期记忆和实时通话
 - 角色之间互相对话，也回应 Twitch 弹幕
 - 说话时跟着情绪变的表情
+- 桌面版和角色聊天，每个角色有自己的记忆，由 [Project AIRI](https://github.com/moeru-ai/airi) 驱动
+- 桌面版的游戏连接：Minecraft（[Airicraft](https://github.com/proj-airi/airicraft)）、Factorio（[Autorio](https://github.com/moeru-ai/airi-factorio)），或者让角色看着任意游戏窗口
 - 内置 Neuro SDK 支持（桌面版）
+- 用 [Voicebox](https://voicebox.sh) 在本机免费出声（桌面版）：打开 Voicebox 就能找到它，没设置别的声音时角色就用它说话
 - 基础功能都有：摄像头面捕（手机面捕 App 和 VMC/OSC 用桌面版）、OBS 输出、录视频
 - 27 个精选角色，开箱即用。基于 [LivLiv Player](https://github.com/livliv-dev/player)
 
 AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等），也可以使用 LivLiv.ai 帐号。
-实时语音需要你自己的 OpenAI 或阿里云百炼密钥。
+实时通话需要你自己的 OpenAI 或阿里云百炼密钥。
 
 ## 试一试
 
@@ -60,10 +64,11 @@ npm --prefix stage ci && npm --prefix stage run dev            # 网页版，htt
 npm --prefix desktop ci && npm --prefix desktop run stage:dev  # 桌面版（stage:mac、stage:win 打安装包）
 ```
 
-测试：`npm --prefix stage run check && npm --prefix stage test`、`npm --prefix desktop test`、`npm --prefix collab test`。
-AI 聊天和记忆见 [docs/ai-conversations.md](docs/ai-conversations.md)，实时语音见 [docs/realtime-voice.md](docs/realtime-voice.md)，
-Neuro SDK 桥接见 [neuro/README.md](neuro/README.md)，本机控制接口见 [docs/stage-api.md](docs/stage-api.md)，联播见 [collab/README.md](collab/README.md)。
-模型密钥只存在浏览器或应用里，请求直接发给服务商。欢迎贡献：[CONTRIBUTING.md](CONTRIBUTING.md)。
+测试：`npm --prefix stage run check && npm --prefix stage test`、`npm --prefix desktop test`、`npm --prefix collab test`；
+浏览器测试是 [stage/package.json](stage/package.json) 里的 `test:*` 脚本。每个 PR 都会在 GitHub Actions 上跑这些测试。
+AI 聊天和记忆见 [docs/ai-conversations.md](docs/ai-conversations.md)，实时通话见 [docs/realtime-voice.md](docs/realtime-voice.md)，
+Neuro SDK 桥接见 [neuro/README.md](neuro/README.md)，本机控制接口见 [docs/stage-api.md](docs/stage-api.md)，好友联播见 [collab/README.md](collab/README.md)。
+模型密钥只存在浏览器或应用里，请求直接发给服务商；桌面版用系统加密保存密钥和 LivLiv 登录（钥匙串、DPAPI 或 Linux 密钥环），写好后从页面存储中移走。欢迎贡献：[CONTRIBUTING.md](CONTRIBUTING.md)。
 安全问题：[SECURITY.md](SECURITY.md)。
 
 ## 许可

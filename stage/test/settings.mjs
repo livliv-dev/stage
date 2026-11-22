@@ -1,27 +1,17 @@
 import assert from 'node:assert/strict'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { chromium } from 'playwright-core'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const artifacts = await mkdtemp(join(tmpdir(), 'stage-settings-'))
 let server, browser, page
 const errors = [], calls = []
 try {
-  const socket = createServer()
-  await new Promise(resolve => socket.listen(0, '127.0.0.1', resolve))
-  const port = socket.address().port
-  await new Promise(resolve => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, VITE_STAGE_HOST: '' } })
-  await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Vite did not start')), 15000)
-    server.stdout.on('data', bytes => { if (String(bytes).includes('Local:')) { clearTimeout(timer); resolve() } })
-    server.once('exit', code => { clearTimeout(timer); reject(new Error('Vite exited ' + code)) })
-  })
+  const port = await freePort(); server = await startVite({ port, env: { VITE_STAGE_HOST: '' } })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: 'zh-CN' })
   await context.addInitScript(() => {
@@ -66,7 +56,7 @@ try {
   }
   await context.route('**/*', routeFixture)
   page = await context.newPage()
-  page.setDefaultTimeout(15000)
+  page.setDefaultTimeout(testTimeout(15000))
   page.on('pageerror', error => errors.push(error.message))
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'networkidle' })
   await page.evaluate(async () => {
@@ -82,29 +72,32 @@ try {
   })
   await page.waitForFunction(() => window.__stage.actors.size === 1 && [...window.__stage.actors.values()].every(actor => actor.status === 'ready'))
 
-  // No provider configured: the user chooses a model before being asked to sign in.
-  await page.getByRole('button', { name: '持续聊天', exact: true }).click()
-  const settings = page.locator('.settings')
-  await settings.getByRole('button', { name: '文字对话', exact: true }).waitFor()
-  assert.equal(await settings.getByRole('button', { name: '文字对话', exact: true }).getAttribute('aria-pressed'), 'true')
+  // No provider configured: the user chooses a model before being asked to sign in. The goal is 和角色聊天; its start
+  // opens Settings → 连接 at the text model.
+  const startChat = page.locator('.console .start-button')
+  assert.equal((await startChat.innerText()).trim(), '开始聊天')
+  await startChat.click()
+  const settings = page.locator('.settings'), model = settings.locator('.connections [data-section="model"]')
+  await model.waitFor()
+  assert.equal((await settings.locator('.settings-tabs button.on').innerText()).trim(), '连接')
   assert.equal(await page.locator('.account-panel').count(), 0, 'Continuous chat must first show model settings')
   assert.equal(calls.length, 0)
   await page.screenshot({ path: join(artifacts, 'chat-model-settings.png') })
-  await settings.locator('.providers').getByRole('button', { name: 'livliv.ai', exact: true }).click()
+  await model.locator('.providers').getByRole('button', { name: 'livliv.ai', exact: true }).click()
   await settings.locator('.account-panel').waitFor()
   await page.keyboard.press('Escape')
-  await page.getByRole('button', { name: '持续聊天', exact: true }).click()
-  await settings.getByRole('button', { name: '文字对话', exact: true }).waitFor()
-  await settings.locator('.providers').getByRole('button', { name: '其他', exact: true }).click()
-  await settings.getByLabel('接口地址', { exact: true }).fill(`http://127.0.0.1:${port}/fixture-ai`)
-  await settings.getByLabel('密钥').fill('fixture-model-key')
-  await settings.getByLabel('模型', { exact: true }).fill('fixture-model')
-  await settings.getByRole('button', { name: '开始', exact: true }).click()
+  await startChat.click()
+  await model.waitFor()
+  await model.locator('.providers').getByRole('button', { name: '其他', exact: true }).click()
+  await model.getByLabel('接口地址', { exact: true }).fill(`http://127.0.0.1:${port}/fixture-ai`)
+  await model.getByLabel('密钥').fill('fixture-model-key')
+  await model.getByLabel('模型', { exact: true }).fill('fixture-model')
+  await model.getByRole('button', { name: '开始', exact: true }).click()
   await settings.waitFor({ state: 'detached' })
   await page.waitForFunction(() => window.__stage.conversation().mode === 'chat' && window.__stage.conversation().waitingInput)
   assert.equal(calls.length, 1, 'Saving resumes the requested continuous chat exactly once')
   await page.evaluate(() => window.__stage.talk.stop())
-  await page.getByRole('button', { name: '持续聊天', exact: true }).click()
+  await startChat.click()
   await page.waitForFunction(() => window.__stage.conversation().running && window.__stage.conversation().waitingInput)
   assert.equal(await settings.count(), 0, 'A configured model starts chat directly')
   await page.evaluate(async () => {

@@ -4,9 +4,8 @@ import { mkdtemp, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawn } from 'node:child_process'
-import { createServer } from 'node:net'
 import { setTimeout as delay } from 'node:timers/promises'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-handsfree-'))
 const calls = [], recordings = [], errors = [], checks = []
@@ -25,10 +24,7 @@ const until = async (condition) => { for (let i = 0; i < 1000; i++) { if (condit
 const level = (value) => page.evaluate((value) => window.microphone.gain.gain.setValueAtTime(value, window.microphone.context.currentTime), value)
 const speak = async (milliseconds) => { await level(.12); await delay(milliseconds); await level(0) }
 try {
-  const socket = createServer(); await new Promise((resolve) => socket.listen(0, '127.0.0.1', resolve))
-  const port = socket.address().port; await new Promise((resolve) => socket.close(resolve))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--configLoader', 'native', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite did not start')), 20000); server.stdout.on('data', (bytes) => { if (String(bytes).includes('Local:')) { clearTimeout(timer); resolve() } }); server.once('exit', (code) => reject(new Error('Vite exited ' + code))) })
+  const port = await freePort(); server = await startVite({ port, args: ['--configLoader', 'native'] })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
   await context.addInitScript(() => {
@@ -67,7 +63,7 @@ try {
     if (['127.0.0.1', 'localhost'].includes(url.hostname) || ['blob:', 'data:'].includes(url.protocol)) await route.continue()
     else await route.abort()
   })
-  page = await context.newPage(); page.setDefaultTimeout(15000); page.on('pageerror', (error) => errors.push(error.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(15000)); page.on('pageerror', (error) => errors.push(error.message))
   await page.goto(`http://127.0.0.1:${port}`, { waitUntil: 'domcontentloaded' }); await page.waitForFunction(() => !!window.__stage)
   await page.evaluate(async () => {
     const { store, emptyScene, newCharacter } = await import('/src/scene.ts'), { fromPngs } = await import('/src/library.ts')
@@ -82,8 +78,14 @@ try {
   })
   await page.waitForFunction(() => [...window.__stage.actors.values()].some((actor) => actor.status === 'ready'))
   const toggle = page.getByRole('button', { name: '免按键语音', exact: true })
-  assert.equal(await toggle.getAttribute('aria-pressed'), 'false')
-  await toggle.click(); await armed(); await waiting()
+  const automatic = () => page.evaluate(async () => (await import('/src/ptt.ts')).pttState().automatic)
+  assert.equal(await automatic(), false)
+  // hands-free from the start: 你参与吗 免按键, then the start button; running, the console's toggle turns it off and on
+  await page.locator('.console .start-rows').click()
+  await page.locator('.popover.start-options .option-row').nth(2).getByRole('button', { name: '免按键', exact: true }).click()
+  await page.locator('.popover.start-options button[data-close]').click()
+  await page.locator('.console .start-button').click(); await armed(); await waiting()
+  assert.equal(await toggle.getAttribute('aria-pressed'), 'true')
   const initialCalls = calls.length
   await level(.003); await delay(300); await speak(80); await delay(400); await armed()
   assert.equal(recordings.length, 0); assert.equal(calls.length, initialCalls)
@@ -165,7 +167,7 @@ try {
 
   await toggle.click(); await armed()
   await page.setViewportSize({ width: 1100, height: 700 })
-  assert.ok(await page.locator('.say input').evaluate((element) => element.getBoundingClientRect().width >= 120))
+  assert.ok(await page.locator('.say-bar input').evaluate((element) => element.getBoundingClientRect().width >= 120))
   assert.equal(await page.locator('.say-bar').evaluate((element) => element.scrollWidth > element.clientWidth), false)
   await page.screenshot({ path: join(artifacts, 'handsfree-1100.png') })
   await page.keyboard.press('Escape'); assert.equal(await toggle.getAttribute('aria-pressed'), 'false')
@@ -187,7 +189,7 @@ try {
   await page.getByText(/Fixture permission refused/).waitFor(); assert.equal(await toggle.getAttribute('aria-pressed'), 'false')
   await page.evaluate(() => { window.refuseMic = false }); await toggle.click(); await armed()
   await page.evaluate(() => window.__stage.talk.stop())
-  assert.equal(await toggle.getAttribute('aria-pressed'), 'false')
+  assert.equal(await automatic(), false); assert.equal(await toggle.count(), 0, 'no session: no hands-free toggle')
   assert.equal(await page.evaluate(() => window.microphone.stream.getAudioTracks()[0].readyState), 'ended')
 
   voiceSeconds = 5; transcript = '嗯'
@@ -223,7 +225,8 @@ try {
   assert.equal(await page.evaluate(() => window.microphone.stream.getAudioTracks()[0].readyState), 'ended')
   await page.evaluate(() => window.__stage.talk.stop())
   checks.push('a stalled recognizer has a bounded queue, stops visibly and releases the microphone')
-  await page.reload(); assert.equal(await toggle.getAttribute('aria-pressed'), 'false')
+  await page.reload(); await page.waitForFunction(() => !!window.__stage)
+  assert.equal(await automatic(), false); assert.equal(await toggle.count(), 0, 'reloaded: nothing runs, nothing listens')
   checks.push('late permission resolution, permission refusal, stop and reload never leave listening enabled')
 
   assert.deepEqual(errors, [])

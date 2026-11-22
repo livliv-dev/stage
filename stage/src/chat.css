@@ -1,4 +1,9 @@
 .chat-status { color: var(--fg-2); font-size: 12px; max-width: 118px; line-height: 1.4; text-wrap: balance; flex: none; }
+.talkbar .start-chat { max-width: 192px; }
+.talkbar .start-chat svg { flex: none; }
+.talkbar .start-chat span, .chat-partner { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-partner { max-width: 115px; padding-inline: 4px; color: var(--fg-2); font-size: 12px; }
+.talkbar .chat-scope-link { padding: 4px 8px; white-space: nowrap; }
 .chat-history-controls { display: flex; gap: 6px; margin-bottom: 8px; }
 .chat-history-controls select { min-width: 0; }
 .chat-history-controls select:last-child { flex: 1; }
@@ -52,6 +57,7 @@
 .talkbar .handsfree.on { color: var(--live); border-color: var(--live); }
 .handsfree-status { margin: 0 8px; color: var(--fg-2); font-size: 12px; text-wrap: balance; }
 @media (max-width: 1200px) {
+  .talkbar .start-chat { max-width: 148px; }
   .say-bar .say { flex-wrap: wrap; }
   .say-bar .say input { flex: 1 1 calc(100% - 124px); min-width: 120px; }
   .say-bar .chat-status { margin-right: auto; }

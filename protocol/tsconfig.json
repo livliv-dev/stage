@@ -1,0 +1,23 @@
+{
+  // the desktop app's build compiles this into its own output (desktop/tsconfig.json references it; desktop/package.json
+  // maps #protocol/* there); the Stage editor bundles the sources
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": [],
+    "rootDir": "src",
+    "outDir": "../desktop/dist/protocol",
+    "tsBuildInfoFile": "../desktop/dist/protocol/tsconfig.tsbuildinfo",
+    "composite": true,
+    "declaration": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "erasableSyntaxOnly": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}

@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite'
+import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import pkg from './package.json' with { type: 'json' }
 
@@ -17,7 +18,15 @@ const META = `
   `
 
 export default defineConfig({
-  plugins: [react(), ...(site ? [{ name: 'livliv-site-meta', transformIndexHtml: (html: string) => html.replace('</head>', `${META}</head>`) }] : [])],
+  plugins: [react(), {
+    name: 'airi-notices',
+    generateBundle() {
+      const directory = new URL('../vendor/airi-core/', import.meta.url)
+      for (const name of ['LICENSE', 'DEPENDENCY-NOTICES.txt']) {
+        this.emitFile({ type: 'asset', fileName: 'licenses/airi-' + name + (name.endsWith('.txt') ? '' : '.txt'), source: readFileSync(new URL(name, directory)) })
+      }
+    },
+  }, ...(site ? [{ name: 'livliv-site-meta', transformIndexHtml: (html: string) => html.replace('</head>', `${META}</head>`) }] : [])],
   // the version the About section shows (keep it the same as electron-builder.stage.yml's extraMetadata.version)
   define: { __STAGE_VERSION__: JSON.stringify(pkg.version) },
   server: {

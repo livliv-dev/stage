@@ -92,7 +92,7 @@ test('a provider inference error reports a temporary service failure and release
   const f = fixture()
   await f.connection.start(); f.connect(); f.event({ type: 'session.created' })
   f.event({ type: 'error', error: { code: 'COMMON_ERROR', message: '<50002> InternalError.Algo.ModelServingError: fixture-key' } })
-  assert.equal(f.errors[0]?.message, '实时语音服务暂时出错，请稍后重新开始')
+  assert.equal(f.errors[0]?.message, '实时通话服务暂时出错，请稍后重新开始')
   assert.equal(f.state().closed, 1); assert.equal(f.state().microphoneStops, 1); assert.equal(f.state().requests, 1)
 })
 

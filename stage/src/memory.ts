@@ -1,4 +1,4 @@
-import type { Line } from './brain'
+import type { Line } from './core/lines'
 
 export type MemoryScope = 'private' | 'public'
 export type SessionSummary = { text: string; sourceIds: string[]; memoryIds?: string[]; memoryRevision?: number }

@@ -7,7 +7,8 @@ import { tr } from './i18n'
 // stage loaded straight into a browser source), nor before the site has said who is there (a member never sees it while
 // /api/me is still on its way), and never off the site.
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { onSite, signInUrl, signUpUrl } from './host'
+import { signInUrl, signUpUrl } from './host'
+import { features } from './core/platform'
 import { useAccount } from './livliv'
 
 /** how long a visitor may look around signed out before being asked */
@@ -23,7 +24,7 @@ export const closeGuestGate = () => { closed = true; listeners.forEach((f) => f(
 /** whether the prompt is up (App keeps its other cards out of the way meanwhile) */
 export function useGuestGate() {
   const account = useAccount()
-  const out = onSite && account.status === 'out' && !navigator.userAgent.includes('OBS/')
+  const out = features.host === 'site' && account.status === 'out' && !navigator.userAgent.includes('OBS/')
   const shut = useSyncExternalStore(subscribe, () => closed)
   const [due, setDue] = useState(false)
   useEffect(() => {

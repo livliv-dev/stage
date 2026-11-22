@@ -1,0 +1,175 @@
+/* The start page, the 准备清单, the start options, the status line, the character card's pages and Settings → 连接.
+   Same tokens, type and spacing as the rest of Stage: quiet cards around the stage, blue for on, amber for waiting on you,
+   green for working, red for errors with words. */
+
+/* ---------------------------------------------------------------- the start page */
+.start-page { pointer-events: auto; width: min(640px, calc(100vw - 32px)); text-align: center; color: var(--fg-2); }
+.start-page.card { position: relative; padding: 22px 22px 16px; }
+.start-page .close { position: absolute; right: 10px; top: 10px; }
+.start-page .big { font-size: 20px; line-height: 28px; color: var(--fg); font-weight: 600; margin: 0 0 14px; }
+.start-overlay { position: absolute; inset: 56px 0 0; display: grid; place-items: center; z-index: var(--z-pop); background: rgb(236 234 229 / .55); }
+.goal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+.goal-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; border-radius: 14px; padding: 12px 14px; white-space: normal; text-align: left; }
+.goal-tile svg { color: var(--accent); flex: none; }
+.goal-tile b { font-size: 15px; color: var(--fg); }
+.goal-tile span { font-size: 12px; line-height: 18px; color: var(--fg-2); text-wrap: balance; }
+.goal-tile.big { padding: 0; border: 1px solid var(--line); background: var(--panel); position: relative; }
+.goal-tile.big .goal-main { width: 100%; flex-direction: column; align-items: flex-start; gap: 6px; border: 0; border-radius: 14px; padding: 18px 16px 40px; white-space: normal; text-align: left; background: none; }
+.goal-tile.big .goal-main b { font-size: 18px; line-height: 26px; }
+.goal-tile.big .goal-main span { font-size: 13px; line-height: 20px; color: var(--fg-2); }
+.goal-tile.big .goal-extra { position: absolute; left: 12px; bottom: 10px; font-size: 12px; padding: 2px 10px; gap: 4px; }
+.goal-tile.big:hover { border-color: var(--line-2); }
+.start-page .welcome-demo { max-width: none; margin: 4px 0 12px; padding: 12px 14px; }
+.start-secondary { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 12px; font-size: 12px; color: var(--fg-3); }
+.start-secondary .link { font-size: 12px; padding: 2px 0; gap: 4px; }
+.start-secondary.site { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.start-secondary a { color: var(--fg-2); text-decoration: none; }
+.start-secondary a:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------------------------------------------------------------- the 准备清单 and the start options, over the console */
+.popover.checklist, .popover.start-options { left: max(12px, calc(50% - 470px)); bottom: 112px; width: 420px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 190px); overflow-y: auto; }
+.popover.start-options { left: auto; right: max(12px, calc(50% - 470px)); }
+.popover.checklist header { gap: 10px; }
+.popover.checklist .title small { font-size: 12px; font-weight: 400; color: var(--fg-3); margin-left: 6px; }
+.popover.checklist header .hint { margin-left: auto; font-size: 12px; color: var(--fg-3); }
+.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.check { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-top: 1px solid var(--line); }
+.check:first-child { border-top: 0; }
+.check > i { flex: none; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--hover); color: var(--fg-3); }
+.check.ok > i { background: color-mix(in srgb, var(--ok) 15%, #fff); color: var(--ok); }
+.check.todo > i { background: color-mix(in srgb, var(--wait) 22%, #fff); color: #8f5b0a; }
+.check.warn > i { background: color-mix(in srgb, var(--wait) 14%, #fff); color: #8f5b0a; }
+.check.off { opacity: .6; }
+.check-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.check-text b { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.check-text small { font-size: 12px; line-height: 18px; color: var(--fg-3); }
+.check-text small.error { color: var(--error); }
+.check-text small.ok { color: var(--ok); }
+.check-text .check-link { font-size: 12px; line-height: 18px; display: inline-flex; align-items: center; gap: 3px; width: fit-content; }
+.check > button:not(.icon) { flex: none; padding: 3px 10px; font-size: 12px; }
+.desk-tag { display: inline-block; font-style: normal; font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: 999px; background: var(--hover); color: var(--fg-3); font-weight: 400; }
+.popover.checklist footer { margin-top: 10px; display: flex; justify-content: flex-end; align-items: center; }
+.popover.checklist footer .hint { font-size: 12px; color: var(--fg-3); }
+
+.popover.start-options .option-row { padding: 10px 0; border-top: 1px solid var(--line); }
+.popover.start-options .option-topic { padding: 2px 0 10px; }
+.popover.start-options .option-row:first-of-type { border-top: 0; padding-top: 2px; }
+.popover.start-options h3 { font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+.popover.start-options .who { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 4px 0; }
+.popover.start-options .who b { font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.popover.start-options .who .seg { flex: none; }
+.popover.start-options .option-row > .hint { font-size: 12px; color: var(--fg-3); margin: 6px 0 0; }
+.twitch-row { margin-top: 8px; }
+.twitch-row > .hint { margin: 0 0 6px; font-size: 12px; }
+.twitch-row .audience-panel { padding: 0; border: 0; margin: 0; }
+.popover.start-options .limits { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.popover.start-options .limits h3 { grid-column: 1 / -1; }
+.popover.start-options .limits .field { margin: 0; }
+.popover.start-options .limits .field:only-of-type { grid-column: 1 / -1; }
+.popover.start-options details.advanced { border-top: 1px solid var(--line); padding-top: 8px; }
+.popover.start-options details.advanced .field { margin-top: 8px; }
+
+/* ---------------------------------------------------------------- the console */
+.console.next .run-bar { gap: 6px; padding: 5px 6px; }
+.console.next .run-bar .topic, .console.next .run-bar .first-line { flex: 1 1 160px; }
+.start-rows { flex: 0 1 auto; min-width: 0; gap: 0; padding: 2px 4px 2px 2px; border-radius: 999px; background: var(--hover); border-color: transparent; }
+.start-rows { padding: 5px 8px 5px 4px; }
+.start-rows > span { text-align: left; padding: 0 9px; border-right: 1px solid var(--line-2); min-width: 0; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; line-height: 18px; color: var(--fg); }
+.start-rows > span:nth-of-type(3) { border-right: 0; }
+.start-rows.on { background: var(--accent-soft); }
+.start-button { flex: none; padding-inline: 16px; }
+/* the buttons wrap under the line before the line gets too short to type in (a narrow window, hands-free on) */
+.console.next .say-bar { gap: 4px; flex-wrap: wrap; }
+.console.next .say-bar input { flex: 1 1 200px; min-width: 160px; }
+.console.next .say-bar .hold { flex: none; gap: 5px; }
+.console.next .say-bar .hold.listening { color: var(--live); border-color: var(--live); }
+.status-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 0 8px; }
+.status-line .st-tag, .st-tag.solo-checks { display: inline-flex; gap: 5px; align-items: center; padding: 1px 9px; border-radius: 999px; font-size: 12px; line-height: 20px; color: var(--fg-2);
+  background: rgb(255 255 255 / .85); border: 1px solid var(--line); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.status-line .st-tag b { font-weight: 500; color: var(--fg); overflow: hidden; text-overflow: ellipsis; }
+.status-line .st-tag.ok b { color: var(--ok); }
+.status-line .st-tag.need { border-color: color-mix(in srgb, var(--wait) 50%, transparent); background: #fff7ea; }
+.status-line .st-tag.need b { color: #8f5b0a; }
+.status-line .st-tag.warn b { color: #8f5b0a; }
+.status-line .st-tag.live { border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+.status-line .scope-tag.private b, .status-line .scope-tag.private { color: var(--fg); }
+.status-line .scope-tag.public { color: var(--accent); }
+.st-tag.solo-checks { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: var(--z-panel); }
+
+/* ---------------------------------------------------------------- the character card's pages */
+.panel .card-pages { margin: 4px 0 6px; }
+.panel .card-pages button { flex: 1; }
+.panel .card-note { margin: 10px 0; }
+
+/* ---------------------------------------------------------------- settings: 连接 and the search */
+.settings-search { margin: 0 0 10px; border-radius: 999px; }
+.settings-found { display: grid; gap: 4px; }
+.settings-found .item { justify-content: space-between; border-radius: 10px; }
+.settings-found .item span { font-size: 12px; color: var(--fg-3); }
+.connections { display: grid; gap: 4px; }
+.connect-section { padding: 12px 0; border-top: 1px solid var(--line); }
+.connect-section:first-child { border-top: 0; padding-top: 0; }
+.connect-section h3 { font-size: 14px; margin: 0 0 2px; }
+.connect-section > .hint { font-size: 12px; color: var(--fg-3); margin: 0 0 8px; }
+.connect-section .switch small { display: block; font-size: 12px; }
+.connect-section .fold { border: 0; background: none; padding: 0; gap: 4px; }
+.connect-section .fold svg { transition: transform .12s; }
+.connect-section .fold svg.open { transform: rotate(90deg); }
+.connect-section .fold h3 { margin: 0; }
+.shots-menu .shot-start { width: calc(100% - 16px); margin: 8px 8px 0; justify-content: flex-start; border-radius: 10px; }
+
+/* ---------------------------------------------------------------- a phone or a narrow window */
+@media (max-width: 760px) {
+  .goal-grid { grid-template-columns: 1fr; gap: 8px; margin-bottom: 8px; }
+  .goal-tile.big .goal-main { padding: 12px 14px; gap: 4px; }
+  .goal-tile.big .goal-main b { font-size: 16px; line-height: 22px; }
+  .goal-tile.big .goal-extra { position: static; align-self: flex-start; margin: -4px 0 12px 14px; }
+  .start-page .welcome-demo { gap: 10px; padding: 10px 12px; }
+  .start-page .welcome-cast img { width: 34px; height: 34px; border-width: 2px; }
+  .start-page .welcome-cast img + img { margin-left: -10px; }
+  .start-page.card { padding: 18px 14px 12px; }
+  .start-overlay { place-items: start center; padding-top: 12px; overflow-y: auto; }
+  .popover.checklist, .popover.start-options { left: 8px; right: 8px; width: auto; bottom: calc(var(--console-h, 130px) + 22px); max-height: calc(100dvh - var(--console-h, 130px) - 86px); }
+  /* one row of tags that scrolls sideways, so the console keeps its height */
+  .console.next .status-line { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .console.next .status-line > * { flex: none; }
+  .console.next { left: 8px; right: 8px; }
+  .console.next .run-bar { flex-wrap: wrap; border-radius: 18px; }
+  .console.next .run-bar .topic, .console.next .run-bar .first-line { flex-basis: 100%; }
+  .start-rows { flex: 1 1 auto; }
+  .start-rows > span { padding: 0 6px; max-width: none; }
+  .console.next .say-bar { flex-wrap: wrap; border-radius: 18px; }
+  .console.next .say-bar input { flex-basis: 100%; }
+  .popover.live-settings, .popover.record { left: 8px; right: 8px; width: auto; top: 60px; bottom: auto; max-height: calc(100dvh - var(--console-h, 130px) - 90px); overflow-y: auto; }
+}
+
+/* 请朋友上台, at the foot of the cast, with 好友联播's state; the friend's panel opens beside the left column */
+.friend-state { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.friend-state:empty { display: none; }
+.cast-friend { position: absolute; left: 8px; right: 8px; bottom: 8px; justify-content: flex-start; border-radius: 10px; font-size: 13px; color: var(--fg-2); }
+.cast-friend.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+/* beside the left column on a wide window; a narrow one keeps the card's own place, inside the window */
+@media (min-width: 761px) { .app.next .popover.collab-panel { left: 220px; right: auto; top: 152px; max-height: calc(100dvh - 168px); } }
+.app.next .cast .cast-scroll { padding-bottom: 46px; }
+
+/* ---------------------------------------------------------------- the editor on a phone or a narrow window */
+.app.narrow .rail, .app.narrow .cast, .app.narrow .sidebar-toggle, .app.narrow .panel { display: none; }
+.app.narrow.selected .panel { display: block; position: absolute; left: 8px; right: 8px; top: 60px; bottom: calc(var(--console-h, 130px) + 22px); width: auto; z-index: var(--z-pop); }
+.app.narrow .topbar { gap: 4px; padding-inline: 8px; }
+.app.narrow .topbar .mark { width: 74px; }
+.app.narrow .topbar .seg.mode, .app.narrow .topbar .right > .sep, .app.narrow .topbar .right > button.icon:not([title="设置"]):not(:has(svg.lucide-settings)), .app.narrow .topbar .menu-anchor:not(.scene-switcher):not(.narrow-menu) { display: none; }
+/* the phone's menu: the cast, 请朋友上台, undo, the mixer and the project, which the narrow top bar has no room for */
+.narrow-menu .icon { position: relative; }
+.narrow-menu .icon .friend-state { position: absolute; top: -4px; right: -4px; }
+.narrow-menu .dropdown { right: 0; left: auto; min-width: 200px; }
+.narrow-menu .item b { display: flex; align-items: center; gap: 6px; }
+.app.narrow.cast-open .cast { display: flex; left: 8px; right: 8px; top: 60px; bottom: calc(var(--console-h, 130px) + 22px); width: auto; z-index: var(--z-pop); }
+.app.narrow .topbar .name { width: 88px; min-width: 0; flex: none; }
+.app.narrow .topbar .scene-switcher > button { flex: none; }
+/* 录制 keeps its dot and its title; the word gives its room to the stage name */
+.app.narrow .topbar .rec:not(.live) { font-size: 0; gap: 0; padding: 0; width: 32px; justify-content: center; }
+.app.narrow .topbar .output-button { padding-inline: 10px; }
+.app.narrow .console { left: 8px; right: 8px; }
+.app.narrow .popover.settings { left: 8px; right: 8px; top: 56px; width: auto; max-width: none; max-height: calc(100dvh - 64px); transform: none; translate: none; }
+.app.narrow .start-overlay { inset: 56px 0 0; background: var(--bg); }
+.app.narrow .popover.collab-panel { left: 8px; right: 8px; width: auto; top: 60px; }

@@ -31,7 +31,7 @@ try {
     const page = await context.newPage()
     page.setDefaultTimeout(30000); page.on('pageerror', (e) => errors.push(e.message))
     await page.goto(origin + '/', { waitUntil: 'networkidle' })
-    await page.locator('.site-welcome .close').click().catch(() => {})
+    await page.locator('.start-overlay .start-page .close').click().catch(() => {})
     return { page, context }
   }
   const opened = (page) => page.evaluate(() => window.opened)

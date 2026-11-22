@@ -10,9 +10,10 @@
   "description": "LivLiv desktop shell: LivLiv Stage, or the website with a transparent stage window, global hotkeys and a local command endpoint",
   "author": "LivLiv",
   "main": "dist/main.js",
+  "imports": { "#protocol/*": "./dist/protocol/*.js" },
   "scripts": {
     "postinstall": "node node_modules/electron/install.js",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -b tsconfig.json",
     "dev": "npm run build && electron .",
     "start": "npm run build && electron . --url=https://livliv.ai",
     "test": "npm run build && node --test \"dist/test/*.test.js\"",
@@ -26,7 +27,15 @@
     "test:stage": "npm run build && npm run stage:web && node test/stage.mjs",
     "test:stage-api": "npm run build && npm run stage:web && node test/stage-api.mjs",
     "test:stage-contexts": "npm run build && node test/contexts.mjs",
-    "test:stage-collab": "npm run build && npm run stage:web && node test/collab-stage.mjs"
+    "test:stage-collab": "npm run build && npm run stage:web && node test/collab-stage.mjs",
+    "stage:web-dev": "cd ../stage && NODE_ENV=development node node_modules/vite/bin/vite.js build --outDir dist-dev --emptyOutDir",
+    "test:airi-stage": "npm run build && npm run stage:web-dev && STAGE_TEST_RESOURCES=\"$PWD/../stage/dist-dev\" node test/airi-stage.mjs",
+    "test:keys-stage": "npm run build && npm run stage:web-dev && STAGE_TEST_RESOURCES=\"$PWD/../stage/dist-dev\" node test/keys-stage.mjs",
+    "test:voicebox-stage": "npm run build && npm run stage:web-dev && STAGE_TEST_RESOURCES=\"$PWD/../stage/dist-dev\" node test/voicebox-stage.mjs",
+    "test:airi-native-games": "npm run build && npm run stage:web-dev && STAGE_TEST_RESOURCES=\"$PWD/../stage/dist-dev\" node test/airi-native-games.mjs",
+    "test:handsfree-stage": "npm run build && npm run stage:web && node test/handsfree-stage.mjs",
+    "test:neuro-stage": "npm ci --prefix ../neuro --no-audit --no-fund && npm run build && npm run stage:web && node test/neuro-stage.mjs",
+    "test:tracking": "npm run build && npm run stage:web && node test/tracking.mjs"
   },
   "devDependencies": {
     "@electron/asar": "3.4.1",
@@ -37,6 +46,7 @@
   },
   "dependencies": {
     "@livliv-dev/neuro-bridge": "file:../neuro",
-    "livliv-stage-collab": "file:../collab"
+    "livliv-stage-collab": "file:../collab",
+    "ws": "8.22.2"
   }
 }

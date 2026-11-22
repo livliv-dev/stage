@@ -43,15 +43,15 @@ try {
   signedIn = false
   let { page, context } = await open('/')
   await page.waitForFunction(() => { const a = [...window.__stage.actors.values()]; return a.length === 3 && a.every((x) => x.status === 'ready') }, null, { timeout: 60000 })
-  await page.locator('.site-welcome .close').click().catch(() => {})
+  await page.locator('.start-overlay .start-page .close').click().catch(() => {})
   await page.clock.fastForward(120_000)
   assert.equal(await gate(page).count(), 0, 'not after a minute or two')
-  await page.clock.fastForward(55_000)
+  await page.clock.fastForward(50_000)  // the clock also runs in real time while the page loads: a few seconds' room
   assert.equal(await gate(page).count(), 0, 'not before three minutes')
   await page.locator('.stage').click({ position: { x: 5, y: 5 } }).catch(() => {})
   await page.keyboard.press('Space')  // the free demo
   await page.waitForFunction(() => window.__stage.conversation().running)
-  await page.clock.fastForward(6_000)
+  await page.clock.fastForward(11_000)
   await gate(page).waitFor()
   assert.equal(await page.evaluate(() => window.__stage.conversation().running), true, 'what was playing goes on')
   await gate(page).getByRole('button', { name: '注册' }).click()

@@ -1,19 +1,16 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
-import { spawn } from 'node:child_process'
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
-import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-shots-'))
 let server, browser, page
 const report = { artifacts }, errors = []
 try {
-  const socket = createServer(); await new Promise((r) => socket.listen(0, '127.0.0.1', r)); const port = socket.address().port; await new Promise((r) => socket.close(r))
-  server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--host', '127.0.0.1', '--port', String(port)], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] })
-  await new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error('Vite timeout')), 15000); server.stdout.on('data', (b) => { if (String(b).includes('Local:')) { clearTimeout(timer); resolve() } }); server.once('exit', (c) => { clearTimeout(timer); reject(new Error('Vite exited ' + c)) }) })
+  const port = await freePort(); server = await startVite({ port })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--autoplay-policy=no-user-gesture-required'] })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['camera', 'microphone'] })
   await context.addInitScript(() => {
@@ -23,9 +20,11 @@ try {
     navigator.mediaDevices.getUserMedia = (c) => { if (c.video) window.cameraStarts++; return gum(c) }
   })
   await context.route('**/api/**', (route) => route.fulfill({ status: route.request().url().endsWith('/me') ? 200 : 404, json: { signed_in: false } }))
-  page = await context.newPage(); page.setDefaultTimeout(20000); page.on('pageerror', (e) => errors.push(e.message))
+  page = await context.newPage(); page.setDefaultTimeout(testTimeout(20000)); page.on('pageerror', (e) => errors.push(e.message))
   await page.goto('http://127.0.0.1:' + port, { waitUntil: 'networkidle' })
-  await page.getByRole('button', { name: /^面捕出镜/ }).click()
+  // 我来演 from the start page (its template, its checklist, closed here)
+  await page.locator('.start-page .goal-tile', { hasText: '我来演' }).locator('.goal-main').click()
+  await page.locator('.popover.checklist [data-close]').click()
   await page.waitForFunction(() => [...window.__stage.actors.values()][0]?.inputPhase === 'on')
   await page.getByLabel('舞台名字').fill('Opening')
   await page.evaluate(() => {
@@ -53,8 +52,9 @@ try {
   await output.waitForFunction(() => [...window.__stage.actors.values()][0]?.status === 'ready')
   await output.evaluate(() => { window.firstCanvas = [...window.__stage.actors.values()][0].player.canvas })
   await page.evaluate(() => window.__stage.store.patch(window.avatarId, { hidden: true }))
-  const before = await page.evaluate(() => window.poseFrames); await page.waitForTimeout(300)
-  assert.ok(await page.evaluate(() => window.poseFrames) > before + 2, 'hidden avatars still publish final poses')
+  // a hidden avatar keeps drawing its pose: a few more frames come, however slowly the machine draws them
+  const before = await page.evaluate(() => window.poseFrames)
+  assert.ok(await page.waitForFunction((before) => window.poseFrames > before + 2, before, { timeout: testTimeout(5000) }).then(() => true, () => false), 'hidden avatars still publish final poses')
   assert.equal(await page.locator('.placed.character').evaluate((e) => getComputedStyle(e).visibility), 'hidden')
   const cut = await page.evaluate(async () => { const { performStageCommand, stageState } = await import('/src/control.ts'); return { result: performStageCommand({ do: 'scene', id: window.secondScene }), state: stageState() } })
   assert.equal(cut.result.ok, true); assert.equal(cut.state.scene.id, cut.result.scene); assert.equal(cut.state.scenes.length, 2)
@@ -92,7 +92,8 @@ try {
     s.switchScene(window.demoScene)
   })
   await page.waitForFunction(() => [...window.__stage.actors.values()].length === 2 && [...window.__stage.actors.values()].every((a) => a.status === 'ready'))
-  await page.locator('.start-modes > summary').click(); await page.getByRole('button', { name: '对谈', exact: true }).click()
+  // the demo's characters talking among themselves: the console's demo start
+  await page.locator('.console').getByRole('button', { name: '再看一次', exact: true }).click()
   await page.waitForFunction(() => window.__stage.conversation().speaking !== null)
   const active = await page.evaluate(() => { const c = window.__stage.conversation(); window.speakingId = c.speaking.id; window.__stage.store.switchScene(window.emptyShot); return { running: c.running, id: c.speaking.id } })
   assert.equal(active.running, true)
@@ -100,7 +101,8 @@ try {
   assert.equal(await page.getByRole('button', { name: '暂停', exact: true }).count(), 1)
   await page.evaluate(() => window.__stage.talk.stop())
   report.ai = 'a cut to a visually empty shot keeps the same running AI turn and transport controls'
-  await page.waitForTimeout(500); const bank = await page.evaluate(() => ({ active: window.__stage.store.get().id, count: window.__stage.store.project().scenes.length })); await page.reload({ waitUntil: 'networkidle' })
+  // saved now, not after the store's own delay, so the reload reads what is on the page
+  await page.evaluate(() => window.__stage.store.flush()); const bank = await page.evaluate(() => ({ active: window.__stage.store.get().id, count: window.__stage.store.project().scenes.length })); await page.reload({ waitUntil: 'networkidle' })
   assert.deepEqual(await page.evaluate(() => ({ active: window.__stage.store.get().id, count: window.__stage.store.project().scenes.length })), bank)
   for (const locale of ['zh-Hans', 'zh-Hant', 'en', 'ja']) {
     await page.evaluate(async (value) => (await import('/src/i18n.ts')).setLocale(value), locale)

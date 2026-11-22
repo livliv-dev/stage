@@ -1,56 +1,126 @@
+// 直播间: in the desktop app the game the characters play while live (set before the start), and while live how it
+// goes (what it is doing, how much is left, the viewers' messages, the game's state and a task for it). Starting, the
+// limits and choosing Twitch are the start options' (shell/StartBar.tsx); pausing and ending, the console's.
 import { tr } from './i18n'
-import { useEffect, useState } from 'react'
-import { Check, Pause, Play, Settings, Square, X } from 'lucide-react'
-import { actors, onActors } from './actors'
-import { brainReady, useBrainConfig } from './brain'
-import { talk, useConversation } from './conversation'
-import { participants as characters, useScene } from './scene'
+import { useEffect, useRef, useState } from 'react'
+import { X } from 'lucide-react'
+import { useBrainConfig } from './brain'
+import { airiGameError } from './airiEngine'
+import { airiFits, chooseEngine } from './brains/select'
+import { liveModelName, talk, useConversation } from './conversation'
+import { participants, useScene } from './scene'
 import { voiceRoute, useActiveSpeech } from './voiceApi'
-import { useAccount } from './livliv'
-import { cancel as cancelPtt } from './ptt'
+import { desktop } from './desktopBridge'
+import { features } from './core/platform'
 import { AudiencePanel } from './AudiencePanel'
+import { liveGame, liveSetup, useLiveSetup } from './shell/liveSetup'
 
-export function LivePanel({ onClose, onSettings }: { onClose: () => void; onSettings: () => void }) {
-  const { scene } = useScene(), state = useConversation(), model = useBrainConfig(), speech = useActiveSpeech()
-  useAccount()
+export function LivePanel({ onClose }: { onClose: () => void }) {
+  const { scene } = useScene(), state = useConversation(), model = useBrainConfig(), speech = useActiveSpeech(), setup = useLiveSetup()
   const [, redraw] = useState(0)
-  useEffect(() => onActors(() => redraw((n) => n + 1)), [])
   useEffect(() => { const timer = setInterval(() => redraw((n) => n + 1), 1000); return () => clearInterval(timer) }, [])
-  const [minutes, setMinutes] = useState(30), [maxInput, setMax] = useState('100'), [warmupSeconds, setWarmup] = useState(0), [textOnly, setTextOnly] = useState(false)
-  const cast = characters(scene).filter((c) => c.lines === 'ai')
-  const modelReady = brainReady(model) && model.kind !== 'demo', ready = cast.length > 0 && cast.every((c) => actors.get(c.id)?.status === 'ready')
-  const missingVoice = cast.filter((c) => voiceRoute(c, speech) === 'none')
-  const maxGenerations = Number(maxInput), budgetReady = Number.isInteger(maxGenerations) && maxGenerations >= 1 && maxGenerations <= 500
-  const canStart = budgetReady && modelReady && ready && (textOnly || !missingVoice.length)
+  const [windows, setWindows] = useState<{ id: string; name: string }[] | null>(null)
+  const [visionError, setVisionError] = useState('')
+  const [bridgeName, setBridgeName] = useState('')
+  const [instruction, setInstruction] = useState(''), [actionError, setActionError] = useState('')
+  // another model: the window list and the choice are asked again (the model may not see pictures)
+  const seen = useRef(model)
+  useEffect(() => { if (seen.current === model) return; seen.current = model; setWindows(null); liveSetup.set({ windowId: '' }); setVisionError('') }, [model])
+  const cast = participants(scene).filter((c) => c.lines === 'ai')
   const active = state.running && state.mode === 'live'
+  const { needsAiri } = liveGame(setup), game = setup.game
+  const textOnly = cast.some((c) => !c.muted && voiceRoute(c, speech) === 'none')
+  // AIRI or not: the one rule (brains/select.ts); a game or a window asks for it whatever the switch says
+  const engine = chooseEngine(model, cast, { kind: 'live', textOnly, needsAiri, voice: cast[0] && voiceRoute(cast[0], speech) }, features)
+  const compatibleModel = airiFits(engine), airiVoiceReady = engine.reason !== 'livliv-voice'
+  const chooseBridge = async () => {
+    setActionError('')
+    try { const name = await desktop?.airiGame?.selectBridge(); if (name) setBridgeName(name) }
+    catch (error) { setActionError(airiGameError(error)) }
+  }
+  const sendTask = async () => {
+    if (!instruction.trim()) return
+    setActionError('')
+    try { await talk.playGame(instruction); setInstruction('') }
+    catch (error) { setActionError(airiGameError(error)) }
+  }
+  const cancelTask = async () => {
+    setActionError('')
+    try { await talk.cancelGame() }
+    catch (error) { setActionError(airiGameError(error)) }
+  }
+  const loadWindows = async () => {
+    const vision = desktop?.vision
+    if (!vision) return
+    setVisionError('')
+    try {
+      const found = await vision.list()
+      setWindows(found)
+      if (!found.some(({ id }) => id === setup.windowId)) liveSetup.set({ windowId: '' })
+      if (!found.length) setVisionError(tr('没有可用窗口，请打开游戏并检查屏幕录制权限'))
+    } catch {
+      setVisionError(tr('无法读取窗口，请检查屏幕录制权限'))
+    }
+  }
   const remaining = Math.max(0, Math.ceil((state.until - Date.now()) / 60_000))
   const retryIn = Math.ceil((state.retryAt - Date.now()) / 1000)
-  const status = state.paused ? tr("已暂停 · 当前句说完后等待") : state.thinking ? tr("正在准备回应…") : state.speaking ? tr("正在回应观众") : retryIn > 0 ? tr("出错了，{0} 秒后重试", retryIn) : tr("等待新弹幕")
-  return <div className="card popover live-settings" onPointerDown={(e) => e.stopPropagation()}>
-    <header><span className="title">{tr("AI 直播")}</span><button className="icon" data-close="true" aria-label={tr("关闭")} onClick={onClose}><X size={16} /></button></header>
-    <section className="section live-readiness">
-      <h3>{tr("开播准备")}</h3>
-      <p className={ready ? 'ok' : 'hint'}><Check size={14} />{ready ? cast.length + tr(" 位 AI 角色已就绪") : tr("先添加并载入「AI 来演」的角色")}</p>
-      <p className={modelReady ? 'ok' : 'hint'}><Check size={14} />{modelReady && model.kind === 'openai' ? model.model : modelReady && model.kind === 'livliv' ? 'LivLiv' : tr("需要接上 AI 模型")}</p>
-      <p className={textOnly || !missingVoice.length ? 'ok' : 'hint'}><Check size={14} />{textOnly ? tr("仅显示字幕") : missingVoice.length ? missingVoice.map((c) => c.name).join('、') + tr(" 还没有声音") : tr("角色声音已设置")}</p>
-      <button className="link" onClick={onSettings}><Settings size={14} />{tr("设置模型与声音")}</button>
-    </section>
-    <AudiencePanel />
-    <section className="section">
+  const status = state.paused ? tr("已暂停 · 当前句说完后等待") : state.speaking ? tr("正在回应观众") : retryIn > 0 ? tr("出错了，{0} 秒后重试", retryIn) : state.waitingAudience ? tr("等待新弹幕") : tr("正在准备回应…")
+  const pinnedModel = active ? liveModelName() : undefined
+  return <div className={`card popover live-settings${features.desktopConsole ? ' desktop-live-settings' : ''}`} role="dialog" aria-label={tr('直播间')} onPointerDown={(e) => e.stopPropagation()}>
+    <header><span className="title">{tr('直播间')}</span><button className="icon" data-close="true" aria-label={tr("关闭")} onClick={onClose}><X size={16} /></button></header>
+    {features.airi && !state.running && <section className="section live-game">
+      {features.games && <label className="field"><span>{tr('游戏连接')}</span><select value={game} onChange={(e) => { liveSetup.set({ game: e.target.value as typeof game, windowId: '' }); setVisionError(''); setActionError('') }}>
+        <option value="window">{tr('不连接游戏')}</option>
+        <option value="minecraft">Minecraft / Fabric</option>
+        <option value="factorio">Factorio / Autorio</option>
+      </select></label>}
+      {needsAiri && !compatibleModel && <p className="hint">{tr('内置 AIRI 需要一个本地 AI 角色和流式模型接口')}</p>}
+      {needsAiri && !airiVoiceReady && <p className="hint">{tr('内置 AIRI 支持自配语音接口和系统朗读；静音的角色只出字幕')}</p>}
+      {game === 'minecraft' && <div>
+        <p className="hint">{tr('先启动 Airicraft 并进入 Minecraft 世界。')}</p>
+        <label className="switch"><span>{tr('发送 Minecraft 画面给模型')}</span><input type="checkbox" checked={setup.minecraftVision} onChange={(e) => liveSetup.set({ minecraftVision: e.target.checked, ...(e.target.checked ? { windowId: '' } : {}) })} /><i /></label>
+        <button className="link" onClick={() => void chooseBridge()}>{tr('选择 Airicraft 连接文件')}</button>
+        {bridgeName && <span className="hint"> {bridgeName}</span>}
+      </div>}
+      {game === 'factorio' && <div>
+        <p className="hint">{tr('两个端口应连接同一个运行 Autorio 的存档。')}</p>
+        <div className="live-limits">
+          <label className="field"><span>{tr('日志端口')}</span><input type="number" min={1} max={65535} value={setup.eventsPort} onChange={(e) => liveSetup.set({ eventsPort: e.target.value })} /></label>
+          <label className="field"><span>{tr('RCON API 端口')}</span><input type="number" min={1} max={65535} value={setup.rconPort} onChange={(e) => liveSetup.set({ rconPort: e.target.value })} /></label>
+        </div>
+      </div>}
+      {compatibleModel && (game !== 'minecraft' || !setup.minecraftVision) && <div>
+        <button className="link" onClick={() => void loadWindows()}>{tr(windows ? '刷新窗口列表' : '选择游戏窗口')}</button>
+        {windows?.length ? <label className="field"><span>{tr('游戏画面')}</span><select value={setup.windowId} onChange={(e) => liveSetup.set({ windowId: e.target.value })}>
+          <option value="">{tr('关闭画面输入')}</option>
+          {windows.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
+        </select></label> : null}
+        {setup.windowId && <p className="hint">{tr('回应时会把所选窗口的一帧画面发给当前模型。')}</p>}
+        {visionError && <p className="hint error" role="alert">{visionError}</p>}
+      </div>}
+    </section>}
+    {!features.airi && !active && cast.length > 0 && <p className="hint">{tr('开播前的时长、句数和 Twitch 在开始按钮旁的选项里。')}</p>}
+    {state.running && !active && <p className="hint">{tr('请先停止当前会话')}</p>}
+    {active && state.game && <section className="section airi-game-status">
+      <h3>{state.game.name === 'minecraft' ? 'Minecraft' : 'Factorio'}</h3>
+      <p role="status">{tr({ connecting: '正在连接游戏', ready: '游戏已连接', submitting: 'AIRI 正在选择游戏动作', playing: '游戏正在执行任务', offline: '游戏连接已断开' }[state.game.status])}</p>
+      {state.game.text && <p className="hint">{state.game.text}</p>}
+      {state.game.name === 'minecraft' && state.game.status === 'playing' && <button onClick={() => void cancelTask()}>{tr('停止游戏任务')}</button>}
+      {state.game.status === 'ready' && <div className="row">
+        <input aria-label={tr('游戏指令')} placeholder={tr('给角色一个游戏任务')} value={instruction}
+          onChange={(e) => setInstruction(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) void sendTask() }} />
+        <button disabled={state.paused || !instruction.trim()} onClick={() => void sendTask()}>{tr('执行')}</button>
+      </div>}
+    </section>}
+    {/* the viewers' messages: while live, and for a stage you perform alone (no start options there) */}
+    {(active || !cast.length) && <AudiencePanel />}
+    {active && <section className="section">
       <h3>{tr("本次会话")}</h3>
-      {active ? <>
-        <p className="live-status" role="status">{status}</p>
-        <p className="hint num">{tr("已生成")} {state.generations} / {state.generationLimit} {tr("次 · 剩余约")} {remaining} {tr("分钟")}</p>
-      </> : <>
-        <div className="live-limits"><label className="field"><span>{tr("时长上限")}</span><select aria-label={tr("时长上限")} value={minutes} onChange={(e) => setMinutes(+e.target.value)}>{[1, 15, 30, 60, 120].map((n) => <option key={n} value={n}>{n} {tr("分钟")}</option>)}</select></label>
-          <label className="field"><span title={tr("包含失败的生成；模型与声音按所选服务的用量计费")}>{tr("生成次数上限")}</span><input aria-label={tr("生成次数上限")} type="number" min={1} max={500} value={maxInput} aria-invalid={!budgetReady} onChange={(e) => setMax(e.target.value)} /></label></div>
-        <label className="field"><span>{tr("没有弹幕时")}</span><select aria-label={tr("没有弹幕时")} value={warmupSeconds} onChange={(e) => setWarmup(+e.target.value)}><option value={0}>{tr("安静等待")}</option><option value={30}>{tr("每 30 秒聊一句")}</option><option value={60}>{tr("每分钟聊一句")}</option><option value={120}>{tr("每 2 分钟聊一句")}</option></select></label>
-        <label className="switch"><span>{tr("仅字幕（不生成声音）")}</span><input type="checkbox" checked={textOnly} onChange={(e) => setTextOnly(e.target.checked)} /><i /></label>
-      </>}
-      {state.mode === 'live' && !state.running && state.ended && <p className="hint" role="status">{tr(state.ended ?? '')}</p>}
-      {state.error && <p className="hint error" role="alert">{tr(state.error ?? '')}</p>}
-    </section>
-    <footer className="live-footer">{active ? <><button onClick={state.paused ? talk.resume : talk.pause}>{state.paused ? <Play size={14} /> : <Pause size={14} />}{state.paused ? tr("继续") : tr("暂停")}</button><button onClick={() => { cancelPtt(); talk.stop() }}><Square size={14} />{tr("停止 AI")}</button></>
-      : <button className="primary wide" disabled={!canStart || state.running} onClick={() => talk.startLive({ minutes, maxGenerations, warmupSeconds, textOnly })}><Play size={14} />{tr("开始 AI 直播")}</button>}</footer>
+      <p className="live-status" role="status">{status}</p>
+      <p className="hint num">{pinnedModel ? 'AIRI · ' + pinnedModel + ' · ' : ''}{tr("已生成")} {state.generations} / {state.generationLimit} {tr("次 · 剩余约")} {remaining} {tr("分钟")}</p>
+    </section>}
+    {state.mode === 'live' && !state.running && state.ended && <p className="hint" role="status">{tr(state.ended ?? '')}</p>}
+    {state.mode === 'live' && state.error && <p className="hint error" role="alert">{tr(state.error ?? '')}</p>}
+    {actionError && <p className="hint error" role="alert">{actionError}</p>}
   </div>
 }

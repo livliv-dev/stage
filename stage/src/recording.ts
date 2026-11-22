@@ -5,15 +5,16 @@ import { tr } from './i18n'
 // (not one started after it). A take whose video fails is kept, to make it again.
 import { useSyncExternalStore } from 'react'
 import { conversation, talk } from './conversation'
+import { registerRecording } from './sessions/recordingOutput'
 import { renderTake, type Made } from './render'
 import { store } from './scene'
 import { MAX_SECONDS, record, type Recorder, type Take } from './tape'
-import { onSite } from './host'
+import { features } from './core/platform'
 import { accountNow } from './livliv'
 
 /** how long a take may run, and whether its video carries the LivLiv mark: on livliv.ai/stage the visitor's plan says
  *  (as the site's 录制: free 30 s with the mark, paid 5 min), elsewhere 10 minutes and no mark of Stage's own */
-export const takeLimit = () => onSite ? { seconds: Math.min(MAX_SECONDS, accountNow().recordSeconds), mark: accountNow().recordMark } : { seconds: MAX_SECONDS, mark: false }
+export const takeLimit = () => features.host === 'site' ? { seconds: Math.min(MAX_SECONDS, accountNow().recordSeconds), mark: accountNow().recordMark } : { seconds: MAX_SECONDS, mark: false }
 
 export type RecPhase = 'idle' | 'starting' | 'recording' | 'making' | 'done' | 'error'
 /** retry: the video failed and its take is kept, to make it again */
@@ -24,6 +25,10 @@ const subs = new Set<() => void>()
 const set = (p: Partial<RecState>) => { state = { ...state, ...p }; subs.forEach((f) => f()) }
 export const useRecording = () => useSyncExternalStore((f) => { subs.add(f); return () => { subs.delete(f) } }, () => state)
 export const recording = () => state
+/** told each time the recording changes */
+export const onRecording = (f: () => void) => { subs.add(f); return () => { subs.delete(f) } }
+// a take on is an output: the session is public while one is (sessions/recordingOutput.ts)
+registerRecording({ on: () => ['starting', 'recording'].includes(state.phase), subscribe: onRecording })
 
 let recorder: Recorder | null = null
 let stopTalk: (() => void) | null = null

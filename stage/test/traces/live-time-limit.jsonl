@@ -1,0 +1,5 @@
+{"scenario":"live-time-limit","about":"AI 直播 with a one-minute limit and no viewer: it waits, then ends at its limit"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"start","mode":"live","scope":"public"}
+{"t":"record","scope":"public","earlier":0}
+{"t":"end","mode":"live","scope":"public","turns":0,"generations":0,"ended":"已达到本次时长上限"}

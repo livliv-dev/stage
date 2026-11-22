@@ -16,14 +16,18 @@
 <p align="center"><img src="media/demo.gif" alt="Ruri, Nana and Konatsu talking on one stage, with a speech bubble" width="720"></p>
 
 - Up to 30 characters on one stage (15 in a browser): LivLiv half-body and full-body, VRM and PNGTuber
-- Long-term memory and real-time voice chat
+- Start from what you want to do: **I perform** (with an AI partner if you like), **AI goes live**, **Chat with a character**, **Make a video**. Each opens a short checklist of only what it needs
+- Long-term memory and realtime calls
 - Characters that talk to each other and to your Twitch chat
 - Emotional reactions as they speak
+- AI chat that remembers, in the desktop app: each character keeps its own memory, powered by [Project AIRI](https://github.com/moeru-ai/airi)
+- Game connections in the desktop app: Minecraft through [Airicraft](https://github.com/proj-airi/airicraft), Factorio through [Autorio](https://github.com/moeru-ai/airi-factorio), or any game window the character watches
 - Built-in Neuro SDK support (desktop app)
+- Free voices on your own computer with [Voicebox](https://voicebox.sh) (desktop app): found when it runs, and the characters' voice when no other is set
 - All the basics: webcam face tracking (phone apps and VMC/OSC in the desktop app), OBS output, video recording
 - 27 featured characters, ready to use. Built on [LivLiv Player](https://github.com/livliv-dev/player)
 
-The AI runs on your own model key (OpenAI, Qwen, DeepSeek and more), or your LivLiv.ai account. Real-time voice
+The AI runs on your own model key (OpenAI, Qwen, DeepSeek and more), or your LivLiv.ai account. A realtime call
 needs your own OpenAI or Alibaba Cloud Bailian key.
 
 ## Try it
@@ -61,15 +65,19 @@ npm --prefix stage ci && npm --prefix stage run dev            # the web app at 
 npm --prefix desktop ci && npm --prefix desktop run stage:dev  # the desktop app (stage:mac, stage:win build installers)
 ```
 
-Tests: `npm --prefix stage run check && npm --prefix stage test`, `npm --prefix desktop test`, `npm --prefix collab test`.
+Tests: `npm --prefix stage run check && npm --prefix stage test`, `npm --prefix desktop test`, `npm --prefix collab test`;
+the browser checks are the `test:*` scripts in [stage/package.json](stage/package.json), and GitHub Actions runs all of these on every pull request.
 AI chat and memory: [docs/ai-conversations.md](docs/ai-conversations.md), real-time voice:
-[docs/realtime-voice.md](docs/realtime-voice.md), the Neuro SDK bridge: [neuro/README.md](neuro/README.md), the local control API:
-[docs/stage-api.md](docs/stage-api.md), co-streaming: [collab/README.md](collab/README.md).
-Model keys stay in the browser or the app and go straight to the provider. Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
+[docs/realtime-voice.md](docs/realtime-voice.md), built-in AIRI ([docs/airi.md](docs/airi.md)), the Neuro SDK bridge: [neuro/README.md](neuro/README.md), the local control API:
+[docs/stage-api.md](docs/stage-api.md), friend collab: [collab/README.md](collab/README.md).
+Model keys stay in the browser or the app and go straight to the provider; the desktop app keeps them, and its
+LivLiv sign-in, encrypted by the system (Keychain, DPAPI or a Linux keyring) and removes them from the page's storage
+once they are written there. Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
 Security reports: [SECURITY.md](SECURITY.md).
 
 ## License
 
-The code is under the [Apache License 2.0](LICENSE). The featured characters have
+Stage's code is under the [Apache License 2.0](LICENSE). The bundled [AIRI core](vendor/airi-core/LICENSE) and its
+[dependencies](vendor/airi-core/DEPENDENCY-NOTICES.txt) carry their own licenses. The featured characters have
 [their own licence](stage/public/characters/LICENSE.md). You may keep the LivLiv name and logo in your own versions,
 as long as they don't claim to be the official one: [TRADEMARKS.md](TRADEMARKS.md).

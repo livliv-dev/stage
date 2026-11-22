@@ -1,11 +1,11 @@
 import { desktop } from './desktopBridge'
-import type { ExternalDecision, ExternalSelection } from '../../desktop/src/neuroProtocol'
+import type { ExternalDecision, ExternalSelection } from '../../protocol/src/neuro'
 
 type Host = {
   event(input: { id: string; source: string; message: string; reply: 'never' | 'maybe' | 'always'; character?: string }): boolean
-  dialogue(input: { id: string; started: boolean }): void
+  dialogue(input: { id: string; started: boolean; character?: string }): void
   decide(request: ExternalDecision, signal: AbortSignal): Promise<ExternalSelection | null>
-  subscribeSpeech?(listener: (event: { character: string; speaking: boolean; final?: boolean; cancelled?: boolean }) => void): () => void
+  subscribeSpeech?(listener: (event: { character: string; scope: 'private' | 'public'; speaking: boolean; final?: boolean; cancelled?: boolean }) => void): () => void
 }
 
 /** This is the only renderer module translating the optional Neuro desktop protocol into conversation inputs. */
@@ -28,7 +28,7 @@ export function connectNeuro(host: Host) {
     if (message.kind === 'context') { host.event({ id: message.id, source: message.source, message: message.message, reply: message.reply, character: message.character }); return }
     if (message.kind === 'dialogue') {
       if (message.started) dialogue.set(message.id, message.connection); else dialogue.delete(message.id)
-      host.dialogue({ id: message.id, started: message.started }); return
+      host.dialogue({ id: message.id, started: message.started, character: message.character }); return
     }
     if (message.kind === 'disconnect') { disconnect(message.connection); return }
     if (message.kind === 'cancel') { cancel(message.id); return }
@@ -42,7 +42,7 @@ export function connectNeuro(host: Host) {
   })
   const offSpeech = host.subscribeSpeech?.((event) => {
     // speech_finished is for a part said, never for a line starting
-    if (event.character === character && !event.speaking) void neuro.speech({ character: event.character, isFinal: event.final !== false, ...(event.cancelled ? { cancelled: true } : {}) }).catch((error: unknown) => console.error('[Neuro speech]', error))
+    if (event.scope === 'public' && event.character === character && !event.speaking) void neuro.speech({ character: event.character, isFinal: event.final !== false, ...(event.cancelled ? { cancelled: true } : {}) }).catch((error: unknown) => console.error('[Neuro speech]', error))
   })
   return () => {
     disposed = true; offMessage(); offState(); offSpeech?.(); disconnect()

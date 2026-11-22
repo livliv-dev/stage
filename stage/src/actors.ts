@@ -9,13 +9,13 @@ import { startInputTracking, type InputTracking } from './inputTracking'
 import { networkSource } from './networkTracking'
 import { gamepadSource } from './gamepad'
 import { deviceError, inputs, microphoneConstraints, onInputs, refreshDevices } from './devices'
-import type { Emotion, Move } from './brain'
-import { AUTO_AWAY, participants as characters, store, type CharacterItem, type ModelRef } from './scene'
+import type { Emotion, Move } from './core/lines'
+import { AUTO_AWAY, participants, store, type CharacterItem, type ModelRef } from './scene'
 import { ReactionDirector, type ReactionCue, type ReactionMove, type ReactionPhase } from './reactions'
 import { estimate, say, type Utterance } from './speech'
 import { isOutput, outputOpen, post } from './link'
 import { length, modelId, voiceLine, type Clip } from './livliv'
-import { activeSpeech, apiVoice, speakApi, speakLive, speechProviderOf, voiceRoute } from './voiceApi'
+import { activeSpeech, apiVoice, sessionRoute, speakApi, speakLive, speechProviderOf, voiceRoute } from './voiceApi'
 import { crowd, released } from './contexts'
 import { mediapipeBase } from './host'
 
@@ -430,8 +430,9 @@ export class Actor {
   /** recorded: its voice, made already (the demo's, or the site's with the line); null: the site was asked for it with
    *  the line and made none, so it isn't asked for again */
   async prepare(text: string, emotion: Emotion, aloud = true, signal?: AbortSignal, recorded?: string | null): Promise<Take> {
-    const v = this.item.voice, route = aloud ? voiceRoute(this.item) : 'none'
-    this.voiceError = ''
+    const v = this.item.voice, wanted = aloud ? voiceRoute(this.item) : 'none', route = aloud ? sessionRoute(this.item) : 'none'
+    // its own voice went away while the session runs: subtitles, never LivLiv's voice for points (sessions/spend.ts)
+    this.voiceError = wanted !== route ? tr('它的声音接口停了：这句只出字幕，不会改用积分的声音') : ''
     if (recorded === null && route === 'livliv') {
       this.voiceError = tr("这句的声音没有生成"); changed()
       return { text, seconds: estimate(text), clip: null, aloud: false, mute: true }
@@ -457,7 +458,7 @@ export class Actor {
   }
 
   private async fromApi(text: string, emotion: Emotion, signal?: AbortSignal): Promise<Clip> {
-    const s = activeSpeech(), v = this.item.voice, voice = apiVoice(this.item, s, characters(store.get()))
+    const s = activeSpeech(), v = this.item.voice, voice = apiVoice(this.item, s, participants(store.get()))
     if (!speechProviderOf(s).live) {
       const blob = await speakApi(s, text, voice, emotion, v.rate, signal)
       return { blob, seconds: await length(blob), expression: null }

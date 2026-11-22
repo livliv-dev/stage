@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { createSocket } from 'node:dgram'
 import { decodeOsc, MotionDecoder, MotionPacketError } from '../motionCodec'
 import { IFACIAL_START, MotionInput } from '../motionInput'
-import { defaultMotionSettings, readMotionSettings, type MotionFrame } from '../trackingProtocol'
+import { defaultMotionSettings, readMotionSettings, type MotionFrame } from '#protocol/tracking'
 
 function osc(address: string, types: string, args: (string | number)[] = []) {
   const str = (s: string) => { const value = Buffer.from(s); const out = Buffer.alloc(Math.ceil((value.length + 1) / 4) * 4); value.copy(out); return out }

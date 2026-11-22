@@ -1,0 +1,14 @@
+{"scenario":"live-retry","about":"AI 直播: the model fails once; the error shows, the viewer is answered on the retry 5 s later, and the generation limit (2) counts the failed call"}
+{"t":"record","scope":"private","earlier":0}
+{"t":"start","mode":"live","scope":"public"}
+{"t":"record","scope":"public","earlier":0}
+{"t":"model","engine":"openai","speaker":"Nana","scope":"public","memories":[],"viewer":"Aki: 今天聊什么"}
+{"t":"retry","seconds":5}
+{"t":"error","text":"这家服务暂时出问题了，稍后再试"}
+{"t":"model","engine":"openai","speaker":"Nana","scope":"public","memories":[],"viewer":"Aki: 今天聊什么"}
+{"t":"voice","via":"api","text":"Nana的第1句。我接着说下去。"}
+{"t":"line","from":"viewer","name":"弹幕 · Aki","text":"今天聊什么","scope":"public"}
+{"t":"save","scope":"public","lines":1}
+{"t":"line","from":"ai","name":"Nana","text":"Nana的第1句。我接着说下去。","scope":"public"}
+{"t":"save","scope":"public","lines":2}
+{"t":"end","mode":"live","scope":"public","turns":1,"generations":2,"ended":"已达到本次生成次数上限"}

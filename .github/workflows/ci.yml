@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, web]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stage:
+    name: stage (types, unit tests, build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: stage
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: stage/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+
+  # The headless browser checks: a Vite dev server, Chromium with SwiftShader, and fixtures in place of every paid
+  # service (no keys, no GPU). Split in groups that run side by side.
+  stage-browser:
+    name: stage browser (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: conversation
+            suites: chat memory demo-history lifecycle privacy start points say-once recording-scope model-switch app-livliv
+          - name: voice
+            suites: handsfree voice-setup realtime journey goals voicebox-dropout
+          - name: editor
+            suites: browser settings ux shots projects mixer profiles card-import
+          - name: live
+            suites: audience props gamepad live collab collab-pose
+          # every way a session starts, compared with its recorded behaviour (test/traces), and the persona prompts
+          # word for word (test/prompts)
+          - name: traces
+            suites: traces prompts
+    defaults:
+      run:
+        working-directory: stage
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            stage/package-lock.json
+            collab/package-lock.json
+      - run: npm ci
+      # the headless shell for most checks; full Chromium for the live check, which drives one over CDP
+      - run: npx playwright-core install --with-deps chromium chromium-headless-shell
+      # pre-bundle Vite's dependencies once, so no check pays the first start
+      - run: node test/vite.mjs --warm
+        env:
+          STAGE_TEST_VITE_TIMEOUT: 120000
+      - name: Browser checks
+        shell: bash
+        env:
+          SUITES: ${{ matrix.suites }}
+          STAGE_TEST_VITE_TIMEOUT: 120000
+          # the runner draws WebGL in software more slowly than a laptop: every page wait is three times as long
+          STAGE_TEST_SLOW: 3
+        run: |
+          failed=()
+          for suite in $SUITES; do
+            echo "::group::test:$suite"
+            if ! npm run "test:$suite"; then failed+=("$suite"); fi
+            echo "::endgroup::"
+          done
+          if ((${#failed[@]})); then echo "::error::failed: ${failed[*]}"; exit 1; fi
+      - name: Keep screenshots of a failed run
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stage-browser-${{ matrix.name }}
+          path: |
+            /tmp/stage-*/
+            /tmp/livliv-*/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The Electron checks (npm run test:stage and the others in desktop/package.json) open real windows with the macOS
+  # Electron binary and stay local; here the shell's own unit tests.
+  desktop:
+    name: desktop (build, unit tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+      - run: npm test

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check, Copy, RefreshCw } from 'lucide-react'
-import { defaultMotionSettings, lanIP, readMotionSettings, type MotionSettings } from '../../desktop/src/trackingProtocol'
+import { defaultMotionSettings, lanIP, readMotionSettings, type MotionSettings } from '../../protocol/src/tracking'
 import { actors, onActors } from './actors'
 import { configureMotion, currentMotion, motionError, motionSupported, refreshMotion, useMotion } from './networkTracking'
 import { store, type CharacterItem } from './scene'
@@ -20,7 +20,7 @@ export function NetworkPanel({ character }: { character?: CharacterItem }) {
   }
   const provider = (kind: MotionSettings['kind']) => { const next = kind === 'ifacial' ? { ...draft, kind, scope: 'lan' as const, port: 49983 } : { ...draft, kind, port: defaultMotionSettings().port }; setDraft(next); setPort(String(next.port)); setError('') }
   const copy = async (value: string) => { try { await navigator.clipboard.writeText(value); setCopied(value) } catch (error) { setError(tr('复制失败，请手动选择地址复制')); console.warn('Address copy failed', error) } }
-  if (!motionSupported()) return <section className="section network-panel"><h3>{tr('手机与网络追踪')}</h3><p className="hint">{tr('此输入在桌面版连接')}</p>{character && <button onClick={() => store.patch(character.id, { driver: 'face' })}>{tr('使用本机摄像头')}</button>}</section>
+  if (!motionSupported()) return <section className="section network-panel"><h3>{tr('手机与网络追踪')} <span className="desk-tag">{tr('桌面版')}</span></h3><p className="hint">{tr('此输入在桌面版连接')}</p>{character && <button onClick={() => store.patch(character.id, { driver: 'face' })}>{tr('使用本机摄像头')}</button>}</section>
   return <section className="section network-panel"><h3>{tr('手机与网络追踪')}</h3>
     <label className="field"><span>{tr('输入来源')}</span><select aria-label={tr('追踪来源')} value={draft.kind} disabled={locked} onChange={(e) => provider(e.target.value as MotionSettings['kind'])}><option value="vmc">OSC / VMC</option><option value="ifacial">iFacialMocap</option></select></label>
     {draft.kind === 'ifacial' ? <label className="field"><span>{tr('手机 IP 地址')}</span><input aria-label={tr('手机 IP 地址')} value={draft.phone} maxLength={15} placeholder="192.168.1.20" disabled={locked} aria-invalid={invalidPhone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} />{invalidPhone && <small className="error">{tr('请输入局域网中的 IP 地址')}</small>}</label> : <>

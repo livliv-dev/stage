@@ -1,7 +1,7 @@
 import { createSocket, type Socket } from 'node:dgram'
 import { networkInterfaces } from 'node:os'
 import { MotionDecoder, MotionPacketError } from './motionCodec'
-import { defaultMotionSettings, lanIP, type MotionEvent, type MotionFrame, type MotionSettings, type MotionState } from './trackingProtocol'
+import { defaultMotionSettings, lanIP, type MotionEvent, type MotionFrame, type MotionSettings, type MotionState } from '#protocol/tracking'
 
 export const IFACIAL_START = 'iFacialMocap_sahuasouryya9218sauhuiayeta91555dy3719|sendDataVersion=v2'
 function addresses(scope: MotionSettings['scope']) {

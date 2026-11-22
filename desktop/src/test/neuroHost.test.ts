@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { test } from 'node:test'
 import type { ForceRequest, NeuroServer, NeuroServerOptions, NeuroSession } from '@livliv-dev/neuro-bridge'
 import { NeuroHost } from '../neuroHost'
-import { readNeuroAnswer, readNeuroConfig, type NeuroMessage, type NeuroState } from '../neuroProtocol'
+import { readNeuroAnswer, readNeuroConfig, type NeuroMessage, type NeuroState } from '#protocol/neuro'
 
 class Editor extends EventEmitter {
   id = 1
@@ -51,8 +51,8 @@ test('protocol events become plain conversation inputs with namespaced dialogue 
   assert.equal(events[0]?.kind, 'context')
   assert.equal(events[0]?.kind === 'context' && events[0].reply, 'never')
   assert.deepEqual(events.filter((event) => event.kind === 'dialogue'), [
-    { kind: 'dialogue', id: 'connection-1:line-1', connection: 'connection-1', started: true },
-    { kind: 'dialogue', id: 'connection-1:line-1', connection: 'connection-1', started: false },
+    { kind: 'dialogue', id: 'connection-1:line-1', connection: 'connection-1', character: 'actor-1', started: true },
+    { kind: 'dialogue', id: 'connection-1:line-1', connection: 'connection-1', character: 'actor-1', started: false },
   ])
   await s.host.close()
 })
