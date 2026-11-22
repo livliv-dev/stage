@@ -71,13 +71,13 @@ export function useShortcuts(keys: Keys) {
   }, [])
 }
 
-/** a phone or a narrow window (the redesign lays the editor out for it) */
 /** a phone or a small tablet (host.ts small), followed as the window changes size */
 export function useSmall() {
   const [now, setNow] = useState(small)
   useEffect(() => { if (typeof matchMedia !== 'function') return; const list = matchMedia(SMALL), change = () => setNow(list.matches); list.addEventListener('change', change); return () => list.removeEventListener('change', change) }, [])
   return now
 }
+/** a phone or a narrow window (the redesign lays the editor out for it) */
 export function useNarrow() {
   const query = '(max-width: 760px)'
   const [narrow, setNarrow] = useState(() => typeof matchMedia === 'function' && matchMedia(query).matches)

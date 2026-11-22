@@ -172,6 +172,17 @@ try {
     await page.keyboard.press('Escape')
     report.badImport = 'a file that is not a character is refused in the add card, in words; nothing placed or kept'
   }
+  // a picture slot of PNG 立绘 takes PNG, WebP or GIF: a JPEG dropped on one is refused there and then, in words
+  {
+    if (!(await page.locator('.popover.add').isVisible())) await page.locator('.rail button.tool', { hasText: '角色' }).click()
+    await page.locator('.popover.add button', { hasText: 'PNG 立绘' }).click()
+    const jpeg = await page.evaluateHandle(() => { const d = new DataTransfer(); d.items.add(new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16])], 'face.jpg', { type: 'image/jpeg' })); return d })
+    await page.locator('.popover.add .png-form .slot').first().dispatchEvent('drop', { dataTransfer: jpeg })
+    await page.locator('.popover.add .err', { hasText: 'face.jpg 不是 PNG、WebP 或 GIF 图片' }).waitFor()
+    assert.equal(await page.locator('.popover.add .png-form .slot.set').count(), 0, 'the slot stays empty')
+    await page.keyboard.press('Escape')
+    report.pngDrop = 'a JPEG dropped on a PNG 立绘 slot is refused as it is dropped'
+  }
   await page.getByRole('button', { name: '输出到 OBS', exact: true }).click()
   const popup = page.waitForEvent('popup'); await page.getByRole('button', { name: '打开输出窗口', exact: true }).click()
   const output = await popup; output.on('pageerror', (e) => errors.push('output: ' + e.message))
