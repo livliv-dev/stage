@@ -431,8 +431,10 @@ export class Actor {
    *  the line: the sentences of one share its charge) */
   async prepare(text: string, emotion: Emotion, aloud = true, signal?: AbortSignal, recorded?: string, line?: string): Promise<Take> {
     const v = this.item.voice, wanted = aloud ? voiceRoute(this.item) : 'none', route = aloud ? sessionRoute(this.item) : 'none'
-    // livliv.ai's voice wasn't this character's when the session started: subtitles, never points (sessions/spend.ts)
-    this.voiceError = wanted !== route ? tr('这次会话开始时它没用 livliv.ai 的声音：这句只出字幕') : ''
+    // livliv.ai's voice wasn't this character's when the session started: subtitles, never points (sessions/spend.ts);
+    // its card says your own service, which has stopped: subtitles too
+    this.voiceError = wanted !== route ? tr('这次会话开始时它没用 livliv.ai 的声音：这句只出字幕')
+      : aloud && v.source === 'api' && route === 'none' ? tr('它的声音接口停了，这句只出字幕') : ''
     if (recorded && aloud) {
       const r = await fetch(recorded, { signal })
       if (!r.ok) throw new Error(tr("演示声音读取失败（") + r.status + '）')

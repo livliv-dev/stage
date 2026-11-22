@@ -117,7 +117,7 @@ async function drain(run: MicSession) {
         // livliv.ai's recognition while its voices are on, else your own; a session that started on your own never turns
         // to livliv.ai's (points): hearing stops instead (sessions/spend.ts)
         const hearing = hearingNow(livlivNow().voice, asrReady(speech), current()?.spend)
-        if (hearing === 'stop') { cancel(); set({ error: tr('自己的语音识别不可用了：已停止听你说话，不会改用积分识别') }); return }
+        if (hearing === 'stop') { stopHearing(); return }
         const said = hearing === 'own' ? await transcribeApi(speech, wav, signal) : await recognize(wav, signal)
         signal.throwIfAborted()
         if (said) talk.say(said, { transcribed: run.automatic, respond: !run.automatic || !isBackchannel(said, capture.seconds, capture.duringReply) })
@@ -240,6 +240,9 @@ onMixer(() => {
 })
 
 export const clearError = () => { if (state.error) set({ error: '' }) }
+/** nothing can hear you any more (your own recognition gone, livliv.ai's voices off or started without): hands-free
+ *  stops, and says why */
+export function stopHearing() { cancel(); set({ error: tr('自己的语音识别不可用了：已停止听你说话，不会改用积分识别') }) }
 export const togglePtt = () => state.automatic ? press(true) : state.phase === 'recognizing' ? cancel() : state.phase === 'idle' ? press(true) : release()
 
 export function holdKey() {

@@ -54,6 +54,8 @@ try {
       return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: '今天天气不错。', emotion: 'happy', action: 'none' }) } }] } })
     }
     if (url.pathname === '/api/me') return route.fulfill({ json: request.headers().authorization === 'Bearer app.fixture-signed-in' ? { signed_in: true, email: 'e2e@example.test', points: 500 } : { signed_in: false } })
+    // a LivLiv character's chat card: a free read (livliv.ts watchSiteCards)
+    if (/^\/api\/chat\/[^/]+\/card$/.test(url.pathname)) return route.fulfill({ status: 404, json: { detail: 'none' } })
     // LivLiv's voices and recognition, which cost points: never asked here
     if (url.pathname.startsWith('/api/')) { paid.push(url.pathname); return route.fulfill({ status: 402, json: { detail: 'Fixture: points spent' } }) }
     if (['127.0.0.1', 'localhost'].includes(url.hostname) || ['blob:', 'data:'].includes(url.protocol)) return route.continue()
@@ -70,6 +72,8 @@ try {
     // a LivLiv character (it could be voiced by LivLiv for points), on the voice of your API: Voicebox's
     const character = newCharacter(store.get(), 'Nana', { ...pick.model, livlivId: 'dropout-nana' }, ''); character.voice.source = 'api'; store.add(character)
     saveBrainConfig({ kind: 'openai', provider: 'custom', base: location.origin + '/fixture', key: 'fixture-only', model: 'fixture', airi: false })
+    // your own services only: livliv.ai off, though signed in
+    ;(await import('/src/brain.ts')).setLivLiv({ text: false, voice: false })
     await window.__stage.voice.detectVoicebox()
   })
   await page.waitForFunction(() => [...window.__stage.actors.values()].some((actor) => actor.status === 'ready'))
@@ -87,7 +91,7 @@ try {
   await page.evaluate(() => window.__stage.talk.say('继续说说'))
   await said(2)
   assert.deepEqual(paid, [], 'no LivLiv voice asked for')
-  assert.match((await actor()).error, /只出字幕，不会改用积分的声音/)
+  assert.match((await actor()).error, /声音接口停了，这句只出字幕/)
   await page.evaluate(() => window.__stage.talk.stop())
 
   // hearing: hands-free on Voicebox's Whisper (switched on); Voicebox quits: what you say goes nowhere that costs points
@@ -119,11 +123,11 @@ try {
   assert.match((await ptt()).error, /Voicebox 没有在运行/)
   assert.deepEqual(paid, [], 'Voicebox gone: nothing sent to LivLiv\'s recognition')
 
-  // your own recognition turned off mid-session: hearing stops, and says why, instead of turning to LivLiv's
+  // your own recognition turned off mid-session, livliv.ai off: nothing can hear you, so hands-free stops at once and
+  // says why, instead of turning to livliv.ai's
   await page.evaluate(async () => { const { saveSpeech, SPEECH_OFF } = await import('/src/voiceApi.ts'); saveSpeech(SPEECH_OFF) })
-  await page.waitForFunction(() => window.pttState().phase === 'armed')
-  await speak(800)
   await page.waitForFunction(() => !window.pttState().automatic)
+  await speak(800)
   assert.match((await ptt()).error, /已停止听你说话，不会改用积分识别/)
   assert.deepEqual(paid, [], 'no LivLiv recognition')
   await page.evaluate(() => window.__stage.talk.stop())

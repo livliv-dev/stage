@@ -229,7 +229,7 @@ export function livlivLine(c: CharacterItem, text: string, emotion: Emotion, cas
 export async function voiceLine(mid: string | null, text: string, emotion: Emotion, voice: string, signal?: AbortSignal, line?: string): Promise<Clip> {
   let r
   try {
-    r = await answer(await post(mid ? `/api/chat/${encodeURIComponent(mid)}/say` : '/api/chat/say', { lines: [{ text, emotion }], voice: voice || null, line: line || uid() }, signal))
+    r = await answer(await post(mid ? `/api/chat/${encodeURIComponent(mid)}/say` : '/api/chat/say', { lines: [{ text, emotion }], voice: voice || null, line: line || uid(), stage: true }, signal))
   } catch (e) {
     const status = (e as { status?: number }).status
     if (status === 401 || status === 402) void refresh()  // signed out elsewhere, or out of points
@@ -272,9 +272,12 @@ export async function length(b: Blob) {
 type SiteCard = { name: string; persona: string; style: string; examples: string[]; greeting: string; gender: 'f' | 'm' | null }
 const asked = new Set<string>()
 /** an account's own character (one of LivLiv's that came without its card) gets its chat card from the site once, so
- *  its lines come from the same card as on the site: what it came with is kept if it was changed here meanwhile */
+ *  its lines come from the same card as on the site: what it came with is kept if it was changed here meanwhile.
+ *  Signed in only (its own characters are read as the account), and looked for again once signed in */
 export function watchSiteCards() {
+  if (!features.points) return () => {}  // a copy hosted elsewhere has no livliv.ai account
   const look = () => {
+    if (!signedIn()) return
     for (const c of store.get().items) {
       if (c.kind !== 'character' || c.remote || c.cardName) continue
       const mid = modelId(c)
@@ -291,5 +294,6 @@ export function watchSiteCards() {
     }
   }
   look()
-  return store.subscribe(look)
+  const off = [store.subscribe(look), onAccount(look)]
+  return () => off.forEach((f) => f())
 }

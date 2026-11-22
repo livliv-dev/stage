@@ -8,7 +8,7 @@ import { Bot, LoaderCircle, MessagesSquare, Mic, Pause, Play, Send, SkipForward,
 import { tr } from '../i18n'
 import { useBrainConfig, useLivLiv } from '../brain'
 import { talk, useConversation } from '../conversation'
-import { cancel as pttCancel, clearError as pttClear, press as pttPress, release as pttRelease, setHandsFree, usePtt } from '../ptt'
+import { cancel as pttCancel, clearError as pttClear, press as pttPress, release as pttRelease, setHandsFree, stopHearing, usePtt } from '../ptt'
 import { useRealtime } from '../realtime'
 import { participants, store, useScene, type Goal } from '../scene'
 import { asrReady, useActiveSpeech } from '../voiceApi'
@@ -27,7 +27,7 @@ export type ConsoleProps = {
 export function Console({ goal, partner, checks, optionsOpen, onOptions, onChecklist, onStart, onOwnModel, onModel, onVoice, onRoom, onRealtime, onLog, onMemory }: ConsoleProps) {
   const { scene } = useScene(), conv = useConversation(), ptt = usePtt(), livliv = useLivLiv(), speech = useActiveSpeech(), brain = useBrainConfig(), realtime = useRealtime()
   const hear = livliv.voice || asrReady(speech)
-  useEffect(() => { if (ptt.automatic && !hear) pttCancel() }, [hear, ptt.automatic])
+  useEffect(() => { if (ptt.automatic && !hear) stopHearing() }, [hear, ptt.automatic])
   const [mine, setMine] = useState(''), input = useRef<HTMLInputElement>(null), [first, setFirst] = useState('')
   const typed = brain.kind !== 'demo' && firstLineStart(goal, optionsOf(scene.talk, goal, partner))
   const start = () => { const line = typed ? first : ''; if (line) setFirst(''); onStart(line) }

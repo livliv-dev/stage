@@ -4821,4 +4821,5 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "这次对话太长了": {"zh-Hans": "这次对话太长了", "zh-Hant": "這次對話太長了", "en": "This conversation is too long", "ja": "会話が長すぎます"},
   "所有角色共用": {"zh-Hans": "所有角色共用", "zh-Hant": "所有角色共用", "en": "Shared by all characters", "ja": "全キャラクター共通"},
   "在 Voicebox 里添加声音": {"zh-Hans": "在 Voicebox 里添加声音", "zh-Hant": "在 Voicebox 裡新增聲音", "en": "Add voices in Voicebox", "ja": "声は Voicebox で追加"},
+  "它的声音接口停了，这句只出字幕": {"zh-Hans": "它的声音接口停了，这句只出字幕", "zh-Hant": "它的聲音介面停了，這句只出字幕", "en": "Its voice service stopped: subtitles only", "ja": "音声サービスが止まりました：字幕のみ"},
 }
