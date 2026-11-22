@@ -127,8 +127,12 @@ const server = createServer(async (req, res) => {
     }
     if (tools.includes('select_game_action')) {
       gameCalls.push(body)
+      // every call, the retry too, must pick with the tool
       assert.equal(body.tool_choice.function.name, 'select_game_action')
       assert.match(prompt, /Blue can use a boost/)
+      // the first pick isn't one the game listed: told so, AIRI picks once more
+      if (gameCalls.length === 1) return call(res, 'select_game_action', { name: 'teleport' })
+      assert.match(JSON.stringify(body.messages.at(-1)), /Choose a listed action/)
       return call(res, 'select_game_action', { name: 'boost', data: { team: 'blue' } })
     }
     if (prompt.includes('Another module "livliv-stage/game"') || tools.includes('builtIn_sparkNoResponse')) {
@@ -393,7 +397,7 @@ try {
   const action = gameMessages.find((message) => message.command === 'action').data
   assert.equal(action.name, 'boost')
   assert.deepEqual(JSON.parse(action.data), { team: 'blue' })
-  assert.equal(gameCalls.length, 1)
+  assert.equal(gameCalls.length, 2, 'a pick the game did not list, then one retry')
   assert.match(image(gameCalls[0]), /^data:image\/jpeg;base64,/)
   assert.equal(await app.evaluate(() => globalThis.airiRally.webContents.executeJavaScript('window.score()')), 3)
   const gameActionAt = Date.now() - recAt

@@ -71,8 +71,10 @@ function provider(config: ModelConfig, signal: AbortSignal, options: {
   beforeRequest?: () => Promise<void>
   allowBatch?: boolean
   onBatch?: () => void
+  /** a game action's tool: every call must pick with it (xsAI asks for it on the first call only), the retry too */
+  forceTool?: string
 } = {}): Provider {
-  const { beforeRequest, allowBatch, onBatch } = options
+  const { beforeRequest, allowBatch, onBatch, forceTool } = options
   const baseURL = new URL(config.base.replace(/\/+$/, '') + '/')
   const newLimits = config.provider === 'openai' && /^(gpt-5|o[134])/.test(config.model)
   let requests = 0
@@ -93,11 +95,13 @@ function provider(config: ModelConfig, signal: AbortSignal, options: {
             await beforeRequest?.()
             signal.throwIfAborted()
             // xsAI follows tool requests until the model answers. Bound the requests for one Stage turn: one round of the
-            // memory tool, then the reply (brains/airiMemory.ts). The last one allowed may not call a tool, so it
-            // answers; its tools stay defined, as some services refuse a history with tool calls in it otherwise. The
-            // same call made again unstreamed (the service refused to stream) is not one more
+            // memory tool, then the reply (brains/airiMemory.ts), or a game action's pick and one retry. The last one
+            // allowed for a reply may not call a tool, so it answers; its tools stay defined, as some services refuse a
+            // history with tool calls in it otherwise. The same call made again unstreamed (the service refused to
+            // stream) is not one more
             if (!again && ++requests > MAX_REQUESTS) throw new Error(tr('AIRI 的单轮模型调用已达上限'))
-            if (requests >= MAX_REQUESTS && body.tools?.length) body.tool_choice = 'none'
+            if (forceTool && body.tools?.some((tool: { function?: { name?: string } }) => tool.function?.name === forceTool)) body.tool_choice = { type: 'function', function: { name: forceTool } }
+            else if (requests >= MAX_REQUESTS && body.tools?.length) body.tool_choice = 'none'
             if (batchOnly) { body.stream = false; delete body.stream_options }
             return aiFetch(String(url), { ...init, headers, body: JSON.stringify(body), signal })
           }
@@ -377,7 +381,8 @@ export async function chooseAiriGameAction(
   ] }
   try {
     await core.streamFrom({
-      model: model.model, chatProvider: provider(model, active, { beforeRequest }), conversation: addFrame(conversation, frame),
+      // a pick that isn't listed is told so and may pick once more (two calls in all), still made to use the tool
+      model: model.model, chatProvider: provider(model, active, { beforeRequest, forceTool: tool.function.name }), conversation: addFrame(conversation, frame),
       options: {
         abortSignal: active, providerId: model.provider, maxTokens: 240, supportsVisionInput: !!frame,
         tools: [tool], toolChoice: { type: 'function', function: { name: tool.function.name } }, waitForTools: true,
