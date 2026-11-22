@@ -4,8 +4,8 @@
 // character's typed lines, read aloud, are voiced as the session started (livliv.ai's voice with 声音 on, not
 // subtitles). Off, nothing reaches a route that takes points: an AIRI chat, the card's 试听, the checklist's 测试 and
 // 我来演 typed lines. livliv.ai refusing an AIRI call as too long: the same call again, shorter, its tool round not asked
-// again; still too long, said so. livliv.ai's prices come from the site; 声音 never chosen stays off while voices of
-// your own are ready.
+// again; still too long, said so. livliv.ai's prices come from the site; 声音 never chosen is worked out once (off while
+// voices of your own are ready, Voicebox in the desktop app once it has been looked for) and saved.
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { readFile } from 'node:fs/promises'
@@ -46,7 +46,10 @@ try {
   async function open(saved = {}, { desktop = false } = {}) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     await context.addInitScript(({ saved, origin, desktop }) => {
-      if (desktop) window.livlivDesktop = { version: '0.5.0', platform: 'darwin', vision: { list: async () => [], frame: async () => null }, requests: { begin: async () => 'test', cancel: async () => {} }, hotkeys: { list: async () => [], set: async () => [], reset: async () => [] }, onCommand: () => () => {} }
+      // Voicebox on this computer while localStorage's test-voicebox says up
+      const up = () => localStorage.getItem('test-voicebox') === 'up', down = { ok: false, error: 'not-running', detail: 'ECONNREFUSED' }
+      const voicebox = { profiles: async () => (up() ? { ok: true, value: [{ id: 'lily', name: 'Lily', language: 'zh', kind: 'preset', engine: 'kokoro', ready: true }] } : down), speak: async () => down, transcribe: async () => down, cancel: async () => null }
+      if (desktop) window.livlivDesktop = { version: '0.5.0', platform: 'darwin', vision: { list: async () => [], frame: async () => null }, requests: { begin: async () => 'test', cancel: async () => {} }, hotkeys: { list: async () => [], set: async () => [], reset: async () => [] }, onCommand: () => () => {}, voicebox }
       if (sessionStorage.getItem('test-opened')) return
       sessionStorage.setItem('test-opened', '1')
       localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1')
@@ -217,6 +220,27 @@ try {
   await section.locator('.livliv-parts .switch').nth(1).click()
   assert.deepEqual(await section.locator('.livliv-parts .price').allInnerTexts(), ['0.2 积分/句', '0.3 积分/句'])
   assert.equal(await section.locator('.switch.main .hint').count(), 0, 'on: the prices say it, not 按积分')
+  await context.close()
+
+  // ---- 声音 never chosen, in the desktop app: worked out once its first look for Voicebox has settled, and saved
+  const voiceSaved = (page) => page.evaluate(() => localStorage.getItem('livliv-stage:livliv-voice'))
+  ;({ page, context } = await open({ 'livliv-stage:brain': { kind: 'livliv' }, 'test-voicebox': 'up' }, { desktop: true }))
+  await page.waitForFunction(() => localStorage.getItem('livliv-stage:livliv-voice') !== null)
+  assert.equal(await voiceSaved(page), '0', 'Voicebox there at the first look: 声音 off, saved')
+  assert.deepEqual(await state(page), { text: true, voice: false, kind: 'livliv' })
+  // the next launch without Voicebox: still off, nothing turned on by itself
+  await page.evaluate(() => localStorage.setItem('test-voicebox', 'down'))
+  await page.reload({ waitUntil: 'networkidle' })
+  await page.waitForFunction(async () => (await import('/src/livliv.ts')).signedIn())
+  await page.waitForFunction(async () => { const v = (await import('/src/voicebox.ts')).voiceboxState(); return !v.checking && v.status === 'off' })
+  assert.equal(await voiceSaved(page), '0')
+  assert.deepEqual(await state(page), { text: true, voice: false, kind: 'livliv' }, 'Voicebox gone: 声音 stays off')
+  await context.close()
+  // no voices of your own at the first look: 声音 follows 文字, on, saved
+  ;({ page, context } = await open({ 'livliv-stage:brain': { kind: 'livliv' }, 'test-voicebox': 'down' }, { desktop: true }))
+  await page.waitForFunction(() => localStorage.getItem('livliv-stage:livliv-voice') !== null)
+  assert.equal(await voiceSaved(page), '1')
+  assert.deepEqual(await state(page), { text: true, voice: true, kind: 'livliv' })
   await context.close()
 
   assert.deepEqual(errors, [])
