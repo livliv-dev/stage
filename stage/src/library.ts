@@ -8,6 +8,7 @@ import { cardOf, local, sampleUrl, SAMPLES, type Card as SampleCard } from './sa
 import { api, signedIn } from './livliv'
 import { keep, type Kept } from './vault'
 import type { PngSlot } from './bodies/png'
+import { checkPackage, checkPicture, checkVrm } from './modelCheck'
 
 /** label: how the picker names it (when two share a name); live: how it goes live, as its page on the site sets it */
 export type Pick = { name: string; persona: string; model: ModelRef; thumb?: string; label?: string; id?: string; card?: SampleCard; live?: LiveSettings }
@@ -73,10 +74,12 @@ function fromCard(c: Card): Pick {
 /** a model package from files: a picked folder, or a .livliv (or .zip) file; a .vrm file is a VRM */
 export async function fromFiles(files: FileList | File[]): Promise<Pick> {
   const list = [...files]
-  if (list.length === 1 && /\.vrm$/i.test(list[0].name)) return fromVrm(list[0])
+  if (list.length === 1 && /\.vrm$/i.test(list[0].name)) { await checkVrm(list[0]); return fromVrm(list[0]) }
   const map = new Map<string, Blob>()
   if (list.length === 1 && /\.(livliv|zip)$/i.test(list[0].name)) {
     const file = list[0], key = uid(), name = file.name.replace(/\.(livliv|zip)$/i, '') || tr("角色")
+    // read as the player will, before anything is placed or kept
+    await checkPackage(file)
     map.set(file.name, file)
     localModels.set(key, map)
     await keep({ key, name, at: Date.now() }, map)
@@ -87,6 +90,7 @@ export async function fromFiles(files: FileList | File[]): Promise<Pick> {
   // the shallowest model.json: the package's (a zip may hold one folder, or the files at its top)
   const json = [...map.keys()].filter((p) => p.split('/').pop() === 'model.json').sort((a, b) => a.split('/').length - b.split('/').length)[0]
   if (!json) throw new Error(tr("里面没有 model.json：选 LivLiv 导出的模型包（.livliv、zip 或文件夹）"))
+  await checkPackage(map)
   let name = tr("角色")
   try { name = JSON.parse(await map.get(json)!.text()).name || name } catch { /* the player says what is wrong */ }
   const key = uid()
@@ -105,6 +109,7 @@ export async function fromVrm(file: File): Promise<Pick> {
 
 /** a PNGTuber: its pictures by slot (bodies/png.ts: closed and open needed, blink and blink-open if there) */
 export async function fromPngs(pics: Partial<Record<PngSlot, File>>, name: string): Promise<Pick> {
+  for (const f of Object.values(pics)) if (f) await checkPicture(f, f.name)
   const key = uid(), map = new Map<string, Blob>([['name.txt', new Blob([name])]])
   for (const [slot, f] of Object.entries(pics)) if (f) map.set(`${slot}.png`, f)
   localModels.set(key, map)

@@ -1,5 +1,6 @@
 import { tr } from './i18n'
 import { LivLivError, type PlaybackPose } from '@livliv-dev/player'
+import { refused } from './modelCheck'
 import { startFaceTracking, type FaceTracking } from '@livliv-dev/player/tracking'
 import { createSpeech, startLipSync, type LipSync, type LipSyncOptions, type Speech } from '@livliv-dev/player/voice'
 import { onQuality, pixelRatio } from './quality'
@@ -42,15 +43,8 @@ const othersDraw = (self?: Actor) => [...actors.values()].some((a) => a !== self
 /** the browser gave this character no WebGL context, or took it, because there are too many on the page */
 export const crowdedOut = (e: unknown, self?: Actor) => e instanceof LivLivError && (e.code === 'context-lost' || e.code === 'no-webgl') && othersDraw(self)
 
-export function refused(e: unknown) {
-  if (!(e instanceof LivLivError)) return (e as Error).message
-  if (e.code === 'newer-format' || e.code === 'missing-feature') return tr("这个模型需要更新版本的 Stage")
-  if (e.code === 'no-webgl') return tr("这台电脑无法启动 WebGL2")
-  if (e.code === 'context-lost') return tr("图形设备已重置，请重新加载角色")
-  if (e.code === 'too-large') return tr("这个模型超出了播放器的大小限制")
-  if (e.code === 'unreachable' || e.code === 'http') return tr("模型读取失败，请检查文件或网络")
-  return tr("模型文件有问题：") + e.message
-}
+/** why a character can't be shown, in words (modelCheck.ts) */
+export { refused }
 
 export class Actor {
   readonly player: StagePlayer

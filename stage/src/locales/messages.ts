@@ -3273,6 +3273,36 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Other",
     "ja": "その他"
   },
+  "这不是 LivLiv 模型包：请选 LivLiv 导出的 .livliv、zip 或文件夹": {
+    "zh-Hans": "这不是 LivLiv 模型包：请选 LivLiv 导出的 .livliv、zip 或文件夹",
+    "zh-Hant": "這不是 LivLiv 模型包：請選 LivLiv 匯出的 .livliv、zip 或資料夾",
+    "en": "This is not a LivLiv model package: choose a .livliv, zip or folder exported from LivLiv",
+    "ja": "LivLiv のモデルパッケージではありません。LivLiv から書き出した .livliv、zip、フォルダーを選んでください"
+  },
+  "模型文件已损坏：请重新从 LivLiv 导出": {
+    "zh-Hans": "模型文件已损坏：请重新从 LivLiv 导出",
+    "zh-Hant": "模型檔案已損壞：請重新從 LivLiv 匯出",
+    "en": "The model file is damaged: export it from LivLiv again",
+    "ja": "モデルファイルが壊れています。LivLiv からもう一度書き出してください"
+  },
+  "模型包缺少文件：请重新从 LivLiv 导出": {
+    "zh-Hans": "模型包缺少文件：请重新从 LivLiv 导出",
+    "zh-Hant": "模型包缺少檔案：請重新從 LivLiv 匯出",
+    "en": "The model package is missing files: export it from LivLiv again",
+    "ja": "モデルパッケージにファイルが足りません。LivLiv からもう一度書き出してください"
+  },
+  "这不是 VRM 文件": {
+    "zh-Hans": "这不是 VRM 文件",
+    "zh-Hant": "這不是 VRM 檔案",
+    "en": "This is not a VRM file",
+    "ja": "VRM ファイルではありません"
+  },
+  "{0} 不是 PNG、WebP 或 GIF 图片": {
+    "zh-Hans": "{0} 不是 PNG、WebP 或 GIF 图片",
+    "zh-Hant": "{0} 不是 PNG、WebP 或 GIF 圖片",
+    "en": "{0} is not a PNG, WebP or GIF picture",
+    "ja": "{0} は PNG、WebP、GIF の画像ではありません"
+  },
   "连不上 {0}，请检查网络后再试": {
     "zh-Hans": "连不上 {0}，请检查网络后再试",
     "zh-Hant": "連不上 {0}，請檢查網路後再試",

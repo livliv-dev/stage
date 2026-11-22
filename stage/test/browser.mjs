@@ -156,6 +156,22 @@ try {
   await page.waitForFunction((ids) => ids.every((id) => window.__stage.actors.get(id)?.status === 'ready'), imported, { timeout: 20000 })
   report.formats = await page.evaluate(() => [...window.__stage.actors.values()].map((a) => ({ format: a.format, status: a.status })))
   assert.deepEqual(report.formats.map((x) => x.format).sort(), ['livliv', 'png', 'vrm'])
+  // a file that isn't a character, chosen in the add card: refused there in words; nothing is placed or kept
+  {
+    const characters = () => page.evaluate(() => window.__stage.store.get().items.filter((i) => i.kind === 'character').length)
+    const kept = () => page.evaluate(async () => (await (await import('/src/vault.ts')).kept()).length)
+    const [placed, keptBefore] = [await characters(), await kept()]
+    if (!(await page.locator('.popover.add').isVisible())) await page.locator('.rail button.tool', { hasText: '角色' }).click()
+    const input = page.locator('.popover.add input[type=file][accept=".livliv,.zip,.vrm"]')
+    for (const [name, text] of [['notes.livliv', '这不是 LivLiv 模型包：请选 LivLiv 导出的 .livliv、zip 或文件夹'], ['avatar.vrm', '这不是 VRM 文件']]) {
+      await input.setInputFiles({ name, mimeType: 'application/octet-stream', buffer: Buffer.from('this is not a model') })
+      await page.locator('.popover.add .err', { hasText: text }).waitFor()
+    }
+    assert.equal(await characters(), placed, 'nothing placed')
+    assert.equal(await kept(), keptBefore, 'nothing kept')
+    await page.keyboard.press('Escape')
+    report.badImport = 'a file that is not a character is refused in the add card, in words; nothing placed or kept'
+  }
   await page.getByRole('button', { name: '输出到 OBS', exact: true }).click()
   const popup = page.waitForEvent('popup'); await page.getByRole('button', { name: '打开输出窗口', exact: true }).click()
   const output = await popup; output.on('pageerror', (e) => errors.push('output: ' + e.message))
