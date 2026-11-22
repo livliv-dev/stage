@@ -263,6 +263,46 @@ try {
   assert.equal(await web.evaluate(() => document.documentElement.lang), 'en')
   await webContext.close()
 
+  // 清除 (a browser, no app): each saved key leaves this browser, its setting stays chosen; after a reload it is gone, and
+  // the demo doesn't bring it back. A key an earlier version kept apart (brain-api) goes with the model's
+  {
+    const web = await browser.newContext({ viewport: { width: 1280, height: 900 } })
+    await web.addInitScript(() => {
+      if (localStorage.getItem('fixture:keys')) return
+      localStorage.setItem('fixture:keys', '1'); localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1')
+      localStorage.setItem('livliv-stage:brain', JSON.stringify({ kind: 'demo' }))
+      localStorage.setItem('livliv-stage:brain-api', JSON.stringify({ kind: 'openai', provider: 'deepseek', base: 'https://api.deepseek.com/v1', key: 'sk-fixture-model', model: 'deepseek-chat' }))
+      localStorage.setItem('livliv-stage:speech', JSON.stringify({ provider: 'openai', base: 'https://api.openai.com/v1', key: 'sk-fixture-speech', model: 'gpt-4o-mini-tts', asr: '', voice: 'alloy' }))
+      localStorage.setItem('livliv-stage:realtime', JSON.stringify({ provider: 'openai', base: 'https://api.openai.com/v1', key: 'sk-fixture-realtime', model: 'gpt-realtime', voice: 'marin' }))
+    })
+    // nothing leaves for a real service
+    await web.route('**/*', (route) => { const u = new URL(route.request().url()); return u.hostname === '127.0.0.1' || ['blob:', 'data:'].includes(u.protocol) ? route.continue() : route.abort() })
+    const tab = await web.newPage(); tab.setDefaultTimeout(testTimeout(30000)); tab.on('pageerror', (e) => errors.push(e.message))
+    const keysLeft = () => tab.evaluate(() => Object.keys(localStorage).filter((k) => (localStorage.getItem(k) ?? '').includes('sk-fixture')))
+    const connect = async () => {
+      await tab.locator('.topbar button[title="设置"]').click()
+      await tab.locator('.settings-tabs button', { hasText: '连接' }).click()
+      await tab.locator('[data-section="realtime"] button.fold').click()
+    }
+    await tab.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'networkidle' })
+    await connect()
+    const clear = (section) => tab.locator(`[data-section="${section}"] button.clear-key`)
+    for (const section of ['model', 'speech', 'realtime']) assert.equal(await clear(section).count(), 1, `${section}: 清除 next to the saved key`)
+    for (const section of ['model', 'speech', 'realtime']) await clear(section).click()
+    await tab.waitForTimeout(300)
+    assert.deepEqual(await keysLeft(), [], 'no key left in this browser')
+    assert.equal(await tab.evaluate(() => JSON.parse(localStorage.getItem('livliv-stage:brain-api')).model), 'deepseek-chat', 'the model stays chosen')
+    await tab.reload({ waitUntil: 'networkidle' })
+    await connect()
+    for (const section of ['model', 'speech', 'realtime']) assert.equal(await clear(section).count(), 0, `${section}: nothing to clear after a reload`)
+    assert.equal(await tab.locator('[data-section="model"] input[type=password]').inputValue(), '', 'the key field is empty')
+    await tab.keyboard.press('Escape')
+    await tab.locator('.start-page .welcome-demo').first().click()
+    await tab.waitForFunction(() => window.__stage.conversation().running, null, { timeout: testTimeout(30000) })
+    await tab.evaluate(() => window.__stage.talk.stop())
+    assert.deepEqual(await keysLeft(), [], 'the demo brings no key back')
+    await web.close()
+  }
   assert.deepEqual(errors, [])
   console.log(JSON.stringify({ ok: true, calls: calls.length, artifacts }))
 } catch (error) {

@@ -89,6 +89,14 @@ export function writeKeyed(name: PrefKey, value: object & Keyed, storage: Storag
   return moved(name, key, whole, JSON.stringify(without(value)), storage)
 }
 
+/** a setting's key cleared, the rest of it kept (Settings › 连接's 清除): gone from the page's storage at once, and in the
+ *  desktop app from its encrypted store too (a key emptied: clear, above). Resolves once done */
+export function clearKey(name: PrefKey, storage: Storage = localStorage): Promise<boolean> {
+  const value = parsed(readKeyed(name, storage))
+  if (!value) return Promise.resolve(false)
+  return writeKeyed(name, without(value), storage)
+}
+
 /** a secret kept whole (the sign-in): from the page's storage, else from where it is kept (not one cleared here) */
 export function readSecret(name: PrefKey, storage: Storage = localStorage): string {
   return storage.getItem(name) || (cleared(storage).has(name) ? '' : kept()?.keys[name] || '')

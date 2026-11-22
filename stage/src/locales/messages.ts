@@ -3303,6 +3303,18 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "{0} is not a PNG, WebP or GIF picture",
     "ja": "{0} は PNG、WebP、GIF の画像ではありません"
   },
+  "清除": {
+    "zh-Hans": "清除",
+    "zh-Hant": "清除",
+    "en": "Clear",
+    "ja": "消去"
+  },
+  "从这台电脑上删掉保存的密钥": {
+    "zh-Hans": "从这台电脑上删掉保存的密钥",
+    "zh-Hant": "從這台電腦上刪掉保存的密鑰",
+    "en": "Remove the saved key from this computer",
+    "ja": "このコンピューターに保存したキーを削除します"
+  },
   "连不上 {0}，请检查网络后再试": {
     "zh-Hans": "连不上 {0}，请检查网络后再试",
     "zh-Hant": "連不上 {0}，請檢查網路後再試",

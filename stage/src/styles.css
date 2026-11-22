@@ -479,6 +479,8 @@ html.output.clear .app.output { -webkit-app-region: drag; }
 .model-form .row.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 0; }
 .model-form .row.two .field { margin-bottom: 12px; }
 button.link.get { padding: 0; font-size: 12px; }
+/* 清除 a saved key, before 获取 when both are there */
+.clear-key + .get { margin-left: 10px; }
 
 /* the add menu's imports: a PNGTuber's picture slots */
 .row.imports { flex-wrap: wrap; gap: 6px; }
