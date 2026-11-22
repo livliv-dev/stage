@@ -2,7 +2,7 @@
 {"t":"record","scope":"private","earlier":0}
 {"t":"start","mode":"chat","scope":"private","engine":"airi"}
 {"t":"record","scope":"private","earlier":0}
-{"t":"line","from":"you","name":"旁白","text":"在吗","scope":"private"}
+{"t":"line","from":"you","name":"我","text":"在吗","scope":"private"}
 {"t":"save","scope":"private","lines":1}
 {"t":"model","engine":"airi","speaker":"Nana","scope":"private","memories":[],"input":"在吗"}
 {"t":"voice","via":"api","text":"Nana的第1句。"}

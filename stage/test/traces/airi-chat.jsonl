@@ -9,7 +9,7 @@
 {"t":"save","scope":"private","lines":1}
 {"t":"line","from":"ai","name":"Nana","text":"我接着说下去。","scope":"private"}
 {"t":"save","scope":"private","lines":2}
-{"t":"line","from":"you","name":"旁白","text":"你好呀","scope":"private"}
+{"t":"line","from":"you","name":"我","text":"你好呀","scope":"private"}
 {"t":"save","scope":"private","lines":3}
 {"t":"model","engine":"airi","speaker":"Nana","scope":"private","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫"],"input":"你好呀"}
 {"t":"voice","via":"api","text":"Nana的第3句。"}
