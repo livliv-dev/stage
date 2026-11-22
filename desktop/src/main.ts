@@ -27,6 +27,7 @@ import { CollabHost } from './collabHost'
 import { AiriGameHost } from './airiGameHost'
 import { VOICEBOX_URL, voiceboxClient } from './voicebox'
 import { secretsStore } from './secrets'
+import { realtimeSockets, type Socket } from './realtimeSocket'
 import { readFileSync, renameSync, writeFileSync } from 'node:fs'
 
 // ---------------------------------------------------------------- global hotkeys
@@ -55,6 +56,9 @@ const collab = APP === 'stage' ? new CollabHost({ editor: mainContents }) : null
 const airiGames = APP === 'stage' ? new AiriGameHost(process.env.AIRICRAFT_BRIDGE_STATE_FILE || join(app.getPath('home'), '.airicraft', 'bridge-state.json')) : null
 // Voicebox where it listens (a test points it at a stand-in, in development)
 const voicebox = APP === 'stage' ? voiceboxClient({ fetch, base: (DEV && process.env.VOICEBOX_URL) || VOICEBOX_URL }) : null
+// a realtime call's WebSocket with the key in its header; `maxPayload` caps what comes in (ws allows 100 MiB)
+const { WebSocket: SocketClient } = require('ws') as { WebSocket: new (url: string, options: { headers: Record<string, string>; maxPayload: number; handshakeTimeout: number }) => Socket }
+const sockets = APP === 'stage' ? realtimeSockets({ connect: (url, options) => new SocketClient(url, { ...options, handshakeTimeout: 15_000 }) }) : null
 // the API keys, encrypted by the system, in the app's own folder (written whole, readable by this user only)
 const keysFile = () => join(app.getPath('userData'), 'keys.json')
 const secrets = APP === 'stage' ? secretsStore({
@@ -149,6 +153,7 @@ else {
       ...(airiGames ? { airiGames } : {}),
       ...(voicebox ? { voicebox } : {}),
       ...(secrets ? { secrets } : {}),
+      ...(sockets ? { realtimeSockets: sockets } : {}),
       ...(motionInput ? { tracking: { get: () => motionInput.state(), set: async (value) => { update((s) => { s.trackingInput = value }); return motionInput.configure(value) } } } : {}),
       capabilities: () => (APP === 'stage' ? ['global-hotkeys', ...(api ? ['local-commands'] : [])] : capabilities()),
       ...(APP === 'stage' ? { stageApi: { get: stageApiState, set: async (enabled: boolean) => { update((s) => { s.stageApi.enabled = enabled }); await syncLocalApi(); return stageApiState() }, rotate: () => { update((s) => { s.token = randomBytes(16).toString('hex') }); return stageApiState() } } } : {}),

@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { startCalls, subtitlesOnly, type StartCalls, type StartInput } from '../src/shell/startCalls'
+import { chatSourceOn, warmupFor } from '../src/shell/liveSetup'
 import type { Audience, Goal, You } from '../src/shell/goals'
 import type { BrainConfig } from '../src/brain'
 
@@ -58,6 +59,19 @@ test('subtitles only when a character that speaks has no voice; a muted one does
 
 test("直播间's own limits and what it does with no chat", () => {
   assert.equal(describe(startCalls(input('live', 'live', 'none', { live: { ...live, minutes: 1, maxGenerations: 7, warmupSeconds: 60 } }))), 'startLive(1m,7,warmup 60,text 0)')
+})
+
+test('没有弹幕时 left unchosen starts the 直播间 automatic (it follows the chat source as it runs); a choice made is kept', () => {
+  assert.equal(describe(startCalls(input('live', 'live', 'none', { live: { ...live, warmupSeconds: null } }))), 'startLive(30m,100,warmup null,text 0)')
+  assert.equal(describe(startCalls(input('live', 'live', 'none', { live: { ...live, warmupSeconds: 0 } }))), LIVE, '安静等待 chosen: kept')
+  assert.equal(describe(startCalls(input('live', 'live', 'none', { live: { ...live, warmupSeconds: 120 } }))), 'startLive(30m,100,warmup 120,text 0)')
+})
+
+test('the options show what the automatic one does now: every 30 seconds unless Twitch is connected (connecting is not)', () => {
+  const auto = { warmupSeconds: null }
+  assert.deepEqual((['off', 'connecting', 'error', 'on'] as const).map((status) => warmupFor(auto, chatSourceOn(status))), [30, 30, 30, 0])
+  assert.equal(warmupFor({ warmupSeconds: 120 }, true), 120)
+  assert.equal(warmupFor({ warmupSeconds: 0 }, false), 0)
 })
 
 test('a game goes to AIRI when the engine rule picks it, and is refused in words when it does not', () => {

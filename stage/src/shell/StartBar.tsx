@@ -12,7 +12,7 @@ import { participants, store, useScene, ORDERS, type Goal } from '../scene'
 import { CONTROLS, controlOf, controlSettings } from '../workflow'
 import { AUDIENCES, YOUS, optionsOf, startLabel, youHint, type StartOptions } from './goals'
 import { firstLineStart, planNow } from './start'
-import { liveSetup, useLiveSetup } from './liveSetup'
+import { chatSourceOn, liveSetup, useLiveSetup, warmupFor } from './liveSetup'
 
 export function StartButton({ goal, partner, onStart }: { goal: Goal; partner: boolean; onStart: () => void }) {
   const { scene } = useScene(), conv = useConversation(), options = optionsOf(scene.talk, goal, partner), label = startLabel(goal, partner, options)
@@ -77,7 +77,7 @@ export function StartOptionsCard({ goal, partner, onClose }: { goal: Goal; partn
       <div className="field"><span>{tr('聊天方式')}</span><div className="seg">{([['casual', '日常陪聊'], ['discussion', '深入讨论']] as const).map(([id, label]) => <button key={id} className={(t.depth ?? 'casual') === id ? 'on' : ''} onClick={() => store.setTalk({ depth: id })}>{tr(label)}</button>)}</div></div>
       <p className="hint">{tr(t.depth === 'discussion' ? '围绕观点和理由继续聊，回复可以更充分。' : '轻松接话，回复简短自然。')}</p>
       {options.audience === 'live'
-        ? <label className="field"><span>{tr('没有弹幕时')}</span><select aria-label={tr('没有弹幕时')} value={live.warmupSeconds} onChange={(e) => liveSetup.set({ warmupSeconds: +e.target.value as typeof live.warmupSeconds })}><option value={0}>{tr('安静等待')}</option><option value={30}>{tr('每 30 秒聊一句')}</option><option value={60}>{tr('每分钟聊一句')}</option><option value={120}>{tr('每 2 分钟聊一句')}</option></select></label>
+        ? <label className="field"><span>{tr('没有弹幕时')}</span><select aria-label={tr('没有弹幕时')} value={warmupFor(live, chatSourceOn(chat.status))} onChange={(e) => liveSetup.set({ warmupSeconds: +e.target.value as 0 | 30 | 60 | 120 })}><option value={0}>{tr('安静等待')}</option><option value={30}>{tr('每 30 秒聊一句')}</option><option value={60}>{tr('每分钟聊一句')}</option><option value={120}>{tr('每 2 分钟聊一句')}</option></select></label>
         : options.you !== 'none' && <><label className="field"><span>{tr('主动接话')}</span><select value={t.proactiveSeconds ?? 0} onChange={(e) => store.setTalk({ proactiveSeconds: +e.target.value })}><option value={0}>{tr('等我说话')}</option>{[30, 60, 120].map((s) => <option key={s} value={s}>{tr('安静 {0} 秒后接话', s)}</option>)}</select></label>
           <p className="hint">{tr('没有回应时最多主动接话一次，然后继续等待。')}</p></>}
       <div className="field"><span>{tr('谁先说、谁接话')}</span><div className="seg">{ORDERS.map((o) => <button key={o.id} className={t.order === o.id ? 'on' : ''} title={tr(o.hint)} onClick={() => store.setTalk({ order: o.id, host: o.id === 'host' ? t.host ?? cast[0]?.id ?? null : t.host })}>{tr(o.label)}</button>)}</div></div>

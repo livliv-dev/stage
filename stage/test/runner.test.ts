@@ -375,6 +375,40 @@ test('直播间: a viewer whose answer a game character cut off is answered when
   assert.deepEqual(env.said.slice(2), ['cut: NANA 3 @Ren', 'NANA 4 @Sun'], 'Ren counts as answered once you spoke')
 })
 
+test('直播间: the automatic warm-up speaks every 30 s with no chat source, waits quietly while one is connected, and follows it', async () => {
+  const env = fakeStage([nana], { mode: 'live', scope: 'public' })
+  let connected = false
+  const { done } = live(env, { options: { ...options, warmupSeconds: null }, chatConnected: () => connected })
+  await time.run(done, () => env.said.length === 2)
+  const second = time.now
+  await time.pass(done, 29_000)
+  assert.equal(env.said.length, 2, 'a line every 30 seconds')
+  await time.run(done, () => env.said.length === 3)
+  assert.equal(time.now - second, 1000 + 30_000, 'thirty seconds from the end of the line before (a line takes a second)')
+  connected = true; env.wake.wake()
+  await time.pass(done, 600_000)
+  assert.equal(env.said.length, 3, 'quiet while chat comes in from a connected source')
+  assert.ok(time.now - second >= 600_000)
+  env.inbox.push(viewer('v')); env.wake.wake()
+  await time.run(done, () => env.said.length === 4)
+  assert.equal(env.said[3], 'NANA 4 @Viewer', 'a viewer is answered')
+  connected = false; env.wake.wake()
+  await time.run(done, () => env.said.length === 5)
+  assert.equal(env.said[4], 'NANA 5', 'the source dropped: speaking up again')
+  assert.ok(env.s.running)
+})
+
+test('直播间: a warm-up chosen stays as chosen, chat source or not', async () => {
+  const env = fakeStage([nana], { mode: 'live', scope: 'public' })
+  const quiet = live(env, { options: { ...options, warmupSeconds: 0 }, chatConnected: () => false })
+  await time.pass(quiet.done, 600_000)
+  assert.deepEqual(env.said, [], '安静等待 chosen: quiet without a chat source too')
+  const busy = fakeStage([nana], { mode: 'live', scope: 'public' })
+  const chosen = live(busy, { options: { ...options, warmupSeconds: 60 }, chatConnected: () => true })
+  await time.run(chosen.done, () => busy.said.length === 2)
+  assert.ok(busy.said.length === 2, '每分钟聊一句 chosen: speaking with a chat source connected too')
+})
+
 test('a session takes over: the one running stops, and the new one runs alone, on its engine', async () => {
   const env = fakeStage([nana, kai], { limit: 50 }, { order: 'round' })
   const first = begin(env, 'conversation', (run) => duetPolicy(run, env, opened))

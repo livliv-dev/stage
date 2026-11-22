@@ -5,7 +5,7 @@ import { tr } from '../../i18n'
 // again after 5 s, then 15 s; it stops at the third in a row). On AIRI it can play a game: a game playing when the
 // generations are spent keeps it open until the game is done.
 import type { Chat } from '../../danmaku'
-import { GenerationLimit, LIVE_FAILURES, RETRY_SECONDS, type LiveOptions } from '../budget'
+import { GenerationLimit, LIVE_FAILURES, RETRY_SECONDS, warmupNow, type LiveOptions } from '../budget'
 import { clock } from '../clock'
 import { NeedModel, VoiceFailed } from '../errors'
 import { order, type Run } from '../run'
@@ -13,9 +13,11 @@ import { freely, takePick } from '../speakers'
 import type { Env, Policy } from '../runner'
 
 /** what the start sets up: the record and cast (and a game) opened, and closed; the AIRI binding it runs on (a game
- *  or a window makes a failed turn end it); how an error reads */
+ *  or a window makes a failed turn end it); how an error reads; whether a chat source is connected now (the automatic
+ *  warm-up follows it: the start wakes the session when it changes) */
 export type LiveSetup = {
   options: LiveOptions
+  chatConnected?: () => boolean
   until: number
   open: Policy['open']
   close(): Promise<void>
@@ -37,7 +39,8 @@ export function livePolicy(run: Run, env: Env, setup: LiveSetup): Policy {
     next() {
       const now = clock.now(), cooldown = lastReply + 6000 - now
       if (cooldown > 0 && !replyToOwner) return { wait: true, ms: cooldown }
-      const warmupAt = options.warmupSeconds ? lastReply + options.warmupSeconds * 1000 : Infinity
+      const warmup = warmupNow(options.warmupSeconds, setup.chatConnected?.() ?? false)
+      const warmupAt = warmup ? lastReply + warmup * 1000 : Infinity
       if (retryChat && env.blocked(retryChat.user)) retryChat = null
       if (!replyToOwner && !retryChat && !run.event && !env.inbox.has(['external', 'game']) && !env.inbox.viewerWaiting(now, env.blocked) && now < warmupAt) {
         env.set({ waitingAudience: true })

@@ -8,6 +8,7 @@ import type { CharacterItem, Talk } from './scene'
 import type { AiriGameFrame, AiriGameMessage } from '../../protocol/src/airiGame'
 import { aiFetch } from './brain'
 import { airiIdentity, personaOf, type PersonaSpec } from './brains/persona'
+import { readableModelError } from './brains/modelErrors'
 import { parseAiriMarkers } from './airiMarkers'
 import { tr } from './i18n'
 
@@ -308,7 +309,8 @@ export function streamAiriReply(turn: AiriTurn): ReadableStream<AiriSentence> {
         speech.end()
         output.close()
       }
-      void run().catch((error: unknown) => { if (!stop.signal.aborted) output.error(error) })
+      // a model service's failure in readable words, never its raw response (brains/modelErrors.ts)
+      void run().catch((error: unknown) => { if (!stop.signal.aborted) output.error(readableModelError(error)) })
     },
     cancel(reason) { stop.abort(reason) },
   })

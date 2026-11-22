@@ -18,8 +18,9 @@ import { bindAiri, preferredAiriForChat } from './airiBinding'
 import { chatLimits, type LiveOptions } from './budget'
 import { clock } from './clock'
 import { castKey, profiles, voices } from './context'
+import { chatState, onChatState } from '../danmaku'
 import { stageEnv } from './env'
-import { EVENTS, holds, inbox, viewersWaiting, YOURS, yourLine, type ChatInput } from './inbox'
+import { EVENTS, holds, inbox, viewersWaiting, wake, YOURS, yourLine, type ChatInput } from './inbox'
 import { chatPolicy } from './policies/chat'
 import { duetPolicy, oncePolicy } from './policies/duet'
 import { livePolicy } from './policies/live'
@@ -182,7 +183,12 @@ export function startLive(options: LiveOptions, event: (event: ExternalEvent) =>
       set({ game: { name: gameConfig.game, status: 'ready', text: '' } })
     }
   }
+  // the automatic warm-up follows the chat source: Twitch connecting or dropping mid-session wakes the session to look again
+  const chatConnected = () => chatState().status === 'on'
+  let connected = chatConnected()
+  const offChat = options.warmupSeconds === null ? onChatState(() => { if (chatConnected() !== connected) { connected = !connected; wake.wake() } }) : undefined
   const close = async () => {
+    offChat?.()
     offGame?.()
     signal.removeEventListener('abort', closeGame)
     closeGame()
@@ -190,7 +196,7 @@ export function startLive(options: LiveOptions, event: (event: ExternalEvent) =>
     offAiriCast?.()
   }
   return runSession(livePolicy(run, stageEnv, {
-    options, until, open, close, airi: engine, game: !!gameConfig,
+    options, until, open, close, airi: engine, game: !!gameConfig, chatConnected,
     describe: (error) => gameConfig ? airiGameError(error) : (error as Error).message,
   }), run, stageEnv)
 }

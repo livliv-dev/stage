@@ -18,17 +18,21 @@ export function spend(budget: Budget) {
   return counted(budget)
 }
 
-/** AI 直播's start options: how long, how many generations, a warm-up line after so many quiet seconds, subtitles
- *  only, and AIRI's window or game */
-export type LiveOptions = { minutes: number; maxGenerations: number; warmupSeconds: number; textOnly: boolean; airi?: { windowId: string; game?: AiriGameConfig } }
-/** AI 直播's options within bounds: 1–240 minutes (30 when unset), 1–500 generations (100), a warm-up of 30, 60 or 120 s
- *  or none */
+/** AI 直播's start options: how long, how many generations, a warm-up line after so many quiet seconds (null:
+ *  automatic, warmupNow), subtitles only, and AIRI's window or game */
+export type LiveOptions = { minutes: number; maxGenerations: number; warmupSeconds: number | null; textOnly: boolean; airi?: { windowId: string; game?: AiriGameConfig } }
+/** AI 直播's options within bounds: 1–240 minutes (30 when unset), 1–500 generations (100), a warm-up of 30, 60 or 120 s,
+ *  none, or automatic (null) */
 export function liveLimits(options: LiveOptions): LiveOptions {
+  const warmup = options.warmupSeconds
   return {
     minutes: Math.max(1, Math.min(240, Math.round(options.minutes) || 30)), maxGenerations: Math.max(1, Math.min(500, Math.round(options.maxGenerations) || 100)),
-    warmupSeconds: [30, 60, 120].includes(options.warmupSeconds) ? options.warmupSeconds : 0, textOnly: options.textOnly, airi: options.airi,
+    warmupSeconds: warmup === null ? null : [30, 60, 120].includes(warmup) ? warmup : 0, textOnly: options.textOnly, airi: options.airi,
   }
 }
+/** the warm-up in effect: the one chosen, else (automatic) a line every 30 seconds while no chat source (Twitch) is
+ *  connected, so a 直播间 without one doesn't sit silent, and none while one is */
+export const warmupNow = (seconds: number | null, chatConnected: boolean) => seconds ?? (chatConnected ? 0 : 30)
 /** 持续聊天's limits from the stage's talk settings: 1–240 minutes (60 when unset) and 1–500 generations (100); a
  *  realtime call counts its generations the same way */
 export function chatLimits(talk: { chatMinutes?: number; chatGenerations?: number }) {

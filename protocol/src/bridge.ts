@@ -8,6 +8,7 @@ import type { ExternalSelection, NeuroAnswer, NeuroConfig, NeuroMessage, NeuroSp
 import type { CollabConfig, CollabState } from './collab'
 import type { AiriGameConfig, AiriGameConnection, AiriGameEvent, AiriGameMessage, AiriGameSnapshot } from './airiGame'
 import type { VoiceboxProfile, VoiceboxResult } from './voicebox'
+import type { RealtimeSocketEvent } from './realtime'
 
 /** a global hotkey: the keys and the command they send */
 export type Binding = { accelerator: string; do: string }
@@ -50,6 +51,13 @@ export type DesktopApi = DesktopInfo & {
     speak(id: string, line: { profile: string; text: string; size?: string }, language: string): Promise<VoiceboxResult<ArrayBuffer>>
     transcribe(id: string, wav: ArrayBuffer, language?: string): Promise<VoiceboxResult<string>>
     cancel(id: string): Promise<null>
+  }
+  /** a realtime call's WebSocket (Bailian with a standard key), opened by the app with the key in its header */
+  realtimeSocket?: {
+    open(id: string, url: string, key: string): Promise<boolean>
+    send(id: string, data: string): Promise<boolean>
+    close(id: string): Promise<void>
+    onEvent(callback: (id: string, event: RealtimeSocketEvent) => void): () => void
   }
   onMotion?(callback: (event: MotionEvent) => void): () => void
   // ------------------------------------------------ every page
