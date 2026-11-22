@@ -338,7 +338,7 @@ export class Actor {
       else this.rest()
     } catch (e) {
       if ((e as Error).name === 'AbortError' || this.disposed) return
-      this.status = 'error'; this.error = refused(e)
+      this.status = 'error'; this.error = refused(e, this.format)
       if (crowdedOut(e, this)) crowd(this.item.id)
     }
     changed()

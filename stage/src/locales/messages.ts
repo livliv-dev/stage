@@ -3291,6 +3291,24 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "The model package is missing files: export it from LivLiv again",
     "ja": "モデルパッケージにファイルが足りません。LivLiv からもう一度書き出してください"
   },
+  "VRM 文件已损坏，读不出来：请重新导出": {
+    "zh-Hans": "VRM 文件已损坏，读不出来：请重新导出",
+    "zh-Hant": "VRM 檔案已損壞，讀不出來：請重新匯出",
+    "en": "The VRM file is damaged and can't be read: export it again",
+    "ja": "VRM ファイルが壊れていて読み込めません。もう一度書き出してください"
+  },
+  "立绘缺少图片：至少要闭嘴和张嘴两张": {
+    "zh-Hans": "立绘缺少图片：至少要闭嘴和张嘴两张",
+    "zh-Hant": "立繪缺少圖片：至少要閉嘴和張嘴兩張",
+    "en": "The picture set is missing images: it needs at least mouth closed and mouth open",
+    "ja": "立ち絵の画像が足りません。口を閉じた絵と開いた絵の 2 枚が必要です"
+  },
+  "立绘图片读不出来：请换成 PNG、WebP 或 GIF": {
+    "zh-Hans": "立绘图片读不出来：请换成 PNG、WebP 或 GIF",
+    "zh-Hant": "立繪圖片讀不出來：請換成 PNG、WebP 或 GIF",
+    "en": "The pictures can't be read: use PNG, WebP or GIF",
+    "ja": "立ち絵の画像を読み込めません。PNG、WebP、GIF にしてください"
+  },
   "这不是 VRM 文件": {
     "zh-Hans": "这不是 VRM 文件",
     "zh-Hant": "這不是 VRM 檔案",
