@@ -1,7 +1,7 @@
 {
   "name": "livliv-stage",
   "productName": "LivLiv Stage",
-  "version": "1.0.0-preview",
+  "version": "1.0.0-preview.2",
   "private": true,
   "license": "Apache-2.0",
   "homepage": "https://github.com/livliv-dev/stage",
