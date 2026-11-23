@@ -84,7 +84,7 @@ export async function unpackFiles(blob: Blob, signal?: AbortSignal): Promise<Map
   if (blob.size > PROJECT_LIMIT) throw tooLarge()
   const { entries, start: end } = await directory(blob, signal)
   const files = new Map<string, Blob>(), utf8 = new TextDecoder('utf-8', { fatal: true })
-  let bytes = 0
+  let bytes = 0, yielded = performance.now()
   for (const [name, entry] of entries) {
     signal?.throwIfAborted()
     const head = new DataView(await blob.slice(entry.local, entry.local + 30).arrayBuffer())
@@ -97,22 +97,23 @@ export async function unpackFiles(blob: Blob, signal?: AbortSignal): Promise<Map
     try { local = utf8.decode(await blob.slice(entry.local + 30, entry.local + 30 + length).arrayBuffer()) } catch { throw damaged() }
     if (local !== name || (entry.compression === 0 && entry.packed !== entry.size)) throw damaged()
     if ((bytes += entry.size) > PROJECT_LIMIT) throw tooLarge()
-    // its bytes, checked against the directory's size and CRC; compressed ones inflated a bounded piece at a time
+    // its bytes, checked against the directory's size and CRC; compressed ones inflated a bounded piece at a time. Kept
+    // in memory, not as a view of the picked file: that file may be moved, overwritten or deleted while the project is open
     const data = blob.slice(from, from + entry.packed), parts: Uint8Array<ArrayBuffer>[] = []
     let crc = 0xffffffff, size = 0
-    const take = (chunk: Uint8Array) => {
+    const take = (chunk: Uint8Array<ArrayBuffer>, own: boolean) => {
       if ((size += chunk.byteLength) > entry.size) throw damaged()
       crc = crcChunk(crc, chunk)
-      if (entry.compression) parts.push(new Uint8Array(chunk))
+      parts.push(own ? chunk : new Uint8Array(chunk))
     }
-    const inflate = entry.compression ? new Inflate((chunk) => take(chunk)) : null
+    const inflate = entry.compression ? new Inflate((chunk) => take(chunk as Uint8Array<ArrayBuffer>, false)) : null
     const reader = data.stream().getReader()
     try {
       for (;;) {
         signal?.throwIfAborted()
         const { done, value } = await reader.read()
         if (done) { inflate?.push(new Uint8Array(), true); break }
-        if (!inflate) take(value)
+        if (!inflate) take(value, true)
         else for (let i = 0; i < value.byteLength; i += 8192) inflate.push(value.subarray(i, i + 8192))
       }
     } catch (error) {
@@ -120,8 +121,9 @@ export async function unpackFiles(blob: Blob, signal?: AbortSignal): Promise<Map
       throw signal?.aborted ? signal.reason : error instanceof Error && error.message === damaged().message ? error : damaged()
     }
     if (size !== entry.size || ((crc ^ 0xffffffff) >>> 0) !== entry.crc) throw damaged()
-    files.set(name, entry.compression ? new Blob(parts) : data)
-    await new Promise((r) => setTimeout(r))
+    files.set(name, new Blob(parts))
+    // the page gets a turn now and then, not after every entry (a project may hold thousands)
+    if (performance.now() - yielded > 16) { await new Promise((r) => setTimeout(r)); yielded = performance.now() }
   }
   if (!files.size || files.size !== entries.size) throw new Error(tr('这个项目文件不完整'))
   return files
