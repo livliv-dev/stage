@@ -41,10 +41,11 @@ test('valid ZIPs that lose their end record or have altered payload bytes are re
   await assert.rejects(unpackFiles(new Blob([changed])))
 })
 
-test('a project holding ZIPs of its own (an imported .livliv or .mavatar) opens again, each file as it was', async () => {
-  const mavatar = new Uint8Array(readFileSync(new URL('./fixtures/nana.mavatar', import.meta.url)))
+test('a project holding ZIPs of its own (an imported .livliv) opens again, each file as it was', async () => {
+  // a .livliv as exported (deflated entries) and a ZIP of stored entries: both hold local headers of their own
   const livliv = zipSync({ 'model.json': new TextEncoder().encode('{"format":"livliv-model"}'), 'textures/a.webp': new Uint8Array(4000).fill(7) }, { level: 6 })
-  const original = new Map([['project.json', new Blob(['{}'])], ['models/m0/model.mavatar', new Blob([mavatar])], ['models/m1/Nana.livliv', new Blob([livliv])], ['pictures/p0', new Blob([new Uint8Array([9, 8, 7])])]])
+  const stored = zipSync({ 'a.json': new TextEncoder().encode('{"a":1}'), 'b.png': new Uint8Array(3000).fill(5) }, { level: 0 })
+  const original = new Map([['project.json', new Blob(['{}'])], ['models/m0/Nana.livliv', new Blob([livliv])], ['models/m1/files.zip', new Blob([stored])], ['pictures/p0', new Blob([new Uint8Array([9, 8, 7])])]])
   const files = await unpackFiles(await packFiles(original))
   assert.deepEqual([...files.keys()], [...original.keys()])
   for (const [name, value] of original) assert.ok(Buffer.from(await files.get(name)!.arrayBuffer()).equals(Buffer.from(await value.arrayBuffer())), name)
@@ -56,3 +57,10 @@ test('a project written by another tool, its entries deflated and its sizes in t
   assert.equal(await files.get('project.json')!.text(), '{"name":"x"}'.repeat(200))
   assert.equal(await files.get('models/m0/model.json')!.text(), '{}')
 })
+
+test('a project holding a .mavatar opens again with it as it was', async () => {
+  const mavatar = new Uint8Array(readFileSync(new URL('./fixtures/nana.mavatar', import.meta.url)))
+  const files = await unpackFiles(await packFiles(new Map([['project.json', new Blob(['{}'])], ['models/m0/model.mavatar', new Blob([mavatar])]])))
+  assert.ok(Buffer.from(await files.get('models/m0/model.mavatar')!.arrayBuffer()).equals(Buffer.from(mavatar)))
+})
+
