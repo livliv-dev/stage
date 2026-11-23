@@ -6,6 +6,7 @@
 // one-line form (tagline). A card's first message (an imported card's: characterCard.ts) is the line Stage's brain and
 // AIRI open with when nothing has been said. A card written for another name says that name: Stage's brain and AIRI put
 // the character's name in its place, a realtime call reads the card as written.
+import { PRODUCT } from '../core/product'
 import type { MemoryScope } from '../memory'
 import type { CharacterItem, Talk } from '../scene'
 import { CARD_LIMITS } from '../characterCard'
@@ -77,7 +78,7 @@ export function airiIdentity(p: PersonaSpec) {
     ja: 'Reply in Japanese.',
   }[p.language]
   return [
-    'You are ' + JSON.stringify(p.name) + ', the character ' + (p.scope === 'public' ? 'currently performing in LivLiv Stage' : 'in a private LivLiv Stage conversation') + '. Use only this character\'s identity.',
+    'You are ' + JSON.stringify(p.name) + ', the character ' + (p.scope === 'public' ? 'currently performing in ' + PRODUCT.name : 'in a private ' + PRODUCT.name + ' conversation') + '. Use only this character\'s identity.',
     HONEST.en,
     p.persona && 'Personality: ' + named(p, p.persona),
     p.style && 'Speaking style: ' + named(p, p.style),

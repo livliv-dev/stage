@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="media/livliv-stage-wordmark-white.svg">
-    <img alt="LivLiv Stage" src="media/livliv-stage-wordmark-2000.png" width="360">
+    <source media="(prefers-color-scheme: dark)" srcset="media/vtuber-stage-wordmark-white.svg">
+    <img alt="VTuber Stage by LivLiv" src="media/vtuber-stage-wordmark-2000.png" width="360">
   </picture>
 </p>
 
@@ -17,15 +17,16 @@
 
 ## 1.0 プレビュー版の新機能
 
-Stage を「何をしたいか」から組み立て直しました。[1.0 プレビュー版をダウンロード](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview)。
+Stage を「何をしたいか」から組み立て直しました。[1.0 プレビュー版をダウンロード](https://github.com/livliv-dev/vtuber-stage/releases/tag/v1.0.0-preview)。
 
 - **やりたいことから始める**：**自分で演じる**、**AI が配信**、**キャラと話す**、**動画を作る**。必要な準備だけが表示され、ボタンひとつで開始
 - **このコンピューター上の無料の声**：[Voicebox](https://voicebox.sh) に対応（デスクトップ版）
 - **キャラクターカードの読み込み**：SillyTavern と AIRI に対応
+- **新しい名前**：LivLiv Stage は VTuber Stage（by LivLiv）になりました（livliv.ai では LivLiv Stage のまま）。設定、キー、プロジェクトはそのままです
 
 ## そのほかの機能
 
-- ひとつのステージに最大 30 体：LivLiv、VRM、PNGTuber。厳選キャラクター 27 体付き
+- ひとつのステージに最大 30 体：LivLiv、VRM、PNGTuber。厳選キャラクター 24 体付き
 - キャラクター同士の掛け合い、Twitch コメントへの返事、記憶（[Project AIRI](https://github.com/moeru-ai/airi)）とリアルタイム通話
 - フェイストラッキング、OBS 出力、録画、ゲーム接続、Neuro SDK
 
@@ -33,7 +34,7 @@ AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）か�
 
 ## 試してみる
 
-- **デスクトップ版**（macOS、Windows）：[1.0 プレビュー版](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview)、または[安定版](https://github.com/livliv-dev/stage/releases/latest)（[予備のダウンロード](https://downloads.livliv.ai/stage/index.html)）。
+- **デスクトップ版**（macOS、Windows）：[1.0 プレビュー版](https://github.com/livliv-dev/vtuber-stage/releases/tag/v1.0.0-preview)、または[安定版](https://github.com/livliv-dev/vtuber-stage/releases/latest)（[予備のダウンロード](https://downloads.livliv.ai/stage/index.html)）。
   macOS は 1 行で安定版をインストールでき、初回の確認は出ません：`curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **オンライン（Web版・機能制限あり）**：[livliv.ai/stage](https://livliv.ai/stage)
 - **ソースから**：[開発](#開発)を参照
@@ -49,7 +50,7 @@ AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）か�
 
 誰もが、思い描いたキャラクターをかたちにできるように。それが私たちの願いです。
 
-AI を使ったキャラクター制作のツール群、[プレイヤーとその再生プロトコル](https://github.com/livliv-dev/player)、そして[キャラクターをお披露目できる舞台](https://github.com/livliv-dev/stage)をオープンソース化しています。
+AI を使ったキャラクター制作のツール群、[プレイヤーとその再生プロトコル](https://github.com/livliv-dev/player)、そして[キャラクターをお披露目できる舞台](https://github.com/livliv-dev/vtuber-stage)をオープンソース化しています。
 
 ぜひ [Discord](https://discord.gg/ac5qF36T2H) に遊びに来てください。[X（Twitter）](https://x.com/livliv_ai) でも LivLiv をフォローしてもらえたらうれしいです。
 
@@ -58,8 +59,8 @@ AI を使ったキャラクター制作のツール群、[プレイヤーとそ�
 Node.js 22.18 以降が必要です。次の Player リリースまで、Stage は一時的な LivLiv Player ビルドを使います（[vendor/player-temporary](vendor/player-temporary/README.md)）。
 
 ```sh
-git clone https://github.com/livliv-dev/stage
-cd stage
+git clone https://github.com/livliv-dev/vtuber-stage
+cd vtuber-stage
 npm --prefix stage ci && npm --prefix stage run dev            # Web 版、http://127.0.0.1:5222
 npm --prefix desktop ci && npm --prefix desktop run stage:dev  # デスクトップ版（stage:mac と stage:win でインストーラーを作成）
 ```

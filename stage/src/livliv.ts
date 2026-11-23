@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { tr } from './i18n'
 // LivLiv, the site the characters come from: your account there and a character's own voice.
 //  - account: connected through the browser with a code (/api/connect: the site's /connect page, signed in there any
@@ -127,7 +128,7 @@ export async function connect() {
   waiting = ctl
   set({ error: '' })
   try {
-    const r = await answer(await post('/api/connect/start', { app: 'LivLiv Stage', device: device() }))
+    const r = await answer(await post('/api/connect/start', { app: PRODUCT.name, device: device() }))
     set({ connect: { code: r.code, url: r.url } })
     openConnect()
     const until = Date.now() + (r.expires_in ?? 600) * 1000

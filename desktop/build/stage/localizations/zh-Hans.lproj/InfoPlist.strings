@@ -1,3 +1,3 @@
-"NSCameraUsageDescription" = "LivLiv Stage 用摄像头跟踪你的表情和动作。";
-"NSMicrophoneUsageDescription" = "LivLiv Stage 用麦克风做口型和语音输入。";
-"NSLocalNetworkUsageDescription" = "LivLiv Stage 与同一网络的朋友联播，并接收手机和追踪应用的角色动作。";
+"NSCameraUsageDescription" = "VTuber Stage 用摄像头跟踪你的表情和动作。";
+"NSMicrophoneUsageDescription" = "VTuber Stage 用麦克风做口型和语音输入。";
+"NSLocalNetworkUsageDescription" = "VTuber Stage 与同一网络的朋友联播，并接收手机和追踪应用的角色动作。";

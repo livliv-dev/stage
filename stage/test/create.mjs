@@ -41,7 +41,7 @@ try {
     const logo = page.locator('.topbar a.mark-link')
     assert.deepEqual([await logo.getAttribute('href'), await logo.getAttribute('target')], ['/', '_blank'], "the logo: the site's home, in a new tab")
     const github = page.locator('.topbar a.github-link')
-    assert.deepEqual([await github.getAttribute('href'), await github.getAttribute('target')], ['https://github.com/livliv-dev/stage', '_blank'], 'the code on GitHub, in a new tab')
+    assert.deepEqual([await github.getAttribute('href'), await github.getAttribute('target')], ['https://github.com/livliv-dev/vtuber-stage', '_blank'], 'the code on GitHub, in a new tab')
     // the add card: 从 livliv.ai 增加, and making one on the site
     await page.locator('.rail button.tool').first().click()  // the first of the rail's tools: add a character
     await page.locator('.popover.add .create-link').click()

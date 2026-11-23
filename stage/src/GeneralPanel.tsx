@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { ExternalLink } from 'lucide-react'
 import { NetworkPanel } from './NetworkPanel'
 import { StageApiPanel } from './StageApiPanel'
@@ -11,7 +12,7 @@ import { ResetPreferences } from './ResetPreferences'
 
 /** stage/package.json's version, set by vite.config.ts */
 declare const __STAGE_VERSION__: string
-const REPO = 'https://github.com/livliv-dev/stage'
+const REPO = 'https://github.com/livliv-dev/vtuber-stage'
 
 /** onDesktop: livliv.ai/stage's note on the desktop app (DesktopNotice.tsx), opened again from About */
 export function GeneralPanel({ onDesktop, onResetLayout }: { onDesktop?: () => void; onResetLayout: () => void }) {
@@ -28,7 +29,7 @@ export function GeneralPanel({ onDesktop, onResetLayout }: { onDesktop?: () => v
     <ResetPreferences onResetLayout={onResetLayout} />
     <section className="general-about">
       <h3>{tr("关于")}</h3>
-      <div className="about-brand"><img src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" /><span className="about-version num">v{__STAGE_VERSION__}{!features.shell && ` · ${tr("网页版")}`}</span></div>
+      <div className="about-brand"><img src={`${import.meta.env.BASE_URL}${PRODUCT.full}`} alt={PRODUCT.name} style={{ width: PRODUCT.fullWidth }} /><span className="about-version num">v{__STAGE_VERSION__}{!features.shell && ` · ${tr("网页版")}`}</span></div>
       <p>{tr("面捕出镜、AI 互动和朋友同台。")}</p>
       <span className="about-player">{tr("由 LivLiv Player 驱动")}</span>
       <p className="about-legal">© LivLiv (livliv.ai)<br />{tr("代码采用 Apache 2.0 许可，精选角色另有自己的许可。")}</p>

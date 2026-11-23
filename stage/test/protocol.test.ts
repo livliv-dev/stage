@@ -46,7 +46,8 @@ test('window.livlivDesktop is described once: the preload is checked against it,
 test('the package loads nothing either side lacks: no Node, no DOM, no Electron, nothing outside it', () => {
   const files = walk(join(repo, 'protocol/src'))
   assert.ok(files.length >= 8)
-  const outside = files.flatMap((file) => specifiers(file).filter((s) => !/^\.\/[A-Za-z]+$/.test(s)).map((s) => `${name(file)}: ${s}`))
+  // its own modules and its own data (product.json, the names)
+  const outside = files.flatMap((file) => specifiers(file).filter((s) => !/^\.\/[A-Za-z]+(\.json)?$/.test(s)).map((s) => `${name(file)}: ${s}`))
   assert.deepEqual(outside, [])
   const code = (file: string) => readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
   const globals = files.filter((file) => /\b(window|document|process|require|Buffer|localStorage)\b\s*[.(]/.test(code(file))).map(name)

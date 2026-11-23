@@ -6,7 +6,7 @@ import assert from 'node:assert/strict'
 import { chromium } from 'playwright-core'
 import { freePort, startVite, testTimeout } from './vite.mjs'
 
-const RELEASES = 'https://github.com/livliv-dev/stage/releases/latest'
+const RELEASES = 'https://github.com/livliv-dev/vtuber-stage/releases/latest'
 const errors = []
 let server, browser
 let signedIn = true
@@ -61,8 +61,8 @@ try {
     '没有好友联播', '不能用手机面捕（iFacialMocap）和 VMC/OSC', '没有全局热键，切到游戏里就控制不了角色', '接不了 Ollama、Voicebox 等本机的模型和声音，以及其他接口', 'AI 不能看窗口、玩游戏'],
   "the browser's limits, each still true of the web version (AIRI on the web chats, without a window or a game)")
   const project = notice(page).locator('.hint.after a')
-  assert.deepEqual([await project.innerText(), await project.getAttribute('href'), await project.getAttribute('target')], ['LivLiv Stage', 'https://github.com/livliv-dev/stage', '_blank'], 'the closing line links the project on GitHub')
-  assert.match(await notice(page).locator('.hint.after').innerText(), /^欢迎使用桌面端，以及关注我们的开源项目 LivLiv Stage$/)
+  assert.deepEqual([await project.innerText(), await project.getAttribute('href'), await project.getAttribute('target')], ['VTuber Stage', 'https://github.com/livliv-dev/vtuber-stage', '_blank'], 'the closing line links the project on GitHub')
+  assert.match(await notice(page).locator('.hint.after').innerText(), /^欢迎使用桌面端，以及关注我们的开源项目 VTuber Stage$/)
   await notice(page).getByRole('button', { name: '下载桌面版' }).click()
   assert.deepEqual(await page.evaluate(() => window.opened), [[RELEASES, '_blank']], "GitHub's latest release, in a new tab")
   await notice(page).waitFor({ state: 'detached' })
@@ -84,7 +84,7 @@ try {
   await page.locator('.start-overlay .start-page .close').click()
   await notice(page).waitFor()
   assert.equal(await notice(page).locator('.big').innerText(), 'Limits of the web version')
-  assert.equal(await notice(page).locator('.hint.after').innerText(), 'Try the desktop app, and follow our open-source project LivLiv Stage')
+  assert.equal(await notice(page).locator('.hint.after').innerText(), 'Try the desktop app, and follow our open-source project VTuber Stage')
   await notice(page).getByRole('button', { name: 'Keep using the web version' }).click()
   await notice(page).waitFor({ state: 'detached' })
   assert.deepEqual(await page.evaluate(() => window.opened), [])
