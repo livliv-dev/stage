@@ -25,7 +25,7 @@ Stage is reorganised around what you came to do. [Download the 1.0 Preview](http
 
 ## Also in Stage
 
-- Up to 30 characters on one stage: LivLiv, VRM and PNGTuber, with 27 featured characters
+- Up to 30 characters on one stage: LivLiv, VRM and PNGTuber, with 24 featured characters
 - Characters talk to each other and to your Twitch chat, with memory ([Project AIRI](https://github.com/moeru-ai/airi)) and realtime calls
 - Face tracking, OBS output, recording, games and the Neuro SDK
 
