@@ -1,4 +1,8 @@
 import assert from 'node:assert/strict'
+import { openAsBlob } from 'node:fs'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { test } from 'node:test'
 import { Zip, ZipPassThrough, zipSync } from 'fflate'
 import { archivePath, packFiles, PROJECT_LIMIT, unpackFiles } from '../src/archive'
@@ -55,5 +59,17 @@ test('a project written by another tool, its entries deflated and its sizes in t
   const files = await unpackFiles(new Blob([bytes]))
   assert.equal(await files.get('project.json')!.text(), '{"name":"x"}'.repeat(200))
   assert.equal(await files.get('models/m0/model.json')!.text(), '{}')
+})
+
+test('an opened project keeps its files when the file it came from is deleted', async () => {
+  const livliv = zipSync({ 'model.json': new TextEncoder().encode('{}') }, { level: 0 })
+  const original = new Map([['project.json', new Blob(['{"name":"kept"}'])], ['models/m0/Nana.livliv', new Blob([livliv])], ['pictures/p0', new Blob([new Uint8Array(70000).fill(3)])]])
+  const dir = await mkdtemp(join(tmpdir(), 'stage-archive-')), path = join(dir, 'p.livstage')
+  try {
+    await writeFile(path, new Uint8Array(await (await packFiles(original)).arrayBuffer()))
+    const files = await unpackFiles(await openAsBlob(path))  // read from the disk as it is needed, as a picked File is
+    await rm(path)
+    for (const [name, value] of original) assert.ok(Buffer.from(await files.get(name)!.arrayBuffer()).equals(Buffer.from(await value.arrayBuffer())), name)
+  } finally { await rm(dir, { recursive: true, force: true }) }
 })
 
