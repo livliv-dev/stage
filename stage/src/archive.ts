@@ -1,4 +1,4 @@
-import { Unzip, UnzipInflate, Zip, ZipPassThrough } from 'fflate'
+import { Inflate, Zip, ZipPassThrough } from 'fflate'
 import { tr } from './i18n'
 
 export const PROJECT_LIMIT = 512 * 2 ** 20
@@ -6,7 +6,8 @@ const ENTRIES = 8192
 export const archivePath = (name: string) => !!name && name.length <= 1024 && !/[\\:\0]/.test(name) && !name.startsWith('/') && !name.split('/').some((p) => !p || p === '.' || p === '..')
 const tooLarge = () => new Error(tr('项目超过 512 MB 或文件数量过多'))
 
-type Entry = { size: number; crc: number; compression: number }
+/** an entry as the central directory gives it: its sizes, check, compression and where its local header is */
+type Entry = { size: number; crc: number; compression: number; packed: number; local: number }
 const damaged = () => new Error(tr('项目文件已损坏'))
 const crcTable = new Uint32Array(256)
 for (let n = 0; n < 256; n++) {
@@ -19,7 +20,7 @@ function crcChunk(crc: number, data: Uint8Array) {
   return crc
 }
 
-async function directory(blob: Blob, signal?: AbortSignal): Promise<Map<string, Entry>> {
+async function directory(blob: Blob, signal?: AbortSignal): Promise<{ entries: Map<string, Entry>; start: number }> {
   signal?.throwIfAborted()
   const tail = new DataView(await blob.slice(Math.max(0, blob.size - 65557)).arrayBuffer())
   let end = -1
@@ -42,11 +43,11 @@ async function directory(blob: Blob, signal?: AbortSignal): Promise<Map<string, 
     seen.add(name); bytes += original
     if (bytes > PROJECT_LIMIT) throw tooLarge()
     if (folder) { if (original) throw damaged() }
-    else entries.set(name, { size: original, crc, compression })
+    else entries.set(name, { size: original, crc, compression, packed: compressed, local })
     offset = end
   }
   if (offset !== view.byteLength) throw damaged()
-  return entries
+  return { entries, start }
 }
 
 export async function packFiles(files: Map<string, Blob>, signal?: AbortSignal, progress?: (value: number) => void): Promise<Blob> {
@@ -76,45 +77,54 @@ export async function packFiles(files: Map<string, Blob>, signal?: AbortSignal, 
   } catch (error) { zip.terminate(); throw error }
 }
 
+/** the project's files, each read where the central directory says it is. Not by reading the archive through: a file
+ *  that is itself a ZIP (an imported .livliv or .mavatar, stored as it is) holds headers of its own, which a reader
+ *  looking through the stream for the next entry takes for the project's */
 export async function unpackFiles(blob: Blob, signal?: AbortSignal): Promise<Map<string, Blob>> {
   if (blob.size > PROJECT_LIMIT) throw tooLarge()
-  const expected = await directory(blob, signal)
-  const files = new Map<string, Blob>(), seen = new Set<string>()
-  let bytes = 0, pending = 0
-  const unzip = new Unzip((file) => {
-    if (file.name.endsWith('/')) return
-    if (!archivePath(file.name) || seen.has(file.name)) throw new Error(tr('项目中的文件路径无效'))
-    seen.add(file.name)
-    if (seen.size > ENTRIES || (file.originalSize ?? 0) > PROJECT_LIMIT) throw tooLarge()
-    const entry = expected.get(file.name)
-    if (!entry || entry.compression !== file.compression || (file.originalSize !== undefined && file.originalSize !== entry.size)) throw damaged()
-    const parts: Uint8Array<ArrayBuffer>[] = []
+  const { entries, start: end } = await directory(blob, signal)
+  const files = new Map<string, Blob>(), utf8 = new TextDecoder('utf-8', { fatal: true })
+  let bytes = 0, yielded = performance.now()
+  for (const [name, entry] of entries) {
+    signal?.throwIfAborted()
+    const head = new DataView(await blob.slice(entry.local, entry.local + 30).arrayBuffer())
+    if (head.byteLength < 30 || head.getUint32(0, true) !== 0x04034b50 || head.getUint16(6, true) & 1 || head.getUint16(8, true) !== entry.compression) throw damaged()
+    // a local header with its sizes (no data descriptor after the data) says what the directory says
+    if (!(head.getUint16(6, true) & 8) && (head.getUint32(14, true) !== entry.crc || head.getUint32(18, true) !== entry.packed || head.getUint32(22, true) !== entry.size)) throw damaged()
+    const length = head.getUint16(26, true), from = entry.local + 30 + length + head.getUint16(28, true)
+    if (from + entry.packed > end) throw damaged()
+    let local: string
+    try { local = utf8.decode(await blob.slice(entry.local + 30, entry.local + 30 + length).arrayBuffer()) } catch { throw damaged() }
+    if (local !== name || (entry.compression === 0 && entry.packed !== entry.size)) throw damaged()
+    if ((bytes += entry.size) > PROJECT_LIMIT) throw tooLarge()
+    // its bytes, checked against the directory's size and CRC; compressed ones inflated a bounded piece at a time. Kept
+    // in memory, not as a view of the picked file: that file may be moved, overwritten or deleted while the project is open
+    const data = blob.slice(from, from + entry.packed), parts: Uint8Array<ArrayBuffer>[] = []
     let crc = 0xffffffff, size = 0
-    pending++
-    file.ondata = (error, data, end) => {
-      if (error) throw error
-      signal?.throwIfAborted()
-      size += data.byteLength; crc = crcChunk(crc, data)
-      if (size > entry.size) throw damaged()
-      bytes += data.byteLength
-      if (bytes > PROJECT_LIMIT) { file.terminate(); throw tooLarge() }
-      parts.push(new Uint8Array(data))
-      if (end) { if (size !== entry.size || ((crc ^ 0xffffffff) >>> 0) !== entry.crc) throw damaged(); files.set(file.name, new Blob(parts)); pending-- }
+    const take = (chunk: Uint8Array<ArrayBuffer>, own: boolean) => {
+      if ((size += chunk.byteLength) > entry.size) throw damaged()
+      crc = crcChunk(crc, chunk)
+      parts.push(own ? chunk : new Uint8Array(chunk))
     }
-    file.start()
-  })
-  unzip.register(UnzipInflate)
-  const reader = blob.stream().getReader()
-  try {
-    for (;;) {
-      signal?.throwIfAborted()
-      const { done, value } = await reader.read()
-      if (done) { unzip.push(new Uint8Array(), true); break }
-      // Bound each compressed input chunk before inflation.
-      for (let i = 0; i < value.byteLength; i += 8192) unzip.push(value.subarray(i, i + 8192))
-      await new Promise((r) => setTimeout(r))
+    const inflate = entry.compression ? new Inflate((chunk) => take(chunk as Uint8Array<ArrayBuffer>, false)) : null
+    const reader = data.stream().getReader()
+    try {
+      for (;;) {
+        signal?.throwIfAborted()
+        const { done, value } = await reader.read()
+        if (done) { inflate?.push(new Uint8Array(), true); break }
+        if (!inflate) take(value, true)
+        else for (let i = 0; i < value.byteLength; i += 8192) inflate.push(value.subarray(i, i + 8192))
+      }
+    } catch (error) {
+      await reader.cancel(error).catch(() => {})
+      throw signal?.aborted ? signal.reason : error instanceof Error && error.message === damaged().message ? error : damaged()
     }
-  } catch (error) { await reader.cancel(error); throw error }
-  if (pending || !files.size || files.size !== expected.size) throw new Error(tr('这个项目文件不完整'))
+    if (size !== entry.size || ((crc ^ 0xffffffff) >>> 0) !== entry.crc) throw damaged()
+    files.set(name, new Blob(parts))
+    // the page gets a turn now and then, not after every entry (a project may hold thousands)
+    if (performance.now() - yielded > 16) { await new Promise((r) => setTimeout(r)); yielded = performance.now() }
+  }
+  if (!files.size || files.size !== entries.size) throw new Error(tr('这个项目文件不完整'))
   return files
 }
