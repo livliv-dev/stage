@@ -25,7 +25,7 @@ Stage 按「你来做什么」重新整理了一遍。[下载 1.0 预览版](htt
 
 ## 其他功能
 
-- 一张舞台最多 30 个角色：LivLiv、VRM、PNGTuber，自带 27 个精选角色
+- 一张舞台最多 30 个角色：LivLiv、VRM、PNGTuber，自带 24 个精选角色
 - 角色之间对话、回应 Twitch 弹幕，有记忆（[Project AIRI](https://github.com/moeru-ai/airi)）和实时通话
 - 面捕、OBS 输出、录视频、游戏连接和 Neuro SDK
 

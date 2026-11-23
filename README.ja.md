@@ -25,7 +25,7 @@ Stage を「何をしたいか」から組み立て直しました。[1.0 プレ
 
 ## そのほかの機能
 
-- ひとつのステージに最大 30 体：LivLiv、VRM、PNGTuber。厳選キャラクター 27 体付き
+- ひとつのステージに最大 30 体：LivLiv、VRM、PNGTuber。厳選キャラクター 24 体付き
 - キャラクター同士の掛け合い、Twitch コメントへの返事、記憶（[Project AIRI](https://github.com/moeru-ai/airi)）とリアルタイム通話
 - フェイストラッキング、OBS 出力、録画、ゲーム接続、Neuro SDK
 
