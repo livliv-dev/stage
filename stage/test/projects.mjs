@@ -32,11 +32,13 @@ try {
       const c = newCharacter(window.__stage.store.get(), pick.name, pick.model); c.lines = 'none'; window.__stage.store.add(c)
       return [...new Uint8Array(await blob.arrayBuffer())]
     })
-    const vrm = [...await readFile(join(root, 'test/fixtures/avatar.vrm'))]
-    await page.evaluate(async (bytes) => {
+    const vrm = [...await readFile(join(root, 'test/fixtures/avatar.vrm'))], mavatar = [...await readFile(join(root, 'test/fixtures/nana.mavatar'))]
+    await page.evaluate(async ([bytes, mesh]) => {
       const { fromFiles } = await import('/src/library.ts'), { newCharacter } = await import('/src/scene.ts'), s = window.__stage.store
-      const pick = await fromFiles([new File([new Uint8Array(bytes)], 'avatar.vrm')]), c = newCharacter(s.get(), pick.name, pick.model); c.lines = 'none'; s.add(c)
-    }, vrm)
+      for (const [data, name] of [[bytes, 'avatar.vrm'], [mesh, 'nana.mavatar']]) {
+        const pick = await fromFiles([new File([new Uint8Array(data)], name)]), c = newCharacter(s.get(), pick.name, pick.model); c.lines = 'none'; s.add(c)
+      }
+    }, [vrm, mavatar])
     await ready(page)
     const picture = { name: 'sticker.png', mimeType: 'image/png', buffer: Buffer.from(image) }
     await page.locator('.rail input[type=file]').setInputFiles(picture)
@@ -57,7 +59,9 @@ try {
     const downloads = page.waitForEvent('download'); await page.getByRole('button', { name: '保存项目', exact: true }).click(); const download = await downloads
     const bytes = await readFile(await download.path()), archive = unzipSync(bytes), manifest = JSON.parse(new TextDecoder().decode(archive['project.json']))
     await writeFile(join(artifacts, download.suggestedFilename()), bytes)
-    assert.equal(manifest.scenes.length, 2); assert.equal(manifest.models.length, 4); assert.equal(manifest.pictures.length, 2)
+    assert.equal(manifest.scenes.length, 2); assert.equal(manifest.models.length, 5); assert.equal(manifest.pictures.length, 2)
+    const mesh = manifest.models.find((m) => m.format === 'mavatar')
+    assert.ok(mesh); assert.deepEqual(mesh.files.map((f) => f.path), ['model.mavatar']); assert.ok(Buffer.from(archive[mesh.files[0].entry]).equals(Buffer.from(mavatar)), 'the .mavatar goes in the project as it was imported')
     assert.equal(manifest.scenes.some((s) => s.items.some((i) => i.id === 'friend-only')), false)
     assert.equal(Buffer.from(archive['project.json']).includes(Buffer.from('test-only-never-export-this-key')), false)
     assert.equal(bytes.includes(Buffer.from('test-only-never-export-this-key')), false)
@@ -76,7 +80,7 @@ try {
       const s = window.__stage.store, { modelId } = await import('/src/livliv.ts'), { demoFor } = await import('/src/demo.ts'), { kept } = await import('/src/vault.ts')
       return { name: s.get().name, scenes: s.project().scenes.length, formats: [...window.__stage.actors.values()].map((a) => a.format).sort(), demo: !!demoFor(s.get().items.filter((i) => i.kind === 'character')), siteIds: s.get().items.filter((i) => i.kind === 'character').map(modelId), library: (await kept()).length }
     })
-    assert.equal(loaded.name, 'Close-up'); assert.equal(loaded.scenes, 2); assert.deepEqual(loaded.formats, ['livliv', 'livliv', 'png', 'vrm']); assert.equal(loaded.demo, true); assert.ok(loaded.siteIds.includes('k01')); assert.equal(loaded.library, 4)
+    assert.equal(loaded.name, 'Close-up'); assert.equal(loaded.scenes, 2); assert.deepEqual(loaded.formats, ['livliv', 'livliv', 'mavatar', 'png', 'vrm']); assert.equal(loaded.demo, true); assert.ok(loaded.siteIds.includes('k01')); assert.equal(loaded.library, 5)
     report.freshImport = loaded
     await page.getByRole('button', { name: '切换镜头' }).click(); await page.getByRole('button', { name: /Opening/ }).click()
     await page.locator('img.image-item').waitFor(); await page.waitForFunction(() => document.querySelector('img.image-item')?.naturalWidth === 80)

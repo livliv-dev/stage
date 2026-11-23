@@ -26,7 +26,7 @@ Stage is reorganised around what you came to do. [Download the 1.0 Preview](http
 
 ## Also in Stage
 
-- Up to 30 characters on one stage: LivLiv, VRM and PNGTuber, with 24 featured characters
+- Up to 30 characters on one stage: LivLiv, VRM, PNGTuber and Mesh Avatar Studio (`.mavatar`), with 24 featured characters
 - Characters talk to each other and to your Twitch chat, with memory ([Project AIRI](https://github.com/moeru-ai/airi)) and realtime calls
 - Face tracking, OBS output, recording, games and the Neuro SDK
 
@@ -44,7 +44,9 @@ The AI runs on your own model key (OpenAI, Qwen, DeepSeek and more) or your LivL
 ## Characters
 
 The featured characters have [their own licence](stage/public/characters/LICENSE.md). **Import** brings your own: a
-`.livliv` package from [livliv.ai](https://livliv.ai), a VRM, or a PNGTuber.
+`.livliv` package from [livliv.ai](https://livliv.ai), a VRM, a PNGTuber, or a `.mavatar` from
+[Mesh Avatar Studio](https://github.com/shinshin86/mesh-avatar-studio). Three `.mavatar` characters run smoothly on a
+recent Mac, two while the OBS output window is open; more can slow the stage.
 
 ## Project LivLiv
 
@@ -79,6 +81,7 @@ Security reports: [SECURITY.md](SECURITY.md).
 ## License
 
 Stage's code is under the [Apache License 2.0](LICENSE). The bundled [AIRI core](vendor/airi-core/LICENSE) and its
-[dependencies](vendor/airi-core/DEPENDENCY-NOTICES.txt) carry their own licenses. The featured characters have
+[dependencies](vendor/airi-core/DEPENDENCY-NOTICES.txt) carry their own licenses; `.mavatar` characters are drawn by
+[mesh-avatar](https://www.npmjs.com/package/mesh-avatar) (MIT). The featured characters have
 [their own licence](stage/public/characters/LICENSE.md). You may keep the LivLiv name and logo in your own versions,
 as long as they don't claim to be the official one: [TRADEMARKS.md](TRADEMARKS.md).

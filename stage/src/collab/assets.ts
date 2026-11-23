@@ -19,7 +19,7 @@ async function fetchFile(url: string, signal: AbortSignal, limit: number) {
 export async function packageFor(character: CharacterItem, signal: AbortSignal): Promise<Package> {
   const source = await sourceOf(character.model)
   let files: Map<string, Blob>
-  if (typeof source !== 'string') files = new Map([...source].filter(([path, blob]) => blob.size > 0 && /\.(json|png|webp|jpe?g|vrm|livliv|zip|txt)$/i.test(path)))
+  if (typeof source !== 'string') files = new Map([...source].filter(([path, blob]) => blob.size > 0 && /\.(json|png|webp|jpe?g|vrm|mavatar|livliv|zip|txt)$/i.test(path)))
   else {
     const url = new URL(source, location.href)
     if (/\.(livliv|zip)$/i.test(url.pathname)) files = new Map([['character.livliv', await fetchFile(url.href, signal, MAX_MODEL_BYTES)]])

@@ -17,7 +17,7 @@ type Manifest = Project & { format: 'livliv-stage-project'; version: 1; models: 
 const bad = () => new Error(tr('项目内容无效或缺少素材'))
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
 const text = (value: unknown, max = 160): value is string => typeof value === 'string' && value.length > 0 && value.length <= max
-const formats: Format[] = ['livliv', 'vrm', 'png']
+const formats: Format[] = ['livliv', 'vrm', 'png', 'mavatar']
 function plainBackground(value: string) {
   if (value === 'transparent' || /^#(?:[a-f\d]{3}|[a-f\d]{4}|[a-f\d]{6}|[a-f\d]{8})$/i.test(value)) return true
   if (!/^(?:linear|radial)-gradient\([a-z\d\s#%.,+\-()/]*\)$/i.test(value)) return false

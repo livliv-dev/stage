@@ -541,12 +541,16 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Model folder",
     "ja": "モデルフォルダー"
   },
-  ".livliv、zip 或 VRM 文件": {
-    "zh-Hans": ".livliv、zip 或 VRM 文件",
-    "zh-Hant": ".livliv、zip 或 VRM 檔案",
-    "en": ".livliv, ZIP or VRM file",
-    "ja": ".livliv・ZIP・VRM ファイル"
+  ".livliv、zip、VRM 或 .mavatar 文件": {
+    "zh-Hans": ".livliv、zip、VRM 或 .mavatar 文件",
+    "zh-Hant": ".livliv、zip、VRM 或 .mavatar 檔案",
+    "en": ".livliv, ZIP, VRM or .mavatar file",
+    "ja": ".livliv・ZIP・VRM・.mavatar ファイル"
   },
+  "Mesh Avatar 角色多了，舞台可能会卡": {"zh-Hans": "Mesh Avatar 角色多了，舞台可能会卡", "zh-Hant": "Mesh Avatar 角色多了，舞台可能會卡", "en": "Several Mesh Avatar characters can slow the stage", "ja": "Mesh Avatar のキャラクターが多いと、ステージが重くなることがあります"},
+  "这不是 .mavatar 文件": {"zh-Hans": "这不是 .mavatar 文件", "zh-Hant": "這不是 .mavatar 檔案", "en": "This is not a .mavatar file", "ja": ".mavatar ファイルではありません"},
+  ".mavatar 文件已损坏或不完整：请在 Mesh Avatar Studio 里重新导出": {"zh-Hans": ".mavatar 文件已损坏或不完整：请在 Mesh Avatar Studio 里重新导出", "zh-Hant": ".mavatar 檔案已損壞或不完整：請在 Mesh Avatar Studio 裡重新匯出", "en": "The .mavatar file is damaged or incomplete: export it again in Mesh Avatar Studio", "ja": ".mavatar ファイルが壊れているか不完全です。Mesh Avatar Studio でもう一度書き出してください"},
+  "这是 Mesh Avatar Studio 的项目文件夹：请在 Studio 里导出 .mavatar，再导入那个文件": {"zh-Hans": "这是 Mesh Avatar Studio 的项目文件夹：请在 Studio 里导出 .mavatar，再导入那个文件", "zh-Hant": "這是 Mesh Avatar Studio 的專案資料夾：請在 Studio 裡匯出 .mavatar，再匯入那個檔案", "en": "This is a Mesh Avatar Studio project folder: export a .mavatar in the Studio and import that file", "ja": "これは Mesh Avatar Studio のプロジェクトフォルダーです。Studio で .mavatar を書き出して、そのファイルを読み込んでください"},
   "PNG 立绘": {
     "zh-Hans": "PNG 立绘",
     "zh-Hant": "PNG 立繪",
@@ -4526,7 +4530,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "接自己的模型": {"zh-Hans": "接自己的模型", "zh-Hant": "接自己的模型", "en": "Use your own model", "ja": "自分のモデルをつなぐ"},
   "填上你的密钥，让角色们自己聊": {"zh-Hans": "填上你的密钥，让角色们自己聊", "zh-Hant": "填上你的金鑰，讓角色們自己聊", "en": "Add your key and let the characters talk", "ja": "キーを入れて、キャラクター同士で会話"},
   "放自己的角色": {"zh-Hans": "放自己的角色", "zh-Hant": "放自己的角色", "en": "Bring your own character", "ja": "自分のキャラクターを置く"},
-  "livliv.ai 的角色、VRM 或 PNG 立绘": {"zh-Hans": "livliv.ai 的角色、VRM 或 PNG 立绘", "zh-Hant": "livliv.ai 的角色、VRM 或 PNG 立繪", "en": "From livliv.ai, a VRM, or PNG art", "ja": "livliv.aiのキャラクター、VRM、PNG立ち絵"},
+  "livliv.ai 的角色、VRM、.mavatar 或 PNG 立绘": {"zh-Hans": "livliv.ai 的角色、VRM、.mavatar 或 PNG 立绘", "zh-Hant": "livliv.ai 的角色、VRM、.mavatar 或 PNG 立繪", "en": "From livliv.ai, a VRM, a .mavatar, or PNG art", "ja": "livliv.aiのキャラクター、VRM、.mavatar、PNG立ち絵"},
   "欢迎来到 {0}": {"zh-Hans": "欢迎来到 {0}", "zh-Hant": "歡迎來到 {0}", "en": "Welcome to {0}", "ja": "{0}へようこそ"},
   "你的 AI 虚拟主播工作室": {"zh-Hans": "你的 AI 虚拟主播工作室", "zh-Hant": "你的 AI 虛擬主播工作室", "en": "Your AI VTuber Studio", "ja": "あなたの AI VTuber スタジオ"},
   "给角色设定好性格，几分钟它就能和你聊天，或者直接开播。也可以自己来演。": {"zh-Hans": "给角色设定好性格，几分钟它就能和你聊天，或者直接开播。也可以自己来演。", "zh-Hant": "給角色設定好性格，幾分鐘它就能和你聊天，或者直接開播。也可以自己來演。", "en": "Give a character a personality, and in minutes it's chatting with you or streaming live. Or play it yourself.", "ja": "キャラクターに性格を設定すれば、数分であなたとおしゃべりしたり、そのまま配信したり。自分で演じることもできます。"},

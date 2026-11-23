@@ -31,7 +31,7 @@ export function SiteWelcome({ onDemo, onCamera, onModel, onCharacter, onClose }:
   const ways = [
     { icon: Camera, title: '用摄像头试', hint: '你的表情带动角色，不用账号', act: onCamera },
     { icon: KeyRound, title: '接自己的模型', hint: '填上你的密钥，让角色们自己聊', act: onModel },
-    { icon: UserPlus, title: '放自己的角色', hint: 'livliv.ai 的角色、VRM 或 PNG 立绘', act: onCharacter },
+    { icon: UserPlus, title: '放自己的角色', hint: 'livliv.ai 的角色、VRM、.mavatar 或 PNG 立绘', act: onCharacter },
   ]
   return <div className="site-welcome card" role="dialog" aria-label={tr('欢迎来到 {0}', PRODUCT.name)} onPointerDown={(e) => e.stopPropagation()}>
     <button className="icon close" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button>

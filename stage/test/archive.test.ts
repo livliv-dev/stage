@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { openAsBlob } from 'node:fs'
+import { openAsBlob, readFileSync } from 'node:fs'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -71,5 +71,11 @@ test('an opened project keeps its files when the file it came from is deleted', 
     await rm(path)
     for (const [name, value] of original) assert.ok(Buffer.from(await files.get(name)!.arrayBuffer()).equals(Buffer.from(await value.arrayBuffer())), name)
   } finally { await rm(dir, { recursive: true, force: true }) }
+})
+
+test('a project holding a .mavatar opens again with it as it was', async () => {
+  const mavatar = new Uint8Array(readFileSync(new URL('./fixtures/nana.mavatar', import.meta.url)))
+  const files = await unpackFiles(await packFiles(new Map([['project.json', new Blob(['{}'])], ['models/m0/model.mavatar', new Blob([mavatar])]])))
+  assert.ok(Buffer.from(await files.get('models/m0/model.mavatar')!.arrayBuffer()).equals(Buffer.from(mavatar)))
 })
 

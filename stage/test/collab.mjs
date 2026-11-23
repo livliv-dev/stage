@@ -54,6 +54,33 @@ try {
   assert.equal(report.lanPackages.secure, false); assert.equal(report.lanPackages.randomUUID, 'undefined')
   assert.notEqual(...report.lanPackages.ids)
   await lan.close()
+  // a .mavatar character goes over as its one file: packed as a friend gets it, read back chunk by chunk, checked from
+  // its headers, and placed as a friend's character that plays (the connection itself is the same for every format)
+  {
+    const context = await browser.newContext(); contexts.push(context)
+    await context.addInitScript(() => { localStorage.setItem('livliv-stage:coached', '1'); localStorage.setItem('livliv-stage:locale', 'zh-Hans') })
+    const page = await context.newPage(); page.on('pageerror', (error) => errors.push(error.message)); page.setDefaultTimeout(testTimeout(20000))
+    await page.goto(origin, { waitUntil: 'networkidle' })
+    report.mavatarShare = await page.evaluate(async () => {
+      const { emptyScene, localModels, newCharacter, store } = await import('/src/scene.ts'), { packageFor, PackageReceiver } = await import('/src/collab/assets.ts')
+      const { CHUNK_BYTES } = await import('/src/collab/protocol.ts'), { checkPackage } = await import('/src/collab/headers.ts'), { receiveCharacter } = await import('/src/collab/scene.ts')
+      store.replace({ ...emptyScene(), width: 640, height: 360, background: 'transparent', name: 'mavatar share' })
+      localModels.set('own-mavatar', new Map([['model.mavatar', await (await fetch('/test/fixtures/nana.mavatar')).blob()]]))
+      const sent = await packageFor(newCharacter(store.get(), 'Nana', { type: 'files', key: 'own-mavatar', format: 'mavatar' }, ''), new AbortController().signal)
+      const receiver = new PackageReceiver()
+      receiver.begin(JSON.parse(JSON.stringify(sent.manifest)))
+      for (const [, blob] of sent.files) for (let at = 0; at < blob.size; at += CHUNK_BYTES) receiver.chunk(await blob.slice(at, at + CHUNK_BYTES).arrayBuffer())
+      const got = receiver.end(sent.manifest.id)
+      await checkPackage(got.files)
+      const id = receiveCharacter('test-room', { id: 'friend-m', name: 'Friend', host: false }, got)
+      return { id, format: got.manifest.format, files: [...got.files.keys()], same: (await got.files.get('model.mavatar').arrayBuffer()).byteLength === sent.files.get('model.mavatar').size }
+    })
+    await page.waitForFunction((id) => window.__stage.actors.get(id)?.status === 'ready', report.mavatarShare.id, { timeout: 30000 })
+    report.mavatarShare.actor = await page.evaluate((id) => { const a = window.__stage.actors.get(id); return { format: a.format, expressions: a.player.expressions.length, remote: !!a.item.remote } }, report.mavatarShare.id)
+    assert.equal(report.mavatarShare.format, 'mavatar'); assert.deepEqual(report.mavatarShare.files, ['model.mavatar']); assert.equal(report.mavatarShare.same, true)
+    assert.deepEqual(report.mavatarShare.actor, { format: 'mavatar', expressions: 8, remote: true })
+    await context.close(); contexts.splice(contexts.indexOf(context), 1)
+  }
   for (const [index, format] of ['png', 'livliv', 'vrm'].entries()) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['microphone'] }); contexts.push(context)
     await context.addInitScript(() => {
