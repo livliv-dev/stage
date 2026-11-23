@@ -1,12 +1,10 @@
-// The page's <head> for each build, from product.json: the title is the product's name where the build runs, and
-// livliv.ai/stage's build (VITE_STAGE_HOST=livliv, scripts/build-site.mjs) adds its description and link preview,
-// which keep the name LivLiv Stage. vite.config.ts applies it and test/product.test.ts pins it; it imports nothing
-// but product.json, so vite.config.ts can load it as it is.
-import products from './product.json' with { type: 'json' }
+// The page's <head> for each build: its title is the product's name where the build runs, and livliv.ai/stage's build
+// (VITE_STAGE_HOST=livliv, scripts/build-site.mjs) adds its description and link preview, which keep the name LivLiv
+// Stage. vite.config.ts applies it with the name from protocol/src/product.json; test/product.test.ts pins it. Imports
+// nothing, so vite.config.ts can load it as it is.
 
-/** index.html for a build on `host` ('site': livliv.ai/stage; any other: the open-source app) */
-export function pageHead(host: string, html: string): string {
-  const site = host === 'site', name = (site ? products.site : products.app).name
+/** index.html titled `name`, with livliv.ai's description and link preview when `site` */
+export function pageHead(html: string, name: string, site: boolean): string {
   const titled = html.replace(/<title>[^<]*<\/title>/, `<title>${name}</title>`)
   if (!site) return titled
   const meta = `

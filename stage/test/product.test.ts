@@ -37,14 +37,14 @@ test('every host\'s logos are in public/', () => {
 // name as their title and no link preview of livliv.ai's
 test('each build\'s page title and link preview', () => {
   const index = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
-  const site = pageHead('site', index)
+  const site = pageHead(index, productOf('site').name, true)
   assert.match(site, /<title>LivLiv Stage<\/title>/)
   assert.match(site, /<meta property="og:title" content="LivLiv Stage" \/>/)
   assert.match(site, /<meta name="description" content="LivLiv Stage, your AI VTuber studio\./)
   assert.match(site, /<meta property="og:image" content="https:\/\/livliv\.ai\/stage\/og\.jpg" \/>/)
   assert.doesNotMatch(site, /VTuber Stage/)
   for (const host of ['desktop', 'selfhosted']) {
-    const app = pageHead(host, index)
+    const app = pageHead(index, productOf(host).name, false)
     assert.match(app, /<title>VTuber Stage<\/title>/, host)
     assert.doesNotMatch(app, /og:|LivLiv Stage/, host)
   }

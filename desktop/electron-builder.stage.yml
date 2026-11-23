@@ -22,6 +22,7 @@ directories:
   buildResources: build/stage
 files:
   - dist/**/*.js
+  - dist/protocol/*.json
   - "!dist/test/**"
   - assets/**/*
   - package.json
@@ -58,6 +59,8 @@ nsis:
   language: "2052"
   installerLanguages: [zh_CN, en_US]
   artifactName: VTuber-Stage-Setup-${version}.${ext}
+  # --delete-app-data also removes the settings folder kept from LivLiv Stage (build/stage/installer.nsh)
+  include: build/stage/installer.nsh
 mac:
   target:
     - target: dmg

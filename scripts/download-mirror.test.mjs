@@ -15,7 +15,8 @@ function fixture(prefix = 'LivLiv-Stage', version = '0.4.1') {
 test('finds the installers under the new name, and under the old one in earlier releases', () => {
   assert.deepEqual(mirrorAssets(fixture('VTuber-Stage', '1.1.0')).map(a => a.name),
     ['VTuber-Stage-1.1.0-arm64.dmg', 'VTuber-Stage-1.1.0-x64.dmg', 'VTuber-Stage-Setup-1.1.0.exe'])
-  assert.equal(mirrorAssets(fixture()).at(-1).source, 'https://github.com/livliv-dev/vtuber-stage/releases/download/v0.4.1/LivLiv-Stage-Setup-0.4.1.exe')
+  const repo = process.env.GITHUB_REPOSITORY || 'livliv-dev/vtuber-stage'
+  assert.equal(mirrorAssets(fixture()).at(-1).source, `https://github.com/${repo}/releases/download/v0.4.1/LivLiv-Stage-Setup-0.4.1.exe`)
 })
 
 test('rejects unpublished releases, missing installers and absent GitHub hashes', () => {

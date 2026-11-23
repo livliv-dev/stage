@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { app } from 'electron'
 import { PROD_ORIGIN } from './urls'
+import { productOf } from '#protocol/product'
 
 export const flag = (name: string) => {
   const a = process.argv.find((x) => x.startsWith(`--${name}=`))
@@ -52,4 +53,4 @@ export const VERSION = app.getVersion()
 export const WEBGL_CONTEXTS = 32
 /** the name people see: window title, the app menu, About. Electron's own app name stays the one package.json gives
  *  (electron-builder.stage.yml extraMetadata), which names the system's encryption key for saved keys */
-export const NAME = APP === 'stage' ? 'VTuber Stage' : 'LivLiv'
+export const NAME = APP === 'stage' ? productOf('app').name : 'LivLiv'

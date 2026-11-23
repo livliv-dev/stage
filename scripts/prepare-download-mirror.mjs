@@ -6,7 +6,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
-const repo = 'livliv-dev/vtuber-stage'
+// the repository the workflow runs in (GitHub sets GITHUB_REPOSITORY), or Stage's own when run by hand
+const repo = process.env.GITHUB_REPOSITORY || 'livliv-dev/vtuber-stage'
 const github = `https://github.com/${repo}`
 
 export function mirrorAssets(release) {
@@ -63,7 +64,7 @@ export async function prepareMirror(release, assetDir, output, baseUrl) {
   await writeFile(path.join(versionDir, 'SHA256SUMS.txt'), assets.map(a => `${a.sha256}  ${a.name}\n`).join(''))
   await writeFile(path.join(output, 'stage', 'latest.json'), json)
   const template = await readFile(new URL('./download-mirror.html', import.meta.url), 'utf8')
-  await writeFile(path.join(output, 'stage', 'index.html'), template.replace('__RELEASE_JSON__', JSON.stringify(manifest).replaceAll('<', '\\u003c')))
+  await writeFile(path.join(output, 'stage', 'index.html'), template.replaceAll('https://github.com/livliv-dev/vtuber-stage', github).replace('__RELEASE_JSON__', JSON.stringify(manifest).replaceAll('<', '\\u003c')))
   return manifest
 }
 

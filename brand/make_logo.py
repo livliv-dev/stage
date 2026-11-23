@@ -24,7 +24,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INK, WHITE, BLUE, CORAL = "#16181d", "#f4f4f5", "#3b7bf0", "#ff4d5e"
-LABEL = "VTuber Stage by LivLiv"
+LABEL = "VTuber Stage by LivLiv"   # name + byline; the one-line versions say "VTuber Stage"
 
 
 class Letters:
@@ -127,9 +127,9 @@ def symbol(ink):
 SYMBOL_BOX = (46.0, 141.0, 932.0, 742.0)
 
 
-def svg(box, body):
+def svg(box, body, label=LABEL):
     x, y, w, h = box
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x:.1f} {y:.1f} {w:.1f} {h:.1f}" role="img" aria-label="{LABEL}">'
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{x:.1f} {y:.1f} {w:.1f} {h:.1f}" role="img" aria-label="{label}">'
             f'{body}</svg>\n')
 
 
@@ -203,8 +203,9 @@ def main():
     parts = build()
     out = {}
     for kind, (box, draw) in parts.items():
-        out[f"brand/vtuber-stage-{kind}.svg"] = svg(box, draw(INK))
-        out[f"brand/vtuber-stage-{kind}-white.svg"] = svg(box, draw(WHITE))
+        label = "VTuber Stage" if kind in ("name", "compact") else LABEL
+        out[f"brand/vtuber-stage-{kind}.svg"] = svg(box, draw(INK), label)
+        out[f"brand/vtuber-stage-{kind}-white.svg"] = svg(box, draw(WHITE), label)
     out["media/vtuber-stage-wordmark.svg"] = out["brand/vtuber-stage-wordmark.svg"]
     out["media/vtuber-stage-wordmark-white.svg"] = out["brand/vtuber-stage-wordmark-white.svg"]
     out["stage/public/vtuber-stage-name.svg"] = out["brand/vtuber-stage-name.svg"]

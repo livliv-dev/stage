@@ -54,7 +54,7 @@ jobs:
           mirror_tag=$(node -p "JSON.parse(require('fs').readFileSync(process.env.MIRROR_OUTPUT + '/stage/latest.json')).tag")
           endpoint="https://${STAGE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
           aws s3 cp "$MIRROR_OUTPUT/stage/$mirror_tag/" "s3://$STAGE_R2_BUCKET/stage/$mirror_tag/" --recursive --endpoint-url "$endpoint" --cache-control 'public,max-age=31536000,immutable' --only-show-errors
-          latest_tag=$(gh api repos/livliv-dev/vtuber-stage/releases/latest --jq .tag_name)
+          latest_tag=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
           if [[ "$mirror_tag" == "$latest_tag" ]]; then
             aws s3 cp "$MIRROR_OUTPUT/stage/latest.json" "s3://$STAGE_R2_BUCKET/stage/latest.json" --endpoint-url "$endpoint" --cache-control 'public,max-age=60,must-revalidate' --content-type application/json --only-show-errors
             aws s3 cp "$MIRROR_OUTPUT/stage/index.html" "s3://$STAGE_R2_BUCKET/stage/index.html" --endpoint-url "$endpoint" --cache-control 'public,max-age=60,must-revalidate' --content-type 'text/html; charset=utf-8' --only-show-errors
