@@ -3,6 +3,7 @@
 // (link.ts): the scene, the conversation's lines and turns, each character's pose every frame, and makes no sound.
 // A transparent stage stays transparent, in a see-through window with no frame: drag it anywhere to move it, close it
 // from the editor's button. On livliv.ai/stage on the free plan the editor asks for the LivLiv mark in the corner.
+import { PRODUCT } from './core/product'
 import { useEffect, useState } from 'react'
 import { actors } from './actors'
 import { mirrorConv, type ConvState } from './conversation'
@@ -10,7 +11,6 @@ import { isClear, onMsg, post } from './link'
 import { loadable, localModels, store, type Scene } from './scene'
 import { Stage } from './Stage'
 import { tr, useLocale } from './i18n'
-import { PRODUCT } from './core/platform'
 
 const NONE = { top: 0, right: 0, bottom: 0, left: 0 }
 

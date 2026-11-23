@@ -1,9 +1,10 @@
+import { PRODUCT } from './core/product'
 import { tr } from './i18n'
 import { useEffect, useRef, useState } from 'react'
 import { MonitorPlay, X } from 'lucide-react'
 import { closeOutput, openOutput, outputOpen, reopenOutput } from './link'
 import { store, useScene } from './scene'
-import { features, PRODUCT } from './core/platform'
+import { features } from './core/platform'
 
 export function OutputPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { scene } = useScene()

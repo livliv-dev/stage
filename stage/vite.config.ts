@@ -2,13 +2,13 @@ import { defineConfig } from 'vite'
 import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import pkg from './package.json' with { type: 'json' }
-import { productOf } from './src/core/product.ts'
+import products from './src/core/product.json' with { type: 'json' }
 
 const api = `http://127.0.0.1:${process.env.LM_API_PORT || 8000}`
 // livliv.ai/stage's build (scripts/build-site.mjs): the page's description and link preview
 const site = process.env.VITE_STAGE_HOST === 'livliv'
-// the page's title: the product's name where this build runs (src/core/product.ts)
-const title = productOf(site ? 'site' : 'selfhosted').name
+// the page's title: the product's name where this build runs (src/core/product.ts: livliv.ai keeps LivLiv Stage)
+const title = (site ? products.site : products.app).name
 const META = `
     <meta name="description" content="LivLiv Stage, your AI VTuber studio. Give a character a personality, and in minutes it's chatting with you or streaming live. Or play it yourself. In your browser, open source." />
     <meta property="og:type" content="website" />

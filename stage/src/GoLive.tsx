@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { tr } from './i18n'
 // The 开播 card, on arriving from the site's 开播 button (entry.ts, &as=face), where the first-visit checklist goes:
 // three steps that tick themselves (the camera, the front, OBS), the button for the output window, and the keys.
@@ -6,7 +7,7 @@ import { Check, MonitorPlay, X } from 'lucide-react'
 import { actors, onActors } from './actors'
 import { openOutput, outputOpen } from './link'
 import { participants, useScene } from './scene'
-import { features, PRODUCT } from './core/platform'
+import { features } from './core/platform'
 
 export function GoLiveGuide({ id, onClose }: { id: string; onClose: () => void }) {
   const { scene } = useScene()

@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { tr, useLocale } from './i18n'
 // The editor, or, while another tab of this browser edits, a note saying so with the way to move here (tabs.ts).
 import { useEffect, type ReactNode } from 'react'
@@ -7,7 +8,6 @@ import { store } from './scene'
 import { recording } from './recording'
 import { conversation } from './conversation'
 import { isOutput, outputOpen } from './link'
-import { PRODUCT } from './core/platform'
 
 const BUSY = { rec: '录制', talk: '聊天', out: 'OBS 输出' } as const
 

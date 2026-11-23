@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { tr } from './i18n'
 // Recording the whole stage: 录制 takes it down while it plays (tape.ts; the microphone too when asked, the conversation
 // started with it when asked), 停止 makes the video (render.ts), kept here until it is saved or a new take starts.
@@ -9,7 +10,7 @@ import { registerRecording } from './sessions/recordingOutput'
 import { renderTake, type Made } from './render'
 import { store } from './scene'
 import { MAX_SECONDS, record, type Recorder, type Take } from './tape'
-import { features, PRODUCT } from './core/platform'
+import { features } from './core/platform'
 import { accountNow } from './livliv'
 
 /** how long a take may run, and whether its video carries the LivLiv mark: on livliv.ai/stage the visitor's plan says

@@ -6,10 +6,10 @@
 // one-line form (tagline). A card's first message (an imported card's: characterCard.ts) is the line Stage's brain and
 // AIRI open with when nothing has been said. A card written for another name says that name: Stage's brain and AIRI put
 // the character's name in its place, a realtime call reads the card as written.
+import { PRODUCT } from '../core/product'
 import type { MemoryScope } from '../memory'
 import type { CharacterItem, Talk } from '../scene'
 import { CARD_LIMITS } from '../characterCard'
-import { PRODUCT } from '../core/platform'
 
 export type PersonaSpec = {
   name: string

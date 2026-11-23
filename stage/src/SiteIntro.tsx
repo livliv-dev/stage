@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { tr } from './i18n'
 // livliv.ai/stage's first visit. On a computer: three featured characters already stand on the stage, one button plays
 // their 20-second conversation (recorded voices, subtitles), and three ways in that need no account and no key to try:
@@ -6,7 +7,6 @@ import { tr } from './i18n'
 import { useState } from 'react'
 import { Camera, Check, Copy, KeyRound, LoaderCircle, Pause, Play, Square, UserPlus, X } from 'lucide-react'
 import { talk, useConversation } from './conversation'
-import { PRODUCT } from './core/platform'
 
 const CAST = ['d03ft', 'k01', 'v04']
 const avatar = (id: string) => `${import.meta.env.BASE_URL}characters/${id}/avatar.webp`

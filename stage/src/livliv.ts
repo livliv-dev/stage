@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { tr } from './i18n'
 // LivLiv, the site the characters come from: your account there and a character's own voice.
 //  - account: connected through the browser with a code (/api/connect: the site's /connect page, signed in there any
@@ -17,7 +18,7 @@ import type { Emotion, StreamingVoice } from './core/lines'
 import { store, uid, type CharacterItem } from './scene'
 import { SAMPLES } from './samples'
 import { signInUrl } from './host'
-import { features, PRODUCT } from './core/platform'
+import { features } from './core/platform'
 import { lostKey, readSecret, writeSecret } from './core/secrets'
 import { systemVoiceFor, type Voiced } from './core/systemVoice'
 

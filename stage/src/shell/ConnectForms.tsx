@@ -1,5 +1,6 @@
 // The forms for your own services Stage talks to: the text model (a model of one's own, or the demo) and the speech API
 // (voices and recognition). Settings → 连接 shows them, below livliv.ai's switch (Connections.tsx).
+import { PRODUCT } from '../core/product'
 import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, LoaderCircle, Lock, Play, RefreshCw } from 'lucide-react'
 import { tr } from '../i18n'
@@ -7,7 +8,7 @@ import { brainReady, clearBrainKey, listModels, previousModelConfig, providerOf,
 import { talk } from '../conversation'
 import { testAiriModel } from '../airiEngine'
 import { chooseEngine } from '../brains/select'
-import { features, PRODUCT } from '../core/platform'
+import { features } from '../core/platform'
 import { demoFor } from '../demo'
 import { participants, store, useScene } from '../scene'
 import { activeSpeech, asrReady, clearSpeechKey, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, transcribeApi, useSpeech, VOICEBOX_SPEECH, type SpeechApi } from '../voiceApi'

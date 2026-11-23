@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { tr } from './i18n'
 // A recorded take (tape.ts) made into a video, in the browser, nothing uploaded, the way the site's 录制 makes its:
 // every frame drawn again at the stage's own size, a fixed 1/30 s apart, so the video is sharp and steady whatever
@@ -19,7 +20,6 @@ import { imageGeometry } from './attachments'
 import type { AnchorName } from '@livliv-dev/player'
 import { GREEN, paintAiLabel, paintBackground, paintCharacter, paintImage, paintMark, paintSubtitle, paintText, pictures, showsAI, spans, subtitleAt } from './paint'
 import { onTape, type Take, type Track } from './tape'
-import { PRODUCT } from './core/platform'
 
 export const FPS = 30
 const RATE = 48000

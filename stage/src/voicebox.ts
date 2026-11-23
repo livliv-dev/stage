@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { tr } from './i18n'
 // Voicebox (voicebox.sh, MIT): a local voice studio people run themselves, free, nothing leaving the computer. In the
 // desktop app Stage looks for it (at start, and when the voice settings open): running with a voice of an open
@@ -6,7 +7,6 @@ import { tr } from './i18n'
 // (desktop/src/voicebox.ts): Voicebox lets no other page call it, so the web doesn't offer it.
 import { useSyncExternalStore } from 'react'
 import type { VoiceboxFailure, VoiceboxProfile } from '../../protocol/src/voicebox'
-import { PRODUCT } from './core/platform'
 
 export type { VoiceboxProfile }
 

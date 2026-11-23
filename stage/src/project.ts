@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { modelFiles } from '@livliv-dev/player'
 import { archivePath, packFiles, PROJECT_LIMIT, unpackFiles } from './archive'
 import { backgroundUrl, cacheAsset, imageBackground, inspectPicture } from './assets'
@@ -9,7 +10,6 @@ import { sampleAt } from './samples'
 import { tr } from './i18n'
 import { readAudienceRules } from './triggers'
 import { readAttachment } from './attachmentData'
-import { PRODUCT } from './core/platform'
 
 type Model = { id: string; name: string; format: Format; files: { path: string; entry: string; type: string }[] }
 type Picture = { id: string; name: string; type: string; entry: string }

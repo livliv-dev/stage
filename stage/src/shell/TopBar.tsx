@@ -1,5 +1,6 @@
 // The top bar: the stage's name and its menu, edit / show, undo, templates, the mixer, 录制, 输出到 OBS, the project,
 // settings and the keys; on a phone, one menu for what doesn't fit.
+import { PRODUCT } from '../core/product'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Menu, CircleHelp, FolderOpen, LayoutTemplate, LoaderCircle, Volume2, MonitorPlay, Pencil, Play, Redo2, Save, Settings, Undo2 } from 'lucide-react'
@@ -11,7 +12,7 @@ import { TEMPLATES, type TemplateId } from '../templates'
 import { downloadProject, openProject, projectFile } from '../project'
 import { ScenesMenu } from '../ScenesMenu'
 import { tr } from '../i18n'
-import { features, PRODUCT } from '../core/platform'
+import { features } from '../core/platform'
 import { ui, useUi } from './ui'
 import { useNarrow } from './hooks'
 import { FriendState } from './Cast'
