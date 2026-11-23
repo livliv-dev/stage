@@ -44,7 +44,8 @@ The AI runs on your own model key (OpenAI, Qwen, DeepSeek and more) or your LivL
 
 The featured characters have [their own licence](stage/public/characters/LICENSE.md). **Import** brings your own: a
 `.livliv` package from [livliv.ai](https://livliv.ai), a VRM, a PNGTuber, or a `.mavatar` from
-[Mesh Avatar Studio](https://github.com/shinshin86/mesh-avatar-studio).
+[Mesh Avatar Studio](https://github.com/shinshin86/mesh-avatar-studio). Three `.mavatar` characters run smoothly on a
+recent Mac, two while the OBS output window is open; more can slow the stage.
 
 ## Project LivLiv
 

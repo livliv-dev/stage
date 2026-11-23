@@ -44,6 +44,7 @@ AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等）�
 
 精选角色有[单独的许可](stage/public/characters/LICENSE.md)。用「导入」放上你自己的角色：[livliv.ai](https://livliv.ai) 的模型包（`.livliv`）、
 VRM、PNGTuber，或 [Mesh Avatar Studio](https://github.com/shinshin86/mesh-avatar-studio) 导出的 `.mavatar`。
+较新的 Mac 上 3 个 `.mavatar` 角色能流畅运行（开着 OBS 输出窗口时 2 个），再多可能会卡。
 
 ## Project LivLiv
 

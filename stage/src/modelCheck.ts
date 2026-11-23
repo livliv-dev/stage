@@ -6,6 +6,7 @@
 // worded for the character's format. Pure: test/modelCheck.test.ts and test/mavatar.test.ts.
 import { unzipSync } from 'fflate'
 import { FORMAT, FORMAT_VERSION, LEGACY_FORMAT, LivLivError } from '@livliv-dev/player'
+import { checkMavatar as checkMeshAvatar } from '@livliv-dev/player/mavatar'
 import { tr } from './i18n'
 
 /** what a character is made from (bodies/index.ts Format) */
@@ -72,18 +73,11 @@ export async function checkVrm(file: Blob) {
   if (!glb) throw new Error(tr("这不是 VRM 文件"))
 }
 
-/** a Mesh Avatar Studio avatar (.mavatar): a ZIP holding its avatar.json and rig.json (only the names are read; the
- *  player checks the rest as it loads it). Its name, from avatar.json, when it gives one */
+/** a Mesh Avatar Studio avatar (.mavatar): checked as the player loads it, before anything is decoded (a ZIP of stored
+ *  files, 256 MB at most, with its rig.json; its pictures measured and its rig's cost counted against the player's
+ *  limits, so a file from anyone cannot freeze the page). Its name, from avatar.json, when it gives one */
 export async function checkMavatar(file: Blob): Promise<string | null> {
-  const names: string[] = []
-  let entries: Record<string, Uint8Array>
-  try { entries = unzipSync(new Uint8Array(await file.arrayBuffer()), { filter: (entry) => { names.push(entry.name); return entry.name === 'avatar.json' } }) }
-  catch (e) { throw refuse('not-a-model', 'not a ZIP', 'mavatar', e) }
-  if (!names.includes('avatar.json') || !names.includes('rig.json')) throw refuse('not-a-model', 'no avatar.json and rig.json', 'mavatar')
-  try {
-    const name = (JSON.parse(new TextDecoder().decode(entries['avatar.json'])) as { name?: unknown }).name
-    return typeof name === 'string' && name.trim() ? name.trim().slice(0, 200) : null
-  } catch (e) { throw refuse('invalid', 'avatar.json is not JSON', 'mavatar', e) }
+  try { return (await checkMeshAvatar(file)).name || null } catch (e) { throw new Error(refused(e, 'mavatar'), { cause: e }) }
 }
 
 /** a PNGTuber's picture: PNG, WebP or GIF (what the picture slots take), by the file's first bytes */

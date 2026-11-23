@@ -4,7 +4,7 @@ import { Captions, FolderOpen, Image as ImageIcon, FileBox, Plus, Type, UserPlus
 import { byId, fromFiles, fromKept, fromPngs, mine as accountCharacters, samples, type Pick } from '../library'
 import { PNG_SLOTS, type PngSlot } from '../bodies/png'
 import { forget, kept, type Kept } from '../vault'
-import { bubbleFor, captionBar, newCharacter, store, uid } from '../scene'
+import { bubbleFor, captionBar, newCharacter, store, uid, useScene } from '../scene'
 import { checkConnect, useAccount } from '../livliv'
 import { pictureFile } from '../assets'
 import { checkPicture } from '../modelCheck'
@@ -57,6 +57,9 @@ export function AddCharacter({ left, onClose, onSignIn }: { left: number; onClos
   const [err, setErr] = useState('')
   const [id, setId] = useState('')
   const [mine, setMine] = useState<Kept[]>([])
+  // each .mavatar character costs the page some 5 ms a frame (mesh-avatar moves its mesh on the main thread): from the
+  // third on, the card says the stage may slow down. Nothing is refused
+  const scene = useScene().scene, meshes = scene.items.filter((i) => i.kind === 'character' && i.model.type === 'files' && i.model.format === 'mavatar').length
   useEffect(() => { void checkConnect() }, [])
   const [png, setPng] = useState(false)
   const folder = useRef<HTMLInputElement>(null), file = useRef<HTMLInputElement>(null)
@@ -88,6 +91,7 @@ export function AddCharacter({ left, onClose, onSignIn }: { left: number; onClos
         <input ref={folder} type="file" hidden {...{ webkitdirectory: '' }} onChange={(e) => { void files(e.target.files); e.target.value = '' }} />
         <input ref={file} type="file" accept=".livliv,.zip,.vrm,.mavatar" hidden onChange={(e) => { void files(e.target.files); e.target.value = '' }} />
       </div>
+      {meshes >= 2 && <p className="hint">{tr("Mesh Avatar 角色多了，舞台可能会卡")}</p>}
       {png && <PngForm onDone={take} onError={setErr} />}
       <p className="label">{tr("精选角色")}</p>
       <div className="grid">

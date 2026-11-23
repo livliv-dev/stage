@@ -2,9 +2,11 @@
 // on Stage's dev server for its hooks) and in the site build (built as livliv.ai serves it, at /stage/, in Chromium on
 // this machine's GPU). Each stage comes in as a project file (made here with Stage's own save), so the site build needs
 // no hooks. Measured over 6 s after 3 s to settle: the page's frame rate, and in the desktop app each character's and
-// what its drawing costs the main thread a frame.
+// what its drawing costs the main thread a frame. Then with the output window open (输出到 OBS), which plays the stage
+// again in a window of the same page's thread: both windows at once.
 // A measurement for a person to read, not a pass or fail: the numbers depend on the machine and on what else it runs.
 //   npm --prefix ../desktop run build && node test/fps-bodies.mjs        (macOS)
+//   FPS_COUNT=2 FPS_KINDS=mavatar node test/fps-bodies.mjs                 (another number, one kind)
 import { createServer } from 'node:http'
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { mkdtemp } from 'node:fs/promises'
@@ -14,10 +16,10 @@ import { extname, join, normalize } from 'node:path'
 import { chromium, _electron as electron } from 'playwright-core'
 import { freePort, stageRoot, startVite } from './vite.mjs'
 
-const KINDS = ['mavatar', 'png'], SETTLE = 3000, MEASURE = 6000
+const KINDS = (process.env.FPS_KINDS || 'mavatar,png').split(','), COUNT = Number(process.env.FPS_COUNT) || 3, SETTLE = 3000, MEASURE = 6000
 const desktop = join(stageRoot, '../desktop'), work = await mkdtemp(join(tmpdir(), 'livliv-stage-fps-'))
 const mesh = [...readFileSync(join(stageRoot, 'test/fixtures/nana.mavatar'))]
-const report = { work, load: loadavg().map((n) => Math.round(n)), projects: {}, desktop: {}, site: {} }
+const report = { count: COUNT, work, load: loadavg().map((n) => Math.round(n)), projects: {}, desktop: {}, site: {} }
 // LivLiv's /api, signed out
 const api = createServer((req, res) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ signed_in: false, available: false })))
 await new Promise((resolve) => api.listen(0, '127.0.0.1', resolve))
@@ -64,14 +66,28 @@ async function open(page, kind, hooks) {
   }
   await page.waitForTimeout(500)
   const ready = hooks
-    ? () => window.__stage.actors.size === 3 && [...window.__stage.actors.values()].every((a) => a.status === 'ready')
-    : () => document.querySelectorAll('canvas.character').length === 3 && ![...document.querySelectorAll('canvas.character ~ .badge')].length
-  await page.waitForFunction(ready, null, { timeout: 90000 }).catch(async (e) => {
+    ? (n) => window.__stage.actors.size === n && [...window.__stage.actors.values()].every((a) => a.status === 'ready')
+    : (n) => document.querySelectorAll('canvas.character').length === n && ![...document.querySelectorAll('canvas.character ~ .badge')].length
+  await page.waitForFunction(ready, COUNT, { timeout: 90000 }).catch(async (e) => {
     await page.screenshot({ path: join(work, `${kind}-stuck.png`) })
     const seen = await page.evaluate(() => ({ canvases: document.querySelectorAll('canvas.character').length, badges: [...document.querySelectorAll('.badge')].map((b) => b.textContent),
       actors: window.__stage ? [...window.__stage.actors.values()].map((a) => [a.format, a.status, a.error]) : null }))
     throw new Error(`${kind}: not ready: ${JSON.stringify(seen)} (${work})`, { cause: e })
   })
+}
+
+/** the output window opened from the editor (输出到 OBS → 打开输出窗口), until its three characters draw; then both
+ *  windows measured at once, and the output closed */
+async function withOutput(page, hooks, opened) {
+  await page.getByRole('button', { name: '输出到 OBS', exact: true }).click()
+  const popup = opened()
+  await page.getByRole('button', { name: '打开输出窗口', exact: true }).click()
+  const output = await popup
+  await output.waitForFunction((n) => document.querySelectorAll('canvas.character').length === n && ![...document.querySelectorAll('canvas.character ~ .badge')].length, COUNT, { timeout: 90000 })
+  const [editor, out] = await Promise.all([measure(page, hooks), measure(output, hooks)])
+  await output.close()
+  await page.keyboard.press('Escape')
+  return { editor, output: out }
 }
 
 const port = await freePort(), origin = `http://127.0.0.1:${port}`
@@ -84,18 +100,18 @@ try {
     const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage()
     await page.addInitScript(init); await page.goto(origin, { waitUntil: 'networkidle' })
     for (const kind of KINDS) {
-      report.projects[kind] = await page.evaluate(async ([kind, mesh]) => {
+      report.projects[kind] = await page.evaluate(async ([kind, mesh, count]) => {
         const { fromFiles, fromPngs } = await import('/src/library.ts'), { emptyScene, newCharacter } = await import('/src/scene.ts'), { projectFile } = await import('/src/project.ts')
         const s = window.__stage.store
-        s.replace({ ...emptyScene(), name: `three ${kind}` })
+        s.replace({ ...emptyScene(), name: `${count} ${kind}` })
         const picture = async (color) => { const c = new OffscreenCanvas(1024, 1536), g = c.getContext('2d'); g.fillStyle = color; g.beginPath(); g.ellipse(512, 420, 300, 330, 0, 0, 7); g.fill(); g.fillRect(212, 760, 600, 776); return c.convertToBlob({ type: 'image/png' }) }
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < count; i++) {
           const pick = kind === 'mavatar' ? await fromFiles([new File([new Uint8Array(mesh)], 'nana.mavatar')])
             : await fromPngs({ closed: new File([await picture('#f0a0c0')], 'closed.png'), open: new File([await picture('#e07090')], 'open.png') }, 'PNG')
-          const c = newCharacter(s.get(), pick.name, pick.model, '', .2 + i * .3); c.lines = 'none'; s.add(c)
+          const c = newCharacter(s.get(), pick.name, pick.model, '', .15 + i * .7 / Math.max(1, count - 1)); c.lines = 'none'; s.add(c)
         }
         return [...new Uint8Array(await (await projectFile(s.project())).arrayBuffer())]
-      }, [kind, mesh])
+      }, [kind, mesh, COUNT])
     }
     await page.close()
   }
@@ -105,7 +121,10 @@ try {
   const win = await app.firstWindow()
   await win.addInitScript(init); await win.reload(); await win.waitForSelector('.topbar')
   report.desktop.gpu = await gpu(win)
-  for (const kind of KINDS) { await open(win, kind, true); report.desktop[kind] = await measure(win, true) }
+  for (const kind of KINDS) {
+    await open(win, kind, true); report.desktop[kind] = await measure(win, true)
+    report.desktop[`${kind}+output`] = await withOutput(win, true, () => app.waitForEvent('window'))
+  }
   await app.close(); app = null
 
   // the site build, served at /stage/ as livliv.ai serves it
@@ -124,7 +143,10 @@ try {
   const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage()
   await page.addInitScript(init); await page.goto(`http://127.0.0.1:${site.address().port}/stage/`, { waitUntil: 'networkidle' })
   report.site.gpu = await gpu(page)
-  for (const kind of KINDS) { await open(page, kind, false); report.site[kind] = await measure(page, false) }
+  for (const kind of KINDS) {
+    await open(page, kind, false); report.site[kind] = await measure(page, false)
+    report.site[`${kind}+output`] = await withOutput(page, false, () => page.waitForEvent('popup'))
+  }
 } finally {
   await app?.close(); await browser?.close(); vite?.kill(); site?.close(); api.close()
 }

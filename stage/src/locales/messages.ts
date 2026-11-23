@@ -547,6 +547,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": ".livliv, ZIP, VRM or .mavatar file",
     "ja": ".livliv・ZIP・VRM・.mavatar ファイル"
   },
+  "Mesh Avatar 角色多了，舞台可能会卡": {"zh-Hans": "Mesh Avatar 角色多了，舞台可能会卡", "zh-Hant": "Mesh Avatar 角色多了，舞台可能會卡", "en": "Several Mesh Avatar characters can slow the stage", "ja": "Mesh Avatar のキャラクターが多いと、ステージが重くなることがあります"},
   "这不是 .mavatar 文件": {"zh-Hans": "这不是 .mavatar 文件", "zh-Hant": "這不是 .mavatar 檔案", "en": "This is not a .mavatar file", "ja": ".mavatar ファイルではありません"},
   ".mavatar 文件已损坏或不完整：请在 Mesh Avatar Studio 里重新导出": {"zh-Hans": ".mavatar 文件已损坏或不完整：请在 Mesh Avatar Studio 里重新导出", "zh-Hant": ".mavatar 檔案已損壞或不完整：請在 Mesh Avatar Studio 裡重新匯出", "en": "The .mavatar file is damaged or incomplete: export it again in Mesh Avatar Studio", "ja": ".mavatar ファイルが壊れているか不完全です。Mesh Avatar Studio でもう一度書き出してください"},
   "这是 Mesh Avatar Studio 的项目文件夹：请在 Studio 里导出 .mavatar，再导入那个文件": {"zh-Hans": "这是 Mesh Avatar Studio 的项目文件夹：请在 Studio 里导出 .mavatar，再导入那个文件", "zh-Hant": "這是 Mesh Avatar Studio 的專案資料夾：請在 Studio 裡匯出 .mavatar，再匯入那個檔案", "en": "This is a Mesh Avatar Studio project folder: export a .mavatar in the Studio and import that file", "ja": "これは Mesh Avatar Studio のプロジェクトフォルダーです。Studio で .mavatar を書き出して、そのファイルを読み込んでください"},

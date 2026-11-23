@@ -44,6 +44,7 @@ AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）か�
 
 厳選キャラクターには[専用のライセンス](stage/public/characters/LICENSE.md)があります。自分のキャラクターは「インポート」から：
 [livliv.ai](https://livliv.ai) のモデルパッケージ（`.livliv`）、VRM、PNGTuber、[Mesh Avatar Studio](https://github.com/shinshin86/mesh-avatar-studio) で書き出した `.mavatar`。
+最近の Mac なら `.mavatar` のキャラクターは 3 体まで（OBS 出力ウィンドウを開いているときは 2 体まで）なめらかに動きます。それより多いと重くなることがあります。
 
 ## Project LivLiv
 
