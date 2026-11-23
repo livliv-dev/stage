@@ -10,6 +10,7 @@
 // The desktop shell also opens livliv.ai itself, whose pages get its bridge too: the site build there is host 'site'
 // with `shell` set, and goes by the shell wherever the bridge's presence decides (`shell`).
 import type { Desktop } from '../desktopBridge'
+import { productOf } from './product'
 
 export type Host = 'site' | 'desktop' | 'selfhosted'
 export type Features = {
@@ -71,3 +72,6 @@ export const features: Features = detectFeatures({
   bridge: page.window?.livlivDesktop,
   hasBridge: !!page.window && 'livlivDesktop' in page.window,
 })
+
+/** the product's name and logo where this page runs (product.ts) */
+export const PRODUCT = productOf(features.host)

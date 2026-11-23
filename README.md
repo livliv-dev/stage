@@ -22,7 +22,7 @@ Stage is reorganised around what you came to do. [Download the 1.0 Preview](http
 - **Start with a goal**: **I perform**, **AI goes live**, **Chat with a character** or **Make a video**. Each shows only what it needs, and one button starts it
 - **Free voices on your computer** with [Voicebox](https://voicebox.sh) (desktop app)
 - **Import character cards** from SillyTavern and AIRI
-- **New name**: LivLiv Stage is now VTuber Stage, by LivLiv. Your settings, keys and projects stay as they are
+- **New name**: LivLiv Stage is now VTuber Stage, by LivLiv (on livliv.ai it keeps the old name). Your settings, keys and projects stay as they are
 
 ## Also in Stage
 

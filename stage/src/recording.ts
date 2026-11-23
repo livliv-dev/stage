@@ -9,7 +9,7 @@ import { registerRecording } from './sessions/recordingOutput'
 import { renderTake, type Made } from './render'
 import { store } from './scene'
 import { MAX_SECONDS, record, type Recorder, type Take } from './tape'
-import { features } from './core/platform'
+import { features, PRODUCT } from './core/platform'
 import { accountNow } from './livliv'
 
 /** how long a take may run, and whether its video carries the LivLiv mark: on livliv.ai/stage the visitor's plan says
@@ -40,7 +40,7 @@ let marked = false  // this take's video gets the mark (decided when it started)
 /** a file name from the stage's name and the time: 未命名舞台-20261103-1142 */
 function fileName() {
   const d = new Date(), p = (n: number) => String(n).padStart(2, '0')
-  const base = store.get().name.replace(/[\\/:*?"<>|\s]+/g, '-').replace(/^-+|-+$/g, '') || 'VTuber-Stage'
+  const base = store.get().name.replace(/[\\/:*?"<>|\s]+/g, '-').replace(/^-+|-+$/g, '') || PRODUCT.slug
   return `${base}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`
 }
 

@@ -22,7 +22,7 @@ Stage 按「你来做什么」重新整理了一遍。[下载 1.0 预览版](htt
 - **从目标开始**：**我来演**、**AI 来开播**、**和角色聊天**、**做一段视频**，每个目标只列它需要的准备，一个按钮开始
 - **本机免费的声音**：接入 [Voicebox](https://voicebox.sh)（桌面版）
 - **导入角色卡**：支持 SillyTavern 和 AIRI
-- **新名字**：LivLiv Stage 改名为 VTuber Stage（by LivLiv），设置、密钥和项目都不变
+- **新名字**：LivLiv Stage 改名为 VTuber Stage（by LivLiv），livliv.ai 上仍叫 LivLiv Stage；设置、密钥和项目都不变
 
 ## 其他功能
 

@@ -17,7 +17,7 @@ import type { Emotion, StreamingVoice } from './core/lines'
 import { store, uid, type CharacterItem } from './scene'
 import { SAMPLES } from './samples'
 import { signInUrl } from './host'
-import { features } from './core/platform'
+import { features, PRODUCT } from './core/platform'
 import { lostKey, readSecret, writeSecret } from './core/secrets'
 import { systemVoiceFor, type Voiced } from './core/systemVoice'
 
@@ -122,7 +122,7 @@ export async function connect() {
   waiting = ctl
   set({ error: '' })
   try {
-    const r = await answer(await post('/api/connect/start', { app: 'VTuber Stage', device: device() }))
+    const r = await answer(await post('/api/connect/start', { app: PRODUCT.name, device: device() }))
     set({ connect: { code: r.code, url: r.url } })
     openConnect()
     const until = Date.now() + (r.expires_in ?? 600) * 1000

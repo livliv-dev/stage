@@ -7,7 +7,7 @@ import { brainReady, clearBrainKey, listModels, previousModelConfig, providerOf,
 import { talk } from '../conversation'
 import { testAiriModel } from '../airiEngine'
 import { chooseEngine } from '../brains/select'
-import { features } from '../core/platform'
+import { features, PRODUCT } from '../core/platform'
 import { demoFor } from '../demo'
 import { participants, store, useScene } from '../scene'
 import { activeSpeech, asrReady, clearSpeechKey, listVoices, saveSpeech, SPEECH_HERE, SPEECH_OFF, SPEECH_PROVIDERS, SPEECH_UNSET, speakApi, speechOfModel, speechProviderOf, speechReady, transcribeApi, useSpeech, VOICEBOX_SPEECH, type SpeechApi } from '../voiceApi'
@@ -150,7 +150,7 @@ export function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; on
   const test = async () => {
     setSt({ busy: true })
     try {
-      const blob = await speakApi(d, tr("你好，这是 VTuber Stage 的声音测试。"), d.voice, 'happy', 1)
+      const blob = await speakApi(d, tr("你好，这是 {0} 的声音测试。", PRODUCT.name), d.voice, 'happy', 1)
       const url = URL.createObjectURL(blob)
       await new Audio(url).play().finally(() => setTimeout(() => URL.revokeObjectURL(url), 30_000))
       if (!asrReady(d)) { setSt({ ok: tr("能说") }); return }

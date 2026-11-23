@@ -9,8 +9,8 @@ Writes (ink on light, and -white for dark backgrounds):
   brand/vtuber-stage-lockup.svg      the symbol beside name + "by livliv", and -compact: the symbol beside the name;
                                      kept for the rare place that wants both, not used by default
   media/vtuber-stage-wordmark*.svg   the README's copies
-  stage/public/wordmark.svg          the app's top bar, the phone intro and the tab gate (= name)
-  stage/public/wordmark-full.svg     the app's About section (= wordmark)
+  stage/public/vtuber-stage-name.svg, vtuber-stage-wordmark.svg   the app's copies (stage/src/core/product.ts); on
+                                     livliv.ai the app keeps its name, LivLiv Stage, and stage/public/wordmark.svg
 The symbol alone is the icon (app, browser tab, dock, installers). It and the app icon (brand/vtuber-stage-symbol.svg, brand/vtuber-stage-icon.svg, stage/public/symbol.svg,
 favicon.svg, desktop/build/stage/icon.png) are drawn by hand and not written here.
 
@@ -207,8 +207,8 @@ def main():
         out[f"brand/vtuber-stage-{kind}-white.svg"] = svg(box, draw(WHITE))
     out["media/vtuber-stage-wordmark.svg"] = out["brand/vtuber-stage-wordmark.svg"]
     out["media/vtuber-stage-wordmark-white.svg"] = out["brand/vtuber-stage-wordmark-white.svg"]
-    out["stage/public/wordmark.svg"] = out["brand/vtuber-stage-name.svg"]
-    out["stage/public/wordmark-full.svg"] = out["brand/vtuber-stage-wordmark.svg"]
+    out["stage/public/vtuber-stage-name.svg"] = out["brand/vtuber-stage-name.svg"]
+    out["stage/public/vtuber-stage-wordmark.svg"] = out["brand/vtuber-stage-wordmark.svg"]
     for path, text in out.items():
         (ROOT / path).write_text(text)
         print(path)

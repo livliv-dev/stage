@@ -6,7 +6,7 @@ import { Check, MonitorPlay, X } from 'lucide-react'
 import { actors, onActors } from './actors'
 import { openOutput, outputOpen } from './link'
 import { participants, useScene } from './scene'
-import { features } from './core/platform'
+import { features, PRODUCT } from './core/platform'
 
 export function GoLiveGuide({ id, onClose }: { id: string; onClose: () => void }) {
   const { scene } = useScene()
@@ -20,7 +20,7 @@ export function GoLiveGuide({ id, onClose }: { id: string; onClose: () => void }
     { ok: phase === 'on', title: tr('允许使用摄像头'), run: () => { if (phase === 'error') a?.retryInput() },
       how: phase === 'error' ? a!.error : phase === 'on' ? track?.face ? tr('面捕已连接') : tr('未识别到面部') : tr('正在连接摄像头…') },
     { ok: !!a?.calibratedAt, title: tr('校准正面'), how: tr('看向镜头，按空格'), run: () => { if (a?.canCalibrate) a.calibrate() } },
-    { ok: out, title: tr('输出到 OBS'), how: tr('在 OBS 添加「窗口采集」，选择「VTuber Stage · 输出」。') + (clear ? '' : tr('给它加「色度键」滤镜，去掉绿色。')), run: open },
+    { ok: out, title: tr('输出到 OBS'), how: tr('在 OBS 添加「窗口采集」，选择「{0} · 输出」。', PRODUCT.name) + (clear ? '' : tr('给它加「色度键」滤镜，去掉绿色。')), run: open },
   ]
   return <div className="coach golive" role="region" aria-label={tr('开播')}>
     <header><span>{tr('开播')} <small className="num">{steps.filter((s) => s.ok).length}/3</small></span><span><button className="icon" aria-label={tr("关闭")} onClick={onClose}><X size={13} /></button></span></header>

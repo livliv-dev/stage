@@ -1389,11 +1389,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Save",
     "ja": "保存"
   },
-  "你好，这是 VTuber Stage 的声音测试。": {
-    "zh-Hans": "你好，这是 VTuber Stage 的声音测试。",
-    "zh-Hant": "你好，這是 VTuber Stage 的聲音測試。",
-    "en": "Hello, this is a VTuber Stage voice test.",
-    "ja": "こんにちは。VTuber Stageの音声テストです。"
+  "你好，这是 {0} 的声音测试。": {
+    "zh-Hans": "你好，这是 {0} 的声音测试。",
+    "zh-Hant": "你好，這是 {0} 的聲音測試。",
+    "en": "Hello, this is a {0} voice test.",
+    "ja": "こんにちは。{0}の音声テストです。"
   },
   "能说": {
     "zh-Hans": "能说",
@@ -2871,11 +2871,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Stop AI",
     "ja": "AIを停止"
   },
-  "VTuber Stage · 输出": {
-    "zh-Hans": "VTuber Stage · 输出",
-    "zh-Hant": "VTuber Stage · 輸出",
-    "en": "VTuber Stage · Output",
-    "ja": "VTuber Stage · 出力"
+  "{0} · 输出": {
+    "zh-Hans": "{0} · 输出",
+    "zh-Hant": "{0} · 輸出",
+    "en": "{0} · Output",
+    "ja": "{0} · 出力"
   },
   "正在连接舞台…": {
     "zh-Hans": "正在连接舞台…",
@@ -2895,11 +2895,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Open the output window.",
     "ja": "出力ウィンドウを開きます。"
   },
-  "在 OBS 添加「窗口采集」，选择「VTuber Stage · 输出」。": {
-    "zh-Hans": "在 OBS 添加「窗口采集」，选择「VTuber Stage · 输出」。",
-    "zh-Hant": "在 OBS 新增「視窗採集」，選擇「VTuber Stage · 輸出」。",
-    "en": "In OBS, add Window Capture and select VTuber Stage · Output.",
-    "ja": "OBSで「ウィンドウキャプチャ」を追加し、「VTuber Stage · 出力」を選びます。"
+  "在 OBS 添加「窗口采集」，选择「{0} · 输出」。": {
+    "zh-Hans": "在 OBS 添加「窗口采集」，选择「{0} · 输出」。",
+    "zh-Hant": "在 OBS 新增「視窗採集」，選擇「{0} · 輸出」。",
+    "en": "In OBS, add Window Capture and select {0} · Output.",
+    "ja": "OBSで「ウィンドウキャプチャ」を追加し、「{0} · 出力」を選びます。"
   },
   "声音与背景设置": {
     "zh-Hans": "声音与背景设置",
@@ -2907,11 +2907,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Audio & background",
     "ja": "音声と背景"
   },
-  "角色声音：采集 VTuber Stage 的应用音频。你的声音：添加麦克风音频输入。": {
-    "zh-Hans": "角色声音：采集 VTuber Stage 的应用音频。你的声音：添加麦克风音频输入。",
-    "zh-Hant": "角色聲音：採集 VTuber Stage 的應用音訊。你的聲音：新增麥克風音訊輸入。",
-    "en": "Capture VTuber Stage’s app audio for avatars, and microphone input for yourself.",
-    "ja": "キャラクターにはVTuber Stageのアプリ音声、自分の声にはマイク入力を追加します。"
+  "角色声音：采集 {0} 的应用音频。你的声音：添加麦克风音频输入。": {
+    "zh-Hans": "角色声音：采集 {0} 的应用音频。你的声音：添加麦克风音频输入。",
+    "zh-Hant": "角色聲音：採集 {0} 的應用音訊。你的聲音：新增麥克風音訊輸入。",
+    "en": "Capture {0}’s app audio for avatars, and microphone input for yourself.",
+    "ja": "キャラクターには{0}のアプリ音声、自分の声にはマイク入力を追加します。"
   },
   "透明采集出现黑底时，切换绿幕并在 OBS 添加色度键滤镜。": {
     "zh-Hans": "透明采集出现黑底时，切换绿幕并在 OBS 添加色度键滤镜。",
@@ -3699,11 +3699,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Cancelled",
     "ja": "キャンセルしました"
   },
-  "AI 生成：VTuber Stage（livliv.ai）": {
-    "zh-Hans": "AI 生成：VTuber Stage（livliv.ai）",
-    "zh-Hant": "AI 生成：VTuber Stage（livliv.ai）",
-    "en": "AI generated: VTuber Stage (livliv.ai)",
-    "ja": "AI生成：VTuber Stage（livliv.ai）"
+  "AI 生成：{0}（livliv.ai）": {
+    "zh-Hans": "AI 生成：{0}（livliv.ai）",
+    "zh-Hant": "AI 生成：{0}（livliv.ai）",
+    "en": "AI generated: {0} (livliv.ai)",
+    "ja": "AI生成：{0}（livliv.ai）"
   },
   "自动": {
     "zh-Hans": "自动",
@@ -3987,11 +3987,11 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
     "en": "Could not read this file",
     "ja": "ファイルを読み取れません"
   },
-  "这不是 VTuber Stage 的场景文件": {
-    "zh-Hans": "这不是 VTuber Stage 的场景文件",
-    "zh-Hant": "這不是 VTuber Stage 的場景檔案",
-    "en": "This is not a VTuber Stage scene file",
-    "ja": "VTuber Stageのシーンファイルではありません"
+  "这不是 {0} 的场景文件": {
+    "zh-Hans": "这不是 {0} 的场景文件",
+    "zh-Hant": "這不是 {0} 的場景檔案",
+    "en": "This is not a {0} scene file",
+    "ja": "{0}のシーンファイルではありません"
   },
   "场景文件里没有内容": {
     "zh-Hans": "场景文件里没有内容",
@@ -4322,7 +4322,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "图片不可用": {"zh-Hans": "图片不可用", "zh-Hant": "圖片無法使用", "en": "Image unavailable", "ja": "画像を使用できません"},
   "项目内容无效或缺少素材": {"zh-Hans": "项目内容无效或缺少素材", "zh-Hant": "專案內容無效或缺少素材", "en": "Invalid project or missing assets", "ja": "プロジェクトが無効、または素材が不足しています"},
   "图片读取失败：{0}": {"zh-Hans": "图片读取失败：{0}", "zh-Hant": "圖片讀取失敗：{0}", "en": "Could not read image: {0}", "ja": "画像を読み込めません：{0}"},
-  "这不是 VTuber Stage 的项目文件": {"zh-Hans": "这不是 VTuber Stage 的项目文件", "zh-Hant": "這不是 VTuber Stage 的專案檔案", "en": "This is not a VTuber Stage project", "ja": "VTuber Stageのプロジェクトファイルではありません"},
+  "这不是 {0} 的项目文件": {"zh-Hans": "这不是 {0} 的项目文件", "zh-Hant": "這不是 {0} 的專案檔案", "en": "This is not a {0} project", "ja": "{0}のプロジェクトファイルではありません"},
   "正在打开项目…": {"zh-Hans": "正在打开项目…", "zh-Hant": "正在開啟專案…", "en": "Opening project…", "ja": "プロジェクトを開いています…"},
   "正在保存项目…": {"zh-Hans": "正在保存项目…", "zh-Hant": "正在儲存專案…", "en": "Saving project…", "ja": "プロジェクトを保存しています…"},
   "打开项目": {"zh-Hans": "打开项目", "zh-Hant": "開啟專案", "en": "Open project", "ja": "プロジェクトを開く"},
@@ -4527,7 +4527,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "填上你的密钥，让角色们自己聊": {"zh-Hans": "填上你的密钥，让角色们自己聊", "zh-Hant": "填上你的金鑰，讓角色們自己聊", "en": "Add your key and let the characters talk", "ja": "キーを入れて、キャラクター同士で会話"},
   "放自己的角色": {"zh-Hans": "放自己的角色", "zh-Hant": "放自己的角色", "en": "Bring your own character", "ja": "自分のキャラクターを置く"},
   "livliv.ai 的角色、VRM 或 PNG 立绘": {"zh-Hans": "livliv.ai 的角色、VRM 或 PNG 立绘", "zh-Hant": "livliv.ai 的角色、VRM 或 PNG 立繪", "en": "From livliv.ai, a VRM, or PNG art", "ja": "livliv.aiのキャラクター、VRM、PNG立ち絵"},
-  "欢迎来到 VTuber Stage": {"zh-Hans": "欢迎来到 VTuber Stage", "zh-Hant": "歡迎來到 VTuber Stage", "en": "Welcome to VTuber Stage", "ja": "VTuber Stageへようこそ"},
+  "欢迎来到 {0}": {"zh-Hans": "欢迎来到 {0}", "zh-Hant": "歡迎來到 {0}", "en": "Welcome to {0}", "ja": "{0}へようこそ"},
   "你的 AI 虚拟主播工作室": {"zh-Hans": "你的 AI 虚拟主播工作室", "zh-Hant": "你的 AI 虛擬主播工作室", "en": "Your AI VTuber Studio", "ja": "あなたの AI VTuber スタジオ"},
   "给角色设定好性格，几分钟它就能和你聊天，或者直接开播。也可以自己来演。": {"zh-Hans": "给角色设定好性格，几分钟它就能和你聊天，或者直接开播。也可以自己来演。", "zh-Hant": "給角色設定好性格，幾分鐘它就能和你聊天，或者直接開播。也可以自己來演。", "en": "Give a character a personality, and in minutes it's chatting with you or streaming live. Or play it yourself.", "ja": "キャラクターに性格を設定すれば、数分であなたとおしゃべりしたり、そのまま配信したり。自分で演じることもできます。"},
   "你的 AI 虚拟主播工作室：会聊天、会记住你，还能直接开播。": {"zh-Hans": "你的 AI 虚拟主播工作室：会聊天、会记住你，还能直接开播。", "zh-Hant": "你的 AI 虛擬主播工作室：會聊天、會記住你，還能直接開播。", "en": "Your AI VTuber studio: characters that chat, remember you and go live.", "ja": "あなたの AI VTuber スタジオ：おしゃべりして、あなたを覚えて、そのまま配信。"},
@@ -4725,7 +4725,7 @@ export const messages: Record<string, Record<'zh-Hans' | 'zh-Hant' | 'en' | 'ja'
   "更多方式": {"zh-Hans": "更多方式", "zh-Hant": "更多方式", "en": "More ways to interact", "ja": "その他の方法"},
   "回应直播间的观众弹幕": {"zh-Hans": "回应直播间的观众弹幕", "zh-Hant": "回應直播間的觀眾彈幕", "en": "Respond to live chat", "ja": "配信のコメントに応答"},
   "让多位角色轮流聊起来": {"zh-Hans": "让多位角色轮流聊起来", "zh-Hant": "讓多位角色輪流聊起來", "en": "Have characters take turns talking", "ja": "複数のキャラクターが交代で話す"},
-  "Voicebox 只能在 VTuber Stage 桌面版里用": {"zh-Hans": "Voicebox 只能在 VTuber Stage 桌面版里用", "zh-Hant": "Voicebox 只能在 VTuber Stage 桌面版裡使用", "en": "Voicebox works only in the VTuber Stage desktop app", "ja": "Voicebox は VTuber Stage デスクトップ版でのみ使えます"},
+  "Voicebox 只能在 {0} 桌面版里用": {"zh-Hans": "Voicebox 只能在 {0} 桌面版里用", "zh-Hant": "Voicebox 只能在 {0} 桌面版裡使用", "en": "Voicebox works only in the {0} desktop app", "ja": "Voicebox は {0} デスクトップ版でのみ使えます"},
   "Voicebox 没有在运行": {"zh-Hans": "Voicebox 没有在运行", "zh-Hant": "Voicebox 沒有在執行", "en": "Voicebox isn't running", "ja": "Voicebox が起動していません"},
   "Voicebox 没有说出这句：{0}": {"zh-Hans": "Voicebox 没有说出这句：{0}", "zh-Hant": "Voicebox 沒有說出這句：{0}", "en": "Voicebox couldn't say this line: {0}", "ja": "Voicebox はこのセリフを読み上げられませんでした：{0}"},
   "Voicebox 的声音": {"zh-Hans": "Voicebox 的声音", "zh-Hant": "Voicebox 的聲音", "en": "Voicebox voice", "ja": "Voicebox の声"},

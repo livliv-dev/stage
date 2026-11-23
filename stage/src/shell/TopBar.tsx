@@ -11,7 +11,7 @@ import { TEMPLATES, type TemplateId } from '../templates'
 import { downloadProject, openProject, projectFile } from '../project'
 import { ScenesMenu } from '../ScenesMenu'
 import { tr } from '../i18n'
-import { features } from '../core/platform'
+import { features, PRODUCT } from '../core/platform'
 import { ui, useUi } from './ui'
 import { useNarrow } from './hooks'
 import { FriendState } from './Cast'
@@ -47,7 +47,7 @@ export function TopBar({ onTemplate }: { onTemplate: (id: TemplateId) => void })
   return (
     <header className="topbar" onPointerDown={(e) => e.stopPropagation()}>
       <div className="left">
-        <img className="mark" src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="VTuber Stage" />
+        <img className="mark" src={`${import.meta.env.BASE_URL}${PRODUCT.mark}`} alt={PRODUCT.name} />
         <div className="menu-anchor scene-switcher"><input className="name" value={scene.name} aria-label={tr("舞台名字")} onChange={(e) => store.set({ name: e.target.value })} /><button className={pop === "scenes" ? "icon on" : "icon"} title={tr("切换镜头")} aria-expanded={pop === "scenes"} onClick={() => toggle("scenes")}><ChevronDown size={15} /></button>{pop === "scenes" && <ScenesMenu close={() => toggle(null)} onStartPage={() => { toggle(null); onStartPage() }} />}</div>
       </div>
       <div className="seg mode">

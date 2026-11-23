@@ -10,6 +10,7 @@ import { isClear, onMsg, post } from './link'
 import { loadable, localModels, store, type Scene } from './scene'
 import { Stage } from './Stage'
 import { tr, useLocale } from './i18n'
+import { PRODUCT } from './core/platform'
 
 const NONE = { top: 0, right: 0, bottom: 0, left: 0 }
 
@@ -40,7 +41,7 @@ export default function Output() {
     })
     return () => { clearInterval(alive); off(); window.removeEventListener('pagehide', bye) }
   }, [])
-  useEffect(() => { document.title = tr("VTuber Stage · 输出") }, [locale])
+  useEffect(() => { document.title = tr("{0} · 输出", PRODUCT.name) }, [locale])
   return (
     <div className="app show output">
       <Stage insets={NONE} zoom="fit" setZoom={() => {}} onMenu={() => {}} empty={null} mark={mark} />

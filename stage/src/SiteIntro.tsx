@@ -6,6 +6,7 @@ import { tr } from './i18n'
 import { useState } from 'react'
 import { Camera, Check, Copy, KeyRound, LoaderCircle, Pause, Play, Square, UserPlus, X } from 'lucide-react'
 import { talk, useConversation } from './conversation'
+import { PRODUCT } from './core/platform'
 
 const CAST = ['d03ft', 'k01', 'v04']
 const avatar = (id: string) => `${import.meta.env.BASE_URL}characters/${id}/avatar.webp`
@@ -32,7 +33,7 @@ export function SiteWelcome({ onDemo, onCamera, onModel, onCharacter, onClose }:
     { icon: KeyRound, title: '接自己的模型', hint: '填上你的密钥，让角色们自己聊', act: onModel },
     { icon: UserPlus, title: '放自己的角色', hint: 'livliv.ai 的角色、VRM 或 PNG 立绘', act: onCharacter },
   ]
-  return <div className="site-welcome card" role="dialog" aria-label={tr('欢迎来到 VTuber Stage')} onPointerDown={(e) => e.stopPropagation()}>
+  return <div className="site-welcome card" role="dialog" aria-label={tr('欢迎来到 {0}', PRODUCT.name)} onPointerDown={(e) => e.stopPropagation()}>
     <button className="icon close" aria-label={tr('关闭')} onClick={onClose}><X size={16} /></button>
     <p className="big">{tr('你的 AI 虚拟主播工作室')}</p>
     <p className="hint">{tr('给角色设定好性格，几分钟它就能和你聊天，或者直接开播。也可以自己来演。')}</p>
@@ -55,7 +56,7 @@ export function PhoneIntro({ onDemo }: { onDemo: () => Promise<void> }) {
     <button className="icon" aria-label={tr('停止')} onClick={talk.stop}><Square size={14} /></button>
   </div>
   return <div className="phone-intro card" onPointerDown={(e) => e.stopPropagation()}>
-    <img className="phone-mark" src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="VTuber Stage" />
+    <img className="phone-mark" src={`${import.meta.env.BASE_URL}${PRODUCT.mark}`} alt={PRODUCT.name} />
     <p className="hint">{tr('你的 AI 虚拟主播工作室：会聊天、会记住你，还能直接开播。')}</p>
     <DemoButton onDemo={onDemo} />
     <p className="hint">{tr('编辑、摄像头和接模型，请在电脑上打开这个页面。')}</p>

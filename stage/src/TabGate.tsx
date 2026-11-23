@@ -7,6 +7,7 @@ import { store } from './scene'
 import { recording } from './recording'
 import { conversation } from './conversation'
 import { isOutput, outputOpen } from './link'
+import { PRODUCT } from './core/platform'
 
 const BUSY = { rec: '录制', talk: '聊天', out: 'OBS 输出' } as const
 
@@ -25,7 +26,7 @@ export function TabGate({ children }: { children: ReactNode }) {
   if (tab === 'wait') return null
   return <div className="tab-gate">
     <div className="card">
-      <img src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="VTuber Stage" />
+      <img src={`${import.meta.env.BASE_URL}${PRODUCT.mark}`} alt={PRODUCT.name} />
       <p className="big">{tr('Stage 已在另一个标签页打开')}</p>
       <p className="hint">{tr('一次只能在一个标签页里编辑')}</p>
       {busy.length > 0 && <p className="hint warn">{tr('那边正在{0}：移到这里会停下来。', busy.map((b) => tr(BUSY[b])).join(tr('、')))}</p>}

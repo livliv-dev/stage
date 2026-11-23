@@ -19,6 +19,7 @@ import { imageGeometry } from './attachments'
 import type { AnchorName } from '@livliv-dev/player'
 import { GREEN, paintAiLabel, paintBackground, paintCharacter, paintImage, paintMark, paintSubtitle, paintText, pictures, showsAI, spans, subtitleAt } from './paint'
 import { onTape, type Take, type Track } from './tape'
+import { PRODUCT } from './core/platform'
 
 export const FPS = 30
 const RATE = 48000
@@ -182,7 +183,7 @@ export async function renderTake(take: Take, name: string, onProgress: (share: n
     const mem = pf ? null : new mb.BufferTarget()
     const target = pf ? new mb.StreamTarget(pf.writable as unknown as WritableStream<import('mediabunny').StreamTargetChunk>, { chunked: true, chunkSize: 4 << 20 }) : mem!
     const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: pf ? false : 'in-memory' }), target })
-    output.setMetadataTags({ title: name, comment: tr("AI 生成：VTuber Stage（livliv.ai）") })  // the implicit AIGC label, as the site's videos
+    output.setMetadataTags({ title: name, comment: tr("AI 生成：{0}（livliv.ai）", PRODUCT.name) })  // the implicit AIGC label, as the site's videos
     const out = document.createElement('canvas')
     out.width = W; out.height = H
     const g = out.getContext('2d')!

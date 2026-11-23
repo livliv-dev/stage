@@ -9,6 +9,7 @@
 import type { MemoryScope } from '../memory'
 import type { CharacterItem, Talk } from '../scene'
 import { CARD_LIMITS } from '../characterCard'
+import { PRODUCT } from '../core/platform'
 
 export type PersonaSpec = {
   name: string
@@ -77,7 +78,7 @@ export function airiIdentity(p: PersonaSpec) {
     ja: 'Reply in Japanese.',
   }[p.language]
   return [
-    'You are ' + JSON.stringify(p.name) + ', the character ' + (p.scope === 'public' ? 'currently performing in VTuber Stage' : 'in a private VTuber Stage conversation') + '. Use only this character\'s identity.',
+    'You are ' + JSON.stringify(p.name) + ', the character ' + (p.scope === 'public' ? 'currently performing in ' + PRODUCT.name : 'in a private ' + PRODUCT.name + ' conversation') + '. Use only this character\'s identity.',
     HONEST.en,
     p.persona && 'Personality: ' + named(p, p.persona),
     p.style && 'Speaking style: ' + named(p, p.style),

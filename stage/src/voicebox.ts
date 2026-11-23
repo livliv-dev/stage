@@ -6,6 +6,7 @@ import { tr } from './i18n'
 // (desktop/src/voicebox.ts): Voicebox lets no other page call it, so the web doesn't offer it.
 import { useSyncExternalStore } from 'react'
 import type { VoiceboxFailure, VoiceboxProfile } from '../../protocol/src/voicebox'
+import { PRODUCT } from './core/platform'
 
 export type { VoiceboxProfile }
 
@@ -95,7 +96,7 @@ async function giveUpWith<T>(signal: AbortSignal | undefined, run: (id: string) 
   signal?.addEventListener('abort', cancel, { once: true })
   try { return await run(id) } finally { signal?.removeEventListener('abort', cancel) }
 }
-const unavailable = () => new Error(tr('Voicebox 只能在 VTuber Stage 桌面版里用'))
+const unavailable = () => new Error(tr('Voicebox 只能在 {0} 桌面版里用', PRODUCT.name))
 
 /** a line said in this Voicebox profile, as a WAV */
 export async function voiceboxSpeak(profile: string, text: string, signal?: AbortSignal): Promise<Blob> {

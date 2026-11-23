@@ -22,7 +22,7 @@ Stage を「何をしたいか」から組み立て直しました。[1.0 プレ
 - **やりたいことから始める**：**自分で演じる**、**AI が配信**、**キャラと話す**、**動画を作る**。必要な準備だけが表示され、ボタンひとつで開始
 - **このコンピューター上の無料の声**：[Voicebox](https://voicebox.sh) に対応（デスクトップ版）
 - **キャラクターカードの読み込み**：SillyTavern と AIRI に対応
-- **新しい名前**：LivLiv Stage は VTuber Stage（by LivLiv）になりました。設定、キー、プロジェクトはそのままです
+- **新しい名前**：LivLiv Stage は VTuber Stage（by LivLiv）になりました（livliv.ai では LivLiv Stage のまま）。設定、キー、プロジェクトはそのままです
 
 ## そのほかの機能
 

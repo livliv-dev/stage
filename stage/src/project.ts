@@ -9,6 +9,7 @@ import { sampleAt } from './samples'
 import { tr } from './i18n'
 import { readAudienceRules } from './triggers'
 import { readAttachment } from './attachmentData'
+import { PRODUCT } from './core/platform'
 
 type Model = { id: string; name: string; format: Format; files: { path: string; entry: string; type: string }[] }
 type Picture = { id: string; name: string; type: string; entry: string }
@@ -165,7 +166,7 @@ export async function openProject(file: File, signal?: AbortSignal): Promise<{ p
   if (header[0] !== 0x50 || header[1] !== 0x4b) {
     if (file.size > 8 * 2 ** 20) throw bad()
     const raw = await readJSON(file)
-    if (!record(raw) || raw.format !== 'livliv-stage' || !record(raw.scene)) throw new Error(tr('这不是 VTuber Stage 的项目文件'))
+    if (!record(raw) || raw.format !== 'livliv-stage' || !record(raw.scene)) throw new Error(tr('这不是 {0} 的项目文件', PRODUCT.name))
     validateAttachments(raw.scene)
     validateAudience(raw.scene)
     const legacy = loadable(raw.scene as Partial<Scene>, false)
