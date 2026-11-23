@@ -31,7 +31,7 @@ OpenAI 旧 Speech API 保留为需要明确选择的兼容配置。它的 gpt-4o
 
 ## 本机免费的声音：Voicebox（桌面版）
 
-[Voicebox](https://voicebox.sh) 是一个在自己电脑上运行的开源语音工具（MIT 许可），免费，台词不出这台电脑。桌面版 LivLiv Stage 会自己找它：启动时找一次，打开声音设置或角色卡的「人设和声音」时再找一次。
+[Voicebox](https://voicebox.sh) 是一个在自己电脑上运行的开源语音工具（MIT 许可），免费，台词不出这台电脑。桌面版 VTuber Stage 会自己找它：启动时找一次，打开声音设置或角色卡的「人设和声音」时再找一次。
 
 1. 从 [voicebox.sh](https://voicebox.sh) 下载并打开 Voicebox，在里面下载语音模型，添加一个声音：预设声音，或者用自己的录音克隆一个。
 2. 回到 Stage。没有设置别的声音时，角色就用 Voicebox 说话；每个角色默认分到不同的声音，只用模型已经下载好的声音。准备清单的「声音」项会显示用的是哪个声音。

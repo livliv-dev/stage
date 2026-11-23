@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { modelFiles } from '@livliv-dev/player'
 import { archivePath, packFiles, PROJECT_LIMIT, unpackFiles } from './archive'
 import { backgroundUrl, cacheAsset, imageBackground, inspectPicture } from './assets'
@@ -165,7 +166,7 @@ export async function openProject(file: File, signal?: AbortSignal): Promise<{ p
   if (header[0] !== 0x50 || header[1] !== 0x4b) {
     if (file.size > 8 * 2 ** 20) throw bad()
     const raw = await readJSON(file)
-    if (!record(raw) || raw.format !== 'livliv-stage' || !record(raw.scene)) throw new Error(tr('这不是 LivLiv Stage 的项目文件'))
+    if (!record(raw) || raw.format !== 'livliv-stage' || !record(raw.scene)) throw new Error(tr('这不是 {0} 的项目文件', PRODUCT.name))
     validateAttachments(raw.scene)
     validateAudience(raw.scene)
     const legacy = loadable(raw.scene as Partial<Scene>, false)

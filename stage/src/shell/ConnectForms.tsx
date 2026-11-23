@@ -1,5 +1,6 @@
 // The forms for your own services Stage talks to: the text model (a model of one's own, or the demo) and the speech API
 // (voices and recognition). Settings → 连接 shows them, below livliv.ai's switch (Connections.tsx).
+import { PRODUCT } from '../core/product'
 import { useEffect, useRef, useState } from 'react'
 import { Check, ExternalLink, LoaderCircle, Lock, Play, RefreshCw } from 'lucide-react'
 import { tr } from '../i18n'
@@ -150,7 +151,7 @@ export function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; on
   const test = async () => {
     setSt({ busy: true })
     try {
-      const blob = await speakApi(d, tr("你好，这是 LivLiv Stage 的声音测试。"), d.voice, 'happy', 1)
+      const blob = await speakApi(d, tr("你好，这是 {0} 的声音测试。", PRODUCT.name), d.voice, 'happy', 1)
       const url = URL.createObjectURL(blob)
       await new Audio(url).play().finally(() => setTimeout(() => URL.revokeObjectURL(url), 30_000))
       if (!asrReady(d)) { setSt({ ok: tr("能说") }); return }

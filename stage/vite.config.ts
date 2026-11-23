@@ -2,23 +2,16 @@ import { defineConfig } from 'vite'
 import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
 import pkg from './package.json' with { type: 'json' }
+import { pageHead } from './src/core/head.ts'
+import products from '../protocol/src/product.json' with { type: 'json' }
 
 const api = `http://127.0.0.1:${process.env.LM_API_PORT || 8000}`
-// livliv.ai/stage's build (scripts/build-site.mjs): the page's description and link preview
+// livliv.ai/stage's build (scripts/build-site.mjs) or any other: the page's title, and livliv.ai's description and
+// link preview (src/core/head.ts), with the name from protocol/src/product.json
 const site = process.env.VITE_STAGE_HOST === 'livliv'
-const META = `
-    <meta name="description" content="LivLiv Stage, your AI VTuber studio. Give a character a personality, and in minutes it's chatting with you or streaming live. Or play it yourself. In your browser, open source." />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="LivLiv" />
-    <meta property="og:title" content="LivLiv Stage" />
-    <meta property="og:description" content="Your AI VTuber Studio. Give a character a personality, and in minutes it's live." />
-    <meta property="og:url" content="https://livliv.ai/stage/" />
-    <meta property="og:image" content="https://livliv.ai/stage/og.jpg" />
-    <meta name="twitter:card" content="summary_large_image" />
-  `
 
 export default defineConfig({
-  plugins: [react(), {
+  plugins: [react(), { name: 'page-head', transformIndexHtml: (html: string) => pageHead(html, (site ? products.site : products.app).name, site) }, {
     name: 'airi-notices',
     generateBundle() {
       const directory = new URL('../vendor/airi-core/', import.meta.url)
@@ -28,7 +21,7 @@ export default defineConfig({
       // mesh-avatar (MIT), which draws .mavatar characters
       this.emitFile({ type: 'asset', fileName: 'licenses/mesh-avatar-LICENSE.txt', source: readFileSync(new URL('./node_modules/mesh-avatar/LICENSE', import.meta.url)) })
     },
-  }, ...(site ? [{ name: 'livliv-site-meta', transformIndexHtml: (html: string) => html.replace('</head>', `${META}</head>`) }] : [])],
+  }],
   // the version the About section shows (keep it the same as electron-builder.stage.yml's extraMetadata.version)
   define: { __STAGE_VERSION__: JSON.stringify(pkg.version) },
   // mesh-avatar is reached only through the Player's own import() when a .mavatar loads: bundled ahead, so the dev

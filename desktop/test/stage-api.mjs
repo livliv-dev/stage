@@ -13,7 +13,7 @@ const report = { artifacts, packaged: !!packaged }
 let application, page, backend
 const wait = async (read, predicate, message) => { const until = Date.now() + 12000; while (Date.now() < until) { const value = await read(); if (predicate(value)) return value; await new Promise((r) => setTimeout(r, 30)) } throw new Error(message) }
 async function launch() {
-  application = await electron.launch({ executablePath: packaged ? join(packaged, 'Contents/MacOS/LivLiv Stage') : join(desktop, 'node_modules/electron/dist/Electron.app/Contents/MacOS/Electron'), args: [...(packaged ? [] : [desktop, '--app=stage', '--stage-dir=' + stage]), '--user-data=' + profile, '--api=http://127.0.0.1:' + backend.address().port, '--mute'], timeout: 30000 })
+  application = await electron.launch({ executablePath: packaged ? join(packaged, 'Contents/MacOS/VTuber Stage') : join(desktop, 'node_modules/electron/dist/Electron.app/Contents/MacOS/Electron'), args: [...(packaged ? [] : [desktop, '--app=stage', '--stage-dir=' + stage]), '--user-data=' + profile, '--api=http://127.0.0.1:' + backend.address().port, '--mute'], timeout: 30000 })
   if (packaged) { const runtime = await application.evaluate(({ app }) => ({ packaged: app.isPackaged, profile: app.getPath('userData') })); assert.deepEqual(runtime, { packaged: true, profile }) }
   page = await application.firstWindow(); page.setDefaultTimeout(15000); page.on('pageerror', (error) => errors.push(error.message)); await page.locator('.topbar').waitFor()
   await page.addInitScript(() => { localStorage.setItem('livliv-stage:locale', 'zh-Hans'); localStorage.setItem('livliv-stage:coached', '1') }); await page.reload(); await page.locator('.topbar').waitFor()

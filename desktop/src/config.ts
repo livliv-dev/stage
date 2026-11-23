@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { app } from 'electron'
 import { PROD_ORIGIN } from './urls'
+import { productOf } from '#protocol/product'
 
 export const flag = (name: string) => {
   const a = process.argv.find((x) => x.startsWith(`--${name}=`))
@@ -27,7 +28,8 @@ function builtAs(): string | undefined {
 }
 export const APP: 'site' | 'stage' = (flag('app') ?? builtAs()) === 'stage' ? 'stage' : 'site'
 // its own settings, cookies and saved scenes, also when run from this folder (packaged, its name gives the same place)
-// (--user-data=<dir>: an isolated profile, in development)
+// (--user-data=<dir>: an isolated profile, in development). The folder keeps the name it had as LivLiv Stage, so
+// settings, keys and projects stay where they are.
 if (APP === 'stage') app.setPath('userData', devFlag('user-data') || join(app.getPath('appData'), 'LivLiv Stage'))
 
 export const STAGE_SCHEME = 'livliv-stage'
@@ -49,4 +51,6 @@ export const VERSION = app.getVersion()
 /** live WebGL contexts LivLiv Stage's pages may hold (Chromium's default is 16); stage/src/contexts.ts tells people
  *  how many characters that is */
 export const WEBGL_CONTEXTS = 32
-export const NAME = APP === 'stage' ? 'LivLiv Stage' : 'LivLiv'
+/** the name people see: window title, the app menu, About. Electron's own app name stays the one package.json gives
+ *  (electron-builder.stage.yml extraMetadata), which names the system's encryption key for saved keys */
+export const NAME = APP === 'stage' ? productOf('app').name : 'LivLiv'

@@ -1,6 +1,6 @@
-# LivLiv Stage 桌面版（Electron 外壳）
+# VTuber Stage 桌面版（Electron 外壳）
 
-这个目录打包 LivLiv Stage 桌面应用：Stage 的网页构建在应用里由 `livliv-stage://app` 提供，另加全局热键、透明输出窗口、本机控制 API 和手机/OSC 输入。同一份外壳代码也能打包 livliv.ai 网站的桌面外壳（`electron-builder.yml`）；网站本身的代码不在这个仓库。
+这个目录打包 VTuber Stage 桌面应用：Stage 的网页构建在应用里由 `livliv-stage://app` 提供，另加全局热键、透明输出窗口、本机控制 API 和手机/OSC 输入。同一份外壳代码也能打包 livliv.ai 网站的桌面外壳（`electron-builder.yml`）；网站本身的代码不在这个仓库。
 
 ```sh
 npm ci                  # 安装依赖并下载 Electron

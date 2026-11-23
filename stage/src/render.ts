@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { tr } from './i18n'
 // A recorded take (tape.ts) made into a video, in the browser, nothing uploaded, the way the site's 录制 makes its:
 // every frame drawn again at the stage's own size, a fixed 1/30 s apart, so the video is sharp and steady whatever
@@ -182,7 +183,7 @@ export async function renderTake(take: Take, name: string, onProgress: (share: n
     const mem = pf ? null : new mb.BufferTarget()
     const target = pf ? new mb.StreamTarget(pf.writable as unknown as WritableStream<import('mediabunny').StreamTargetChunk>, { chunked: true, chunkSize: 4 << 20 }) : mem!
     const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: pf ? false : 'in-memory' }), target })
-    output.setMetadataTags({ title: name, comment: tr("AI 生成：LivLiv Stage（livliv.ai）") })  // the implicit AIGC label, as the site's videos
+    output.setMetadataTags({ title: name, comment: tr("AI 生成：{0}（livliv.ai）", PRODUCT.name) })  // the implicit AIGC label, as the site's videos
     const out = document.createElement('canvas')
     out.width = W; out.height = H
     const g = out.getContext('2d')!

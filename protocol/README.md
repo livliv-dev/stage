@@ -1,6 +1,6 @@
 # @livliv-dev/stage-protocol
 
-What LivLiv Stage's desktop shell (`desktop/`) and its editor page (`stage/`) say to each other, in one place, so the
+What VTuber Stage's desktop shell (`desktop/`) and its editor page (`stage/`) say to each other, in one place, so the
 two sides can't drift apart:
 
 | module | what |

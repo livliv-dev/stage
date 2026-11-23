@@ -3,6 +3,7 @@
 // (link.ts): the scene, the conversation's lines and turns, each character's pose every frame, and makes no sound.
 // A transparent stage stays transparent, in a see-through window with no frame: drag it anywhere to move it, close it
 // from the editor's button. On livliv.ai/stage on the free plan the editor asks for the LivLiv mark in the corner.
+import { PRODUCT } from './core/product'
 import { useEffect, useState } from 'react'
 import { actors } from './actors'
 import { mirrorConv, type ConvState } from './conversation'
@@ -40,7 +41,7 @@ export default function Output() {
     })
     return () => { clearInterval(alive); off(); window.removeEventListener('pagehide', bye) }
   }, [])
-  useEffect(() => { document.title = tr("LivLiv Stage · 输出") }, [locale])
+  useEffect(() => { document.title = tr("{0} · 输出", PRODUCT.name) }, [locale])
   return (
     <div className="app show output">
       <Stage insets={NONE} zoom="fit" setZoom={() => {}} onMenu={() => {}} empty={null} mark={mark} />

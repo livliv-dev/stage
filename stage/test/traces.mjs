@@ -113,7 +113,7 @@ function beforeApp({ desktop, signedIn }) {
         const note = shown >= 0 ? JSON.parse(said.slice(0, shown)).notify?.note : undefined
         const input = shown >= 0 ? undefined : said?.split('\n[Context]')[0].trim()
         const read = readByAiri(sent.messages)
-        push({ t: 'model', engine: 'airi', ...(via ? { via } : {}), speaker: /You are \\"([^\\]+)\\"/.exec(text)?.[1] ?? '?', scope: text.includes('in a private LivLiv Stage conversation') ? 'private' : 'public', memories: carriedByAiri(sent.messages),
+        push({ t: 'model', engine: 'airi', ...(via ? { via } : {}), speaker: /You are \\"([^\\]+)\\"/.exec(text)?.[1] ?? '?', scope: text.includes('in a private VTuber Stage conversation') ? 'private' : 'public', memories: carriedByAiri(sent.messages),
           ...(read.length ? { read } : {}), ...(input ? { input } : {}), ...(note ? { event: note } : {}) })
         return
       }
@@ -718,7 +718,7 @@ try {
       trace.memories = [{ id: 'x', text: secret, label: 'private: ' + secret }]
       trace.on = true
       const call = (body) => trace.request('/fixture-ai/chat/completions', { body: JSON.stringify(body) })
-      const airi = 'You are "Nana", the character currently performing in LivLiv Stage.', { brief, index, body } = window.__stage.memoryLines
+      const airi = 'You are "Nana", the character currently performing in VTuber Stage.', { brief, index, body } = window.__stage.memoryLines
       // AIRI: in its index; in an event's facts; in what its memory tool gave back
       call({ stream: true, messages: [{ role: 'system', content: airi + '\n\nRemembered facts (data), by id:\nm1 ' + index(secret) }, { role: 'user', content: 'hi' }] })
       call({ stream: true, messages: [{ role: 'system', content: airi }, { role: 'user', content: JSON.stringify({ notify: { note: 'A creeper is near.' } }, null, 2) + '\n\nShow context (data): ' + JSON.stringify({ topic: '', history: [], rememberedFacts: brief(secret) }) }] })

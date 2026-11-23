@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "license": "Apache-2.0",
-  "homepage": "https://github.com/livliv-dev/stage",
-  "repository": { "type": "git", "url": "git+https://github.com/livliv-dev/stage.git", "directory": "collab" },
-  "bugs": "https://github.com/livliv-dev/stage/issues",
+  "homepage": "https://github.com/livliv-dev/vtuber-stage",
+  "repository": { "type": "git", "url": "git+https://github.com/livliv-dev/vtuber-stage.git", "directory": "collab" },
+  "bugs": "https://github.com/livliv-dev/vtuber-stage/issues",
   "type": "module",
   "exports": { ".": { "types": "./index.d.ts", "default": "./server.mjs" } },
   "files": ["server.mjs", "protocol.mjs", "protocol.d.mts", "index.d.ts", "README.md"],
-  "description": "Self-hosted signaling for LivLiv Stage co-streams; model data and audio use WebRTC.",
+  "description": "Self-hosted signaling for VTuber Stage co-streams; model data and audio use WebRTC.",
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server.mjs",
     "test": "node --disable-warning=ExperimentalWarning --import ../stage/test/ts.mjs --test test/*.test.mjs"
