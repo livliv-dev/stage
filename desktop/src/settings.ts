@@ -27,6 +27,8 @@ export type Settings = {
   /** clickThrough 'alpha': clicks reach the character and pass through everywhere else; 'all': pass through
    *  everywhere (locked, back from the tray); 'off': an ordinary window. bounds: where each character's stage was */
   stage: { clickThrough: ClickMode; alwaysOnTop: boolean; bounds: Record<string, Rect> }
+  /** VTuber Stage has asked once whether to move the old LivLiv Stage.app to the Trash (oldApp.ts) */
+  oldAppAsked: boolean
 }
 
 const FORMAT = 2
@@ -38,6 +40,7 @@ const DEFAULTS = (): Settings => ({
   trackingInput: defaultMotionSettings(),
   hotkeys: APP === 'stage' ? { enabled: false, prefix: stagePrefix(), bindings: null } : { enabled: true, prefix: 'Control+Alt', bindings: null },
   stage: { clickThrough: 'alpha', alwaysOnTop: true, bounds: {} },
+  oldAppAsked: false,
 })
 
 const file = () => join(app.getPath('userData'), 'settings.json')
@@ -68,6 +71,7 @@ function merge(saved: Record<string, unknown>): Settings {
       alwaysOnTop: st.alwaysOnTop !== false,
       bounds: Object.fromEntries(Object.entries(o<Record<string, unknown>>(st.bounds)).filter((e): e is [string, Rect] => isRect(e[1])).slice(-50)),
     },
+    oldAppAsked: saved.oldAppAsked === true,
   }
 }
 

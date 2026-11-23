@@ -10,7 +10,7 @@ files from another bucket. Connect `downloads.livliv.ai` as its custom domain. T
 URL is not needed. No Worker or paid Cloudflare zone plan is required for this static mirror.
 
 Create an R2 Object Read & Write token scoped to this bucket only. Store its two credentials as GitHub
-Actions repository secrets in `livliv-dev/stage`:
+Actions repository secrets in `livliv-dev/vtuber-stage`:
 
 - `STAGE_R2_ACCESS_KEY_ID`
 - `STAGE_R2_SECRET_ACCESS_KEY`

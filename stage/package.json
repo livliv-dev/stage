@@ -1,16 +1,16 @@
 {
   "name": "livliv-stage",
-  "productName": "LivLiv Stage",
+  "productName": "VTuber Stage",
   "version": "1.0.0-preview.2",
   "private": true,
   "license": "Apache-2.0",
-  "homepage": "https://github.com/livliv-dev/stage",
+  "homepage": "https://github.com/livliv-dev/vtuber-stage",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/livliv-dev/stage.git",
+    "url": "git+https://github.com/livliv-dev/vtuber-stage.git",
     "directory": "stage"
   },
-  "bugs": "https://github.com/livliv-dev/stage/issues",
+  "bugs": "https://github.com/livliv-dev/vtuber-stage/issues",
   "description": "Your AI VTuber Studio: give a character a personality, and in minutes it's chatting with you or streaming live. Or play it yourself.",
   "type": "module",
   "scripts": {

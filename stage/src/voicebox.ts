@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { tr } from './i18n'
 // Voicebox (voicebox.sh, MIT): a local voice studio people run themselves, free, nothing leaving the computer. In the
 // desktop app Stage looks for it (at start, and when the voice settings open): running with a voice of an open
@@ -95,7 +96,7 @@ async function giveUpWith<T>(signal: AbortSignal | undefined, run: (id: string) 
   signal?.addEventListener('abort', cancel, { once: true })
   try { return await run(id) } finally { signal?.removeEventListener('abort', cancel) }
 }
-const unavailable = () => new Error(tr('Voicebox 只能在 LivLiv Stage 桌面版里用'))
+const unavailable = () => new Error(tr('Voicebox 只能在 {0} 桌面版里用', PRODUCT.name))
 
 /** a line said in this Voicebox profile, as a WAV */
 export async function voiceboxSpeak(profile: string, text: string, signal?: AbortSignal): Promise<Blob> {

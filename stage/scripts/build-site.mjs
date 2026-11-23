@@ -2,7 +2,7 @@
 // commit and checksum instead of building Stage on its server.
 //   node scripts/build-site.mjs [outDir]       default dist-site
 // Leaves out the face tracker's files (the site serves the same ones at /mediapipe/; checked by the site against
-// stage-build.json), adds og.jpg (the link preview), and writes stage-build.json (commit, version, sha256 of every file)
+// stage-build.json), adds og.jpg (the link preview: livliv.ai keeps the name LivLiv Stage, src/core/product.ts), and writes stage-build.json (commit, version, sha256 of every file)
 // and, beside the folder, livliv-stage-site-<commit>.tar.gz with its sha256.
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -22,7 +22,7 @@ const walk = (dir) => readdirSync(dir).flatMap((n) => { const p = join(dir, n); 
 const sha = (p) => createHash('sha256').update(readFileSync(p)).digest('hex')
 for (const f of walk(join(out, 'mediapipe'))) mediapipe['/' + relative(out, f).split('\\').join('/')] = sha(f)
 rmSync(join(out, 'mediapipe'), { recursive: true })
-copyFileSync(resolve(root, '../media/social.jpg'), join(out, 'og.jpg'))
+copyFileSync(resolve(root, '../brand/livliv-stage-social.jpg'), join(out, 'og.jpg'))
 
 const files = Object.fromEntries(walk(out).map((f) => [relative(out, f).split('\\').join('/'), sha(f)]).sort())
 const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))

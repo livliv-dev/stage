@@ -16,6 +16,7 @@ import { tmpdir } from 'node:os'
 import { extname, join, normalize } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { freePort, startVite, testTimeout } from './vite.mjs'
+import products from '../../protocol/src/product.json' with { type: 'json' }
 
 const root = fileURLToPath(new URL('..', import.meta.url)), errors = [], refused = []
 // livliv.ai's Content-Security-Policy for /stage/ (the site's stage_web.py)
@@ -142,15 +143,18 @@ try {
   await page.evaluate(async () => { const { talk } = window.__stage; talk.stop(); await talk.newChat(); await talk.startChat('private') })
   await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.waitingInput && !c.speaking })
   const system = (a) => JSON.stringify(a.body.messages[0])
+  // this build is livliv.ai's: a character there is in a LivLiv Stage conversation
+  const privately = `in a private ${products.site.name} conversation`
   assert.equal(await page.evaluate(() => window.__stage.conversation().engine), 'airi')
   assert.ok(asked.length && /私下的暗号是木瓜/.test(system(asked[0])) && /公开的爱好是猫/.test(system(asked[0])), 'private: both memories')
+  assert.ok(system(asked[0]).includes(privately), 'private: told it is a private conversation, by the site\'s name')
   await page.evaluate(() => window.__stage.rec.start({ mic: false, talk: false }))
   await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.scope === 'public' && !!c.sessionId && c.waitingInput && !c.speaking && !c.thinking })
   asked.length = 0
   await page.evaluate(() => window.__stage.talk.say('现在在录像'))
   await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.waitingInput && !c.speaking && c.lines.some((l) => l.human && l.text === '现在在录像') && !c.lines.at(-1).human })
   assert.ok(asked.length, 'AIRI answered in public')
-  assert.ok(asked.every((a) => /公开的爱好是猫/.test(system(a)) && !/私下的暗号是木瓜/.test(system(a)) && !JSON.stringify(a.body.messages).includes('in a private LivLiv Stage conversation')), 'public: the public memory only')
+  assert.ok(asked.every((a) => /公开的爱好是猫/.test(system(a)) && !/私下的暗号是木瓜/.test(system(a)) && !JSON.stringify(a.body.messages).includes(privately)), 'public: the public memory only')
   await page.evaluate(async () => { const { talk, rec } = window.__stage; talk.stop(); await rec.stop() })
   await page.waitForFunction(() => !['starting', 'recording', 'making'].includes(window.__stage.recording().phase), null, { timeout: testTimeout(60000) })
   // the record back to a fresh private one (the recording left the public one open)
