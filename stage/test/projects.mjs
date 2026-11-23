@@ -10,7 +10,7 @@ import { freePort, startVite, testTimeout } from './vite.mjs'
 const root = fileURLToPath(new URL('..', import.meta.url)), artifacts = await mkdtemp(join(tmpdir(), 'stage-projects-'))
 let server, browser, page
 const report = { artifacts }, errors = []
-const ready = (p) => p.waitForFunction(() => window.__stage.actors.size > 0 && [...window.__stage.actors.values()].every((a) => a.status === 'ready'), null, { timeout: 45000 })
+const ready = (p) => p.waitForFunction(() => window.__stage.actors.size > 0 && [...window.__stage.actors.values()].every((a) => a.status === 'ready'), null, { timeout: testTimeout(45000) })
 const state = (p) => p.evaluate(() => ({ active: window.__stage.store.get().id, scenes: window.__stage.store.project().scenes.map((s) => s.id) }))
 try {
   const port = await freePort(); server = await startVite({ port })
