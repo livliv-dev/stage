@@ -60,12 +60,13 @@
   },
   "dependencies": {
     "@fontsource-variable/inter": "5.3.0",
-    "@livliv-dev/player": "file:../vendor/player-temporary/livliv-dev-player-0.6.0-hairsway.5e92c26.tgz",
+    "@livliv-dev/player": "file:../vendor/player-temporary/livliv-dev-player-0.7.0-mavatar.6c3d926.tgz",
     "@mediapipe/tasks-vision": "1.1.1",
     "@pixiv/three-vrm": "3.5.5",
     "fflate": "0.8.3",
     "lucide-react": "1.57.0",
     "mediabunny": "1.61.5",
+    "mesh-avatar": "0.9.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "three": "0.186.0"

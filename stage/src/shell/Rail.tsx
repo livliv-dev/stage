@@ -69,9 +69,9 @@ export function AddCharacter({ left, onClose, onSignIn }: { left: number; onClos
     if (!f?.length) return
     try { take(await fromFiles(f)) } catch (e) { setErr((e as Error).message) }
   }
-  // a model package's zip or a .vrm dropped on the card
+  // a model package's zip, a .vrm or a .mavatar dropped on the card
   const drop = (e: React.DragEvent) => {
-    const f = [...e.dataTransfer.files].filter((x) => /\.(livliv|zip|vrm)$/i.test(x.name))
+    const f = [...e.dataTransfer.files].filter((x) => /\.(livliv|zip|vrm|mavatar)$/i.test(x.name))
     if (!f.length) return
     e.preventDefault()
     void files(f.slice(0, 1))
@@ -83,10 +83,10 @@ export function AddCharacter({ left, onClose, onSignIn }: { left: number; onClos
       <p className="label first">{tr("导入")}</p>
       <div className="row imports">
         <button title={tr("LivLiv 模型包（文件夹）")} onClick={() => folder.current?.click()}><FolderOpen size={15} />{tr("模型文件夹")}</button>
-        <button title={tr(".livliv、zip 或 VRM 文件")} onClick={() => file.current?.click()}><FileBox size={15} />.livliv / VRM</button>
+        <button title={tr(".livliv、zip、VRM 或 .mavatar 文件")} onClick={() => file.current?.click()}><FileBox size={15} />.livliv / VRM / .mavatar</button>
         <button className={png ? 'on' : ''} aria-expanded={png} onClick={() => setPng((v) => !v)}><ImageIcon size={15} />{tr("PNG 立绘")}</button>
         <input ref={folder} type="file" hidden {...{ webkitdirectory: '' }} onChange={(e) => { void files(e.target.files); e.target.value = '' }} />
-        <input ref={file} type="file" accept=".livliv,.zip,.vrm" hidden onChange={(e) => { void files(e.target.files); e.target.value = '' }} />
+        <input ref={file} type="file" accept=".livliv,.zip,.vrm,.mavatar" hidden onChange={(e) => { void files(e.target.files); e.target.value = '' }} />
       </div>
       {png && <PngForm onDone={take} onError={setErr} />}
       <p className="label">{tr("精选角色")}</p>
@@ -103,7 +103,7 @@ export function AddCharacter({ left, onClose, onSignIn }: { left: number; onClos
           {mine.map((k) => (
             <div key={k.key} className="kept-row">
               <button className="link" onClick={() => take(fromKept(k))}>
-                {k.name}{k.format && k.format !== 'livliv' && <i className="fmt">{k.format === 'vrm' ? 'VRM' : tr("立绘")}</i>}
+                {k.name}{k.format && k.format !== 'livliv' && <i className="fmt">{k.format === 'vrm' ? 'VRM' : k.format === 'mavatar' ? 'mavatar' : tr("立绘")}</i>}
               </button>
               <span>{new Date(k.at).toLocaleDateString(getLocale())}</span>
               <button className="icon" title={tr("从本机删除（用到它的角色要重新导入）")}

@@ -5,7 +5,7 @@ export const MAX_FILES = 512
 export const CHUNK_BYTES = 16 * 1024
 export type Member = { id: string; name: string; host: boolean }
 export type Invite = { server: string; room: string; token: string }
-export type ModelManifest = { id: string; name: string; format: 'livliv' | 'vrm' | 'png'; mirror: boolean; color: string; files: { path: string; size: number; type: string }[] }
+export type ModelManifest = { id: string; name: string; format: 'livliv' | 'vrm' | 'png' | 'mavatar'; mirror: boolean; color: string; files: { path: string; size: number; type: string }[] }
 // Plain ws: is for this machine or a private network (RFC 1918, IPv6 ULA); anything else has to use wss:.
 const privateHost = (host: string) => host === 'localhost' || host === '[::1]' || /^\[f[cd][\da-f]{2}:/.test(host) || /^(127|10|192\.168|172\.(1[6-9]|2\d|3[01]))\.[\d.]+$/.test(host)
 export function serviceUrl(raw: string) {
@@ -29,7 +29,7 @@ export function decodeInvite(raw: string): Invite {
 }
 export const safePath = (path: string) => path.length > 0 && path.length <= 256 && !/[\u0000-\u001f\\%?#:]/.test(path) && !path.startsWith('/') && !/^[a-z]:/i.test(path) && path.split('/').every((part) => part !== '..' && part !== '.' && part !== '')
 export function readManifest(raw: unknown): ModelManifest | null {
-  if (!object(raw) || typeof raw.id !== 'string' || !/^[\w-]{1,64}$/.test(raw.id) || !personName(raw.name) || !['livliv', 'vrm', 'png'].includes(String(raw.format)) || typeof raw.mirror !== 'boolean' || typeof raw.color !== 'string' || !/^#[\da-f]{6}$/i.test(raw.color) || !Array.isArray(raw.files) || !raw.files.length || raw.files.length > MAX_FILES) return null
+  if (!object(raw) || typeof raw.id !== 'string' || !/^[\w-]{1,64}$/.test(raw.id) || !personName(raw.name) || !['livliv', 'vrm', 'png', 'mavatar'].includes(String(raw.format)) || typeof raw.mirror !== 'boolean' || typeof raw.color !== 'string' || !/^#[\da-f]{6}$/i.test(raw.color) || !Array.isArray(raw.files) || !raw.files.length || raw.files.length > MAX_FILES) return null
   let size = 0
   const seen = new Set<string>()
   for (const file of raw.files) {

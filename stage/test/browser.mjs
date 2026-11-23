@@ -142,28 +142,39 @@ try {
   assert.equal(report.interruptedRecording.phase, 'done'); assert.equal(report.interruptedRecording.voiceError, ''); assert.ok(interruptedVoice > 0)
   await page.evaluate(async () => { const { saveSpeech } = await import('/src/voiceApi.ts'); saveSpeech({ provider: 'openai', base: location.origin + '/fixture-ai', key: 'test-only', model: 'fixture-tts', voice: 'alloy', asr: 'fixture-asr' }) })
   // Synthetic local assets exercise the same import and persistence path as user files.
-  const vrm = [...await readFile(new URL('./fixtures/avatar.vrm', import.meta.url))]
-  const imported = await page.evaluate(async (bytes) => {
+  const vrm = [...await readFile(new URL('./fixtures/avatar.vrm', import.meta.url))], mavatar = [...await readFile(new URL('./fixtures/nana.mavatar', import.meta.url))]
+  const imported = await page.evaluate(async ([bytes, mesh]) => {
     const { fromPngs, fromFiles } = await import('/src/library.ts'); const { store, newCharacter } = await import('/src/scene.ts')
     const canvas = new OffscreenCanvas(160, 240), ctx = canvas.getContext('2d'); ctx.fillStyle = '#77aadd'; ctx.fillRect(0, 0, 160, 240)
     const blob = await canvas.convertToBlob({ type: 'image/png' })
     const png = await fromPngs({ closed: new File([blob], 'closed.png'), open: new File([blob], 'open.png') }, 'PNG fixture')
     const vrm = await fromFiles([new File([new Uint8Array(bytes)], 'avatar.vrm')])
-    return [png, vrm].map((pick, index) => { const c = newCharacter(store.get(), pick.name, pick.model, '', .22 + index * .56); c.lines = 'none'; c.driver = 'auto'; store.add(c); return c.id })
-  }, vrm)
+    const mavatar = await fromFiles([new File([new Uint8Array(mesh)], 'nana.mavatar')])
+    return [png, vrm, mavatar].map((pick, index) => { const c = newCharacter(store.get(), pick.name, pick.model, '', .22 + index * .28); c.lines = 'none'; c.driver = 'auto'; store.add(c); return c.id })
+  }, [vrm, mavatar])
   await page.waitForFunction((ids) => ids.every((id) => window.__stage.actors.get(id)?.status === 'ready'), imported, { timeout: 20000 })
   await page.reload({ waitUntil: 'networkidle' })
   await page.waitForFunction((ids) => ids.every((id) => window.__stage.actors.get(id)?.status === 'ready'), imported, { timeout: 20000 })
   report.formats = await page.evaluate(() => [...window.__stage.actors.values()].map((a) => ({ format: a.format, status: a.status })))
-  assert.deepEqual(report.formats.map((x) => x.format).sort(), ['livliv', 'png', 'vrm'])
+  assert.deepEqual(report.formats.map((x) => x.format).sort(), ['livliv', 'mavatar', 'png', 'vrm'])
+  // a .mavatar: named as its avatar.json says, its expressions mesh-avatar's, the AI's feelings find them as on any character
+  report.mavatar = await page.evaluate(async () => {
+    const a = [...window.__stage.actors.values()].find((x) => x.format === 'mavatar'), { reactionExpression } = await import('/src/reactions.ts')
+    const feelings = Object.fromEntries(['happy', 'shy', 'angry', 'sad', 'surprised', 'amused'].map((f) => [f, reactionExpression(f, a.player.expressions)]))
+    return { name: a.item.name, expressions: a.player.expressions.map((e) => e.id), feelings, shown: a.setExpression('surprise'), back: a.setExpression(null) }
+  })
+  assert.equal(report.mavatar.name, 'Nana')
+  assert.deepEqual(report.mavatar.expressions, ['smile', 'laugh', 'shy', 'surprise', 'halfLidded', 'angry', 'sad', 'wink'])
+  assert.deepEqual(report.mavatar.feelings, { happy: 'smile', shy: 'shy', angry: 'angry', sad: 'sad', surprised: 'surprise', amused: 'laugh' })
+  assert.ok(report.mavatar.shown && report.mavatar.back)
   // a file that isn't a character, chosen in the add card: refused there in words; nothing is placed or kept
   {
     const characters = () => page.evaluate(() => window.__stage.store.get().items.filter((i) => i.kind === 'character').length)
     const kept = () => page.evaluate(async () => (await (await import('/src/vault.ts')).kept()).length)
     const [placed, keptBefore] = [await characters(), await kept()]
     if (!(await page.locator('.popover.add').isVisible())) await page.locator('.rail button.tool', { hasText: '角色' }).click()
-    const input = page.locator('.popover.add input[type=file][accept=".livliv,.zip,.vrm"]')
-    for (const [name, text] of [['notes.livliv', '这不是 LivLiv 模型包：请选 LivLiv 导出的 .livliv、zip 或文件夹'], ['avatar.vrm', '这不是 VRM 文件']]) {
+    const input = page.locator('.popover.add input[type=file][accept=".livliv,.zip,.vrm,.mavatar"]')
+    for (const [name, text] of [['notes.livliv', '这不是 LivLiv 模型包：请选 LivLiv 导出的 .livliv、zip 或文件夹'], ['avatar.vrm', '这不是 VRM 文件'], ['nana.mavatar', '这不是 .mavatar 文件']]) {
       await input.setInputFiles({ name, mimeType: 'application/octet-stream', buffer: Buffer.from('this is not a model') })
       await page.locator('.popover.add .err', { hasText: text }).waitFor()
     }
@@ -187,8 +198,8 @@ try {
   const popup = page.waitForEvent('popup'); await page.getByRole('button', { name: '打开输出窗口', exact: true }).click()
   const output = await popup; output.on('pageerror', (e) => errors.push('output: ' + e.message))
   await output.waitForSelector('canvas.character'); await output.waitForTimeout(1000)
-  assert.equal(await output.locator('canvas.character').count(), 3); assert.equal(await output.locator('.topbar').count(), 0)
-  await output.screenshot({ path: join(artifacts, 'output-three-formats.png'), omitBackground: true }); await output.close()
+  assert.equal(await output.locator('canvas.character').count(), 4); assert.equal(await output.locator('.topbar').count(), 0)
+  await output.screenshot({ path: join(artifacts, 'output-four-formats.png'), omitBackground: true }); await output.close()
   await page.evaluate(async () => { await window.__stage.rec.start({ mic: false, talk: false }) })
   await page.waitForTimeout(1200)
   await page.evaluate(async () => { const a = [...window.__stage.actors.values()].find((a) => a.item.lines === 'ai'); await a.speak('录制测试', 'happy', 'nod') })

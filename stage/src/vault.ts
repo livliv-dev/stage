@@ -1,6 +1,6 @@
 // Imported character packages and project images share one transactional browser store.
 const DB = 'livliv-stage', STORE = 'packages', ASSETS = 'assets'
-export type Kept = { key: string; name: string; at: number; format?: 'livliv' | 'vrm' | 'png'; livlivId?: string; sampleId?: string }
+export type Kept = { key: string; name: string; at: number; format?: 'livliv' | 'vrm' | 'png' | 'mavatar'; livlivId?: string; sampleId?: string }
 export type StoredAsset = { key: string; name: string; blob: Blob }
 export type StoredModel = Kept & { files: [string, Blob][] }
 let db: Promise<IDBDatabase> | null = null

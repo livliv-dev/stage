@@ -25,7 +25,7 @@ Stage を「何をしたいか」から組み立て直しました。[1.0 プレ
 
 ## そのほかの機能
 
-- ひとつのステージに最大 30 体：LivLiv、VRM、PNGTuber。厳選キャラクター 27 体付き
+- ひとつのステージに最大 30 体：LivLiv、VRM、PNGTuber、Mesh Avatar Studio（`.mavatar`）。厳選キャラクター 27 体付き
 - キャラクター同士の掛け合い、Twitch コメントへの返事、記憶（[Project AIRI](https://github.com/moeru-ai/airi)）とリアルタイム通話
 - フェイストラッキング、OBS 出力、録画、ゲーム接続、Neuro SDK
 
@@ -43,7 +43,7 @@ AI は自分のモデルの API キー（OpenAI、Qwen、DeepSeek など）か�
 ## キャラクター
 
 厳選キャラクターには[専用のライセンス](stage/public/characters/LICENSE.md)があります。自分のキャラクターは「インポート」から：
-[livliv.ai](https://livliv.ai) のモデルパッケージ（`.livliv`）、VRM、PNGTuber。
+[livliv.ai](https://livliv.ai) のモデルパッケージ（`.livliv`）、VRM、PNGTuber、[Mesh Avatar Studio](https://github.com/shinshin86/mesh-avatar-studio) で書き出した `.mavatar`。
 
 ## Project LivLiv
 
@@ -73,5 +73,5 @@ Neuro SDK ブリッジは [neuro/README.md](neuro/README.md)、ローカル制�
 
 ## ライセンス
 
-コードは [Apache License 2.0](LICENSE) で公開しています。厳選キャラクターには[独自のライセンス](stage/public/characters/LICENSE.md)があります。
+コードは [Apache License 2.0](LICENSE) で公開しています。`.mavatar` のキャラクターは [mesh-avatar](https://www.npmjs.com/package/mesh-avatar)（MIT）が描画します。厳選キャラクターには[独自のライセンス](stage/public/characters/LICENSE.md)があります。
 LivLiv の名前とロゴは、公式版を名乗らない限り、あなたのバージョンでもそのまま使えます：[TRADEMARKS.md](TRADEMARKS.md)。

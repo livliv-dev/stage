@@ -8,7 +8,7 @@ import { cardOf, local, sampleUrl, SAMPLES, type Card as SampleCard } from './sa
 import { api, signedIn } from './livliv'
 import { keep, type Kept } from './vault'
 import type { PngSlot } from './bodies/png'
-import { checkModel, checkPackage, checkPicture, checkVrm, modelJsonOf } from './modelCheck'
+import { checkMavatar, checkModel, checkPackage, checkPicture, checkVrm, modelJsonOf } from './modelCheck'
 
 /** label: how the picker names it (when two share a name); live: how it goes live, as its page on the site sets it */
 export type Pick = { name: string; persona: string; model: ModelRef; thumb?: string; label?: string; id?: string; card?: SampleCard; live?: LiveSettings }
@@ -71,10 +71,12 @@ function fromCard(c: Card): Pick {
   return { id: c.id, name: c.name, persona: persona(c), model: { type: 'url', url }, ...(live ? { live } : {}), thumb: url === `/models/${c.id}/` ? `${url}avatar.webp${c.v ? `?v=${c.v}` : ''}` : `${url}avatar.webp` }
 }
 
-/** a model package from files: a picked folder, or a .livliv (or .zip) file; a .vrm file is a VRM */
+/** a model package from files: a picked folder, or a .livliv (or .zip) file; a .vrm file is a VRM, a .mavatar file a
+ *  Mesh Avatar Studio avatar */
 export async function fromFiles(files: FileList | File[]): Promise<Pick> {
   const list = [...files]
   if (list.length === 1 && /\.vrm$/i.test(list[0].name)) { await checkVrm(list[0]); return fromVrm(list[0]) }
+  if (list.length === 1 && /\.mavatar$/i.test(list[0].name)) return fromMavatar(list[0])
   const map = new Map<string, Blob>()
   if (list.length === 1 && /\.(livliv|zip)$/i.test(list[0].name)) {
     const file = list[0], key = uid(), name = file.name.replace(/\.(livliv|zip)$/i, '') || tr("角色")
@@ -89,6 +91,8 @@ export async function fromFiles(files: FileList | File[]): Promise<Pick> {
   }
   // the package's own model.json, picked as the player picks it (a zip may hold one folder, or the files at its top)
   const json = modelJsonOf(map.keys())
+  // a Mesh Avatar Studio project's folder: what goes on the stage is the .mavatar the Studio exports from it
+  if (!json && [...map.keys()].some((p) => p === 'rig.json' || p.endsWith('/rig.json'))) throw new Error(tr("这是 Mesh Avatar Studio 的项目文件夹：请在 Studio 里导出 .mavatar，再导入那个文件"))
   if (!json) throw new Error(tr("里面没有 model.json：选 LivLiv 导出的模型包（.livliv、zip 或文件夹）"))
   await checkModel(map.get(json)!)
   let name = tr("角色")
@@ -105,6 +109,14 @@ export async function fromVrm(file: File): Promise<Pick> {
   localModels.set(key, map)
   await keep({ key, name, at: Date.now(), format: 'vrm' }, map)
   return { name, persona: '', model: { type: 'files', key, format: 'vrm' } }
+}
+
+/** a Mesh Avatar Studio avatar (.mavatar): the file, kept in this browser like a package, named as its avatar.json says */
+export async function fromMavatar(file: File): Promise<Pick> {
+  const name = await checkMavatar(file) ?? (file.name.replace(/\.mavatar$/i, '') || 'Mesh Avatar'), key = uid(), map = new Map<string, Blob>([['model.mavatar', file]])
+  localModels.set(key, map)
+  await keep({ key, name, at: Date.now(), format: 'mavatar' }, map)
+  return { name, persona: '', model: { type: 'files', key, format: 'mavatar' } }
 }
 
 /** a PNGTuber: its pictures by slot (bodies/png.ts: closed and open needed, blink and blink-open if there) */

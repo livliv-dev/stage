@@ -10,3 +10,8 @@ stage/public/characters/CREDITS.md. For the LivLiv name and logo, see TRADEMARKS
 
 neuro/ follows the public Neuro API specification by Vedal AI (MIT License); that
 notice is in neuro/THIRD_PARTY_NOTICES.md.
+
+.mavatar characters (Mesh Avatar Studio) are drawn by mesh-avatar
+(https://github.com/shinshin86/mesh-avatar-studio, MIT License, Copyright (c) 2026
+Yuki Shindo), installed as a dependency. stage/test/fixtures/nana.mavatar is Nana, a
+featured character, made into a .mavatar by LivLiv, under the featured characters' terms.

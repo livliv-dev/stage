@@ -1,10 +1,11 @@
 # A temporary LivLiv Player build
 
-`livliv-dev-player-0.6.0-hairsway.5e92c26.tgz` is [LivLiv Player](https://github.com/livliv-dev/player) built ahead of
-its next release for one change: long hair swings gently below the shoulders when a character tilts, turns or leans, more
-toward the tips. Still frames are unchanged, and the 长发和饰品晃动 slider at 0 draws every frame exactly as Player 0.5.1.
+`livliv-dev-player-0.7.0-mavatar.6c3d926.tgz` is [LivLiv Player](https://github.com/livliv-dev/player) built ahead of
+its next release, from the public commit 6c3d926 (branch `feat/mavatar`): Player 0.6 (long hair swings gently below
+the shoulders, feel settings, the review fixes) and Mesh Avatar Studio avatars (`.mavatar`) through
+`@livliv-dev/player/mavatar`, drawn by mesh-avatar 0.9.0 (MIT), which Stage depends on beside it.
 
 Stage depends on it from [stage/package.json](../../stage/package.json); the lock pins its sha512. It is committed here
 (the repository otherwise ignores `*.tgz`) so that a fresh clone installs it.
 
-When the Player release with this change is on npm, depend on that version and delete this folder.
+When the Player release with these changes is on npm, depend on that version and delete this folder.

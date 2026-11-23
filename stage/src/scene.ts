@@ -49,7 +49,7 @@ export const LENGTHS: { id: Length; label: string; chars: number }[] = [{ id: 's
 
 /** a LivLiv model by its address, or files imported (kept in this browser, vault.ts): a LivLiv package, a VRM, a
  *  PNGTuber's pictures (bodies/) */
-export type ModelRef = { type: 'url'; url: string } | { type: 'files'; key: string; format?: 'livliv' | 'vrm' | 'png'; livlivId?: string; sampleId?: string }
+export type ModelRef = { type: 'url'; url: string } | { type: 'files'; key: string; format?: 'livliv' | 'vrm' | 'png' | 'mavatar'; livlivId?: string; sampleId?: string }
 /** source: where its voice comes from: 'auto' (your speech API, else its LivLiv voice, else the system's), its
  *  LivLiv voice (`livliv`: one of the site's voices by id, '' its own; needs a LivLiv account), your own API (`api`: a
  *  voice name of it, '' its default; voiceApi.ts), or the system's (name, pitch and rate). One that can't be had falls

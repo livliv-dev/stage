@@ -25,7 +25,7 @@ Stage 按「你来做什么」重新整理了一遍。[下载 1.0 预览版](htt
 
 ## 其他功能
 
-- 一张舞台最多 30 个角色：LivLiv、VRM、PNGTuber，自带 27 个精选角色
+- 一张舞台最多 30 个角色：LivLiv、VRM、PNGTuber、Mesh Avatar Studio（`.mavatar`），自带 27 个精选角色
 - 角色之间对话、回应 Twitch 弹幕，有记忆（[Project AIRI](https://github.com/moeru-ai/airi)）和实时通话
 - 面捕、OBS 输出、录视频、游戏连接和 Neuro SDK
 
@@ -43,7 +43,7 @@ AI 可以用你自己的模型密钥（OpenAI、通义千问、DeepSeek 等）�
 ## 角色
 
 精选角色有[单独的许可](stage/public/characters/LICENSE.md)。用「导入」放上你自己的角色：[livliv.ai](https://livliv.ai) 的模型包（`.livliv`）、
-VRM 或 PNGTuber。
+VRM、PNGTuber，或 [Mesh Avatar Studio](https://github.com/shinshin86/mesh-avatar-studio) 导出的 `.mavatar`。
 
 ## Project LivLiv
 
@@ -73,5 +73,5 @@ Neuro SDK 桥接见 [neuro/README.md](neuro/README.md)，本机控制接口见 [
 
 ## 许可
 
-代码采用 [Apache License 2.0](LICENSE)。精选角色有[自己的许可](stage/public/characters/LICENSE.md)。
+代码采用 [Apache License 2.0](LICENSE)。`.mavatar` 角色由 [mesh-avatar](https://www.npmjs.com/package/mesh-avatar)（MIT）绘制。精选角色有[自己的许可](stage/public/characters/LICENSE.md)。
 你的版本可以继续用 LivLiv 的名字和标志，只要不自称官方版本，见 [TRADEMARKS.md](TRADEMARKS.md)。

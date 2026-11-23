@@ -1,14 +1,15 @@
 // Is a file a character? What is imported is checked before it goes on the stage (library.ts): a LivLiv model package
 // (.livliv or zip) must be a ZIP holding a model.json the player reads (its format, a version it knows), a folder's
-// model.json the same, a VRM a binary glTF 2.0 (the player's own test, and its JSON part), PNGTuber pictures PNG, WebP
-// or GIF. What isn't is refused in words in the add card, and nothing is placed or kept. A player's refusal reads the
-// same way on the canvas (actors.ts), worded for the character's format. Pure: test/modelCheck.test.ts.
+// model.json the same, a VRM a binary glTF 2.0 (the player's own test, and its JSON part), a Mesh Avatar Studio avatar
+// (.mavatar) a ZIP with its avatar.json and rig.json, PNGTuber pictures PNG, WebP or GIF. What isn't is refused in words
+// in the add card, and nothing is placed or kept. A player's refusal reads the same way on the canvas (actors.ts),
+// worded for the character's format. Pure: test/modelCheck.test.ts and test/mavatar.test.ts.
 import { unzipSync } from 'fflate'
 import { FORMAT, FORMAT_VERSION, LEGACY_FORMAT, LivLivError } from '@livliv-dev/player'
 import { tr } from './i18n'
 
 /** what a character is made from (bodies/index.ts Format) */
-export type ModelFormat = 'livliv' | 'vrm' | 'png'
+export type ModelFormat = 'livliv' | 'vrm' | 'png' | 'mavatar'
 
 /** why a character can't be shown, in words for its format: never the player's own (English) message for a file that
  *  isn't right */
@@ -21,6 +22,7 @@ export function refused(e: unknown, format: ModelFormat = 'livliv') {
   if (e.code === 'unreachable' || e.code === 'http') return tr("模型读取失败，请检查文件或网络")
   if (e.code === 'not-a-model' || e.code === 'invalid' || e.code === 'missing-file') {
     if (format === 'vrm') return e.code === 'not-a-model' ? tr("这不是 VRM 文件") : tr("VRM 文件已损坏，读不出来：请重新导出")
+    if (format === 'mavatar') return e.code === 'not-a-model' ? tr("这不是 .mavatar 文件") : tr(".mavatar 文件已损坏或不完整：请在 Mesh Avatar Studio 里重新导出")
     if (format === 'png') return e.code === 'missing-file' ? tr("立绘缺少图片：至少要闭嘴和张嘴两张") : tr("立绘图片读不出来：请换成 PNG、WebP 或 GIF")
     if (e.code === 'not-a-model') return tr("这不是 LivLiv 模型包：请选 LivLiv 导出的 .livliv、zip 或文件夹")
     if (e.code === 'invalid') return tr("模型文件已损坏：请重新从 LivLiv 导出")
@@ -68,6 +70,20 @@ export async function checkVrm(file: Blob) {
   const bytes = await head(file, 20)
   const glb = bytes.length === 20 && matches(bytes, 0, ...ascii('glTF')) && new DataView(bytes.buffer).getUint32(4, true) === 2 && matches(bytes, 16, ...ascii('JSON'))
   if (!glb) throw new Error(tr("这不是 VRM 文件"))
+}
+
+/** a Mesh Avatar Studio avatar (.mavatar): a ZIP holding its avatar.json and rig.json (only the names are read; the
+ *  player checks the rest as it loads it). Its name, from avatar.json, when it gives one */
+export async function checkMavatar(file: Blob): Promise<string | null> {
+  const names: string[] = []
+  let entries: Record<string, Uint8Array>
+  try { entries = unzipSync(new Uint8Array(await file.arrayBuffer()), { filter: (entry) => { names.push(entry.name); return entry.name === 'avatar.json' } }) }
+  catch (e) { throw refuse('not-a-model', 'not a ZIP', 'mavatar', e) }
+  if (!names.includes('avatar.json') || !names.includes('rig.json')) throw refuse('not-a-model', 'no avatar.json and rig.json', 'mavatar')
+  try {
+    const name = (JSON.parse(new TextDecoder().decode(entries['avatar.json'])) as { name?: unknown }).name
+    return typeof name === 'string' && name.trim() ? name.trim().slice(0, 200) : null
+  } catch (e) { throw refuse('invalid', 'avatar.json is not JSON', 'mavatar', e) }
 }
 
 /** a PNGTuber's picture: PNG, WebP or GIF (what the picture slots take), by the file's first bytes */
