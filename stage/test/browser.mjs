@@ -205,7 +205,7 @@ try {
   await page.evaluate(async () => { const a = [...window.__stage.actors.values()].find((a) => a.item.lines === 'ai'); await a.speak('录制测试', 'happy', 'nod') })
   await page.waitForTimeout(400)
   report.recording = await page.evaluate(async () => { await window.__stage.rec.stop(); const r = window.__stage.recording(); return { phase: r.phase, error: r.error, size: r.made?.file.size, seconds: r.made?.seconds, type: r.made?.file.type } })
-  assert.equal(report.recording.phase, 'done'); assert.ok(report.recording.size > 10000)
+  assert.equal(report.recording.phase, 'done', `the recording: ${JSON.stringify(report.recording)}`); assert.ok(report.recording.size > 10000)
   await page.setViewportSize({ width: 1280, height: 800 }); await page.screenshot({ path: join(artifacts, 'workspace-1280.png') })
   // push to talk with nothing running: the idle console has no microphone button, so its state is read from ptt
   await page.evaluate(async () => { window.__ptt = (await import('/src/ptt.ts')).pttState })
