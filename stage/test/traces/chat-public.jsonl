@@ -9,7 +9,7 @@
 {"t":"save","scope":"public","lines":1}
 {"t":"line","from":"ai","name":"Nana","text":"我接着说下去。","scope":"public"}
 {"t":"save","scope":"public","lines":2}
-{"t":"line","from":"you","name":"旁白","text":"大家好","scope":"public"}
+{"t":"line","from":"you","name":"我","text":"大家好","scope":"public"}
 {"t":"save","scope":"public","lines":3}
 {"t":"model","engine":"openai","speaker":"Nana","scope":"public","memories":["public: 公开的爱好是猫"]}
 {"t":"voice","via":"api","text":"Nana的第3句。"}

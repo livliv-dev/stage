@@ -10,7 +10,7 @@
 {"t":"cut","name":"Nana","text":"Nana的第1句。"}
 {"t":"scope","scope":"public"}
 {"t":"record","scope":"public","earlier":0}
-{"t":"line","from":"you","name":"旁白","text":"现在在录像","scope":"public"}
+{"t":"line","from":"you","name":"我","text":"现在在录像","scope":"public"}
 {"t":"save","scope":"public","lines":1}
 {"t":"model","engine":"openai","speaker":"Nana","scope":"public","memories":["public: 公开的爱好是猫"]}
 {"t":"voice","via":"api","text":"Nana的第1句。"}

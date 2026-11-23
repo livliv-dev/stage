@@ -210,11 +210,25 @@ async function streamedTurn(run: Run, me: CharacterItem, chat: Chat | null | und
     const aloud = !textOnly && !actor.item.muted
     const take = await actor.prepare(line.text, line.emotion, aloud, signal, undefined, voiced)
     signal.throwIfAborted()
-    if (aloud && take.mute) throw new VoiceFailed(actor.voiceError || tr('声音播放失败，请检查声音设置'))
+    silentOrHeard(me, take, aloud)
     return take
   }, (line, take) => deliver({ id: uid(), who: me.id, name: me.name, ...line, memoryIds, memoryRevision: context.revision }, me, signal, take, speech, run.lineAhead),
   () => set({ thinking: null, turns: conversation().turns + 1 }))
   if (!said && event?.reply !== 'maybe') throw new Error(tr('模型没有返回可播放的回复'))
+}
+
+// A line whose voice failed on this computer (not one meant as subtitles only: no voice for it, sessionRoute 'none') is
+// still shown, as a subtitle: its text has come and is paid for. The console says why it is silent until a voice plays.
+let silentBecause = ''
+function silentOrHeard(me: CharacterItem, take: Take, aloud: boolean) {
+  if (!aloud) return
+  if (take.mute && sessionRoute(me) !== 'none') {
+    silentBecause = actors.get(me.id)?.voiceError || tr('声音播放失败，请检查声音设置')
+    set({ error: silentBecause })
+  } else if (!take.mute && silentBecause) {
+    if (conversation().error === silentBecause) set({ error: '' })
+    silentBecause = ''
+  }
 }
 
 /** an AI character's turn, said: true when it was said, false when you cut it off (the session goes on) */
@@ -295,7 +309,7 @@ async function bySentences(run: Run, me: CharacterItem, r: Utterance & Pick<Line
     const voice = await preparedVoice
     signal.throwIfAborted()
     await checkMemory(memory, me.profileId ?? me.id, conversation().scope, memoryRevision)
-    if (voice?.mute && sessionRoute(me) !== 'none') throw new Error(actor?.voiceError || tr('声音播放失败，请检查声音设置'))
+    if (voice) silentOrHeard(me, voice, true)
     preparedVoice = i + 1 < segments.length ? actor?.prepare(segments[i + 1], r.emotion, true, signal, undefined, voiced) : undefined
     // A cancelled future sentence may reject before playback reaches it.
     void preparedVoice?.catch(() => {})

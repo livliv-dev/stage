@@ -9,7 +9,7 @@
 {"t":"save","scope":"private","lines":1}
 {"t":"line","from":"ai","name":"Nana","text":"我接着说下去。","scope":"private"}
 {"t":"save","scope":"private","lines":2}
-{"t":"line","from":"you","name":"旁白","text":"记住：我的生日是三月","scope":"private"}
+{"t":"line","from":"you","name":"我","text":"记住：我的生日是三月","scope":"private"}
 {"t":"save","scope":"private","lines":3}
 {"t":"remember","scope":"private","for":"Nana","text":"我的生日是三月"}
 {"t":"model","engine":"openai","speaker":"Nana","scope":"private","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫","private: 我的生日是三月"]}
@@ -19,7 +19,7 @@
 {"t":"save","scope":"private","lines":4}
 {"t":"line","from":"ai","name":"Nana","text":"我接着说下去。","scope":"private"}
 {"t":"save","scope":"private","lines":5}
-{"t":"line","from":"you","name":"旁白","text":"还记得我的生日吗","scope":"private"}
+{"t":"line","from":"you","name":"我","text":"还记得我的生日吗","scope":"private"}
 {"t":"save","scope":"private","lines":6}
 {"t":"model","engine":"openai","speaker":"Nana","scope":"private","memories":["private: 私下的暗号是木瓜","public: 公开的爱好是猫","private: 我的生日是三月"]}
 {"t":"voice","via":"api","text":"Nana的第5句。"}

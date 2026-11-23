@@ -19,7 +19,8 @@ export function StatusLine({ goal, partner, checks, onModel, onVoice, onAudience
   const ai = participants(scene).filter((c) => c.lines === 'ai' && !c.remote)
   const options = optionsOf(scene.talk, goal, partner), plan = planNow(goal, options)
   const model = brain.kind === 'demo' ? tr('演示') : !brainReady(brain) ? null : brain.kind === 'livliv' ? 'livliv.ai' : brain.model
-  const silent = ai.filter((c) => !c.muted && voiceRoute(c, speech) === 'none')
+  // the demo's lines come with their own recorded voices
+  const silent = brain.kind === 'demo' ? [] : ai.filter((c) => !c.muted && voiceRoute(c, speech) === 'none')
   const session = conv.running ? conv.mode : 'blocked' in plan ? null : plan.session
   // running: the engine it started on (AIRI, or the standard one for the reason the rule gives); else the one it would
   const engine = session === 'chat' || session === 'live'

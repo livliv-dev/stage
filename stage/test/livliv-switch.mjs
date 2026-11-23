@@ -26,7 +26,7 @@ const vrm = [...await readFile(join(root, 'test/fixtures/avatar.vrm'))]
 const OWN = { kind: 'openai', provider: 'custom', base: '', key: 'test-only', model: 'own-model' }
 const SPEECH = { provider: 'openai', base: '', key: 'test-only', model: 'own-tts', voice: 'alloy', asr: 'own-asr' }
 const LINE = '今天的风好舒服。'
-let signed = true, refuseAt = 0  // refuseAt: the how-many-th livliv.ai text call from now is refused as too long
+let signed = true, refuseAt = 0, sayFails = 0  // refuseAt: the how-many-th livliv.ai text call from now is refused as too long; sayFails: so many /say calls fail
 const calls = []  // every request to livliv.ai's points routes and to your own services: { kind, path, body, auth }
 const POINTS = /^\/api\/(stage\/v1\/|chat\/(asr\/|say$|[^/]+\/say$|[^/]+\/stage-line$))/
 const paid = () => calls.filter((c) => POINTS.test(c.path))
@@ -79,7 +79,7 @@ try {
         if (calls.at(-1).body.stream) return route.fulfill({ contentType: 'text/event-stream', body: sse(LINE) })  // AIRI
         return route.fulfill({ json: { choices: [{ message: { content: JSON.stringify({ text: LINE, emotion: 'happy', action: 'none', to: null, look: null }) } }] } })
       }
-      if (path === '/api/chat/say' || /^\/api\/chat\/[^/]+\/say$/.test(path)) { record('livliv-voice'); return route.fulfill({ json: { lines: [{ audio: '/api/chat/say/line.mp3', expression: null }], points: 119 } }) }
+      if (path === '/api/chat/say' || /^\/api\/chat\/[^/]+\/say$/.test(path)) { record('livliv-voice'); if (sayFails > 0) { sayFails--; return route.fulfill({ status: 503, json: { detail: '声音服务暂时不可用' } }) } return route.fulfill({ json: { lines: [{ audio: '/api/chat/say/line.mp3', expression: null }], points: 119 } }) }
       if (path === '/api/chat/asr/upload') { record('livliv-hearing'); return route.fulfill({ json: { text: '你好呀' } }) }
       if (/stage-line$/.test(path)) { record('stage-line'); return route.fulfill({ status: 410, json: { detail: 'not used' } }) }
       if (path === '/api/chat/say/line.mp3') return route.fulfill({ body: clip, contentType: 'audio/mpeg' })
@@ -201,6 +201,26 @@ try {
   assert.ok(voiced.length >= 2 && voiced.every((c) => c.path === '/api/chat/say' && c.body.voice === 'longanyang_v3.1' && c.body.lines[0].text === LINE), 'voiced in the young men\'s system voice: ' + JSON.stringify(voiced.map((c) => [c.path, c.body.voice])))
   assert.ok(voiced.every((c) => typeof c.body.line === 'string' && c.body.line && c.body.stage === true), 'each with its line id, as Stage\'s (a livliv.ai voice is paid by the line)')
   assert.equal(calls.filter((c) => c.kind.startsWith('own')).length, 0, 'saved own keys unused')
+  // 声音 off with no voice service of one's own: subtitles only. On AIRI each line shows, nothing is said wrong, and
+  // each is one call to livliv.ai's text (0.2), no voice
+  await page.evaluate(async () => { const v = await import('/src/voiceApi.ts'); window.ownSpeech = v.loadSpeech(); v.saveSpeech(v.SPEECH_OFF); (await import('/src/brain.ts')).setLivLiv({ text: true, voice: false }) })
+  assert.equal(await page.evaluate(async (id) => (await import('/src/voiceApi.ts')).voiceRoute(window.__stage.store.get().items.find((i) => i.id === id)), id), 'none', 'subtitles only')
+  calls.length = 0
+  await chat(page)
+  const subtitled = await page.evaluate(() => ({ lines: window.__stage.conversation().lines.filter((l) => !l.human).map((l) => l.text), error: window.__stage.conversation().error, yours: window.__stage.conversation().lines.filter((l) => l.human).map((l) => l.name) }))
+  assert.deepEqual(subtitled, { lines: [LINE, LINE], error: '', yours: ['我'] }, 'both lines shown, no error; your line is yours, not the narrator\'s')
+  assert.deepEqual(calls.map((c) => [c.kind, c.body?.stream]), [['livliv-text', true], ['livliv-text', true]], 'on AIRI: one text call a line, no voice')
+  // a voice that fails on the way (its service down for one line): the line is shown all the same, as a subtitle, its
+  // text being paid for; the console says why it is silent until the next line is voiced again
+  await page.evaluate(async () => { (await import('/src/voiceApi.ts')).saveSpeech(window.ownSpeech); (await import('/src/brain.ts')).setLivLiv({ text: true, voice: true }) })
+  await page.evaluate(() => { window.seenErrors = []; window.__stage.onConv(() => { const e = window.__stage.conversation().error; if (e && !window.seenErrors.includes(e)) window.seenErrors.push(e) }) })
+  calls.length = 0; sayFails = 1
+  await chat(page)
+  const failed = await page.evaluate(() => ({ lines: window.__stage.conversation().lines.filter((l) => !l.human).map((l) => l.text), error: window.__stage.conversation().error, seen: window.seenErrors }))
+  assert.deepEqual(failed.lines, [LINE, LINE], 'both lines shown, the silent one too')
+  assert.equal(failed.seen.length, 1, 'why the first was silent, said once: ' + JSON.stringify(failed.seen))
+  assert.equal(failed.error, '', 'and gone once a voice played again')
+  assert.equal(calls.filter((c) => c.kind === 'livliv-text').length, 2, 'no call made again')
   // livliv.ai refusing a call as too long (on AIRI here): the same call sent again with the older lines left out, nothing
   // shown. Two lines of yours first, so the refused call has lines before it to leave out
   calls.length = 0; refuseAt = 3
