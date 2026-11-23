@@ -13,7 +13,7 @@ import { Download, Minus } from 'lucide-react'
 import { REPO } from './GitHubLink'
 
 /** the newest desktop app (macOS and Windows) */
-export const RELEASES = 'https://github.com/livliv-dev/stage/releases/latest'
+export const RELEASES = 'https://github.com/livliv-dev/vtuber-stage/releases/latest'
 const SEEN = 'livliv-stage:desktop-notice'
 
 let open = false
@@ -45,7 +45,7 @@ export function DesktopNotice() {
     <p className="big" id="desktop-notice-title">{tr('网页版的限制')}</p>
     <p className="hint">{tr('网页版能用大部分功能，但受浏览器限制：')}</p>
     <ul>{ITEMS().map((item) => <li key={item}><Minus size={14} />{item}</li>)}</ul>
-    <p className="hint after">{before}<a href={REPO} target="_blank" rel="noopener noreferrer">LivLiv Stage</a>{after}</p>
+    <p className="hint after">{before}<a href={REPO} target="_blank" rel="noopener noreferrer">VTuber Stage</a>{after}</p>
     <div className="row end">
       <button onClick={closeDesktopNotice}>{tr('继续用网页版')}</button>
       <button className="primary" onClick={() => { window.open(RELEASES, '_blank', 'noopener'); closeDesktopNotice() }}><Download size={15} />{tr('下载桌面版')}</button>
