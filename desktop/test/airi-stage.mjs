@@ -101,7 +101,7 @@ const server = createServer(async (req, res) => {
     }
     assert.equal(body.stream, true)
     res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' })
-    if (prompt.includes('in a private LivLiv Stage conversation')) {
+    if (prompt.includes('in a private VTuber Stage conversation')) {
       memoryCalls.push(body)
       const last = body.messages.at(-1)
       if (last.role === 'tool') {

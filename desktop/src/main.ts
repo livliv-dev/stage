@@ -5,13 +5,15 @@
 // (stageApp.ts). Global commands go to the editor; the site shell keeps its separate live windows, endpoint and tray.
 import { randomBytes } from 'node:crypto'
 import { join } from 'node:path'
-import { app, BrowserWindow, globalShortcut, Menu, safeStorage, type MenuItemConstructorOptions } from 'electron'
+import { existsSync } from 'node:fs'
+import { app, BrowserWindow, dialog, globalShortcut, Menu, safeStorage, shell, type MenuItemConstructorOptions } from 'electron'
 import { parseDo } from '#protocol/commands'
-import { APP, APP_ORIGIN, DEV, flag, LIVLIV_API, ORIGINS, STAGE_BUILT, STAGE_DIR, VERSION, WEBGL_CONTEXTS } from './config'
+import { APP, APP_ORIGIN, DEV, flag, LIVLIV_API, NAME, ORIGINS, STAGE_BUILT, STAGE_DIR, VERSION, WEBGL_CONTEXTS } from './config'
 import { applyHotkeys, defaultBindings, hotkeyState, stageBindings } from './hotkeys'
 import { registerIpc } from './ipc'
 import { startLocalApi, type LocalApi } from './localApi'
 import { deliverMain, mainContents, openMain } from './mainWindow'
+import { oldApps, oldAppText } from './oldApp'
 import { startProbe, startStageProbe } from './probe'
 import { hardenSession } from './security'
 import { saveDownloads } from './downloads'
@@ -110,10 +112,28 @@ function capabilities() {
 function appMenu() {
   const view: MenuItemConstructorOptions[] = [{ role: 'reload' }, { role: 'forceReload' }, ...(DEV ? [{ role: 'toggleDevTools' } as const] : []),
     { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'togglefullscreen' }]
+  // the app menu by NAME, not Electron's app name (which keeps the old one, config.ts)
+  const named: MenuItemConstructorOptions = { label: NAME, submenu: [
+    { role: 'about', label: `About ${NAME}` }, { type: 'separator' }, { role: 'services' }, { type: 'separator' },
+    { role: 'hide', label: `Hide ${NAME}` }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' },
+    { role: 'quit', label: `Quit ${NAME}` }] }
+  app.setAboutPanelOptions({ applicationName: NAME })
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    ...(process.platform === 'darwin' ? [{ role: 'appMenu' } as const] : []),
+    ...(process.platform === 'darwin' ? [named] : []),
     { role: 'editMenu' }, { role: 'viewMenu', submenu: view }, { role: 'windowMenu' },
   ]))
+}
+
+/** once, on a Mac with the old LivLiv Stage.app still installed: offer to move it to the Trash (oldApp.ts) */
+async function offerOldAppTrash() {
+  if (process.platform !== 'darwin' || !app.isPackaged || settings().oldAppAsked) return
+  const found = oldApps(app.getPath('home'), app.getPath('exe'), existsSync)
+  if (!found.length) return
+  await keysOpen
+  const t = oldAppText(app.getLocale())
+  const { response } = await dialog.showMessageBox({ type: 'question', message: t.message, detail: t.detail, buttons: [t.trash, t.keep], defaultId: 0, cancelId: 1 })
+  update((s) => { s.oldAppAsked = true })
+  if (response === 0) for (const path of found) await shell.trashItem(path).catch((e: unknown) => console.error('[old app] not moved to the Trash:', path, e))
 }
 
 /** --stage=/live/<id>?… opens that stage at start (or in the running shell, from a second launch) */
@@ -130,7 +150,7 @@ function startStage() {
   syncHotkeys()
   void syncLocalApi()
   void motionInput?.configure(settings().trackingInput)
-  console.log(`[livliv] LivLiv Stage ${VERSION} on ${APP_ORIGIN}${STAGE_BUILT ? ` (${STAGE_DIR}, LivLiv at ${LIVLIV_API})` : ''}${DEV ? ' (development)' : ''}`)
+  console.log(`[livliv] VTuber Stage ${VERSION} on ${APP_ORIGIN}${STAGE_BUILT ? ` (${STAGE_DIR}, LivLiv at ${LIVLIV_API})` : ''}${DEV ? ' (development)' : ''}`)
 }
 
 if (APP === 'stage') {
@@ -167,6 +187,7 @@ else {
     })
     if (APP === 'stage') {
       startStage()
+      void offerOldAppTrash()
       const probe = DEV ? flag('probe') : undefined
       if (probe) startStageProbe(probe, process.argv.includes('--probe-scenario'))
       return

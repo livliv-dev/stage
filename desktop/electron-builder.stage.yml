@@ -1,4 +1,4 @@
-# LivLiv Stage as an app: this shell in its Stage flavor (config.ts APP, from extraMetadata below) with the Stage
+# VTuber Stage as an app: this shell in its Stage flavor (config.ts APP, from extraMetadata below) with the Stage
 # editor's web build inside (stage/dist, `npm run stage:web`), served at livliv-stage://app. Unsigned: macOS asks the
 # first time it is opened (right-click, Open; since macOS 15, System Settings → Privacy & Security → Open Anyway),
 # Windows SmartScreen warns. Nothing is published.
@@ -6,13 +6,15 @@
 #   npm run stage:win    NSIS installer, x64
 #   npm run stage:pack   an unpacked app for this machine
 appId: ai.livliv.stage
-productName: LivLiv Stage
+productName: VTuber Stage
 copyright: Copyright © 2026 LivLiv
 extraMetadata:
   name: livliv-stage-app
-  version: 1.0.0-preview  # the same as stage/package.json, which the About section shows
+  version: 1.0.0-preview.2  # the same as stage/package.json, which the About section shows
+  # Electron's app name stays the old one: the Keychain item (macOS) and keyring entry (Linux) that encrypt saved keys
+  # are named after it, so a new name would lose them. People see productName above.
   productName: LivLiv Stage
-  description: "LivLiv Stage: one stage, many characters, each with its own driver; characters talk to each other"
+  description: "VTuber Stage: one stage, many characters, each with its own driver; characters talk to each other"
   livliv:
     app: stage
 directories:
@@ -20,6 +22,7 @@ directories:
   buildResources: build/stage
 files:
   - dist/**/*.js
+  - dist/protocol/*.json
   - "!dist/test/**"
   - assets/**/*
   - package.json
@@ -52,10 +55,12 @@ nsis:
   perMachine: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
-  shortcutName: LivLiv Stage
+  shortcutName: VTuber Stage
   language: "2052"
   installerLanguages: [zh_CN, en_US]
-  artifactName: LivLiv-Stage-Setup-${version}.${ext}
+  artifactName: VTuber-Stage-Setup-${version}.${ext}
+  # --delete-app-data also removes the settings folder kept from LivLiv Stage (build/stage/installer.nsh)
+  include: build/stage/installer.nsh
 mac:
   target:
     - target: dmg
@@ -66,13 +71,13 @@ mac:
   # ad-hoc: without a valid signature, a downloaded app on Apple silicon is called damaged, with no way to open it
   identity: "-"
   hardenedRuntime: false
-  artifactName: LivLiv-Stage-${version}-${arch}.${ext}
+  artifactName: VTuber-Stage-${version}-${arch}.${ext}
   extendInfo:
-    NSCameraUsageDescription: LivLiv Stage 用摄像头做面捕，画面只在这台电脑上处理。
-    NSLocalNetworkUsageDescription: LivLiv Stage 与同一网络的朋友联播，并接收手机和追踪应用的角色动作。
-    NSMicrophoneUsageDescription: LivLiv Stage 用麦克风做口型和按住说话。
+    NSCameraUsageDescription: VTuber Stage 用摄像头做面捕，画面只在这台电脑上处理。
+    NSLocalNetworkUsageDescription: VTuber Stage 与同一网络的朋友联播，并接收手机和追踪应用的角色动作。
+    NSMicrophoneUsageDescription: VTuber Stage 用麦克风做口型和按住说话。
 dmg:
-  title: LivLiv Stage
+  title: VTuber Stage
   # the window shows where to drag the app and how to open it the first time while it is unsigned
   # (build/stage/background.png and @2x, made from dmg-background.html)
   background: build/stage/background.png

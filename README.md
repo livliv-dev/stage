@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="media/livliv-stage-wordmark-white.svg">
-    <img alt="LivLiv Stage" src="media/livliv-stage-wordmark-2000.png" width="360">
+    <source media="(prefers-color-scheme: dark)" srcset="media/vtuber-stage-wordmark-white.svg">
+    <img alt="VTuber Stage by LivLiv" src="media/vtuber-stage-wordmark-2000.png" width="360">
   </picture>
 </p>
 
@@ -17,15 +17,16 @@
 
 ## New in 1.0 Preview
 
-Stage is reorganised around what you came to do. [Download the 1.0 Preview](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview).
+Stage is reorganised around what you came to do. [Download the 1.0 Preview](https://github.com/livliv-dev/vtuber-stage/releases/tag/v1.0.0-preview).
 
 - **Start with a goal**: **I perform**, **AI goes live**, **Chat with a character** or **Make a video**. Each shows only what it needs, and one button starts it
 - **Free voices on your computer** with [Voicebox](https://voicebox.sh) (desktop app)
 - **Import character cards** from SillyTavern and AIRI
+- **New name**: LivLiv Stage is now VTuber Stage, by LivLiv (on livliv.ai it keeps the old name). Your settings, keys and projects stay as they are
 
 ## Also in Stage
 
-- Up to 30 characters on one stage: LivLiv, VRM and PNGTuber, with 27 featured characters
+- Up to 30 characters on one stage: LivLiv, VRM and PNGTuber, with 24 featured characters
 - Characters talk to each other and to your Twitch chat, with memory ([Project AIRI](https://github.com/moeru-ai/airi)) and realtime calls
 - Face tracking, OBS output, recording, games and the Neuro SDK
 
@@ -33,7 +34,7 @@ The AI runs on your own model key (OpenAI, Qwen, DeepSeek and more) or your LivL
 
 ## Try it
 
-- **Desktop app** (macOS, Windows): the [1.0 Preview](https://github.com/livliv-dev/stage/releases/tag/v1.0.0-preview), or the [stable version](https://github.com/livliv-dev/stage/releases/latest) ([backup download](https://downloads.livliv.ai/stage/index.html)).
+- **Desktop app** (macOS, Windows): the [1.0 Preview](https://github.com/livliv-dev/vtuber-stage/releases/tag/v1.0.0-preview), or the [stable version](https://github.com/livliv-dev/vtuber-stage/releases/latest) ([backup download](https://downloads.livliv.ai/stage/index.html)).
   On macOS, one line installs the stable version with no first-open prompt: `curl -fsSL https://livliv.ai/stage/install.sh | bash`
 - **Online (Web, limited features)**: [livliv.ai/stage](https://livliv.ai/stage)
 - **From source**: see [Develop](#develop)
@@ -50,7 +51,7 @@ The featured characters have [their own licence](stage/public/characters/LICENSE
 We want the art of creating characters to belong to everyone.
 
 We're open-sourcing our AI tools for character creation, [the player and its playback protocol](https://github.com/livliv-dev/player),
-and [a stage where your characters can meet an audience](https://github.com/livliv-dev/stage).
+and [a stage where your characters can meet an audience](https://github.com/livliv-dev/vtuber-stage).
 
 Come say hello on [Discord](https://discord.gg/ac5qF36T2H) and follow us on [X (Twitter)](https://x.com/livliv_ai).
 
@@ -59,8 +60,8 @@ Come say hello on [Discord](https://discord.gg/ac5qF36T2H) and follow us on [X (
 Node.js 22.18 or later. Stage uses a temporary LivLiv Player build until the next Player release ([vendor/player-temporary](vendor/player-temporary/README.md)).
 
 ```sh
-git clone https://github.com/livliv-dev/stage
-cd stage
+git clone https://github.com/livliv-dev/vtuber-stage
+cd vtuber-stage
 npm --prefix stage ci && npm --prefix stage run dev            # the web app at http://127.0.0.1:5222
 npm --prefix desktop ci && npm --prefix desktop run stage:dev  # the desktop app (stage:mac, stage:win build installers)
 ```

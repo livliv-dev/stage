@@ -1,3 +1,4 @@
+import { PRODUCT } from './core/product'
 import { tr } from './i18n'
 // Recording the whole stage: 录制 takes it down while it plays (tape.ts; the microphone too when asked, the conversation
 // started with it when asked), 停止 makes the video (render.ts), kept here until it is saved or a new take starts.
@@ -40,7 +41,7 @@ let marked = false  // this take's video gets the mark (decided when it started)
 /** a file name from the stage's name and the time: 未命名舞台-20261103-1142 */
 function fileName() {
   const d = new Date(), p = (n: number) => String(n).padStart(2, '0')
-  const base = store.get().name.replace(/[\\/:*?"<>|\s]+/g, '-').replace(/^-+|-+$/g, '') || 'LivLiv-Stage'
+  const base = store.get().name.replace(/[\\/:*?"<>|\s]+/g, '-').replace(/^-+|-+$/g, '') || PRODUCT.slug
   return `${base}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`
 }
 

@@ -112,7 +112,7 @@ async function main() {
     host: process.env.HOST || '127.0.0.1', port: Number(process.env.PORT) || 5234, origins: (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean), iceServers: JSON.parse(process.env.ICE_SERVERS || '[]'), relayOnly: process.env.RELAY_ONLY === '1',
     maxConnections: Number(process.env.MAX_CONNECTIONS) || 256, socketsPerAddress: Number(process.env.MAX_SOCKETS_PER_IP) || 4, roomsPerAddress: Number(process.env.MAX_ROOMS_PER_IP) || 2, trustProxy: process.env.TRUST_PROXY === '1',
   })
-  console.log(`LivLiv Stage signaling: ws://${relay.address.address}:${relay.address.port}/room`)
+  console.log(`VTuber Stage signaling: ws://${relay.address.address}:${relay.address.port}/room`)
   const stop = () => { void relay.close().then(() => process.exit()) }
   process.once('SIGINT', stop); process.once('SIGTERM', stop)
 }

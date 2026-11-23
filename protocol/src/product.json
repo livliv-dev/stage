@@ -1,0 +1,4 @@
+{
+  "site": { "name": "LivLiv Stage", "slug": "LivLiv-Stage", "mark": "wordmark.svg", "full": "wordmark.svg", "fullWidth": 160 },
+  "app": { "name": "VTuber Stage", "slug": "VTuber-Stage", "mark": "vtuber-stage-name.svg", "full": "vtuber-stage-wordmark.svg", "fullWidth": 190 }
+}

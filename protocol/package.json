@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "license": "Apache-2.0",
-  "homepage": "https://github.com/livliv-dev/stage",
-  "repository": { "type": "git", "url": "git+https://github.com/livliv-dev/stage.git", "directory": "protocol" },
-  "bugs": "https://github.com/livliv-dev/stage/issues",
-  "description": "What LivLiv Stage's desktop shell and its editor page say to each other: message types and their checks, in one place for both sides."
+  "homepage": "https://github.com/livliv-dev/vtuber-stage",
+  "repository": { "type": "git", "url": "git+https://github.com/livliv-dev/vtuber-stage.git", "directory": "protocol" },
+  "bugs": "https://github.com/livliv-dev/vtuber-stage/issues",
+  "description": "What VTuber Stage's desktop shell and its editor page say to each other: message types and their checks, in one place for both sides."
 }

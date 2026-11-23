@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url'
 import { freePort, startVite, testTimeout } from './vite.mjs'
 
 const dir = fileURLToPath(new URL('./prompts/', import.meta.url)), update = process.argv.includes('--update')
-let server, browser
+let server, siteServer, browser
 try {
   const port = await freePort(); server = await startVite({ port, args: ['--configLoader', 'native'] })
   browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
@@ -71,6 +71,17 @@ try {
     out['realtime-japanese-bare-card'] = await realtime({ topic: '', language: 'ja', depth: 'casual', scope: 'private' }, card('Mio'))
     return out
   })
+  // livliv.ai's build (VITE_STAGE_HOST=livliv) keeps the name LivLiv Stage: a character there is told it is in LivLiv
+  // Stage, everywhere else in VTuber Stage (the cases above)
+  const sitePort = await freePort(); siteServer = await startVite({ port: sitePort, args: ['--configLoader', 'native'], env: { VITE_STAGE_HOST: 'livliv' } })
+  const sitePage = await context.newPage(); sitePage.setDefaultTimeout(testTimeout(20000))
+  await sitePage.goto(`http://127.0.0.1:${sitePort}`, { waitUntil: 'networkidle' })
+  await sitePage.waitForFunction(() => !!window.__stage)
+  Object.assign(prompts, await sitePage.evaluate(async () => {
+    const { identity } = await import('/src/airiEngine.ts')
+    const nana = { id: 'nana', kind: 'character', name: 'Nana', persona: '住在海边的插画师，喜欢猫和雨天。', lines: 'ai', length: 'short', reactions: { enabled: true, intensity: 0.8, listen: true } }
+    return { 'airi-site-private-chinese': identity(nana, 'zh', 'private'), 'airi-site-public-english': identity(nana, 'en', 'public') }
+  }))
   // asked in earnest whether it is a real person or an AI, a character says it is a virtual one: every prompt of Stage's
   // own brain and every realtime call's instructions (Chinese) and every AIRI system prompt (English) say so, whatever
   // language the reply is in
@@ -88,4 +99,4 @@ try {
   console.log(JSON.stringify({ ok: true, prompts: Object.keys(prompts).length, updated: update }))
 } catch (error) {
   console.error(error); process.exitCode = 1
-} finally { await browser?.close(); server?.kill('SIGTERM') }
+} finally { await browser?.close(); server?.kill('SIGTERM'); siteServer?.kill('SIGTERM') }

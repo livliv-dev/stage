@@ -1,5 +1,6 @@
 // The top bar: the stage's name and its menu, edit / show, undo, templates, the mixer, 录制, 输出到 OBS, the project,
 // settings and the keys; on a phone, one menu for what doesn't fit.
+import { PRODUCT } from '../core/product'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Menu, CircleHelp, FolderOpen, LayoutTemplate, LoaderCircle, Volume2, MonitorPlay, Pencil, Play, Redo2, Save, Settings, Sparkles, Undo2 } from 'lucide-react'
@@ -51,8 +52,8 @@ export function TopBar({ onTemplate }: { onTemplate: (id: TemplateId) => void })
       <div className="left">
         {/* on the site and in the app the logo leads to livliv.ai's home (a new tab, or the browser); elsewhere it is only the logo */}
         {features.points ? <a className="mark-link" href={siteUrl('/')} target="_blank" rel="noopener" title={tr("livliv.ai 首页")}>
-          <img className="mark" src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" /></a>
-          : <img className="mark" src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" />}
+          <img className="mark" src={`${import.meta.env.BASE_URL}${PRODUCT.mark}`} alt={PRODUCT.name} /></a>
+          : <img className="mark" src={`${import.meta.env.BASE_URL}${PRODUCT.mark}`} alt={PRODUCT.name} />}
         <div className="menu-anchor scene-switcher"><input className="name" value={scene.name} aria-label={tr("舞台名字")} onChange={(e) => store.set({ name: e.target.value })} /><button className={pop === "scenes" ? "icon on" : "icon"} title={tr("切换镜头")} aria-expanded={pop === "scenes"} onClick={() => toggle("scenes")}><ChevronDown size={15} /></button>{pop === "scenes" && <ScenesMenu close={() => toggle(null)} onStartPage={() => { toggle(null); onStartPage() }} />}</div>
       </div>
       <div className="seg mode">
