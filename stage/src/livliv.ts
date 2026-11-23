@@ -122,7 +122,7 @@ export async function connect() {
   waiting = ctl
   set({ error: '' })
   try {
-    const r = await answer(await post('/api/connect/start', { app: 'LivLiv Stage', device: device() }))
+    const r = await answer(await post('/api/connect/start', { app: 'VTuber Stage', device: device() }))
     set({ connect: { code: r.code, url: r.url } })
     openConnect()
     const until = Date.now() + (r.expires_in ?? 600) * 1000

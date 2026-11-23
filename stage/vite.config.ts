@@ -7,10 +7,10 @@ const api = `http://127.0.0.1:${process.env.LM_API_PORT || 8000}`
 // livliv.ai/stage's build (scripts/build-site.mjs): the page's description and link preview
 const site = process.env.VITE_STAGE_HOST === 'livliv'
 const META = `
-    <meta name="description" content="LivLiv Stage, your AI VTuber studio. Give a character a personality, and in minutes it's chatting with you or streaming live. Or play it yourself. In your browser, open source." />
+    <meta name="description" content="VTuber Stage, your AI VTuber studio. Give a character a personality, and in minutes it's chatting with you or streaming live. Or play it yourself. In your browser, open source." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="LivLiv" />
-    <meta property="og:title" content="LivLiv Stage" />
+    <meta property="og:title" content="VTuber Stage" />
     <meta property="og:description" content="Your AI VTuber Studio. Give a character a personality, and in minutes it's live." />
     <meta property="og:url" content="https://livliv.ai/stage/" />
     <meta property="og:image" content="https://livliv.ai/stage/og.jpg" />

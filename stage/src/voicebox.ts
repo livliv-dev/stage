@@ -95,7 +95,7 @@ async function giveUpWith<T>(signal: AbortSignal | undefined, run: (id: string) 
   signal?.addEventListener('abort', cancel, { once: true })
   try { return await run(id) } finally { signal?.removeEventListener('abort', cancel) }
 }
-const unavailable = () => new Error(tr('Voicebox 只能在 LivLiv Stage 桌面版里用'))
+const unavailable = () => new Error(tr('Voicebox 只能在 VTuber Stage 桌面版里用'))
 
 /** a line said in this Voicebox profile, as a WAV */
 export async function voiceboxSpeak(profile: string, text: string, signal?: AbortSignal): Promise<Blob> {

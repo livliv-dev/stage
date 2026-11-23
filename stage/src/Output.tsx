@@ -40,7 +40,7 @@ export default function Output() {
     })
     return () => { clearInterval(alive); off(); window.removeEventListener('pagehide', bye) }
   }, [])
-  useEffect(() => { document.title = tr("LivLiv Stage · 输出") }, [locale])
+  useEffect(() => { document.title = tr("VTuber Stage · 输出") }, [locale])
   return (
     <div className="app show output">
       <Stage insets={NONE} zoom="fit" setZoom={() => {}} onMenu={() => {}} empty={null} mark={mark} />

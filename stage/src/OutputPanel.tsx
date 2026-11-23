@@ -22,11 +22,11 @@ export function OutputPanel({ open, onClose }: { open: boolean; onClose: () => v
       <button className={scene.background === '#00b140' ? 'on' : ''} onClick={() => store.set({ background: '#00b140' })}>{tr("绿幕")}</button></div>
     <ol className="output-steps">
       <li>{tr("打开输出窗口。")}</li>
-      <li>{tr("在 OBS 添加「窗口采集」，选择「LivLiv Stage · 输出」。")}</li>
+      <li>{tr("在 OBS 添加「窗口采集」，选择「VTuber Stage · 输出」。")}</li>
       {features.host === 'site' && scene.background === '#00b140' && <li>{tr("给它加「色度键」滤镜，去掉绿色。")}</li>}
     </ol>
     <details className="output-help"><summary>{tr("声音与背景设置")}</summary>
-      <p className="hint">{tr("角色声音：采集 LivLiv Stage 的应用音频。你的声音：添加麦克风音频输入。")}</p>
+      <p className="hint">{tr("角色声音：采集 VTuber Stage 的应用音频。你的声音：添加麦克风音频输入。")}</p>
       <p className="hint">{tr("透明采集出现黑底时，切换绿幕并在 OBS 添加色度键滤镜。")}</p>
       {!features.shell && <p className="hint">{tr("别让其他窗口完全盖住输出窗口，否则画面会停住。")}</p>}
     </details>

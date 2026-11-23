@@ -6,7 +6,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 
-const repo = 'livliv-dev/stage'
+const repo = 'livliv-dev/vtuber-stage'
 const github = `https://github.com/${repo}`
 
 export function mirrorAssets(release) {
@@ -14,12 +14,14 @@ export function mirrorAssets(release) {
     throw new Error('Only published stable Stage releases can be mirrored')
   }
   const version = release.tag_name.slice(1)
+  // releases before the new name call their files LivLiv-Stage-…
+  const prefix = release.assets.some(asset => asset.name.startsWith('VTuber-Stage-')) ? 'VTuber-Stage' : 'LivLiv-Stage'
   const names = [
-    `LivLiv-Stage-${version}-arm64.dmg`,
-    `LivLiv-Stage-${version}-x64.dmg`,
-    `LivLiv-Stage-Setup-${version}.exe`,
-    `LivLiv-Stage-${version}-arm64.zip`,
-    `LivLiv-Stage-${version}-x64.zip`,
+    `${prefix}-${version}-arm64.dmg`,
+    `${prefix}-${version}-x64.dmg`,
+    `${prefix}-Setup-${version}.exe`,
+    `${prefix}-${version}-arm64.zip`,
+    `${prefix}-${version}-x64.zip`,
   ]
   return names.flatMap((name, i) => {
     const asset = release.assets.find(asset => asset.name === name)

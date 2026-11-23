@@ -6,11 +6,17 @@ import path from 'node:path'
 import test from 'node:test'
 import { mirrorAssets, prepareMirror } from './prepare-download-mirror.mjs'
 
-function fixture() {
-  return { tag_name: 'v0.4.1', draft: false, prerelease: false, assets: [
-    'LivLiv-Stage-0.4.1-arm64.dmg', 'LivLiv-Stage-0.4.1-x64.dmg', 'LivLiv-Stage-Setup-0.4.1.exe',
+function fixture(prefix = 'LivLiv-Stage', version = '0.4.1') {
+  return { tag_name: 'v' + version, draft: false, prerelease: false, assets: [
+    `${prefix}-${version}-arm64.dmg`, `${prefix}-${version}-x64.dmg`, `${prefix}-Setup-${version}.exe`,
   ].map(name => ({ name, size: 4, digest: 'sha256:' + createHash('sha256').update('test').digest('hex') })) }
 }
+
+test('finds the installers under the new name, and under the old one in earlier releases', () => {
+  assert.deepEqual(mirrorAssets(fixture('VTuber-Stage', '1.1.0')).map(a => a.name),
+    ['VTuber-Stage-1.1.0-arm64.dmg', 'VTuber-Stage-1.1.0-x64.dmg', 'VTuber-Stage-Setup-1.1.0.exe'])
+  assert.equal(mirrorAssets(fixture()).at(-1).source, 'https://github.com/livliv-dev/vtuber-stage/releases/download/v0.4.1/LivLiv-Stage-Setup-0.4.1.exe')
+})
 
 test('rejects unpublished releases, missing installers and absent GitHub hashes', () => {
   for (const release of [

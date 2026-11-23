@@ -6,7 +6,7 @@ Aoi（char06）、Sora（char07）、Yui（d01）、Leo（d02）、Nana（d03）
 
 署名：「角色：LivLiv（livliv.ai）」。
 
-LICENSE.md 提到的 Kujira（p01）、Kujira Q（p02）和 Pen（p03）来自别人的作品，LivLiv Stage 不包含它们。它们随 LivLiv Player 提供，来源和条款见 Player 仓库的 `characters/CREDITS.md`。
+LICENSE.md 提到的 Kujira（p01）、Kujira Q（p02）和 Pen（p03）来自别人的作品，VTuber Stage 不包含它们。它们随 LivLiv Player 提供，来源和条款见 Player 仓库的 `characters/CREDITS.md`。
 
 ---
 
@@ -18,4 +18,4 @@ Aoi (char06), Sora (char07), Yui (d01), Leo (d02), Nana (d03), Nana, refined (d0
 
 Credit: "Characters: LivLiv (livliv.ai)".
 
-Kujira (p01), Kujira Q (p02) and Pen (p03), which LICENSE.md mentions, come from other people's work and are not part of LivLiv Stage. They come with LivLiv Player; see `characters/CREDITS.md` in the Player repository for where they come from and their terms.
+Kujira (p01), Kujira Q (p02) and Pen (p03), which LICENSE.md mentions, come from other people's work and are not part of VTuber Stage. They come with LivLiv Player; see `characters/CREDITS.md` in the Player repository for where they come from and their terms.

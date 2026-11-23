@@ -77,7 +77,7 @@ export function airiIdentity(p: PersonaSpec) {
     ja: 'Reply in Japanese.',
   }[p.language]
   return [
-    'You are ' + JSON.stringify(p.name) + ', the character ' + (p.scope === 'public' ? 'currently performing in LivLiv Stage' : 'in a private LivLiv Stage conversation') + '. Use only this character\'s identity.',
+    'You are ' + JSON.stringify(p.name) + ', the character ' + (p.scope === 'public' ? 'currently performing in VTuber Stage' : 'in a private VTuber Stage conversation') + '. Use only this character\'s identity.',
     HONEST.en,
     p.persona && 'Personality: ' + named(p, p.persona),
     p.style && 'Speaking style: ' + named(p, p.style),

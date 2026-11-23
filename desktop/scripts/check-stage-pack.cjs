@@ -23,6 +23,8 @@ exports.default = async (ctx) => {
   // the shared protocol package, compiled into the app's own output and reached as #protocol/*
   const pkg = JSON.parse(asar.extractFile(archive, 'package.json').toString())
   if (pkg.imports?.['#protocol/*'] !== './dist/protocol/*.js') throw new Error('the app\'s package.json lost its #protocol/* imports')
+  // Electron's app name, which names the Keychain item (macOS) and keyring entry (Linux) the saved keys are encrypted with
+  if (pkg.productName !== 'LivLiv Stage') throw new Error(`the app's package.json productName must stay "LivLiv Stage" (saved keys are encrypted under it), not ${JSON.stringify(pkg.productName)}`)
   for (const module of ['bridge', 'commands', 'stageCommands', 'tracking', 'neuro', 'airiGame', 'collab', 'voicebox']) asar.extractFile(archive, `dist/protocol/${module}.js`)
   const want = readdirSync(join(repo, 'public', 'characters')).sort().join()
   const got = readdirSync(join(stage, 'characters')).sort().join()

@@ -150,7 +150,7 @@ try {
   await page.evaluate(() => window.__stage.talk.say('现在在录像'))
   await page.waitForFunction(() => { const c = window.__stage.conversation(); return c.waitingInput && !c.speaking && c.lines.some((l) => l.human && l.text === '现在在录像') && !c.lines.at(-1).human })
   assert.ok(asked.length, 'AIRI answered in public')
-  assert.ok(asked.every((a) => /公开的爱好是猫/.test(system(a)) && !/私下的暗号是木瓜/.test(system(a)) && !JSON.stringify(a.body.messages).includes('in a private LivLiv Stage conversation')), 'public: the public memory only')
+  assert.ok(asked.every((a) => /公开的爱好是猫/.test(system(a)) && !/私下的暗号是木瓜/.test(system(a)) && !JSON.stringify(a.body.messages).includes('in a private VTuber Stage conversation')), 'public: the public memory only')
   await page.evaluate(async () => { const { talk, rec } = window.__stage; talk.stop(); await rec.stop() })
   await page.waitForFunction(() => !['starting', 'recording', 'making'].includes(window.__stage.recording().phase), null, { timeout: testTimeout(60000) })
   // the record back to a fresh private one (the recording left the public one open)

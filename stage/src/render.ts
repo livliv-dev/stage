@@ -182,7 +182,7 @@ export async function renderTake(take: Take, name: string, onProgress: (share: n
     const mem = pf ? null : new mb.BufferTarget()
     const target = pf ? new mb.StreamTarget(pf.writable as unknown as WritableStream<import('mediabunny').StreamTargetChunk>, { chunked: true, chunkSize: 4 << 20 }) : mem!
     const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: pf ? false : 'in-memory' }), target })
-    output.setMetadataTags({ title: name, comment: tr("AI 生成：LivLiv Stage（livliv.ai）") })  // the implicit AIGC label, as the site's videos
+    output.setMetadataTags({ title: name, comment: tr("AI 生成：VTuber Stage（livliv.ai）") })  // the implicit AIGC label, as the site's videos
     const out = document.createElement('canvas')
     out.width = W; out.height = H
     const g = out.getContext('2d')!

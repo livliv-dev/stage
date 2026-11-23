@@ -150,7 +150,7 @@ export function SpeechForm({ forCharacter, onDone }: { forCharacter?: string; on
   const test = async () => {
     setSt({ busy: true })
     try {
-      const blob = await speakApi(d, tr("你好，这是 LivLiv Stage 的声音测试。"), d.voice, 'happy', 1)
+      const blob = await speakApi(d, tr("你好，这是 VTuber Stage 的声音测试。"), d.voice, 'happy', 1)
       const url = URL.createObjectURL(blob)
       await new Audio(url).play().finally(() => setTimeout(() => URL.revokeObjectURL(url), 30_000))
       if (!asrReady(d)) { setSt({ ok: tr("能说") }); return }

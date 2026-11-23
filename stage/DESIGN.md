@@ -1,4 +1,4 @@
-# LivLiv Stage 早期设计依据
+# VTuber Stage 早期设计依据
 
 当前布局与功能以 [仓库 README](../README.md) 和代码为准。本记录保留早期原型的设计过程。
 

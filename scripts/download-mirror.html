@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<title>LivLiv Stage · Backup downloads</title>
+<title>VTuber Stage · Backup downloads</title>
 <style>
   :root { color-scheme: light dark; font-family: system-ui, sans-serif; color: #222631; background: #f7f8fb; }
   * { box-sizing: border-box; }
@@ -32,7 +32,7 @@
   }
 </style>
 <body>
-<header><a href="https://livliv.ai/stage">LivLiv Stage</a><select aria-label="Language" id="language"><option value="en">English</option><option value="zh">中文</option><option value="ja">日本語</option></select></header>
+<header><a href="https://livliv.ai/stage">VTuber Stage</a><select aria-label="Language" id="language"><option value="en">English</option><option value="zh">中文</option><option value="ja">日本語</option></select></header>
 <main>
   <h1 data-text="title">Backup downloads</h1>
   <p data-text="intro">Use this mirror if GitHub downloads are slow. These are the same official installers.</p>
@@ -40,10 +40,10 @@
   <div class="cards" id="cards"></div>
 </main>
 <footer>
-  <p><a href="https://github.com/livliv-dev/stage/releases/latest" data-text="github">Download from GitHub</a> · <a id="notes" data-text="notes">Release notes</a> · <a id="checksums">SHA256</a></p>
+  <p><a href="https://github.com/livliv-dev/vtuber-stage/releases/latest" data-text="github">Download from GitHub</a> · <a id="notes" data-text="notes">Release notes</a> · <a id="checksums">SHA256</a></p>
   <p data-text="verified">Files are verified against the SHA256 digests on GitHub before publishing.</p>
 </footer>
-<noscript><p><a href="https://github.com/livliv-dev/stage/releases/latest">Download from GitHub / 从 GitHub 下载 / GitHub からダウンロード</a></p></noscript>
+<noscript><p><a href="https://github.com/livliv-dev/vtuber-stage/releases/latest">Download from GitHub / 从 GitHub 下载 / GitHub からダウンロード</a></p></noscript>
 <script>
   const release = __RELEASE_JSON__;
   const text = {
@@ -56,7 +56,7 @@
   function render() {
     const t = text[language.value];
     document.documentElement.lang = language.value === 'zh' ? 'zh-CN' : language.value;
-    document.title = 'LivLiv Stage · ' + t.title;
+    document.title = 'VTuber Stage · ' + t.title;
     document.querySelectorAll('[data-text]').forEach(el => { el.textContent = t[el.dataset.text]; });
     document.querySelector('#version').textContent = t.version + ' ' + release.tag;
     document.querySelector('#notes').href = release.source;
@@ -65,7 +65,7 @@
     const cards = document.querySelector('#cards');
     cards.replaceChildren();
     for (const [label, detail, suffix] of [['macOS', t.apple, version + '-arm64.dmg'], ['macOS', t.intel, version + '-x64.dmg'], ['Windows', t.windows, 'Setup-' + version + '.exe']]) {
-      const asset = release.assets.find(a => a.name === 'LivLiv-Stage-' + suffix);
+      const asset = release.assets.find(a => a.name === 'VTuber-Stage-' + suffix || a.name === 'LivLiv-Stage-' + suffix);
       const card = document.createElement('article');
       const heading = document.createElement('h2'); heading.textContent = label;
       const description = document.createElement('p'); description.textContent = detail;

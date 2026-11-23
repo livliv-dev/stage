@@ -47,7 +47,7 @@ export function TopBar({ onTemplate }: { onTemplate: (id: TemplateId) => void })
   return (
     <header className="topbar" onPointerDown={(e) => e.stopPropagation()}>
       <div className="left">
-        <img className="mark" src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="LivLiv Stage" />
+        <img className="mark" src={`${import.meta.env.BASE_URL}wordmark.svg`} alt="VTuber Stage" />
         <div className="menu-anchor scene-switcher"><input className="name" value={scene.name} aria-label={tr("舞台名字")} onChange={(e) => store.set({ name: e.target.value })} /><button className={pop === "scenes" ? "icon on" : "icon"} title={tr("切换镜头")} aria-expanded={pop === "scenes"} onClick={() => toggle("scenes")}><ChevronDown size={15} /></button>{pop === "scenes" && <ScenesMenu close={() => toggle(null)} onStartPage={() => { toggle(null); onStartPage() }} />}</div>
       </div>
       <div className="seg mode">

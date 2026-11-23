@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto'
 import { join } from 'node:path'
 import { app, BrowserWindow, globalShortcut, Menu, safeStorage, type MenuItemConstructorOptions } from 'electron'
 import { parseDo } from '#protocol/commands'
-import { APP, APP_ORIGIN, DEV, flag, LIVLIV_API, ORIGINS, STAGE_BUILT, STAGE_DIR, VERSION, WEBGL_CONTEXTS } from './config'
+import { APP, APP_ORIGIN, DEV, flag, LIVLIV_API, NAME, ORIGINS, STAGE_BUILT, STAGE_DIR, VERSION, WEBGL_CONTEXTS } from './config'
 import { applyHotkeys, defaultBindings, hotkeyState, stageBindings } from './hotkeys'
 import { registerIpc } from './ipc'
 import { startLocalApi, type LocalApi } from './localApi'
@@ -110,8 +110,14 @@ function capabilities() {
 function appMenu() {
   const view: MenuItemConstructorOptions[] = [{ role: 'reload' }, { role: 'forceReload' }, ...(DEV ? [{ role: 'toggleDevTools' } as const] : []),
     { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'togglefullscreen' }]
+  // the app menu by NAME, not Electron's app name (which keeps the old one, config.ts)
+  const named: MenuItemConstructorOptions = { label: NAME, submenu: [
+    { role: 'about', label: `About ${NAME}` }, { type: 'separator' }, { role: 'services' }, { type: 'separator' },
+    { role: 'hide', label: `Hide ${NAME}` }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' },
+    { role: 'quit', label: `Quit ${NAME}` }] }
+  app.setAboutPanelOptions({ applicationName: NAME })
   Menu.setApplicationMenu(Menu.buildFromTemplate([
-    ...(process.platform === 'darwin' ? [{ role: 'appMenu' } as const] : []),
+    ...(process.platform === 'darwin' ? [named] : []),
     { role: 'editMenu' }, { role: 'viewMenu', submenu: view }, { role: 'windowMenu' },
   ]))
 }
@@ -130,7 +136,7 @@ function startStage() {
   syncHotkeys()
   void syncLocalApi()
   void motionInput?.configure(settings().trackingInput)
-  console.log(`[livliv] LivLiv Stage ${VERSION} on ${APP_ORIGIN}${STAGE_BUILT ? ` (${STAGE_DIR}, LivLiv at ${LIVLIV_API})` : ''}${DEV ? ' (development)' : ''}`)
+  console.log(`[livliv] VTuber Stage ${VERSION} on ${APP_ORIGIN}${STAGE_BUILT ? ` (${STAGE_DIR}, LivLiv at ${LIVLIV_API})` : ''}${DEV ? ' (development)' : ''}`)
 }
 
 if (APP === 'stage') {
