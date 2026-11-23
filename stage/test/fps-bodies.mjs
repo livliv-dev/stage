@@ -42,11 +42,28 @@ async function measure(page, hooks) {
 }
 /** what draws: the GPU, as WebGL names it */
 const gpu = (page) => page.evaluate(() => { const gl = document.createElement('canvas').getContext('webgl2'), x = gl?.getExtension('WEBGL_debug_renderer_info'); return x ? gl.getParameter(x.UNMASKED_RENDERER_WEBGL) : gl ? 'unknown' : 'none' })
-/** a project file opened from the top bar, until its three characters are on the stage */
-async function open(page, kind) {
-  await page.locator('.topbar input[type=file]').setInputFiles({ name: `${kind}.livstage`, mimeType: 'application/zip', buffer: Buffer.from(report.projects[kind]) })
-  await page.locator('.project-progress').waitFor({ state: 'hidden' }); await page.waitForTimeout(500)
-  await page.waitForFunction(() => document.querySelectorAll('canvas.character').length === 3 && !document.querySelector('.badge'), null, { timeout: 60000 })
+/** a project file opened from the top bar, until its three characters are on the stage: with Stage's hooks, each
+ *  ready; without, three canvases and no loading or error badge on them */
+async function open(page, kind, hooks) {
+  // the desktop app: as the top bar opens one (its file picker is the shell's); the site build: through the top bar
+  if (hooks) await page.evaluate(async (bytes) => {
+    const { openProject } = await import('/src/project.ts'), { project } = await openProject(new File([new Uint8Array(bytes)], 'stage.livstage'))
+    window.__stage.store.replaceProject(project)
+  }, report.projects[kind])
+  else {
+    await page.locator('.topbar input[type=file]').setInputFiles({ name: `${kind}.livstage`, mimeType: 'application/zip', buffer: Buffer.from(report.projects[kind]) })
+    await page.locator('.project-progress').waitFor({ state: 'hidden' })
+  }
+  await page.waitForTimeout(500)
+  const ready = hooks
+    ? () => window.__stage.actors.size === 3 && [...window.__stage.actors.values()].every((a) => a.status === 'ready')
+    : () => document.querySelectorAll('canvas.character').length === 3 && ![...document.querySelectorAll('canvas.character ~ .badge')].length
+  await page.waitForFunction(ready, null, { timeout: 90000 }).catch(async (e) => {
+    await page.screenshot({ path: join(work, `${kind}-stuck.png`) })
+    const seen = await page.evaluate(() => ({ canvases: document.querySelectorAll('canvas.character').length, badges: [...document.querySelectorAll('.badge')].map((b) => b.textContent),
+      actors: window.__stage ? [...window.__stage.actors.values()].map((a) => [a.format, a.status, a.error]) : null }))
+    throw new Error(`${kind}: not ready: ${JSON.stringify(seen)} (${work})`, { cause: e })
+  })
 }
 
 const port = await freePort(), origin = `http://127.0.0.1:${port}`
@@ -80,7 +97,7 @@ try {
   const win = await app.firstWindow()
   await win.addInitScript(init); await win.reload(); await win.waitForSelector('.topbar')
   report.desktop.gpu = await gpu(win)
-  for (const kind of KINDS) { await open(win, kind); report.desktop[kind] = await measure(win, true) }
+  for (const kind of KINDS) { await open(win, kind, true); report.desktop[kind] = await measure(win, true) }
   await app.close(); app = null
 
   // the site build, served at /stage/ as livliv.ai serves it
@@ -99,7 +116,7 @@ try {
   const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage()
   await page.addInitScript(init); await page.goto(`http://127.0.0.1:${site.address().port}/stage/`, { waitUntil: 'networkidle' })
   report.site.gpu = await gpu(page)
-  for (const kind of KINDS) { await open(page, kind); report.site[kind] = await measure(page, false) }
+  for (const kind of KINDS) { await open(page, kind, false); report.site[kind] = await measure(page, false) }
 } finally {
   await app?.close(); await browser?.close(); vite?.kill(); site?.close(); api.close()
 }

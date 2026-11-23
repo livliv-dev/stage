@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { Zip, ZipPassThrough, zipSync } from 'fflate'
 import { archivePath, packFiles, PROJECT_LIMIT, unpackFiles } from '../src/archive'
@@ -38,4 +39,20 @@ test('valid ZIPs that lose their end record or have altered payload bytes are re
   const changed = bytes.slice(), index = Buffer.from(changed).indexOf('{"name":"A"}')
   assert.ok(index >= 0); changed[index + 9] = 66
   await assert.rejects(unpackFiles(new Blob([changed])))
+})
+
+test('a project holding ZIPs of its own (an imported .livliv or .mavatar) opens again, each file as it was', async () => {
+  const mavatar = new Uint8Array(readFileSync(new URL('./fixtures/nana.mavatar', import.meta.url)))
+  const livliv = zipSync({ 'model.json': new TextEncoder().encode('{"format":"livliv-model"}'), 'textures/a.webp': new Uint8Array(4000).fill(7) }, { level: 6 })
+  const original = new Map([['project.json', new Blob(['{}'])], ['models/m0/model.mavatar', new Blob([mavatar])], ['models/m1/Nana.livliv', new Blob([livliv])], ['pictures/p0', new Blob([new Uint8Array([9, 8, 7])])]])
+  const files = await unpackFiles(await packFiles(original))
+  assert.deepEqual([...files.keys()], [...original.keys()])
+  for (const [name, value] of original) assert.ok(Buffer.from(await files.get(name)!.arrayBuffer()).equals(Buffer.from(await value.arrayBuffer())), name)
+})
+
+test('a project written by another tool, its entries deflated and its sizes in the headers, opens too', async () => {
+  const bytes = zipSync({ 'project.json': new TextEncoder().encode('{"name":"x"}'.repeat(200)), 'models/m0/model.json': [new TextEncoder().encode('{}'), { level: 0 }] }, { level: 9 })
+  const files = await unpackFiles(new Blob([bytes]))
+  assert.equal(await files.get('project.json')!.text(), '{"name":"x"}'.repeat(200))
+  assert.equal(await files.get('models/m0/model.json')!.text(), '{}')
 })
