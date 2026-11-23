@@ -1,7 +1,8 @@
 // How smoothly .mavatar characters play beside PNGTuber ones: three of a kind on one stage, in the desktop app (Electron,
 // on Stage's dev server for its hooks) and in the site build (built as livliv.ai serves it, at /stage/, in Chromium on
 // this machine's GPU). Each stage comes in as a project file (made here with Stage's own save), so the site build needs
-// no hooks. Measured over 6 s after 3 s to settle: the page's frame rate, and in the desktop app each character's.
+// no hooks. Measured over 6 s after 3 s to settle: the page's frame rate, and in the desktop app each character's and
+// what its drawing costs the main thread a frame.
 // A measurement for a person to read, not a pass or fail: the numbers depend on the machine and on what else it runs.
 //   npm --prefix ../desktop run build && node test/fps-bodies.mjs        (macOS)
 import { createServer } from 'node:http'
@@ -31,12 +32,19 @@ async function measure(page, hooks) {
     const tick = (now) => { gaps.push(now - last); last = now; if (on) requestAnimationFrame(tick) }
     requestAnimationFrame((now) => { last = now; requestAnimationFrame(tick) })
     const off = hooks ? (await import('/src/actors.ts')).onFrame((a) => drawn.set(a.item.id, (drawn.get(a.item.id) ?? 0) + 1)) : () => {}
+    // with the hooks, what each character's drawing costs a frame (its body's render: the GPU's part is not counted)
+    const spent = [], undo = []
+    if (hooks) for (const a of window.__stage.actors.values()) {
+      const body = a.player.body, render = body.render, i = spent.push([]) - 1
+      body.render = function (...args) { const t = performance.now(); try { return render.apply(this, args) } finally { spent[i].push(performance.now() - t) } }
+      undo.push(() => { body.render = render })
+    }
     const t0 = performance.now()
-    await new Promise((resolve) => setTimeout(resolve, ms)); off(); on = false
+    await new Promise((resolve) => setTimeout(resolve, ms)); off(); on = false; undo.forEach((f) => f())
     const seconds = (performance.now() - t0) / 1000, sorted = [...gaps].sort((a, b) => a - b), each = [...drawn.values()].map((n) => n / seconds)
     return {
       fps: Math.round(gaps.length / seconds * 10) / 10, p95ms: Math.round(sorted[Math.floor(sorted.length * 0.95)] * 10) / 10, over33ms: gaps.filter((g) => g > 33.4).length,
-      ...(hooks ? { characters: each.map((n) => Math.round(n * 10) / 10) } : {}),
+      ...(hooks ? { characters: each.map((n) => Math.round(n * 10) / 10), renderMs: spent.map((t) => Math.round(t.reduce((x, y) => x + y, 0) / Math.max(1, t.length) * 100) / 100) } : {}),
     }
   }, [MEASURE, hooks])
 }
