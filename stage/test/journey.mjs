@@ -115,11 +115,20 @@ try{
  await settings.waitFor({state:'detached'});await checklist.waitFor()
  const config=await page.evaluate(async()=>{const v=await import('/src/voiceApi.ts'),b=await import('/src/brain.ts'),cast=window.__stage.store.get().items.filter(c=>c.kind==='character'),s=v.activeSpeech();return {provider:s.provider,model:s.model,voices:cast.map(c=>v.apiVoice(c,s,cast)),brain:b.loadBrainConfig().provider}})
  assert.equal(config.provider,'qwen');assert.equal(config.model,'qwen-audio-3.1-tts-flash');assert.equal(new Set(config.voices).size,3);const stable=await page.evaluate(async()=>{const v=await import('/src/voiceApi.ts'),cast=window.__stage.store.get().items.filter(c=>c.kind==='character'),s=v.activeSpeech();return cast.every(c=>v.apiVoice(c,s,cast)===v.apiVoice(c,s,[...cast].reverse())&&v.apiVoice(c,s,cast)===v.apiVoice(c,s,[c]))});assert.equal(stable,true);report.defaults=config
- await page.evaluate(()=>{const s=window.__stage.store;s.set({talk:{...s.get().talk,order:'round'}});window.__stage.talk.clear();window.__stage.talk.setLimit(2);window.journeyAudio=[];window.journeyMouthByName={}})
+ // each line read on its own, from the moment it is heard until its speaker stops: the speaker's lip sync every 10 ms
+ // (with no microphone, inputLevel is the voice's level, what the next frame opens the mouth by) and every frame drawn
+ // meanwhile. A slow runner may draw no frame at all in a 0.5 s line
+ await page.evaluate(async()=>{const s=window.__stage.store;s.set({talk:{...s.get().talk,order:'round'}});window.__stage.talk.clear();window.__stage.talk.setLimit(2);window.journeyAudio=[];window.journeyMouthByName={}
+  const a=await import('/src/actors.ts');window.journeyLines=[]
+  window.journeyLinesOff=a.onHeard(h=>{const actor=window.__stage.actors.get(h.who),line={who:h.who,mouth:0,frames:0,done:false},started=performance.now();window.journeyLines.push(line)
+   const off=a.onFrame(x=>{if(x===actor){line.frames++;line.mouth=Math.max(line.mouth,x.lastPose.params.mouthOpen)}})
+   const poll=setInterval(()=>{line.mouth=Math.max(line.mouth,actor.inputLevel);if(!actor.speaking||performance.now()-started>5000){clearInterval(poll);off();line.done=true}},10)})})
  assert.equal((await checklist.locator('footer .primary').innerText()).trim(),'开始');await checklist.locator('footer .primary').click();await page.waitForFunction(()=>window.__stage.conversation().turns===2&&!window.__stage.conversation().running)
  assert.equal((await page.evaluate(()=>window.__stage.conversation().error)),'');assert.ok(requests.some(r=>r.path.endsWith('/SpeechSynthesizer')))
- // both lines heard in Bailian's voice, each speaker's mouth moving with it
- const heard=await page.evaluate(()=>({audio:window.journeyAudio.length,mouth:Object.values(window.journeyMouthByName)}));assert.equal(heard.audio,2);assert.equal(heard.mouth.filter(v=>v>.05).length,2,JSON.stringify(heard))
+ // both lines heard in Bailian's voice, each speaker's mouth moving while its own line plays
+ await page.waitForFunction(()=>window.journeyLines.length===2&&window.journeyLines.every(l=>l.done))
+ const heard=await page.evaluate(()=>{window.journeyLinesOff();return {audio:window.journeyAudio.length,lines:window.journeyLines}});report.bailianLines=heard.lines
+ assert.equal(heard.audio,2);assert.equal(new Set(heard.lines.map(l=>l.who)).size,2,JSON.stringify(heard));assert.ok(heard.lines.every(l=>l.mouth>.05),JSON.stringify(heard))
  // Bailian's voice comes from its stream's events, a WAV with its real sizes; the file link at the end is never read. Its
  // length within 0.01 s: a browser may decode it resampled (to 44.1 kHz)
  const spoken=await page.evaluate(async()=>{const v=await import('/src/voiceApi.ts'),b=await v.speakApi(v.activeSpeech(),'你好','','happy',1),bytes=await b.arrayBuffer(),d=new DataView(bytes),ctx=new AudioContext(),a=await ctx.decodeAudioData(bytes.slice(0));await ctx.close();return {type:b.type,size:bytes.byteLength,riff:d.getUint32(4,true),data:d.getUint32(40,true),seconds:a.duration}})
