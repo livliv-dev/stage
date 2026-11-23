@@ -57,7 +57,7 @@ Come say hello on [Discord](https://discord.gg/ac5qF36T2H) and follow us on [X (
 
 ## Develop
 
-Node.js 22.18 or later. Stage uses a temporary LivLiv Player build until the next Player release ([vendor/player-temporary](vendor/player-temporary/README.md)).
+Node.js 22.18 or later.
 
 ```sh
 git clone https://github.com/livliv-dev/vtuber-stage

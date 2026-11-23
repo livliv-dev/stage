@@ -56,7 +56,7 @@ AI を使ったキャラクター制作のツール群、[プレイヤーとそ�
 
 ## 開発
 
-Node.js 22.18 以降が必要です。次の Player リリースまで、Stage は一時的な LivLiv Player ビルドを使います（[vendor/player-temporary](vendor/player-temporary/README.md)）。
+Node.js 22.18 以降が必要です。
 
 ```sh
 git clone https://github.com/livliv-dev/vtuber-stage
